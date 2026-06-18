@@ -128,150 +128,111 @@ function VideoFeedItem({
   }
 
   return (
-    /* Mesmo container do PostCard: px-4 py-3 border-b border-border */
+    /* Container igual ao PostCard — sem cabeçalho de avatar (já aparece acima como post) */
     <div
-      className="px-4 py-4 border-b border-border hover:bg-muted/20 transition-colors"
+      className="border-b border-border"
       data-testid={`video-card-${post.id}`}
     >
-      {/* Linha superior: avatar + nome (igual ao PostCard) */}
-      <div className="flex items-center gap-3 mb-3">
-        <Link href={`/profile/${author.username}`} className="shrink-0">
-          <Avatar className="w-10 h-10 hover:opacity-90 transition-opacity">
-            <AvatarImage src={author.avatarUrl} />
-            <AvatarFallback>{author.displayName[0]}</AvatarFallback>
-          </Avatar>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Link href={`/profile/${author.username}`} className="font-bold text-sm hover:underline leading-tight">
-              {author.displayName}
-            </Link>
-            {author.isVerified && (
-              <span className="w-3.5 h-3.5 bg-primary rounded-full inline-flex items-center justify-center">
-                <Check className="w-2 h-2 text-white" />
-              </span>
-            )}
-            <span className="text-muted-foreground text-sm">@{author.username}</span>
-          </div>
-        </div>
-        {/* Botão seguir */}
-        <button
-          onClick={() => setFollowed(v => !v)}
-          data-testid="button-follow-video"
-          className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-            followed
-              ? "border-border text-muted-foreground hover:border-destructive hover:text-destructive"
-              : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-          }`}
-        >
-          {followed ? "Seguindo" : "Seguir"}
-        </button>
-      </div>
+      {/* Vídeo largo: largura total do container, altura fixa, ações sobrepostas dentro */}
+      <div className="relative w-full overflow-hidden bg-black" style={{ height: "min(72vw, 480px)" }}>
+        <img
+          src={post.mediaUrls?.[0]}
+          alt=""
+          className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? "scale-100" : "scale-105"}`}
+        />
 
-      {/* Palco: vídeo 9:16 centralizado + ações à direita */}
-      <div className="flex items-end gap-3 justify-center">
+        {/* Gradientes */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-black/20 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/40 pointer-events-none" />
 
-        {/* Caixa do vídeo — 9:16, largura máxima controlada */}
-        <div
-          className="relative rounded-xl overflow-hidden bg-black shadow-xl flex-shrink-0"
-          style={{ aspectRatio: "9/16", width: "min(240px, 55vw)" }}
-        >
-          <img
-            src={post.mediaUrls?.[0]}
-            alt=""
-            className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? "scale-100" : "scale-105"}`}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent pointer-events-none" />
-
-          {/* Botão mudo */}
-          <div className="absolute top-2 right-2 z-10">
-            <button
-              onClick={onToggleMute}
-              data-testid="button-mute"
-              className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/10"
-            >
-              {globalMuted
-                ? <VolumeX className="w-3 h-3 text-white" />
-                : <Volume2 className="w-3 h-3 text-white" />
-              }
-            </button>
-          </div>
-
-          {/* Legenda + música na base do vídeo */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 px-2.5 pb-2.5 pt-8 bg-gradient-to-t from-black/80 to-transparent">
-            <button
-              className="block text-left w-full"
-              onClick={() => setCaptionExpanded(v => !v)}
-              data-testid="button-expand-caption"
-            >
-              <p className={`text-white/90 text-[11px] leading-relaxed drop-shadow ${captionExpanded ? "" : "line-clamp-2"}`}>
-                {post.content}
-              </p>
-              {post.content.length > 60 && (
-                <span className="text-white/50 text-[10px]">
-                  {captionExpanded ? "ver menos" : "ver mais"}
-                </span>
-              )}
-            </button>
-            <div className="flex items-center gap-1 mt-1.5 overflow-hidden">
-              <Music2 className="w-2.5 h-2.5 text-white/60 shrink-0" />
-              <div className="overflow-hidden flex-1">
-                <motion.p
-                  animate={{ x: [0, -80, 0] }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                  className="text-white/60 text-[10px] whitespace-nowrap"
-                >
-                  {post.musicTitle}
-                </motion.p>
-              </div>
-            </div>
-          </div>
-
-          {/* Barra de progresso */}
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-20">
-            <motion.div
-              className="h-full bg-primary"
-              style={{ width: `${progress * 100}%` }}
-              transition={{ duration: 0 }}
-            />
-          </div>
+        {/* Mudo — topo esquerdo */}
+        <div className="absolute top-3 left-3 z-20">
+          <button
+            onClick={onToggleMute}
+            data-testid="button-mute"
+            className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/15"
+          >
+            {globalMuted
+              ? <VolumeX className="w-3.5 h-3.5 text-white" />
+              : <Volume2 className="w-3.5 h-3.5 text-white" />
+            }
+          </button>
         </div>
 
-        {/* Trilho de ações — à direita do vídeo */}
-        <div className="flex flex-col items-center gap-3 pb-1 shrink-0">
+        {/* Ações — dentro do vídeo, coluna na direita */}
+        <div className="absolute right-3 bottom-10 z-20 flex flex-col items-center gap-4">
           <ActionBtn
-            icon={<Heart className={`w-5 h-5 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-foreground"}`} />}
+            icon={<Heart className={`w-5 h-5 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />}
             label={formatCount(likes)}
             active={liked}
-            activeClass="bg-red-500/15"
+            activeClass="bg-red-500/25"
             onClick={toggleLike}
             testId="button-like-video"
           />
           <ActionBtn
-            icon={<MessageCircle className="w-5 h-5 text-foreground" />}
+            icon={<MessageCircle className="w-5 h-5 text-white" />}
             label={formatCount(post.comments)}
             testId="button-comment-video"
           />
           <ActionBtn
-            icon={<Repeat2 className={`w-5 h-5 transition-colors ${reposted ? "text-green-500" : "text-foreground"}`} />}
+            icon={<Repeat2 className={`w-5 h-5 transition-colors ${reposted ? "text-green-400" : "text-white"}`} />}
             label={formatCount(reposts)}
             active={reposted}
-            activeClass="bg-green-500/15"
+            activeClass="bg-green-500/25"
             onClick={toggleRepost}
             testId="button-repost-video"
           />
           <ActionBtn
-            icon={<Bookmark className={`w-5 h-5 transition-colors ${bookmarked ? "fill-yellow-400 text-yellow-400" : "text-foreground"}`} />}
+            icon={<Bookmark className={`w-5 h-5 transition-colors ${bookmarked ? "fill-yellow-400 text-yellow-400" : "text-white"}`} />}
             active={bookmarked}
-            activeClass="bg-yellow-500/15"
+            activeClass="bg-yellow-500/25"
             onClick={() => setBookmarked(v => !v)}
             testId="button-bookmark-video"
           />
           <ActionBtn
-            icon={<Share2 className="w-5 h-5 text-foreground" />}
+            icon={<Share2 className="w-5 h-5 text-white" />}
             testId="button-share-video"
           />
           <SpinningDisc avatarUrl={author.avatarUrl} />
+        </div>
+
+        {/* Legenda + música — base esquerda do vídeo, respeitando coluna de ações */}
+        <div className="absolute bottom-0 left-0 right-16 z-20 px-3 pb-3 pt-10 bg-gradient-to-t from-black/70 to-transparent">
+          <button
+            className="block text-left w-full"
+            onClick={() => setCaptionExpanded(v => !v)}
+            data-testid="button-expand-caption"
+          >
+            <p className={`text-white/90 text-xs leading-relaxed drop-shadow ${captionExpanded ? "" : "line-clamp-2"}`}>
+              {post.content}
+            </p>
+            {post.content.length > 80 && (
+              <span className="text-white/50 text-[10px] mt-0.5 block">
+                {captionExpanded ? "ver menos" : "ver mais"}
+              </span>
+            )}
+          </button>
+          <div className="flex items-center gap-1.5 mt-1.5 overflow-hidden">
+            <Music2 className="w-3 h-3 text-white/60 shrink-0" />
+            <div className="overflow-hidden flex-1">
+              <motion.p
+                animate={{ x: [0, -100, 0] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                className="text-white/60 text-xs whitespace-nowrap"
+              >
+                {post.musicTitle}
+              </motion.p>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de progresso */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-30">
+          <motion.div
+            className="h-full bg-primary"
+            style={{ width: `${progress * 100}%` }}
+            transition={{ duration: 0 }}
+          />
         </div>
       </div>
     </div>
