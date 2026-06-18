@@ -160,7 +160,32 @@ function VideoFeedItem({
         </div>
 
         {/* Ações — dentro do vídeo, coluna na direita */}
-        <div className="absolute right-3 bottom-10 z-20 flex flex-col items-center gap-4">
+        <div className="absolute right-3 bottom-6 z-20 flex flex-col items-center gap-3">
+
+          {/* Avatar do autor — acima do curtir, leva ao perfil */}
+          <div className="relative mb-1">
+            <Link href={`/profile/${author.username}`} data-testid="button-author-avatar">
+              <Avatar className="w-11 h-11 border-2 border-white shadow-lg hover:opacity-90 transition-opacity">
+                <AvatarImage src={author.avatarUrl} />
+                <AvatarFallback className="text-xs">{author.displayName[0]}</AvatarFallback>
+              </Avatar>
+            </Link>
+            {/* Botão seguir sobre o avatar */}
+            <button
+              onClick={() => setFollowed(v => !v)}
+              data-testid="button-follow-video"
+              className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-md border border-black/20 transition-colors ${
+                followed ? "bg-zinc-600" : "bg-primary"
+              }`}
+            >
+              {followed
+                ? <Check className="w-2.5 h-2.5 text-white" />
+                : <UserPlus className="w-2.5 h-2.5 text-white" />
+              }
+            </button>
+          </div>
+
+          {/* Curtir */}
           <ActionBtn
             icon={<Heart className={`w-5 h-5 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />}
             label={formatCount(likes)}
@@ -169,11 +194,15 @@ function VideoFeedItem({
             onClick={toggleLike}
             testId="button-like-video"
           />
+
+          {/* Comentar */}
           <ActionBtn
             icon={<MessageCircle className="w-5 h-5 text-white" />}
             label={formatCount(post.comments)}
             testId="button-comment-video"
           />
+
+          {/* Repostar */}
           <ActionBtn
             icon={<Repeat2 className={`w-5 h-5 transition-colors ${reposted ? "text-green-400" : "text-white"}`} />}
             label={formatCount(reposts)}
@@ -182,6 +211,8 @@ function VideoFeedItem({
             onClick={toggleRepost}
             testId="button-repost-video"
           />
+
+          {/* Salvar */}
           <ActionBtn
             icon={<Bookmark className={`w-5 h-5 transition-colors ${bookmarked ? "fill-yellow-400 text-yellow-400" : "text-white"}`} />}
             active={bookmarked}
@@ -189,10 +220,14 @@ function VideoFeedItem({
             onClick={() => setBookmarked(v => !v)}
             testId="button-bookmark-video"
           />
+
+          {/* Compartilhar */}
           <ActionBtn
             icon={<Share2 className="w-5 h-5 text-white" />}
             testId="button-share-video"
           />
+
+          {/* Disco de áudio giratório */}
           <SpinningDisc avatarUrl={author.avatarUrl} />
         </div>
 
