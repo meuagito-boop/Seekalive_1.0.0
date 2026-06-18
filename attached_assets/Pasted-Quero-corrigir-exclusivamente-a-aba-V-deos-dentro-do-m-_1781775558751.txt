@@ -1,0 +1,159 @@
+Quero corrigir exclusivamente a aba “Vídeos” dentro do módulo Social do SeekAlive.
+
+Atenção máxima:
+Não reescreva o projeto.
+Não apague telas existentes.
+Não quebre imports.
+Não altere backend, banco, API, autenticação ou mock data.
+Não crie módulo novo chamado Vídeos.
+Não adicione Vídeos na navegação principal.
+Não altere a estrutura geral do app além do necessário para corrigir a aba Vídeos.
+Continue usando Lucide React.
+Preserve o layout global já criado: Header, navegação, busca contextual, Social, bottom nav mobile e design system.
+
+Problema atual:
+A aba Vídeos está aparecendo como uma tela muito aberta/fullscreen, com vídeo ou imagem ocupando a tela inteira como fundo.
+Isso não é o padrão desejado.
+
+Objetivo:
+A aba Vídeos deve ser um feed vertical de vídeos inspirado em TikTok/Reels, mas enquadrado, centralizado e controlado dentro do módulo Social.
+
+Regra principal:
+Vídeos continua sendo uma aba dentro de Social.
+
+Social deve continuar com as abas:
+
+* Pra você
+* Seguindo
+* Vídeos
+* Comunidades
+
+Quando a aba “Vídeos” estiver ativa, somente o conteúdo interno do feed muda para o layout de vídeos verticais.
+
+Não alterar as abas Pra você, Seguindo e Comunidades.
+
+Desktop / Web:
+Na versão desktop/web, a aba Vídeos deve:
+
+1. Manter o Header global do SeekAlive.
+2. Manter a navegação central: Seek, Social, Roleta, Shop.
+3. Manter Social como módulo ativo.
+4. Manter a busca contextual do Social:
+   “Buscar posts, pessoas, vídeos e comunidades...”
+5. Manter a estrutura geral do Social.
+6. Exibir o vídeo centralizado no conteúdo principal.
+7. Usar vídeo em proporção vertical, preferencialmente 9:16.
+8. Não deixar o vídeo ocupar toda a largura ou toda a altura da tela.
+9. Não usar o vídeo como background gigante da página.
+10. Não esticar a mídia para cobrir o viewport inteiro.
+11. O vídeo deve ficar dentro de um container controlado, com largura máxima.
+12. Deve existir margem escura ao redor do vídeo.
+13. O vídeo deve parecer um “palco central” dentro do feed, não uma tela solta.
+
+Layout esperado no desktop:
+
+* vídeo vertical centralizado;
+* ações em coluna à direita do vídeo:
+
+  * curtir;
+  * comentar;
+  * repostar/compartilhar;
+  * salvar;
+  * compartilhar;
+* autor e legenda visíveis na parte inferior do vídeo ou logo abaixo;
+* categoria, áudio ou hashtags podem aparecer como metadados visuais;
+* se houver navegação de próximo/anterior vídeo, manter de forma discreta;
+* não espalhar ações longe demais do vídeo.
+
+Exemplo conceitual:
+
+[Tabs: Pra você | Seguindo | Vídeos | Comunidades]
+
+```
+           ┌────────────────────┐    ❤️
+           │                    │    💬
+           │                    │    🔁
+           │   vídeo vertical   │    🔖
+           │                    │    ↗️
+           │                    │
+           └────────────────────┘
+
+           @usuario
+           legenda do vídeo
+           categoria / áudio / hashtags
+```
+
+Mobile:
+Na versão mobile, a aba Vídeos deve seguir o mesmo padrão, adaptado à tela pequena.
+
+No mobile:
+
+1. Manter header mobile do SeekAlive.
+2. Manter busca contextual do Social com botão de drawer/sidebar à esquerda, se já existe.
+3. Manter as tabs do Social com scroll horizontal se necessário.
+4. Manter bottom nav fixa com ícones:
+
+   * Seek
+   * Social
+   * Adicionar
+   * Roleta
+   * Shop
+5. Manter Social ativo na bottom nav.
+6. O vídeo deve ser vertical e centralizado.
+7. O vídeo pode ocupar mais espaço no mobile, mas ainda deve respeitar header, tabs e bottom nav.
+8. A bottom nav não pode cobrir o vídeo, legenda ou ações.
+9. As ações devem ficar em coluna à direita do vídeo.
+10. Autor e legenda devem ficar na base do vídeo ou logo abaixo, de forma legível.
+
+Não fazer:
+
+* Não transformar Vídeos em página fullscreen isolada.
+* Não esconder o header global.
+* Não esconder a navegação principal do app.
+* Não remover as tabs do Social.
+* Não fazer o vídeo virar background da tela inteira.
+* Não deixar as ações flutuando fora do contexto.
+* Não mudar o comportamento das outras abas.
+* Não criar navegação principal para Vídeos.
+* Não transformar Vídeos em módulo separado.
+
+Fazer:
+
+* Criar ou ajustar um componente específico para o feed de vídeos, se fizer sentido, por exemplo:
+
+  * SocialVideoFeed
+  * VideoFeedItem
+  * VideoActionRail
+  * VideoMeta
+    Mas somente se isso se encaixar na estrutura atual do projeto.
+    Não criar componentes duplicados se já existirem equivalentes.
+
+Mock data:
+Usar os dados mockados existentes.
+Se for necessário, adaptar mock data para conter:
+
+* autor;
+* username;
+* avatar;
+* vídeo ou imagem placeholder;
+* legenda;
+* likes;
+* comentários;
+* reposts;
+* salvos;
+* compartilhamentos;
+* categoria/áudio/hashtags.
+
+Visual:
+
+* tema dark;
+* laranja como cor de destaque;
+* vídeo centralizado;
+* container limpo;
+* bordas/radius consistentes com o design system;
+* ações próximas ao vídeo;
+* visual moderno, social e premium;
+* aparência inspirada em feed vertical de vídeo, mas sem copiar literalmente TikTok.
+
+Resultado esperado:
+A aba Vídeos dentro do Social deve ficar como um feed vertical de vídeo centralizado e enquadrado, funcionando bem em web e mobile, sem quebrar o restante do app e sem virar módulo separado.

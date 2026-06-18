@@ -1,0 +1,1 @@
+- [Social module layout architecture](social-layout-arch.md) — Feed uses SocialLayout (not AppLayout); extract /feed from AppLayout in AuthRouter to give it its own 3-column layout.

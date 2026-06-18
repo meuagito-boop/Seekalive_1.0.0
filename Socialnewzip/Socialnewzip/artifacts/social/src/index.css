@@ -1,0 +1,217 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --font-sans: "Inter", sans-serif;
+  --radius-lg: 1rem;
+  --radius-md: 0.75rem;
+  --radius-sm: 0.5rem;
+}
+
+:root, .dark {
+  /* ── Surfaces ──────────────────────────────────────────────────── */
+  --background: 225 20% 5%;
+  --foreground: 210 15% 96%;
+
+  --card: 225 20% 8%;
+  --card-foreground: 210 15% 96%;
+  --card-border: 225 20% 13%;
+
+  --popover: 225 20% 8%;
+  --popover-foreground: 210 15% 96%;
+  --popover-border: 225 20% 13%;
+
+  /* ── Brand — SeekAlive Orange ──────────────────────────────────── */
+  --primary: 24 95% 53%;
+  --primary-foreground: 0 0% 100%;
+
+  /* ── Secondary / Muted ─────────────────────────────────────────── */
+  --secondary: 225 20% 13%;
+  --secondary-foreground: 210 15% 96%;
+
+  --muted: 225 20% 13%;
+  --muted-foreground: 225 12% 52%;
+
+  /* ── Accent ────────────────────────────────────────────────────── */
+  --accent: 225 20% 16%;
+  --accent-foreground: 210 15% 96%;
+
+  /* ── State colors ──────────────────────────────────────────────── */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 10%;
+
+  --info: 210 90% 58%;
+  --info-foreground: 0 0% 100%;
+
+  /* ── Chrome ────────────────────────────────────────────────────── */
+  --border: 225 20% 13%;
+  --input: 225 20% 13%;
+  --ring: 24 95% 53%;
+
+  /* ── Sidebar ───────────────────────────────────────────────────── */
+  --sidebar: 225 20% 4%;
+  --sidebar-foreground: 210 15% 96%;
+  --sidebar-border: 225 20% 13%;
+  --sidebar-primary: 24 95% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 225 20% 13%;
+  --sidebar-accent-foreground: 210 15% 96%;
+  --sidebar-ring: 24 95% 53%;
+
+  /* ── Semantic CSS vars (use directly in inline styles) ─────────── */
+  --brand-primary: hsl(24 95% 53%);
+  --brand-primary-hover: hsl(24 95% 46%);
+  --brand-primary-subtle: hsl(24 95% 53% / 0.12);
+  --brand-glow: 0 0 20px hsl(24 95% 53% / 0.3);
+  --brand-glow-lg: 0 0 32px hsl(24 95% 53% / 0.4);
+
+  --surface-app: hsl(225 20% 5%);
+  --surface-card: hsl(225 20% 8%);
+  --surface-raised: hsl(225 20% 11%);
+  --surface-border: hsl(225 20% 13%);
+
+  --text-primary: hsl(210 15% 96%);
+  --text-secondary: hsl(225 12% 68%);
+  --text-muted: hsl(225 12% 52%);
+
+  --state-success: hsl(142 71% 45%);
+  --state-warning: hsl(38 92% 50%);
+  --state-danger: hsl(0 84% 60%);
+  --state-info: hsl(210 90% 58%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* ── SeekAlive Typography Scale ───────────────────────────────────── */
+@layer utilities {
+  .sk-text-display {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  .sk-text-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
+  .sk-text-section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  .sk-text-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .sk-text-body-sm {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .sk-text-caption {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+  .sk-text-meta {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  /* ── Brand glow utility ────────────────────────────────────────── */
+  .sk-glow {
+    box-shadow: var(--brand-glow);
+  }
+  .sk-glow-lg {
+    box-shadow: var(--brand-glow-lg);
+  }
+
+  /* ── Card surface variants ─────────────────────────────────────── */
+  .sk-card {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+  }
+  .sk-card-raised {
+    background: var(--surface-raised);
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+  }
+
+  /* ── Page container ────────────────────────────────────────────── */
+  .sk-page {
+    @apply flex flex-col min-h-full pb-6;
+  }
+}

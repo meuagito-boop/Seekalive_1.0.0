@@ -1,0 +1,436 @@
+Preciso corrigir a arquitetura visual e a separação de responsabilidades do frontend SeekAlive.
+
+Atenção máxima:
+O projeto já possui telas, componentes, rotas, mock data e alterações recentes.
+Não reescreva o projeto do zero.
+Não apague telas existentes.
+Não apague componentes existentes.
+Não quebre imports.
+Não troque a biblioteca de ícones.
+Continue usando Lucide React.
+Não crie backend.
+Não crie banco.
+Não crie API.
+Não implemente busca real.
+Não implemente upload real.
+Não implemente autenticação real.
+Preserve o máximo possível do que já foi criado.
+
+Problema atual:
+Algumas definições que deveriam ser padrão global do aplicativo foram aplicadas apenas ao módulo Social.
+Além disso, o módulo Seek foi interpretado de forma errada como uma tela de busca/trending social, com hashtags, pessoas para seguir e comunidades.
+
+Isso está incorreto.
+
+Correção principal:
+Separar claramente duas camadas:
+
+1. Camada global do app
+2. Conteúdo específico de cada módulo
+
+A camada global deve ser reutilizada por todos os módulos:
+
+* Seek
+* Social
+* Roleta
+* Shop
+
+A camada específica deve mudar apenas o conteúdo interno de cada módulo.
+
+==================================================
+
+1. CAMADA GLOBAL DO APLICATIVO
+   ==================================================
+
+Criar ou ajustar um layout global reutilizável, de preferência algo como AppShell ou Layout principal, respeitando a estrutura atual do projeto.
+
+Esse layout global deve controlar:
+
+* Header global desktop;
+* Header global mobile;
+* navegação principal desktop;
+* bottom nav mobile;
+* busca contextual por módulo;
+* espaçamento principal;
+* responsividade;
+* tema dark;
+* cor laranja como destaque;
+* cards, botões, inputs, tabs e painéis seguindo o mesmo padrão visual.
+
+Se já existe um layout principal, reaproveite.
+Não crie uma estrutura paralela duplicada se não for necessário.
+
+Sugestão de organização, adaptando ao projeto atual:
+
+* AppShell
+* HeaderGlobal
+* ModuleNav
+* ContextualSearch
+* MobileBottomNav
+* MainContent
+* LayoutContainer
+
+Só crie esses nomes se fizer sentido com a estrutura atual.
+O mais importante é centralizar o padrão visual do app.
+
+==================================================
+2. HEADER GLOBAL
+================
+
+O header desktop deve ser padrão para o app inteiro, não apenas para Social.
+
+Header desktop:
+
+* logo;
+* nome SeekAlive;
+* navegação central dos módulos:
+
+  * Seek
+  * Social
+  * Roleta
+  * Shop
+* ícones globais à direita:
+
+  * notificações;
+  * mensagens;
+  * carrinho;
+  * configurações.
+
+Regras:
+
+* O módulo ativo deve ficar destacado em laranja.
+* Os ícones globais não devem ter texto visível.
+* O item Adicionar não deve aparecer na navegação central desktop.
+* No desktop, criação de conteúdo social acontece no composer do Social.
+* No mobile, Adicionar continua na bottom nav.
+
+==================================================
+3. BOTTOM NAV MOBILE
+====================
+
+A bottom nav mobile deve ser padrão do app inteiro.
+
+Itens:
+
+* Seek
+* Social
+* Adicionar
+* Roleta
+* Shop
+
+Regras:
+
+* exibir somente ícones;
+* não exibir texto;
+* não exibir labels;
+* não exibir tooltips;
+* item ativo com ícone laranja;
+* itens inativos em cinza/neutro;
+* Adicionar deve ficar no mesmo nível visual dos outros;
+* Adicionar não deve ser maior;
+* Adicionar abre menu rápido com:
+
+  * Criar postagem;
+  * Enviar foto;
+  * Enviar vídeo.
+
+Garantir que a bottom nav não cubra o conteúdo no mobile.
+
+==================================================
+4. BUSCA CONTEXTUAL GLOBAL
+==========================
+
+A busca contextual deve fazer parte do layout global, mas seu placeholder e sua presença mudam conforme o módulo ativo.
+
+Regras por módulo:
+
+Seek:
+
+* exibir busca;
+* placeholder: “Buscar comércios e eventos...”
+* objetivo visual: buscar perfis comerciais e eventos.
+
+Social:
+
+* exibir busca;
+* placeholder: “Buscar posts, pessoas, vídeos e comunidades...”
+* objetivo visual: buscar posts, pessoas, vídeos e comunidades.
+
+Shop:
+
+* exibir busca;
+* placeholder: “Buscar produtos, serviços, ofertas e lojas...”
+* objetivo visual: buscar produtos, serviços, ofertas e lojas/comerciantes.
+
+Roleta:
+
+* não exibir campo de busca.
+
+Importante:
+Essa busca é apenas visual/mockada nesta etapa.
+Não implementar busca real com backend.
+
+No desktop:
+
+* a busca contextual deve ficar abaixo do header, centralizada na área principal.
+
+No mobile:
+
+* a busca contextual deve ficar abaixo do header.
+* No Social mobile, manter o botão de drawer/sidebar social à esquerda da busca, se já foi criado.
+
+==================================================
+5. CORREÇÃO DO MÓDULO SEEK
+==========================
+
+O módulo Seek está incorreto se estiver mostrando:
+
+* trending social;
+* hashtags;
+* #React;
+* #DarkMode;
+* pessoas para seguir;
+* comunidades em alta;
+* conteúdo de rede social genérica.
+
+Isso NÃO é o Seek.
+
+Seek não é uma tela de trending social.
+Seek não é uma tela de hashtags.
+Seek não é uma busca genérica da rede social.
+Seek não deve reaproveitar a antiga tela /search como conteúdo principal, se essa tela for baseada em trending social.
+
+Seek é o módulo de descoberta local intencional do SeekAlive.
+
+O Seek deve focar em:
+
+* perfis comerciais;
+* eventos;
+* lugares para ir;
+* negócios locais;
+* experiências locais.
+
+Exemplos de conteúdo correto para Seek:
+
+* restaurantes;
+* bares;
+* cafés;
+* barbearias;
+* academias;
+* lojas;
+* serviços locais;
+* eventos próximos;
+* lugares em destaque;
+* experiências perto do usuário.
+
+Redesenhar a tela Seek para usar a estrutura global do app, mas com conteúdo próprio de descoberta local.
+
+Estrutura sugerida para Seek desktop:
+
+* Header global;
+* busca contextual: “Buscar comércios e eventos...”;
+* área principal com cards de comércios e eventos;
+* coluna ou seção de categorias locais;
+* coluna ou seção de destaques locais.
+
+Conteúdo do Seek:
+
+Categorias:
+
+* Restaurantes;
+* Bares;
+* Cafés;
+* Eventos;
+* Serviços;
+* Compras;
+* Saúde e beleza;
+* Lazer;
+* Próximos de mim;
+* Abertos agora.
+
+Cards de perfis comerciais:
+
+* nome do comércio;
+* categoria;
+* distância;
+* status visual, como “Aberto agora”;
+* avaliação mockada;
+* botão ou ação visual: “Ver detalhes”;
+* botão ou ação visual: “Salvar”.
+
+Cards de eventos:
+
+* nome do evento;
+* data;
+* local;
+* quantidade mockada de interessados;
+* botão ou ação visual: “Ver evento”;
+* botão ou ação visual: “Salvar”.
+
+Coluna/seção contextual do Seek:
+
+* Eventos próximos;
+* Lugares em alta;
+* Comerciantes em destaque;
+* Categorias populares.
+
+Usar mock data.
+Não implementar backend.
+
+==================================================
+6. O QUE PERTENCE AO SOCIAL
+===========================
+
+Manter no Social o que é social.
+
+O Social deve conter:
+
+* composer de postagem;
+* feed social;
+* tabs:
+
+  * Pra você;
+  * Seguindo;
+  * Vídeos;
+  * Comunidades;
+* sidebar social desktop;
+* drawer social mobile;
+* Rede;
+* Amigos;
+* Seguir;
+* Atividades;
+* Comunidades.
+
+Conteúdos como:
+
+* pessoas para seguir;
+* comunidades em destaque;
+* trending de posts;
+* vídeos sociais;
+* posts;
+* perfis pessoais;
+  devem pertencer ao Social, não ao Seek.
+
+==================================================
+7. PRESERVAR O SOCIAL QUE JÁ FICOU BOM
+======================================
+
+Se a tela Social já foi remodelada e está funcionando, preserve o máximo possível.
+
+Não desfazer:
+
+* header global aplicado;
+* busca do Social;
+* sidebar social;
+* composer;
+* tabs Pra você / Seguindo / Vídeos / Comunidades;
+* coluna direita;
+* drawer mobile, se já existir;
+* aba Vídeos com layout vertical, se já foi implementada corretamente.
+
+Ajuste apenas o necessário para mover a estrutura global para um AppShell/Layout reutilizável.
+
+==================================================
+8. VÍDEOS CONTINUAM DENTRO DO SOCIAL
+====================================
+
+A aba Vídeos continua sendo uma aba dentro de Social.
+
+Não criar módulo separado de Vídeos.
+Não adicionar Vídeos na navegação principal.
+
+A navegação principal continua:
+
+* Seek
+* Social
+* Roleta
+* Shop
+
+A bottom nav mobile continua:
+
+* Seek
+* Social
+* Adicionar
+* Roleta
+* Shop
+
+==================================================
+9. ROLETА
+=========
+
+Roleta ainda não deve ter busca.
+Roleta não deve ter filtros agora.
+Roleta representa descoberta aleatória de lugares e eventos que futuramente virão do backend.
+
+Nesta etapa, apenas garantir que:
+
+* Roleta use o header/global layout;
+* Roleta não exiba busca contextual;
+* Roleta não seja confundida com Seek nem com Social.
+
+==================================================
+10. SHOP
+========
+
+Shop deve usar o layout global.
+
+Shop deve ter busca contextual:
+“Buscar produtos, serviços, ofertas e lojas...”
+
+Shop deve focar em:
+
+* produtos;
+* serviços;
+* ofertas;
+* lojas;
+* comerciantes.
+
+Não misturar Shop com feed social.
+
+==================================================
+11. DESIGN SYSTEM / PADRONIZAÇÃO
+================================
+
+Reforçar a separação de design:
+
+Criar ou ajustar uma base visual reutilizável:
+
+* tokens de cores;
+* tema dark;
+* laranja principal;
+* texto principal;
+* texto secundário;
+* fundo do app;
+* fundo de card;
+* borda;
+* estados hover/active;
+* botões;
+* inputs;
+* cards;
+* tabs;
+* painéis.
+
+Evitar cores hardcoded espalhadas em cada página.
+Evitar estilos duplicados.
+Evitar cada módulo ter aparência desconectada.
+
+O objetivo é que Seek, Social, Roleta e Shop pareçam partes do mesmo aplicativo.
+
+==================================================
+12. RESULTADO ESPERADO
+======================
+
+Ao final:
+
+1. A estrutura visual global deve ser compartilhada pelo app inteiro, não apenas pelo Social.
+2. Header, navegação desktop, busca contextual e bottom nav mobile devem funcionar como padrão global.
+3. O Social deve continuar com a estrutura já definida.
+4. O Seek deve ser corrigido para descoberta local de comércios e eventos.
+5. O Seek não deve mostrar trending social, hashtags ou pessoas para seguir como conteúdo principal.
+6. Shop deve ficar preparado como módulo comercial.
+7. Roleta deve ficar preparada como módulo de descoberta aleatória, sem busca.
+8. O app deve continuar rodando no Replit.
+9. Nenhum import deve quebrar.
+10. Nenhuma tela existente deve ser apagada.
+11. Nenhuma rota existente deve ser removida sem necessidade.
+12. Todas as mudanças devem ser incrementais e preservar o máximo possível do que já foi criado.

@@ -1,0 +1,176 @@
+Quero criar uma identidade visual inicial e modularizar o design do frontend do SeekAlive.
+
+Atenção:
+Este projeto ainda é somente frontend.
+Não crie backend.
+Não crie banco de dados.
+Não crie API.
+Não implemente autenticação real.
+Não altere a lógica principal das telas.
+Não remova telas existentes.
+Não quebre imports existentes.
+Não troque a biblioteca de ícones.
+Continue usando Lucide React por enquanto.
+
+Objetivo:
+Criar uma base visual padronizada para o SeekAlive, como um pequeno Design System interno, para que as próximas telas sigam o mesmo padrão de cores, tipografia, botões, cards, inputs, bordas e espaçamentos.
+
+Contexto do produto:
+SeekAlive é uma rede social de descoberta local com módulos de social feed, busca de lugares/eventos, roleta de descoberta e shop local.
+A identidade deve ser:
+
+* dark;
+* moderna;
+* social;
+* urbana;
+* tecnológica;
+* com laranja como cor principal;
+* com aparência mais premium e menos genérica.
+
+Tarefa 1 — Criar tokens visuais centralizados:
+Crie ou organize arquivos de design tokens para controlar:
+
+* cores;
+* tipografia;
+* tamanhos de fonte;
+* pesos de fonte;
+* espaçamentos;
+* radius/bordas arredondadas;
+* sombras;
+* cores de estado: hover, active, disabled, focus, error, success, warning;
+* cores de superfície: background, surface, card, border, muted.
+
+Sugestão de estrutura, adaptando ao projeto atual sem quebrar imports:
+
+src/
+design/
+tokens.ts
+theme.ts
+
+ou, se o projeto já usa CSS/Tailwind:
+src/
+styles/
+theme.css
+tokens.css
+
+Use nomes semânticos, não nomes genéricos soltos.
+Exemplos:
+
+* backgroundApp
+* backgroundSurface
+* backgroundCard
+* textPrimary
+* textSecondary
+* textMuted
+* brandPrimary
+* brandPrimaryHover
+* borderSubtle
+* danger
+* success
+* warning
+
+Tarefa 2 — Padronizar componentes base:
+Criar ou ajustar componentes reutilizáveis para:
+
+* Button;
+* IconButton;
+* Input;
+* Card;
+* Badge;
+* Avatar;
+* Tabs;
+* BottomSheet ou menu rápido;
+* PageContainer;
+* SectionTitle.
+
+Esses componentes devem usar os tokens visuais centralizados.
+
+Tarefa 3 — Padronizar variantes de botão:
+Criar estilos consistentes para botões:
+
+* primary;
+* secondary;
+* ghost;
+* danger;
+* icon;
+* disabled.
+
+O botão primary deve usar laranja como cor principal.
+Botões ghost e icon devem combinar com tema dark.
+
+Tarefa 4 — Padronizar cards:
+Criar padrão para cards usados em:
+
+* posts;
+* lugares;
+* eventos;
+* produtos;
+* notificações;
+* mensagens.
+
+Os cards devem seguir o mesmo padrão de:
+
+* fundo;
+* borda;
+* radius;
+* sombra;
+* espaçamento interno;
+* hover/active quando aplicável.
+
+Tarefa 5 — Tipografia:
+Definir uma escala tipográfica consistente:
+
+* título grande;
+* título de página;
+* título de seção;
+* texto normal;
+* texto secundário;
+* legenda;
+* contador/metadado.
+
+Não usar tamanhos aleatórios em cada tela.
+Sempre reutilizar classes, tokens ou componentes.
+
+Tarefa 6 — Criar uma página interna de referência visual:
+Criar uma tela simples chamada DesignSystem, StyleGuide ou UI Preview, apenas para desenvolvimento visual, contendo exemplos de:
+
+* cores;
+* tipografia;
+* botões;
+* inputs;
+* cards;
+* badges;
+* avatar;
+* tabs;
+* icon buttons.
+
+Não precisa adicionar essa tela na navegação principal se isso atrapalhar.
+Pode deixar acessível por uma rota simples de desenvolvimento, se o roteamento atual permitir, ou apenas como componente isolado.
+
+Tarefa 7 — Aplicar parcialmente sem redesenhar tudo:
+Aplicar essa base visual inicialmente nos componentes globais e principais:
+
+* Header;
+* BottomNav;
+* botões principais;
+* cards principais;
+* inputs principais;
+* containers de página.
+
+Não redesenhar todas as páginas agora.
+Não fazer grandes mudanças funcionais.
+Apenas criar a fundação visual para as próximas etapas.
+
+Regras importantes:
+
+* Manter o app funcionando no Replit.
+* Evitar refatoração agressiva.
+* Não criar dependências desnecessárias.
+* Não usar estilos duplicados espalhados.
+* Evitar cores hardcoded nas páginas.
+* Centralizar o máximo possível da identidade visual.
+* Se houver Tailwind, configurar ou usar classes base de forma consistente.
+* Se houver CSS customizado, organizar em arquivos globais claros.
+
+Resultado esperado:
+O frontend deve passar a ter uma identidade SeekAlive inicial e uma base visual modular, com tokens e componentes reutilizáveis, permitindo que as próximas telas sejam melhoradas seguindo o mesmo padrão.

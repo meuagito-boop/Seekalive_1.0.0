@@ -1,0 +1,357 @@
+Quero remodelar a UI do módulo Social do frontend SeekAlive, principalmente para melhorar a experiência full size/desktop e adaptar corretamente o mobile.
+
+Atenção máxima:
+Este projeto já possui várias telas, componentes, rotas, mock data e estrutura existente.
+Não reescreva o projeto do zero.
+Não remova telas existentes.
+Não apague componentes existentes.
+Não quebre imports.
+Não mude nomes de arquivos sem necessidade.
+Não altere backend, banco, API, autenticação real ou lógica server-side.
+Não crie backend.
+Não crie banco.
+Não crie API.
+Não implemente upload real.
+Não troque a biblioteca de ícones.
+Continue usando Lucide React.
+Faça alterações incrementais, preservando o máximo possível da estrutura atual.
+
+Objetivo desta etapa:
+Remodelar a UI do módulo Social para ter uma estrutura mais parecida com um app social moderno em desktop/full size, usando uma lógica inspirada na organização do Facebook, mas com identidade própria do SeekAlive.
+
+Identidade visual:
+
+* tema dark;
+* laranja como cor principal de destaque;
+* aparência moderna, social, local e premium;
+* evitar aparência genérica de clone de Twitter/X;
+* manter consistência com o design system/tokens/componentes já existentes, se houver;
+* se já existirem componentes reutilizáveis, reaproveite;
+* se houver estilos globais, respeite-os;
+* evite espalhar cores hardcoded sem necessidade.
+
+Estrutura desktop/full size do módulo Social:
+
+Header desktop:
+O header deve conter:
+
+* logotipo do app;
+* nome SeekAlive;
+* navegação central dos módulos:
+
+  * Seek
+  * Social
+  * Roleta
+  * Shop
+* ícones globais à direita:
+
+  * notificações
+  * mensagens
+  * carrinho
+  * configurações
+
+Importante:
+
+* O item Adicionar NÃO deve aparecer na navegação central do header desktop.
+* Adicionar conteúdo social no desktop será feito pelo composer acima do feed.
+* O módulo ativo deve ter destaque visual, preferencialmente em laranja.
+* Os ícones globais do header não devem ter texto visível.
+
+Busca contextual:
+No módulo Social, a busca deve ficar centralizada abaixo do header e acima das três colunas principais.
+
+Placeholder da busca no Social:
+“Buscar posts, pessoas, vídeos e comunidades...”
+
+Essa busca é apenas visual/mockada nesta etapa.
+Não implementar busca real com backend.
+
+Regra futura por módulo, apenas preparar visualmente se necessário:
+
+* Seek: buscar perfis comerciais e eventos.
+* Social: buscar posts, pessoas, vídeos e comunidades.
+* Shop: buscar produtos, serviços, ofertas e lojas.
+* Roleta: não exibir campo de busca.
+
+Layout desktop do Social:
+Abaixo da busca, criar layout em três áreas:
+
+1. Sidebar esquerda
+2. Conteúdo principal central
+3. Coluna direita contextual
+
+Sidebar esquerda do Social:
+Deve conter:
+
+Perfil:
+
+* avatar do usuário;
+* nome;
+* @usuário;
+* link/botão “Meu perfil”.
+
+Rede:
+
+* Amigos;
+* Seguir.
+
+Atividades:
+
+* Histórico;
+* Itens salvos;
+* Curtidas;
+* Comentários;
+* Publicações.
+
+Comunidades:
+
+* manter a configuração atual;
+* não remodelar a tela de comunidades;
+* apenas preservar o link/rota existente para Comunidades.
+
+Importante sobre Comunidades:
+Se já existe tela de comunidades, preserve exatamente essa tela e a rota atual.
+Não substitua por outra implementação.
+Não altere profundamente essa área agora.
+
+Importante sobre Círculos:
+Se o projeto atual usa “Círculos”, renomear visualmente para “Amigos”, preservando o máximo possível da rota/componente existente.
+Não apagar a funcionalidade antiga.
+Apenas adaptar o nome e o posicionamento na sidebar.
+
+Definição de Rede:
+
+* Amigos deve levar para a área/página de amigos do usuário, onde futuramente haverá meus amigos, solicitações e pessoas recomendadas para amizade.
+* Seguir deve levar para uma área/página de indicações, onde futuramente haverá pessoas para seguir, tópicos, comunidades, perfis comerciais e interesses.
+
+Se as páginas de Amigos/Seguir já existirem, reaproveite.
+Se não existirem, crie páginas simples e mockadas, sem backend, apenas para navegação visual.
+
+Atividades:
+A tela de Atividades ainda não existe e deve ser criada como página simples/mockada.
+Ela deve agrupar:
+
+* Histórico;
+* Itens salvos;
+* Curtidas;
+* Comentários;
+* Publicações.
+
+Não implementar lógica real.
+Use mock data ou placeholders coerentes.
+
+Conteúdo principal central:
+O conteúdo principal do módulo Social deve conter:
+
+1. Composer de criação social acima do feed.
+2. Tabs de feeds sociais.
+3. Lista de posts/cards sociais.
+
+Composer:
+Criar um composer enxuto, sem avatar, no seguinte conceito:
+
+[ O que você quer compartilhar?                         ícone de foto   ícone de vídeo ]
+
+Requisitos do composer:
+
+* Deve ficar acima das tabs do feed.
+* Não deve ter avatar dentro do composer.
+* Deve ter campo/call-to-action com o texto:
+  “O que você quer compartilhar?”
+* Deve ter ícone de foto.
+* Deve ter ícone de vídeo.
+* Ao clicar no campo, abrir a criação de postagem existente, modal existente ou fluxo existente, se houver.
+* Ao clicar no ícone de foto, abrir o mesmo fluxo preparado para foto.
+* Ao clicar no ícone de vídeo, abrir o mesmo fluxo preparado para vídeo.
+* Se o projeto já tem tela/modal de Compose, reaproveite.
+* Não criar upload real.
+* Não implementar publicação real.
+* Manter mock/local state se já existir.
+
+Tabs de feeds sociais:
+A área de feed deve ter as seguintes abas:
+
+* Pra você
+* Seguindo
+* Vídeos
+* Comunidades
+
+Se já existem “Pra você”, “Seguindo” e “Vídeos”, preserve e apenas adicione/organize “Comunidades”.
+Não remover lógica/mock existente dessas abas.
+A aba Comunidades deve representar um feed social de comunidades, usando mock data se necessário.
+
+Coluna direita contextual:
+Criar ou reorganizar a coluna direita para mostrar contexto local do SeekAlive, com blocos como:
+
+* Lugares em alta;
+* Eventos próximos;
+* Ofertas locais;
+* Comerciantes em destaque;
+* Pessoas para seguir;
+* Comunidades em destaque.
+
+Essa coluna é visual/mockada.
+Não implementar backend.
+Não implementar busca real.
+Não implementar recomendações reais.
+
+Mobile:
+No mobile, não usar layout de três colunas.
+A UI deve ser empilhada verticalmente.
+
+Estrutura mobile do módulo Social:
+
+1. Header mobile:
+
+   * logotipo;
+   * nome SeekAlive;
+   * ícones globais:
+
+     * notificações;
+     * mensagens;
+     * carrinho;
+     * configurações.
+
+2. Linha de busca:
+
+   * botão à esquerda para abrir drawer/sidebar social;
+   * campo de busca contextual do Social ao lado.
+
+Exemplo:
+[botão menu/drawer] [Buscar posts, pessoas, vídeos...]
+
+3. Composer:
+
+   * mesmo composer enxuto:
+     “O que você quer compartilhar?”
+     ícone de foto
+     ícone de vídeo
+
+4. Tabs do feed:
+
+   * Pra você
+   * Seguindo
+   * Vídeos
+   * Comunidades
+     Em mobile, as tabs podem ter scroll horizontal para não quebrar layout.
+
+5. Feed:
+
+   * posts/cards sociais em largura total.
+
+6. Bottom nav mobile:
+
+   * manter a navegação inferior já definida:
+     Seek
+     Social
+     Adicionar
+     Roleta
+     Shop
+
+Regras da bottom nav mobile:
+
+* Exibir somente ícones.
+* Não exibir texto.
+* Não exibir label.
+* Não exibir tooltip.
+* Item ativo com ícone laranja.
+* Itens inativos em cinza/neutro.
+* O botão Adicionar deve ficar no mesmo nível dos outros, não maior.
+* Adicionar deve abrir menu rápido com:
+
+  * Criar postagem
+  * Enviar foto
+  * Enviar vídeo
+
+Drawer mobile:
+No mobile, a sidebar esquerda do desktop deve virar um drawer lateral que abre da esquerda para a direita.
+
+O botão do drawer deve ficar no mesmo nível da busca contextual, à esquerda do campo de busca.
+
+O drawer deve conter:
+Perfil:
+
+* avatar;
+* nome;
+* @usuário;
+* Meu perfil.
+
+Rede:
+
+* Amigos;
+* Seguir.
+
+Atividades:
+
+* Histórico;
+* Itens salvos;
+* Curtidas;
+* Comentários;
+* Publicações.
+
+Comunidades:
+
+* link para a tela de comunidades existente.
+
+O drawer deve:
+
+* deslizar da esquerda para a direita;
+* ter overlay escuro no fundo;
+* fechar ao clicar fora ou em um botão de fechar;
+* não quebrar o scroll da página;
+* funcionar bem em mobile.
+
+Responsividade:
+
+* Desktop/full size: header + busca central + três colunas.
+* Mobile: header + linha de busca com drawer + composer + tabs + feed + bottom nav.
+* Tablet pode usar adaptação intermediária, mas não deve quebrar.
+* Garantir que a bottom nav não cubra o conteúdo no mobile.
+* Garantir espaçamento inferior adequado.
+
+Preservação do projeto:
+Antes de alterar, identifique os componentes atuais de:
+
+* Header;
+* BottomNav;
+* Feed;
+* Compose;
+* Profile;
+* Communities;
+* Circles;
+* Search;
+* Layout principal.
+
+Reaproveite o que já existe.
+Não duplique componentes se já houver equivalentes.
+Não criar uma segunda estrutura paralela desnecessária.
+Não remover mocks existentes sem necessidade.
+Não substituir todas as telas por placeholders.
+Não apagar telas já funcionais.
+
+Se precisar criar componentes novos, prefira nomes claros:
+
+* SocialDesktopLayout
+* SocialMobileLayout
+* SocialSidebar
+* SocialDrawer
+* SocialComposer
+* SocialContextPanel
+* SocialFeedTabs
+* ActivityPage
+
+Mas adapte ao padrão de nomes já usado no projeto.
+
+Resultado esperado:
+A tela do módulo Social deve ficar mais profissional em desktop/full size, com estrutura de app social moderno:
+
+* header com navegação central;
+* busca contextual centralizada;
+* sidebar esquerda com perfil, rede, atividades e comunidades;
+* composer social enxuto;
+* feeds: Pra você, Seguindo, Vídeos e Comunidades;
+* coluna direita com contexto local;
+* mobile com drawer social lateral, busca, composer, tabs, feed e bottom nav com ícones.
+
+Ao final, o app deve continuar rodando normalmente no Replit.
+Não deve haver erro de import, rota quebrada ou tela existente apagada.

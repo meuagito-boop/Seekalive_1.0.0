@@ -1,0 +1,73 @@
+Quero alterar somente o Header e a barra de navegação inferior do frontend atual.
+
+Não crie páginas novas.
+Não crie backend.
+Não crie banco de dados.
+Não crie API.
+Não altere autenticação.
+Não altere dados mockados.
+Não troque a biblioteca de ícones.
+Continue usando Lucide React.
+Não remova telas existentes.
+Não quebre imports existentes.
+
+Objetivo:
+Melhorar o header e a navegação inferior para se aproximarem da identidade do SeekAlive.
+
+Header:
+1. O header deve conter:
+   - logotipo do app;
+   - nome do app: SeekAlive;
+   - ícone de notificações;
+   - ícone de mensagens;
+   - ícone de carrinho;
+   - ícone de configurações.
+
+2. Os ícones do header não devem ter texto/label visível.
+
+3. Cada ícone do header deve manter ou usar a navegação correspondente já existente no projeto, se houver:
+   - notificações;
+   - mensagens;
+   - carrinho;
+   - configurações.
+
+4. Se alguma rota ainda não existir, não crie página nova agora. Apenas mantenha o botão preparado ou apontando para o comportamento mais seguro existente, sem quebrar o app.
+
+Barra inferior:
+1. A barra inferior deve ter exatamente 5 itens:
+   - Seek;
+   - Social;
+   - Adicionar;
+   - Roleta;
+   - Shop.
+
+2. A barra inferior deve exibir somente ícones.
+   Não exibir texto.
+   Não exibir labels.
+   Não exibir tooltips.
+   Não exibir nomes abaixo dos ícones.
+
+3. Todos os itens devem ficar no mesmo nível visual.
+   O botão Adicionar não deve ser maior que os outros.
+
+4. O item selecionado/ativo deve ficar claramente destacado com o ícone em laranja.
+
+5. Os itens inativos devem ficar em cinza/neutro.
+
+6. A barra inferior deve permanecer fixa no rodapé e não pode cobrir o conteúdo das telas.
+   Ajuste o padding/margem inferior do conteúdo se necessário.
+
+Adicionar:
+1. Ao tocar no item Adicionar, abrir um menu rápido.
+2. O menu rápido deve conter:
+   - Criar postagem;
+   - Enviar foto;
+   - Enviar vídeo.
+3. O menu rápido pode ser um bottom sheet ou dropdown simples, mas não deve criar páginas novas.
+
+Importante:
+Esta etapa é apenas layout/navegação visual.
+Não implementar funcionalidades reais.
+Não criar novas páginas.
+Não criar integração com backend.
+Manter o app rodando no Replit.
