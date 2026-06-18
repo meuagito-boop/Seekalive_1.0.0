@@ -12,7 +12,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { SocialComposer } from "@/components/social/SocialComposer";
 import { mockPosts, mockUsers, getUserById, formatCount } from "@/data/mockData";
 
-const feedTabs = ["Para você", "Seguindo", "Vídeos", "Comunidades"];
+const feedTabs = ["Para você", "Seguindo", "Comunidades", "Vídeos"];
 
 // ── mock video data ──────────────────────────────────────────────────
 const videoPosts = mockPosts.map((p, i) => ({
@@ -332,7 +332,7 @@ export default function Feed() {
     <div className="relative min-h-screen">
 
       {/* Composer — only for non-video tabs */}
-      {activeTab !== 2 && <SocialComposer />}
+      {activeTab !== 3 && <SocialComposer />}
 
       {/* Tab header — normal flow (not sticky, avoids overlap with content) */}
       <div className="bg-background border-b border-border">
@@ -394,18 +394,6 @@ export default function Feed() {
 
         {activeTab === 2 && (
           <motion.div
-            key="videos"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <SocialVideoFeed />
-          </motion.div>
-        )}
-
-        {activeTab === 3 && (
-          <motion.div
             key="communities"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -435,6 +423,18 @@ export default function Feed() {
                 </Button>
               </Link>
             </div>
+          </motion.div>
+        )}
+
+        {activeTab === 3 && (
+          <motion.div
+            key="videos"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SocialVideoFeed />
           </motion.div>
         )}
       </AnimatePresence>
