@@ -1,0 +1,108 @@
+Preciso que você avalie e corrija um problema de alinhamento nas abas de feed do módulo Social do SeekAlive.
+
+Atenção máxima:
+Não reescreva o projeto.
+Não apague telas existentes.
+Não remova componentes existentes.
+Não quebre imports.
+Não altere backend, banco, API, autenticação ou mock data.
+Não altere a estrutura global do app.
+Não mexa em Seek, Shop ou Roleta agora.
+Não troque a biblioteca de ícones.
+Continue usando Lucide React.
+Faça uma correção incremental e focada somente no alinhamento/layout das abas do feed Social.
+
+Problema observado:
+As abas do Social estão visualmente desalinhadas em relação ao conteúdo renderizado abaixo delas.
+
+Abas existentes:
+
+* Pra você
+* Seguindo
+* Vídeos
+* Comunidades
+
+Sintomas:
+
+* O conteúdo de algumas abas começa colado demais na barra de tabs.
+* Em alguns casos o primeiro post parece entrar por baixo ou atrás da área das tabs.
+* Cada aba parece usar um espaçamento/margem diferente.
+* A aba Vídeos tem layout próprio, mas ainda precisa respeitar o mesmo alinhamento inicial das outras abas.
+* A aba Comunidades também precisa começar no mesmo eixo vertical das demais.
+* O resultado atual passa sensação de UI quebrada/despadronizada.
+
+Objetivo:
+Criar um padrão único de alinhamento para todas as abas do feed Social.
+
+Regra principal:
+A barra de tabs deve ficar em uma posição estável e todos os conteúdos das abas devem começar abaixo dela, com o mesmo espaçamento vertical e dentro do mesmo container base.
+
+Estrutura esperada:
+Social central content:
+
+1. Composer
+2. FeedTabs
+3. FeedContent
+
+Exemplo conceitual:
+
+Composer
+↓
+FeedTabs: Pra você | Seguindo | Vídeos | Comunidades
+↓
+FeedContent com padding-top consistente
+↓
+Conteúdo da aba ativa
+
+Regras de correção:
+
+1. Todas as abas devem usar o mesmo container pai para o conteúdo.
+2. Todas as abas devem começar abaixo da barra de tabs.
+3. Nenhum conteúdo pode ficar por baixo da barra de tabs.
+4. Nenhum conteúdo pode ficar colado visualmente na barra de tabs.
+5. Nenhuma aba deve usar margin negativa para compensar layout.
+6. Evitar position absolute/fixed/sticky desnecessário dentro da área das tabs.
+7. Se FeedTabs for sticky, adicionar compensação correta no FeedContent.
+8. Se FeedTabs não precisa ser sticky, remover o comportamento sticky para simplificar.
+9. O espaçamento entre tabs e conteúdo deve ser consistente em:
+
+   * Pra você;
+   * Seguindo;
+   * Vídeos;
+   * Comunidades.
+10. A largura base do conteúdo deve ser consistente entre as abas.
+11. O alinhamento horizontal também deve ser preservado: posts, vídeos e comunidades devem respeitar o mesmo eixo/container central.
+12. A aba Vídeos pode manter layout vertical de vídeo, mas o bloco de vídeo deve começar dentro do mesmo FeedContent, abaixo das tabs.
+13. A aba Comunidades pode ter conteúdo próprio, mas deve seguir o mesmo início vertical e largura base.
+14. Não alterar o design geral das abas, apenas corrigir alinhamento, espaçamento e sobreposição.
+
+Verificações obrigatórias antes de editar:
+
+1. Identifique onde as tabs são renderizadas.
+2. Identifique onde cada conteúdo de aba é renderizado.
+3. Verifique se cada aba possui padding/margin próprio.
+4. Verifique se existe position sticky, fixed, absolute ou z-index interferindo.
+5. Verifique se algum container usa margin-top negativo, transform ou overflow que cause sobreposição.
+6. Verifique se a aba Vídeos usa um container diferente das demais.
+7. Corrija centralizando a responsabilidade no container comum, não com gambiarras em cada aba.
+
+Resultado esperado:
+Ao alternar entre:
+
+* Pra você;
+* Seguindo;
+* Vídeos;
+* Comunidades;
+
+o conteúdo deve permanecer alinhado, começando sempre abaixo da barra de tabs, com o mesmo espaçamento e sem sobreposição.
+
+Não quero redesenho geral agora.
+Quero apenas uma correção limpa de layout/alinhamento das abas do feed Social.
+
+Depois da correção:
+
+* rode o app;
+* verifique visualmente as quatro abas;
+* confirme que não há conteúdo escondido atrás das tabs;
+* confirme que não há diferença de padding/margem entre as abas;
+* confirme que mobile e desktop continuam funcionando.

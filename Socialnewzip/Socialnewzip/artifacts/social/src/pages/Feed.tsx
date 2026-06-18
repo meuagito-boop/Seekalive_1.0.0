@@ -334,8 +334,8 @@ export default function Feed() {
       {/* Composer — only for non-video tabs */}
       {activeTab !== 2 && <SocialComposer />}
 
-      {/* Tab header — always visible */}
-      <div className="sticky top-14 md:top-[104px] z-30 bg-background/90 backdrop-blur-lg border-b border-border">
+      {/* Tab header — normal flow (not sticky, avoids overlap with content) */}
+      <div className="bg-background border-b border-border">
         <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {feedTabs.map((tab, i) => (
             <button
