@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Check, X, Clock, Search, UserCheck } from "lucide-react";
+import { Users, Check, X, Clock, Search, UserCheck, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockUsers } from "@/data/mockData";
 
@@ -46,6 +46,13 @@ export default function Circles() {
     <div className="min-h-screen pb-16 md:pb-0">
       {/* Page header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border flex items-center gap-3 px-4 h-14">
+        <button
+          onClick={() => window.history.back()}
+          className="text-muted-foreground hover:text-foreground shrink-0"
+          data-testid="button-back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
         <UserCheck className="w-5 h-5 text-primary flex-shrink-0" />
         <div>
           <h1 className="font-bold text-base leading-tight">Amigos</h1>

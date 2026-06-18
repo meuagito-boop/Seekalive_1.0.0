@@ -44,7 +44,7 @@ export default function Compose() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-14 border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-40">
         <button
-          onClick={() => setLocation(-1 as never)}
+          onClick={() => window.history.back()}
           className="p-2 rounded-full hover:bg-muted/50 text-muted-foreground transition-colors"
           data-testid="button-cancel"
         >

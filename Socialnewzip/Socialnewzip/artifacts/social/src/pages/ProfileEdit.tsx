@@ -42,7 +42,7 @@ export default function ProfileEdit() {
   return (
     <div className="min-h-screen pb-16 md:pb-0">
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg flex items-center justify-between px-4 h-14 border-b border-border">
-        <button onClick={() => setLocation(-1 as never)} className="text-muted-foreground hover:text-foreground" data-testid="button-back">
+        <button onClick={() => window.history.back()} className="text-muted-foreground hover:text-foreground" data-testid="button-back">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="font-bold text-lg">Editar perfil</h1>

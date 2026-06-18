@@ -49,7 +49,7 @@ export default function Profile() {
       {/* Sticky back + title bar */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg flex items-center gap-4 px-4 h-14 border-b border-border">
         <button
-          onClick={() => setLocation(-1 as never)}
+          onClick={() => window.history.back()}
           className="text-muted-foreground hover:text-foreground p-1"
           data-testid="button-back"
         >
