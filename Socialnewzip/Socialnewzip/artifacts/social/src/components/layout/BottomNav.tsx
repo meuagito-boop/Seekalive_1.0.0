@@ -10,7 +10,7 @@ export function BottomNav() {
     { icon: Search,      path: "/seek",   key: "seek" },
     { icon: Users,       path: "/feed",   key: "social" },
     { icon: null,        path: null,      key: "add" },
-    { icon: Shuffle,     path: "/roleta", key: "roleta" },
+    { icon: Shuffle,     path: "/shuffle", key: "shuffle" },
     { icon: ShoppingBag, path: "/shop",   key: "shop" },
   ];
 

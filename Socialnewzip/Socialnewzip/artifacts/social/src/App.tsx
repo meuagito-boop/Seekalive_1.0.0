@@ -19,7 +19,7 @@ import OnboardingSuggestions from "@/pages/onboarding/Suggestions";
 
 import Feed from "@/pages/Feed";
 import Seek from "@/pages/Seek";
-import Roleta from "@/pages/Roleta";
+import Shuffle from "@/pages/Shuffle";
 import Shop from "@/pages/Shop";
 import Search from "@/pages/Search";
 import Notifications from "@/pages/Notifications";
@@ -88,10 +88,10 @@ function AuthRouter() {
         </AppShell>
       </Route>
 
-      {/* Roleta module — random discovery */}
-      <Route path="/roleta">
+      {/* Shuffle module — Tinder for events & commerce */}
+      <Route path="/shuffle">
         <AppShell>
-          <Roleta />
+          <Shuffle />
         </AppShell>
       </Route>
 

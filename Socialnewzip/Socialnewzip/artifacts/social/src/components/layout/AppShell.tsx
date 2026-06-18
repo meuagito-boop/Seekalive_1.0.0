@@ -12,7 +12,7 @@ const searchConfig: Record<string, string> = {
 function getModule(location: string): string | null {
   if (location.startsWith("/seek"))   return "seek";
   if (location.startsWith("/feed"))   return "social";
-  if (location.startsWith("/roleta")) return "roleta";
+  if (location.startsWith("/shuffle")) return "shuffle";
   if (location.startsWith("/shop"))   return "shop";
   return null;
 }

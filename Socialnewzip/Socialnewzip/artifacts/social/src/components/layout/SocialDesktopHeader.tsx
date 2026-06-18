@@ -3,17 +3,17 @@ import { Bell, Mail, ShoppingCart, Settings, Shuffle, ShoppingBag } from "lucide
 import { useSocial } from "@/context/SocialContext";
 
 const moduleNav = [
-  { label: "Seek",   path: "/seek" },
-  { label: "Social", path: "/feed" },
-  { label: "Roleta", path: "/roleta" },
-  { label: "Shop",   path: "/shop" },
+  { label: "Seek",    path: "/seek" },
+  { label: "Social",  path: "/feed" },
+  { label: "Shuffle", path: "/shuffle" },
+  { label: "Shop",    path: "/shop" },
 ];
 
 function getActiveModule(location: string): string | null {
-  if (location.startsWith("/seek"))   return "Seek";
-  if (location.startsWith("/feed"))   return "Social";
-  if (location.startsWith("/roleta")) return "Roleta";
-  if (location.startsWith("/shop"))   return "Shop";
+  if (location.startsWith("/seek"))    return "Seek";
+  if (location.startsWith("/feed"))    return "Social";
+  if (location.startsWith("/shuffle")) return "Shuffle";
+  if (location.startsWith("/shop"))    return "Shop";
   return null;
 }
 

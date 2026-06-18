@@ -294,6 +294,9 @@ function PanelCard({ title, icon, children }: { title: string; icon: React.React
 export default function Seek() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"comercios" | "eventos">("comercios");
+  const [onlyOpen, setOnlyOpen] = useState(false);
+
+  const filteredBusinesses = onlyOpen ? mockBusinesses.filter(b => b.open) : mockBusinesses;
 
   return (
     <div className="min-h-screen">
@@ -310,7 +313,7 @@ export default function Seek() {
             />
           ))}
         </div>
-        <div className="flex border-b border-border px-3">
+        <div className="flex items-center border-b border-border px-3 gap-2">
           <button
             onClick={() => setActiveTab("comercios")}
             className={`flex-1 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
@@ -327,10 +330,20 @@ export default function Seek() {
           >
             Eventos
           </button>
+          {activeTab === "comercios" && (
+            <button
+              onClick={() => setOnlyOpen(v => !v)}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors shrink-0 ${
+                onlyOpen ? "bg-green-500/15 text-green-400 border-green-500/30" : "text-muted-foreground border-border"
+              }`}
+            >
+              Abertos
+            </button>
+          )}
         </div>
         <div className="p-3 grid grid-cols-1 gap-3">
           {activeTab === "comercios"
-            ? mockBusinesses.map((b) => <BusinessCard key={b.id} b={b} />)
+            ? filteredBusinesses.map((b) => <BusinessCard key={b.id} b={b} />)
             : mockEvents.map((e) => <EventCard key={e.id} e={e} />)}
         </div>
       </div>
@@ -338,8 +351,27 @@ export default function Seek() {
       {/* Desktop 3-column layout */}
       <div className="hidden md:flex max-w-6xl mx-auto px-4 pt-4 gap-4 items-start">
 
-        {/* Left: categories */}
-        <aside className="w-52 flex-shrink-0 sticky top-[108px] self-start">
+        {/* Left: categories + quick stats */}
+        <aside className="w-52 flex-shrink-0 sticky top-[108px] self-start space-y-3">
+          {/* Quick stats */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              <p className="text-xs font-semibold text-foreground">Perto de você</p>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-border">
+              <div className="px-3 py-2.5 text-center">
+                <p className="text-xl font-black text-foreground">{mockBusinesses.filter(b => b.open).length}</p>
+                <p className="text-[10px] text-green-400 font-medium">abertos agora</p>
+              </div>
+              <div className="px-3 py-2.5 text-center">
+                <p className="text-xl font-black text-foreground">{mockEvents.length}</p>
+                <p className="text-[10px] text-primary font-medium">eventos hoje</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Categories */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border">
               <p className="text-sm font-semibold text-foreground">Categorias</p>
@@ -369,8 +401,8 @@ export default function Seek() {
 
         {/* Center: main content */}
         <main className="flex-1 min-w-0 min-h-[calc(100vh-120px)]">
-          {/* Tab selector */}
-          <div className="flex items-center justify-between mb-4">
+          {/* Tab selector + filters */}
+          <div className="flex items-center justify-between mb-4 gap-3">
             <div className="flex bg-card border border-border rounded-xl overflow-hidden">
               <button
                 onClick={() => setActiveTab("comercios")}
@@ -393,18 +425,103 @@ export default function Seek() {
                 Eventos
               </button>
             </div>
-            <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
-              <Filter className="w-4 h-4" />
-              Filtros
-            </button>
+            <div className="flex items-center gap-2">
+              {activeTab === "comercios" && (
+                <button
+                  onClick={() => setOnlyOpen(v => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                    onlyOpen
+                      ? "bg-green-500/10 text-green-400 border-green-500/30"
+                      : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Aberto agora
+                </button>
+              )}
+              <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
+                <Filter className="w-4 h-4" />
+                Filtros
+              </button>
+            </div>
           </div>
 
           {activeTab === "comercios" && (
-            <div className="grid grid-cols-2 gap-4">
-              {mockBusinesses.map((b) => (
-                <BusinessCard key={b.id} b={b} />
-              ))}
-            </div>
+            <>
+              {/* Featured card — first result, full width */}
+              {filteredBusinesses.length > 0 && (
+                <div className="mb-4">
+                  <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors group">
+                    <div className="flex gap-0">
+                      <div className="relative w-56 flex-shrink-0 overflow-hidden">
+                        <img
+                          src={filteredBusinesses[0].img}
+                          alt={filteredBusinesses[0].name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 min-h-[160px]"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/10" />
+                        <span className={`absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          filteredBusinesses[0].open ? "bg-green-500/90 text-white" : "bg-zinc-700/90 text-zinc-300"
+                        }`}>
+                          {filteredBusinesses[0].open ? "Aberto agora" : "Fechado"}
+                        </span>
+                      </div>
+                      <div className="flex-1 p-4 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div>
+                              <span className="text-[10px] font-bold text-primary uppercase tracking-wider">⭐ Destaque</span>
+                              <h3 className="font-bold text-foreground text-lg leading-tight">{filteredBusinesses[0].name}</h3>
+                              <p className="text-xs text-muted-foreground">{filteredBusinesses[0].category}</p>
+                            </div>
+                            <div className="flex items-center gap-0.5 flex-shrink-0">
+                              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                              <span className="text-sm font-bold text-foreground">{filteredBusinesses[0].rating}</span>
+                              <span className="text-xs text-muted-foreground ml-1">({filteredBusinesses[0].reviews})</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 mb-2">
+                            <MapPin className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">{filteredBusinesses[0].distance}</span>
+                          </div>
+                          <div className="flex gap-1.5 flex-wrap">
+                            {filteredBusinesses[0].tags.map(t => (
+                              <span key={t} className="text-[11px] bg-muted/60 text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button className="flex-1 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5">
+                            <Eye className="w-3.5 h-3.5" />
+                            Ver detalhes
+                          </button>
+                          <button className="h-8 px-4 rounded-full border border-border text-xs text-muted-foreground font-semibold hover:border-primary/40 hover:text-foreground transition-colors">
+                            Salvar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Remaining cards in 2-col grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {filteredBusinesses.slice(1).map((b) => (
+                  <BusinessCard key={b.id} b={b} />
+                ))}
+              </div>
+              {filteredBusinesses.length === 0 && (
+                <div className="flex flex-col items-center py-16 text-muted-foreground">
+                  <Clock className="w-10 h-10 mb-3 opacity-30" />
+                  <p className="font-semibold text-sm">Nenhum comércio aberto agora</p>
+                  <button onClick={() => setOnlyOpen(false)} className="text-primary text-xs mt-2 hover:underline">
+                    Ver todos
+                  </button>
+                </div>
+              )}
+            </>
           )}
           {activeTab === "eventos" && (
             <div className="grid grid-cols-2 gap-4">
