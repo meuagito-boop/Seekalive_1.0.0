@@ -1,2 +1,2 @@
 - [Social module layout architecture](social-layout-arch.md) — Feed uses SocialLayout (not AppLayout); extract /feed from AppLayout in AuthRouter to give it its own 3-column layout.
-- [Seek positioning](seek-positioning.md) — the user wants Seek to be a much better version of Yelp and Dianping.
+- [Visão e contas do Seek](seek-positioning.md) — Seek deve superar Yelp e Dianping; comércios são contas comerciais da própria rede Social.

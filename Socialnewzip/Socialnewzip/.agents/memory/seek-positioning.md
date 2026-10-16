@@ -1,10 +1,12 @@
 ---
-name: Seek positioning
-description: User-stated product vision for the Seek local discovery module.
+name: Visão e contas do Seek
+description: Visão de produto e regra de origem das contas comerciais que aparecem no Seek.
 ---
 
-Seek is intended to be a much better version of Yelp and Dianping.
+O Seek deve ser uma versão muito melhor do Yelp e do Dianping.
 
-**Why:** This is the product direction stated by the user.
+O aplicativo tem um único sistema de contas sociais. Ao criar uma conta, o usuário escolhe se ela é pessoal ou comercial. A conta comercial é a própria conta da rede Social e também aparece no Seek. O Seek é alimentado por essas contas comerciais, não por cadastros separados de estabelecimentos.
 
-**How to apply:** Use this positioning when making future product, feature, and design decisions for Seek.
+**Why:** O usuário definiu essa visão de produto e essa regra de contas para o aplicativo.
+
+**How to apply:** Em futuras decisões de produto, design e dados, manter uma identidade de conta compartilhada entre Social e Seek; os estabelecimentos listados no Seek devem vir de contas comerciais do Social.
