@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Users, Plus, Shuffle, ShoppingBag, FileText, Image, Video, X } from "lucide-react";
+import { Search, Users, Plus, ShoppingBag, FileText, Image, Video, X } from "lucide-react";
 
 export function BottomNav() {
   const [location, navigate] = useLocation();
@@ -10,7 +10,6 @@ export function BottomNav() {
     { icon: Search,      path: "/seek",   key: "seek" },
     { icon: Users,       path: "/feed",   key: "social" },
     { icon: null,        path: null,      key: "add" },
-    { icon: Shuffle,     path: "/shuffle", key: "shuffle" },
     { icon: ShoppingBag, path: "/shop",   key: "shop" },
   ];
 

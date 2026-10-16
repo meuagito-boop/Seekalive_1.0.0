@@ -9,7 +9,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { SectionTitle } from "@/components/ui/section-title";
 import {
   Bell, Heart, MessageCircle, Search, Settings, Share2,
-  Shuffle, ShoppingBag, Star, Users, X, Plus, Check,
+  ShoppingBag, Star, Users, X, Plus, Check,
 } from "lucide-react";
 
 function ColorSwatch({ label, className, style }: { label: string; className?: string; style?: React.CSSProperties }) {
@@ -302,7 +302,6 @@ export default function StyleGuide() {
               { icon: Search, label: "Seek", active: false },
               { icon: Users, label: "Social", active: true },
               { icon: Plus, label: "Add", active: false },
-              { icon: Shuffle, label: "Roleta", active: false },
               { icon: ShoppingBag, label: "Shop", active: false },
             ].map((item) => (
               <div key={item.label} className="flex flex-col items-center gap-1.5">

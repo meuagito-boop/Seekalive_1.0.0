@@ -19,7 +19,6 @@ import OnboardingSuggestions from "@/pages/onboarding/Suggestions";
 
 import Feed from "@/pages/Feed";
 import Seek from "@/pages/Seek";
-import Shuffle from "@/pages/Shuffle";
 import Shop from "@/pages/Shop";
 import Search from "@/pages/Search";
 import Notifications from "@/pages/Notifications";
@@ -85,13 +84,6 @@ function AuthRouter() {
       <Route path="/seek">
         <AppShell fullWidth>
           <Seek />
-        </AppShell>
-      </Route>
-
-      {/* Shuffle module — Tinder for events & commerce */}
-      <Route path="/shuffle">
-        <AppShell>
-          <Shuffle />
         </AppShell>
       </Route>
 

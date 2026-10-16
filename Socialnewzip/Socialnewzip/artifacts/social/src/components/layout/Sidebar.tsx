@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Search, Bell, Mail, Users, Settings, User, Shuffle, ShoppingBag } from "lucide-react";
+import { Home, Search, Bell, Mail, Users, Settings, User, ShoppingBag } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ export function Sidebar() {
     { icon: Search, path: "/search", label: "Seek", badge: 0 },
     { icon: Bell, path: "/notifications", label: "Notificações", badge: unreadNotifications },
     { icon: Mail, path: "/messages", label: "Mensagens", badge: unreadMessages },
-    { icon: Shuffle, path: "/feed", label: "Roleta", badge: 0 },
     { icon: ShoppingBag, path: "/feed", label: "Shop", badge: 0 },
     { icon: Users, path: "/communities", label: "Comunidades", badge: 0 },
     { icon: Settings, path: "/settings", label: "Configurações", badge: 0 },
