@@ -9,17 +9,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/context/SocialContext";
+import type { User } from "@/data/mockData";
+
+const commercialCategories = [
+  { value: "restaurantes", label: "Restaurantes" },
+  { value: "bares", label: "Bares" },
+  { value: "cafes", label: "Cafés" },
+  { value: "servicos", label: "Serviços" },
+  { value: "compras", label: "Compras" },
+  { value: "saude", label: "Saúde e beleza" },
+  { value: "lazer", label: "Lazer" },
+];
 
 const schema = z.object({
   displayName: z.string().min(2, "Nome deve ter ao menos 2 caracteres"),
+  accountType: z.enum(["personal", "commercial"]),
+  businessCategory: z.string(),
+  businessLocation: z.string(),
   username: z.string().min(3, "Username deve ter ao menos 3 caracteres").regex(/^[a-z0-9_]+$/, "Apenas letras minúsculas, números e _"),
   email: z.string().email("Email inválido"),
   password: z.string().min(8, "Senha deve ter ao menos 8 caracteres"),
   confirmPassword: z.string(),
   terms: z.boolean().refine(v => v, "Aceite os termos para continuar"),
-}).refine(d => d.password === d.confirmPassword, {
-  message: "Senhas não coincidem",
-  path: ["confirmPassword"],
+}).superRefine((data, ctx) => {
+  if (data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Senhas não coincidem",
+      path: ["confirmPassword"],
+    });
+  }
+  if (data.accountType === "commercial" && !data.businessCategory) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Selecione a categoria do comércio",
+      path: ["businessCategory"],
+    });
+  }
+  if (data.accountType === "commercial" && data.businessLocation.trim().length < 3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Informe a cidade ou o bairro do comércio",
+      path: ["businessLocation"],
+    });
+  }
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -27,20 +61,61 @@ type FormValues = z.infer<typeof schema>;
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [, setLocation] = useLocation();
-  const { login } = useAppContext();
+  const { registerAccount } = useAppContext();
+  const { addUser, users } = useSocial();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { displayName: "", username: "", email: "", password: "", confirmPassword: "", terms: false },
+    defaultValues: {
+      displayName: "",
+      accountType: "personal",
+      businessCategory: "",
+      businessLocation: "",
+      username: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      terms: false,
+    },
   });
 
-  function onSubmit(_values: FormValues) {
-    login();
+  function onSubmit(values: FormValues) {
+    if (users.some((user) => user.username === values.username)) {
+      form.setError("username", { type: "manual", message: "Esse username já está em uso" });
+      return;
+    }
+
+    const selectedCategory = commercialCategories.find((category) => category.value === values.businessCategory);
+    const user: User = {
+      id: `user_${values.username}`,
+      username: values.username,
+      displayName: values.displayName,
+      bio: values.accountType === "commercial"
+        ? `${selectedCategory?.label ?? "Comércio"} local no ${values.businessLocation}.`
+        : "Novo por aqui.",
+      avatarUrl: `https://i.pravatar.cc/150?u=${encodeURIComponent(values.username)}`,
+      coverUrl: `https://picsum.photos/seed/${encodeURIComponent(values.username)}/800/300`,
+      location: values.accountType === "commercial" ? values.businessLocation : undefined,
+      joinedAt: new Date().toISOString(),
+      accountType: values.accountType,
+      commercialProfile: values.accountType === "commercial" && selectedCategory
+        ? {
+            categoryKey: selectedCategory.value,
+            category: selectedCategory.label,
+            address: values.businessLocation,
+            tags: [],
+          }
+        : undefined,
+      stats: { posts: 0, followers: 0, following: 0, circles: 0 },
+    };
+
+    addUser(user);
+    registerAccount(user);
     setLocation("/onboarding/interests");
   }
 
   const username = form.watch("username");
-  const isUsernameAvailable = username.length > 2;
+  const isUsernameAvailable = username.length > 2 && !users.some((user) => user.username === username);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -77,6 +152,81 @@ export default function Register() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="accountType"
+              render={({ field }) => (
+                <FormItem>
+                  <p className="text-sm font-semibold">Tipo de conta</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { value: "personal", title: "Pessoal", hint: "Para compartilhar e acompanhar pessoas" },
+                      { value: "commercial", title: "Comercial", hint: "Seu perfil Social também aparece no Seek" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={field.value === option.value}
+                        onClick={() => field.onChange(option.value)}
+                        className={`rounded-xl border p-3 text-left transition-colors ${
+                          field.value === option.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-card hover:border-primary/40"
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">{option.title}</span>
+                        <span className="mt-1 block text-xs text-muted-foreground">{option.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {form.watch("accountType") === "commercial" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="businessCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <select
+                          {...field}
+                          data-testid="select-business-category"
+                          className="h-12 w-full rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                        >
+                          <option value="">Categoria do comércio</option>
+                          {commercialCategories.map((category) => (
+                            <option key={category.value} value={category.value}>{category.label}</option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="businessLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Cidade ou bairro"
+                          data-testid="input-business-location"
+                          className="h-12 bg-card border-border rounded-xl"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
 
             <FormField
               control={form.control}

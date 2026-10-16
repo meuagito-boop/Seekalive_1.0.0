@@ -5,7 +5,6 @@ import { SocialDesktopHeader } from "./SocialDesktopHeader";
 import { BottomNav } from "./BottomNav";
 
 const searchConfig: Record<string, string> = {
-  seek:   "Buscar comércios e eventos...",
   shop:   "Buscar produtos, serviços, ofertas e lojas...",
 };
 
@@ -25,7 +24,7 @@ export function AppShell({ children, fullWidth }: AppShellProps) {
   const [location] = useLocation();
   const module = getModule(location);
   const searchPlaceholder = module ? searchConfig[module] : null;
-  const showSearch = !!searchPlaceholder;
+  const showSearch = !!searchPlaceholder && module !== "seek";
 
   return (
     <div className="min-h-screen bg-background text-foreground">

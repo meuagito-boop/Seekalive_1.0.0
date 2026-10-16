@@ -5,8 +5,9 @@ import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check, UserPlus, Us
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/post/PostCard";
-import { currentUser, formatCount } from "@/data/mockData";
+import { currentUser as mockCurrentUser, formatCount } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
 
 const tabs = ["Posts", "Respostas", "Mídia", "Curtidas"];
 
@@ -17,14 +18,16 @@ export default function Profile() {
   const [showMenu, setShowMenu] = useState(false);
 
   const { users, posts, getUserById, toggleFollow, requestCircle, cancelCircle } = useSocial();
+  const { currentUser: signedInUser } = useAppContext();
+  const viewer = signedInUser ?? mockCurrentUser;
 
   // Resolve user
   const username = params.username;
-  const isMe = username === "orbit_user" || username === currentUser.username || !username;
+  const isMe = username === viewer.username || !username;
 
   const user = isMe
-    ? currentUser
-    : (users.find(u => u.username === username) ?? users[0]);
+    ? viewer
+    : (users.find(u => u.username === username) ?? users[0] ?? viewer);
 
   const following = user.isFollowing ?? false;
   const circleStatus = user.circleStatus ?? null;
@@ -163,6 +166,11 @@ export default function Profile() {
           <div className="mb-4">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">{user.displayName}</h1>
+              {user.accountType === "commercial" && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  Comercial
+                </span>
+              )}
               {user.isVerified && (
                 <span className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-white" />

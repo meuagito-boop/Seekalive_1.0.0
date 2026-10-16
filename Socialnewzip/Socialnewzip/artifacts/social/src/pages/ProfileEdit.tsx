@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { currentUser } from "@/data/mockData";
+import { currentUser as mockCurrentUser } from "@/data/mockData";
+import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/context/SocialContext";
 
 const schema = z.object({
   displayName: z.string().min(2),
@@ -23,6 +25,9 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ProfileEdit() {
   const [, setLocation] = useLocation();
+  const { currentUser: signedInUser, updateAccount } = useAppContext();
+  const { addUser } = useSocial();
+  const currentUser = signedInUser ?? mockCurrentUser;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -35,8 +40,22 @@ export default function ProfileEdit() {
     },
   });
 
-  function onSubmit(_values: FormValues) {
-    setLocation(`/profile/${currentUser.username}`);
+  function onSubmit(values: FormValues) {
+    const updatedUser = {
+      ...currentUser,
+      ...values,
+      location: values.location || undefined,
+      website: values.website || undefined,
+      commercialProfile: currentUser.commercialProfile
+        ? {
+            ...currentUser.commercialProfile,
+            address: values.location || currentUser.commercialProfile.address,
+          }
+        : undefined,
+    };
+    updateAccount(updatedUser);
+    addUser(updatedUser);
+    setLocation(`/profile/${updatedUser.username}`);
   }
 
   return (

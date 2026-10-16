@@ -3,6 +3,7 @@ import {
   Post, User, Notification, Conversation, Message,
   mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages,
 } from "@/data/mockData";
+import { getStoredAccounts, saveSocialAccount } from "@/data/accountStorage";
 
 // ── State shape ──────────────────────────────────────────────────────
 interface SocialState {
@@ -20,6 +21,7 @@ type Action =
   | { type: "TOGGLE_BOOKMARK"; postId: string }
   | { type: "INCREMENT_COMMENTS"; postId: string }
   | { type: "TOGGLE_FOLLOW"; userId: string }
+  | { type: "ADD_USER"; user: User }
   | { type: "REQUEST_CIRCLE"; userId: string }
   | { type: "ACCEPT_CIRCLE"; userId: string }
   | { type: "CANCEL_CIRCLE"; userId: string }
@@ -93,6 +95,14 @@ function reducer(state: SocialState, action: Action): SocialState {
         ),
       };
     }
+
+    case "ADD_USER":
+      return {
+        ...state,
+        users: state.users.some((user) => user.id === action.user.id)
+          ? state.users.map((user) => user.id === action.user.id ? action.user : user)
+          : [...state.users, action.user],
+      };
 
     case "REQUEST_CIRCLE":
       return {
@@ -206,6 +216,11 @@ const initialState: SocialState = {
   messages: [...mockMessages],
 };
 
+function createInitialState(): SocialState {
+  const usersById = new Map([...initialState.users, ...getStoredAccounts()].map((user) => [user.id, user]));
+  return { ...initialState, users: [...usersById.values()] };
+}
+
 // ── Context ───────────────────────────────────────────────────────────
 interface SocialContextType extends SocialState {
   dispatch: React.Dispatch<Action>;
@@ -220,6 +235,7 @@ interface SocialContextType extends SocialState {
   toggleRepost: (postId: string) => void;
   toggleBookmark: (postId: string) => void;
   toggleFollow: (userId: string) => void;
+  addUser: (user: User) => void;
   requestCircle: (userId: string) => void;
   acceptCircle: (userId: string) => void;
   cancelCircle: (userId: string) => void;
@@ -236,7 +252,7 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 // ── Provider ──────────────────────────────────────────────────────────
 export function SocialProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
 
   const ctx: SocialContextType = {
     ...state,
@@ -256,6 +272,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
           location: "Internet",
           website: "https://orbit.social",
           joinedAt: new Date().toISOString(),
+          accountType: "personal",
           stats: { posts: 12, followers: 142, following: 38, circles: 5 },
         };
       }
@@ -269,6 +286,10 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     toggleRepost: (postId) => dispatch({ type: "TOGGLE_REPOST", postId }),
     toggleBookmark: (postId) => dispatch({ type: "TOGGLE_BOOKMARK", postId }),
     toggleFollow: (userId) => dispatch({ type: "TOGGLE_FOLLOW", userId }),
+    addUser: (user) => {
+      saveSocialAccount(user);
+      dispatch({ type: "ADD_USER", user });
+    },
     requestCircle: (userId) => dispatch({ type: "REQUEST_CIRCLE", userId }),
     acceptCircle: (userId) => dispatch({ type: "ACCEPT_CIRCLE", userId }),
     cancelCircle: (userId) => dispatch({ type: "CANCEL_CIRCLE", userId }),
