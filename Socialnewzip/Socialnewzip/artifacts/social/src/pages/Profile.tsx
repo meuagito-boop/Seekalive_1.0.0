@@ -8,6 +8,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { currentUser as mockCurrentUser, formatCount } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
+import { CommercialProfilePage } from "@/components/profile/CommercialProfilePage";
 
 const tabs = ["Posts", "Respostas", "Mídia", "Curtidas"];
 
@@ -45,6 +46,10 @@ export default function Profile() {
     if (!circleStatus || circleStatus === null) requestCircle(user.id);
     else if (circleStatus === "pending") cancelCircle(user.id);
     // accepted → no-op (manage from Circles page)
+  }
+
+  if (user.accountType === "commercial" && user.commercialProfile) {
+    return <CommercialProfilePage user={user} isMe={isMe} />;
   }
 
   return (

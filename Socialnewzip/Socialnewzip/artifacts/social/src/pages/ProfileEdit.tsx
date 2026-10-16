@@ -19,6 +19,10 @@ const schema = z.object({
   bio: z.string().max(160),
   location: z.string().max(50).optional(),
   website: z.string().url("URL inválida").optional().or(z.literal("")),
+  businessAddress: z.string().max(120).optional(),
+  businessPhone: z.string().max(30).optional(),
+  openingHours: z.string().max(120).optional(),
+  priceLevel: z.string().regex(/^$|^[1-4]$/),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,6 +41,10 @@ export default function ProfileEdit() {
       bio: currentUser.bio,
       location: currentUser.location ?? "",
       website: currentUser.website ?? "",
+      businessAddress: currentUser.commercialProfile?.address ?? "",
+      businessPhone: currentUser.commercialProfile?.phone ?? "",
+      openingHours: currentUser.commercialProfile?.openingHours ?? "",
+      priceLevel: currentUser.commercialProfile?.priceLevel?.toString() ?? "",
     },
   });
 
@@ -49,7 +57,12 @@ export default function ProfileEdit() {
       commercialProfile: currentUser.commercialProfile
         ? {
             ...currentUser.commercialProfile,
-            address: values.location || currentUser.commercialProfile.address,
+            address: values.businessAddress?.trim() || currentUser.commercialProfile.address,
+            phone: values.businessPhone?.trim() || undefined,
+            openingHours: values.openingHours?.trim() || undefined,
+            priceLevel: values.priceLevel
+              ? Number(values.priceLevel) as 1 | 2 | 3 | 4
+              : undefined,
           }
         : undefined,
     };
@@ -169,6 +182,72 @@ export default function ProfileEdit() {
                 </FormItem>
               )}
             />
+            {currentUser.accountType === "commercial" && (
+              <section className="space-y-5 border-t border-border pt-5">
+                <div>
+                  <h2 className="font-bold">Informações do comércio</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">Esses dados aparecem no perfil comercial do Seek.</p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="businessAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm text-muted-foreground">Endereço</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Rua, número, bairro" data-testid="input-business-address" className="h-12 rounded-xl border-border bg-card" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="businessPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm text-muted-foreground">Telefone</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="tel" placeholder="(11) 0000-0000" data-testid="input-business-phone" className="h-12 rounded-xl border-border bg-card" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="openingHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm text-muted-foreground">Horário de funcionamento</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Seg–Sex · 09h–18h" data-testid="input-opening-hours" className="h-12 rounded-xl border-border bg-card" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="priceLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm text-muted-foreground">Faixa de preço</FormLabel>
+                      <FormControl>
+                        <select {...field} data-testid="select-price-level" className="h-12 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground">
+                          <option value="">Não informar</option>
+                          <option value="1">$ · Econômico</option>
+                          <option value="2">$$ · Moderado</option>
+                          <option value="3">$$$ · Alto</option>
+                          <option value="4">$$$$ · Premium</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </section>
+            )}
           </form>
         </Form>
       </motion.div>

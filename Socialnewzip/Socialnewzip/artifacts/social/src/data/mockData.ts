@@ -9,14 +9,7 @@ export interface User {
   website?: string;
   joinedAt: string;
   accountType: "personal" | "commercial";
-  commercialProfile?: {
-    categoryKey: string;
-    category: string;
-    address: string;
-    distanceKm?: number;
-    isOpen?: boolean;
-    tags: string[];
-  };
+  commercialProfile?: CommercialProfile;
   isPrivate?: boolean;
   isVerified?: boolean;
   stats: {
@@ -30,6 +23,20 @@ export interface User {
   circleStatus?: "pending" | "accepted" | null;
   isBlocked?: boolean;
   isMuted?: boolean;
+}
+
+export interface CommercialProfile {
+  categoryKey: string;
+  category: string;
+  address: string;
+  distanceKm?: number;
+  isOpen?: boolean;
+  openingHours?: string;
+  phone?: string;
+  priceLevel?: 1 | 2 | 3 | 4;
+  photos?: string[];
+  amenities?: string[];
+  tags: string[];
 }
 
 export interface SeekReview {
@@ -236,6 +243,14 @@ export const mockUsers: User[] = [
       address: "Rua dos Pinheiros, 120",
       distanceKm: 0.3,
       isOpen: true,
+      openingHours: "Seg–Dom · 11h30–23h",
+      priceLevel: 3,
+      photos: [
+        "https://picsum.photos/seed/grill1/1000/640",
+        "https://picsum.photos/seed/grill-dining/800/560",
+        "https://picsum.photos/seed/grill-food/800/560",
+      ],
+      amenities: ["Aceita reservas", "Área externa", "Acessível"],
       tags: ["Carnes", "Almoço", "Jantar"],
     },
     stats: { posts: 18, followers: 4200, following: 120, circles: 0 },
@@ -257,6 +272,14 @@ export const mockUsers: User[] = [
       address: "Rua Harmonia, 45",
       distanceKm: 0.5,
       isOpen: true,
+      openingHours: "Ter–Dom · 16h–01h",
+      priceLevel: 2,
+      photos: [
+        "https://picsum.photos/seed/barz2/1000/640",
+        "https://picsum.photos/seed/bar-interior/800/560",
+        "https://picsum.photos/seed/bar-cocktail/800/560",
+      ],
+      amenities: ["Música ao vivo", "Área externa", "Aceita cartões"],
       tags: ["Drinks", "Petiscos", "Ao vivo"],
     },
     stats: { posts: 31, followers: 6900, following: 80, circles: 0 },
@@ -278,6 +301,14 @@ export const mockUsers: User[] = [
       address: "Rua Augusta, 210",
       distanceKm: 0.2,
       isOpen: false,
+      openingHours: "Seg–Sáb · 08h–18h",
+      priceLevel: 2,
+      photos: [
+        "https://picsum.photos/seed/cafe3/1000/640",
+        "https://picsum.photos/seed/cafe-interior/800/560",
+        "https://picsum.photos/seed/cafe-brunch/800/560",
+      ],
+      amenities: ["Wi-Fi", "Tomadas", "Opções vegetarianas"],
       tags: ["Café especial", "Brunch", "Wi-Fi"],
     },
     stats: { posts: 46, followers: 8200, following: 90, circles: 0 },
@@ -299,6 +330,14 @@ export const mockUsers: User[] = [
       address: "Av. Faria Lima, 800",
       distanceKm: 0.8,
       isOpen: true,
+      openingHours: "Seg–Sex · 06h–22h · Sáb–Dom · 08h–14h",
+      priceLevel: 2,
+      photos: [
+        "https://picsum.photos/seed/gym4/1000/640",
+        "https://picsum.photos/seed/gym-studio/800/560",
+        "https://picsum.photos/seed/gym-class/800/560",
+      ],
+      amenities: ["Vestiários", "Aulas coletivas", "Estacionamento"],
       tags: ["Musculação", "Pilates", "CrossFit"],
     },
     stats: { posts: 27, followers: 3100, following: 65, circles: 0 },
@@ -320,6 +359,14 @@ export const mockUsers: User[] = [
       address: "Alameda Santos, 510",
       distanceKm: 1.2,
       isOpen: true,
+      openingHours: "Seg–Sáb · 09h–20h",
+      priceLevel: 2,
+      photos: [
+        "https://picsum.photos/seed/barber5/1000/640",
+        "https://picsum.photos/seed/barber-shop/800/560",
+        "https://picsum.photos/seed/barber-chair/800/560",
+      ],
+      amenities: ["Agendamento", "Acessível", "Aceita cartões"],
       tags: ["Corte", "Barba", "Agendamento"],
     },
     stats: { posts: 22, followers: 5400, following: 48, circles: 0 },
@@ -341,6 +388,14 @@ export const mockUsers: User[] = [
       address: "Av. Paulista, 1500",
       distanceKm: 1.5,
       isOpen: true,
+      openingHours: "Seg–Sáb · 10h–22h · Dom · 12h–18h",
+      priceLevel: 1,
+      photos: [
+        "https://picsum.photos/seed/book6/1000/640",
+        "https://picsum.photos/seed/bookstore/800/560",
+        "https://picsum.photos/seed/book-cafe/800/560",
+      ],
+      amenities: ["Acessível", "Espaço infantil", "Café"],
       tags: ["Livros", "Papelaria", "Café"],
     },
     stats: { posts: 15, followers: 7700, following: 110, circles: 0 },
