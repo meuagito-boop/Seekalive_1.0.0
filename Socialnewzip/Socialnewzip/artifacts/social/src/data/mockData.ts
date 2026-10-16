@@ -15,8 +15,6 @@ export interface User {
     address: string;
     distanceKm?: number;
     isOpen?: boolean;
-    rating?: number;
-    reviewCount?: number;
     tags: string[];
   };
   isPrivate?: boolean;
@@ -32,6 +30,19 @@ export interface User {
   circleStatus?: "pending" | "accepted" | null;
   isBlocked?: boolean;
   isMuted?: boolean;
+}
+
+export interface SeekReview {
+  id: string;
+  businessAccountId: string;
+  reviewerId: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  comment: string;
+  createdAt: string;
+  businessReply?: {
+    content: string;
+    createdAt: string;
+  };
 }
 
 export interface Post {
@@ -225,8 +236,6 @@ export const mockUsers: User[] = [
       address: "Rua dos Pinheiros, 120",
       distanceKm: 0.3,
       isOpen: true,
-      rating: 4.8,
-      reviewCount: 342,
       tags: ["Carnes", "Almoço", "Jantar"],
     },
     stats: { posts: 18, followers: 4200, following: 120, circles: 0 },
@@ -248,8 +257,6 @@ export const mockUsers: User[] = [
       address: "Rua Harmonia, 45",
       distanceKm: 0.5,
       isOpen: true,
-      rating: 4.5,
-      reviewCount: 198,
       tags: ["Drinks", "Petiscos", "Ao vivo"],
     },
     stats: { posts: 31, followers: 6900, following: 80, circles: 0 },
@@ -271,8 +278,6 @@ export const mockUsers: User[] = [
       address: "Rua Augusta, 210",
       distanceKm: 0.2,
       isOpen: false,
-      rating: 4.7,
-      reviewCount: 521,
       tags: ["Café especial", "Brunch", "Wi-Fi"],
     },
     stats: { posts: 46, followers: 8200, following: 90, circles: 0 },
@@ -294,8 +299,6 @@ export const mockUsers: User[] = [
       address: "Av. Faria Lima, 800",
       distanceKm: 0.8,
       isOpen: true,
-      rating: 4.6,
-      reviewCount: 87,
       tags: ["Musculação", "Pilates", "CrossFit"],
     },
     stats: { posts: 27, followers: 3100, following: 65, circles: 0 },
@@ -317,8 +320,6 @@ export const mockUsers: User[] = [
       address: "Alameda Santos, 510",
       distanceKm: 1.2,
       isOpen: true,
-      rating: 4.9,
-      reviewCount: 256,
       tags: ["Corte", "Barba", "Agendamento"],
     },
     stats: { posts: 22, followers: 5400, following: 48, circles: 0 },
@@ -340,12 +341,113 @@ export const mockUsers: User[] = [
       address: "Av. Paulista, 1500",
       distanceKm: 1.5,
       isOpen: true,
-      rating: 4.4,
-      reviewCount: 133,
       tags: ["Livros", "Papelaria", "Café"],
     },
     stats: { posts: 15, followers: 7700, following: 110, circles: 0 },
     isVerified: true,
+  },
+];
+
+export const mockSeekReviews: SeekReview[] = [
+  {
+    id: "review-biz1-u1",
+    businessAccountId: "biz1",
+    reviewerId: "u1",
+    rating: 5,
+    comment: "Carne muito bem preparada e atendimento atencioso. Voltaria para jantar.",
+    createdAt: "2026-10-10T18:20:00.000Z",
+    businessReply: {
+      content: "Obrigado por compartilhar sua experiência, Alex! Esperamos receber você novamente.",
+      createdAt: "2026-10-11T14:00:00.000Z",
+    },
+  },
+  {
+    id: "review-biz1-u2",
+    businessAccountId: "biz1",
+    reviewerId: "u2",
+    rating: 4,
+    comment: "Bom almoço e porções generosas. O salão estava movimentado no horário de pico.",
+    createdAt: "2026-10-08T16:10:00.000Z",
+  },
+  {
+    id: "review-biz2-u3",
+    businessAccountId: "biz2",
+    reviewerId: "u3",
+    rating: 5,
+    comment: "Drinks bem feitos e música ao vivo em um volume agradável.",
+    createdAt: "2026-10-12T22:40:00.000Z",
+  },
+  {
+    id: "review-biz2-u4",
+    businessAccountId: "biz2",
+    reviewerId: "u4",
+    rating: 4,
+    comment: "Ótimo lugar para encontrar amigos. Os petiscos chegaram rápido.",
+    createdAt: "2026-10-07T20:15:00.000Z",
+  },
+  {
+    id: "review-biz3-u5",
+    businessAccountId: "biz3",
+    reviewerId: "u5",
+    rating: 5,
+    comment: "Café excelente e espaço tranquilo para trabalhar durante a manhã.",
+    createdAt: "2026-10-13T13:05:00.000Z",
+  },
+  {
+    id: "review-biz3-u6",
+    businessAccountId: "biz3",
+    reviewerId: "u6",
+    rating: 5,
+    comment: "Brunch delicioso, equipe gentil e boas opções de café especial.",
+    createdAt: "2026-10-06T12:30:00.000Z",
+  },
+  {
+    id: "review-biz4-u7",
+    businessAccountId: "biz4",
+    reviewerId: "u7",
+    rating: 4,
+    comment: "Equipamentos bem cuidados e boas aulas coletivas no fim do dia.",
+    createdAt: "2026-10-09T19:20:00.000Z",
+  },
+  {
+    id: "review-biz4-u8",
+    businessAccountId: "biz4",
+    reviewerId: "u8",
+    rating: 5,
+    comment: "Instrutores atenciosos e espaço organizado. Gostei bastante da aula de Pilates.",
+    createdAt: "2026-10-05T10:00:00.000Z",
+  },
+  {
+    id: "review-biz5-u1",
+    businessAccountId: "biz5",
+    reviewerId: "u1",
+    rating: 5,
+    comment: "Corte caprichado e pontualidade no horário marcado.",
+    createdAt: "2026-10-14T17:30:00.000Z",
+  },
+  {
+    id: "review-biz5-u3",
+    businessAccountId: "biz5",
+    reviewerId: "u3",
+    rating: 5,
+    comment: "Ambiente agradável e ótimo acabamento na barba.",
+    createdAt: "2026-10-04T15:45:00.000Z",
+  },
+  {
+    id: "review-biz6-u2",
+    businessAccountId: "biz6",
+    reviewerId: "u2",
+    rating: 4,
+    comment: "Boa variedade de livros e um café gostoso para fazer uma pausa.",
+    createdAt: "2026-10-11T14:25:00.000Z",
+  },
+  {
+    id: "review-biz6-u6",
+    businessAccountId: "biz6",
+    reviewerId: "u6",
+    rating: 5,
+    comment: "Encontrei o livro que procurava e fui muito bem atendida.",
+    createdAt: "2026-10-03T11:50:00.000Z",
   },
 ];
 

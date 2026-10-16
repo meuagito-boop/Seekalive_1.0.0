@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useReducer, ReactNode } from "react";
 import {
-  Post, User, Notification, Conversation, Message,
-  mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages,
+  Post, User, Notification, Conversation, Message, SeekReview,
+  mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages, mockSeekReviews,
 } from "@/data/mockData";
 import { getStoredAccounts, saveSocialAccount } from "@/data/accountStorage";
+import { getStoredSeekReviews, saveStoredSeekReviews } from "@/data/reviewStorage";
 
 // ── State shape ──────────────────────────────────────────────────────
 interface SocialState {
@@ -12,6 +13,7 @@ interface SocialState {
   notifications: Notification[];
   conversations: Conversation[];
   messages: Message[];
+  reviews: SeekReview[];
 }
 
 // ── Actions ──────────────────────────────────────────────────────────
@@ -22,6 +24,8 @@ type Action =
   | { type: "INCREMENT_COMMENTS"; postId: string }
   | { type: "TOGGLE_FOLLOW"; userId: string }
   | { type: "ADD_USER"; user: User }
+  | { type: "UPSERT_SEEK_REVIEW"; review: SeekReview }
+  | { type: "REPLY_TO_SEEK_REVIEW"; reviewId: string; businessAccountId: string; content: string }
   | { type: "REQUEST_CIRCLE"; userId: string }
   | { type: "ACCEPT_CIRCLE"; userId: string }
   | { type: "CANCEL_CIRCLE"; userId: string }
@@ -102,6 +106,40 @@ function reducer(state: SocialState, action: Action): SocialState {
         users: state.users.some((user) => user.id === action.user.id)
           ? state.users.map((user) => user.id === action.user.id ? action.user : user)
           : [...state.users, action.user],
+      };
+
+    case "UPSERT_SEEK_REVIEW": {
+      const existing = state.reviews.find(
+        (review) =>
+          review.businessAccountId === action.review.businessAccountId &&
+          review.reviewerId === action.review.reviewerId,
+      );
+      if (!existing) return { ...state, reviews: [...state.reviews, action.review] };
+
+      return {
+        ...state,
+        reviews: state.reviews.map((review) =>
+          review.id === existing.id
+            ? { ...action.review, id: existing.id, businessReply: existing.businessReply }
+            : review,
+        ),
+      };
+    }
+
+    case "REPLY_TO_SEEK_REVIEW":
+      return {
+        ...state,
+        reviews: state.reviews.map((review) =>
+          review.id !== action.reviewId || review.businessAccountId !== action.businessAccountId
+            ? review
+            : {
+                ...review,
+                businessReply: {
+                  content: action.content,
+                  createdAt: new Date().toISOString(),
+                },
+              },
+        ),
       };
 
     case "REQUEST_CIRCLE":
@@ -214,11 +252,17 @@ const initialState: SocialState = {
   notifications: [...mockNotifications],
   conversations: [...mockConversations],
   messages: [...mockMessages],
+  reviews: [...mockSeekReviews],
 };
 
 function createInitialState(): SocialState {
   const usersById = new Map([...initialState.users, ...getStoredAccounts()].map((user) => [user.id, user]));
-  return { ...initialState, users: [...usersById.values()] };
+  const reviewsById = new Map([...initialState.reviews, ...getStoredSeekReviews()].map((review) => [review.id, review]));
+  return {
+    ...initialState,
+    users: [...usersById.values()],
+    reviews: [...reviewsById.values()],
+  };
 }
 
 // ── Context ───────────────────────────────────────────────────────────
@@ -246,6 +290,8 @@ interface SocialContextType extends SocialState {
   sendMessage: (convId: string, content: string) => void;
   acceptCircleNotification: (actorId: string, notifId: string) => void;
   declineCircleNotification: (actorId: string, notifId: string) => void;
+  upsertSeekReview: (review: SeekReview) => void;
+  replyToSeekReview: (reviewId: string, businessAccountId: string, content: string) => void;
 }
 
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
@@ -289,6 +335,30 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     addUser: (user) => {
       saveSocialAccount(user);
       dispatch({ type: "ADD_USER", user });
+    },
+    upsertSeekReview: (review) => {
+      const existing = state.reviews.find(
+        (saved) =>
+          saved.businessAccountId === review.businessAccountId &&
+          saved.reviewerId === review.reviewerId,
+      );
+      const normalizedReview = existing
+        ? { ...review, id: existing.id, businessReply: existing.businessReply }
+        : review;
+      const nextReviews = existing
+        ? state.reviews.map((saved) => saved.id === existing.id ? normalizedReview : saved)
+        : [...state.reviews, normalizedReview];
+      saveStoredSeekReviews(nextReviews);
+      dispatch({ type: "UPSERT_SEEK_REVIEW", review: normalizedReview });
+    },
+    replyToSeekReview: (reviewId, businessAccountId, content) => {
+      const nextReviews = state.reviews.map((review) =>
+        review.id !== reviewId || review.businessAccountId !== businessAccountId
+          ? review
+          : { ...review, businessReply: { content, createdAt: new Date().toISOString() } },
+      );
+      saveStoredSeekReviews(nextReviews);
+      dispatch({ type: "REPLY_TO_SEEK_REVIEW", reviewId, businessAccountId, content });
     },
     requestCircle: (userId) => dispatch({ type: "REQUEST_CIRCLE", userId }),
     acceptCircle: (userId) => dispatch({ type: "ACCEPT_CIRCLE", userId }),
