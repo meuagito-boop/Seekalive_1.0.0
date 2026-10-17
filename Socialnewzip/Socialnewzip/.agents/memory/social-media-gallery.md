@@ -10,3 +10,9 @@ O público da publicação continua valendo: publicações públicas aparecem pa
 **Why:** o usuário definiu esse comportamento como regra para o aplicativo.
 
 **How to apply:** ao criar ou alterar publicação e galeria, manter uma única origem para os arquivos e aplicar as permissões da publicação ao exibi-los.
+
+Por enquanto, priorizar o trabalho de front-end e não iniciar banco de dados ou persistência no servidor; há outras partes visuais do produto a concluir antes do back-end.
+
+**Why:** o usuário definiu que a fase atual deve focar no front-end antes de começar o back-end e o banco de dados.
+
+**How to apply:** manter as interações no escopo atual do navegador e só planejar armazenamento no servidor quando o usuário decidir avançar para a fase de back-end.

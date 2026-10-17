@@ -1,3 +1,3 @@
 - [Social module layout architecture](social-layout-arch.md) — Feed uses SocialLayout (not AppLayout); extract /feed from AppLayout in AuthRouter to give it its own 3-column layout.
 - [Visão e contas do Seek](seek-positioning.md) — Seek deve superar Yelp e Dianping; comércios são contas comerciais da própria rede Social.
-- [Galeria de mídias Social](social-media-gallery.md) — Fotos e vídeos publicados devem alimentar a galeria da conta, pessoal ou comercial, respeitando o público da publicação.
+- [Galeria de mídias Social](social-media-gallery.md) — Mídia publicada alimenta a galeria da conta; priorizar o front-end antes de banco e persistência no servidor.
