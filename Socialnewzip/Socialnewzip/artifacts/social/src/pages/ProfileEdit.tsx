@@ -23,9 +23,33 @@ const schema = z.object({
   businessPhone: z.string().max(30).optional(),
   openingHours: z.string().max(120).optional(),
   priceLevel: z.string().regex(/^$|^[1-4]$/),
+  serviceDelivery: z.enum(["unknown", "yes", "no"]),
+  serviceDineIn: z.enum(["unknown", "yes", "no"]),
+  serviceTableService: z.enum(["unknown", "yes", "no"]),
+  serviceReservations: z.enum(["unknown", "yes", "no"]),
+  serviceAppointments: z.enum(["unknown", "yes", "no"]),
+  serviceTakeout: z.enum(["unknown", "yes", "no"]),
 });
 
 type FormValues = z.infer<typeof schema>;
+type ServiceStatus = "unknown" | "yes" | "no";
+
+function serviceStatus(value?: boolean): ServiceStatus {
+  return value === undefined ? "unknown" : value ? "yes" : "no";
+}
+
+function serviceValue(value: ServiceStatus): boolean | undefined {
+  return value === "unknown" ? undefined : value === "yes";
+}
+
+const serviceFields = [
+  { name: "serviceDelivery", label: "Delivery" },
+  { name: "serviceDineIn", label: "Atendimento no local" },
+  { name: "serviceTableService", label: "Atendimento à mesa" },
+  { name: "serviceReservations", label: "Reservas" },
+  { name: "serviceAppointments", label: "Agendamento" },
+  { name: "serviceTakeout", label: "Retirada no local" },
+] as const;
 
 export default function ProfileEdit() {
   const [, setLocation] = useLocation();
@@ -45,24 +69,51 @@ export default function ProfileEdit() {
       businessPhone: currentUser.commercialProfile?.phone ?? "",
       openingHours: currentUser.commercialProfile?.openingHours ?? "",
       priceLevel: currentUser.commercialProfile?.priceLevel?.toString() ?? "",
+      serviceDelivery: serviceStatus(currentUser.commercialProfile?.serviceOptions?.delivery),
+      serviceDineIn: serviceStatus(currentUser.commercialProfile?.serviceOptions?.dineIn),
+      serviceTableService: serviceStatus(currentUser.commercialProfile?.serviceOptions?.tableService),
+      serviceReservations: serviceStatus(currentUser.commercialProfile?.serviceOptions?.reservations),
+      serviceAppointments: serviceStatus(currentUser.commercialProfile?.serviceOptions?.appointments),
+      serviceTakeout: serviceStatus(currentUser.commercialProfile?.serviceOptions?.takeout),
     },
   });
 
   function onSubmit(values: FormValues) {
+    const {
+      businessAddress,
+      businessPhone,
+      openingHours,
+      priceLevel,
+      serviceDelivery,
+      serviceDineIn,
+      serviceTableService,
+      serviceReservations,
+      serviceAppointments,
+      serviceTakeout,
+      ...profileValues
+    } = values;
     const updatedUser = {
       ...currentUser,
-      ...values,
+      ...profileValues,
       location: values.location || undefined,
       website: values.website || undefined,
       commercialProfile: currentUser.commercialProfile
         ? {
             ...currentUser.commercialProfile,
-            address: values.businessAddress?.trim() || currentUser.commercialProfile.address,
-            phone: values.businessPhone?.trim() || undefined,
-            openingHours: values.openingHours?.trim() || undefined,
-            priceLevel: values.priceLevel
-              ? Number(values.priceLevel) as 1 | 2 | 3 | 4
+            address: businessAddress?.trim() || currentUser.commercialProfile.address,
+            phone: businessPhone?.trim() || undefined,
+            openingHours: openingHours?.trim() || undefined,
+            priceLevel: priceLevel
+              ? Number(priceLevel) as 1 | 2 | 3 | 4
               : undefined,
+            serviceOptions: {
+              delivery: serviceValue(serviceDelivery),
+              dineIn: serviceValue(serviceDineIn),
+              tableService: serviceValue(serviceTableService),
+              reservations: serviceValue(serviceReservations),
+              appointments: serviceValue(serviceAppointments),
+              takeout: serviceValue(serviceTakeout),
+            },
           }
         : undefined,
     };
@@ -246,6 +297,40 @@ export default function ProfileEdit() {
                     </FormItem>
                   )}
                 />
+                <div className="space-y-4 border-t border-border pt-5">
+                  <div>
+                    <h3 className="font-bold">Serviços e formas de atendimento</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Informe se oferece cada opção ou deixe como “Não informado”.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {serviceFields.map(({ name, label }) => (
+                      <FormField
+                        key={name}
+                        control={form.control}
+                        name={name}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm text-muted-foreground">{label}</FormLabel>
+                            <FormControl>
+                              <select
+                                {...field}
+                                data-testid={`select-${name}`}
+                                className="h-12 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
+                              >
+                                <option value="unknown">Não informado</option>
+                                <option value="yes">Sim, oferece</option>
+                                <option value="no">Não oferece</option>
+                              </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
               </section>
             )}
           </form>

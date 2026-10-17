@@ -21,8 +21,16 @@ import { useAppContext } from "@/context/AppContext";
 import type { User } from "@/data/mockData";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
-const profileTabs = ["Visão geral", "Informações", "Avaliações", "Publicações"] as const;
+const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços"] as const;
 type ProfileTab = (typeof profileTabs)[number];
+const serviceOptions = [
+  { key: "delivery", label: "Delivery", description: "Entrega no endereço informado." },
+  { key: "dineIn", label: "Atendimento no local", description: "Recebe clientes no estabelecimento." },
+  { key: "tableService", label: "Atendimento à mesa", description: "Oferece serviço nas mesas." },
+  { key: "reservations", label: "Reservas", description: "Permite reservar um horário ou mesa." },
+  { key: "appointments", label: "Agendamento", description: "Atendimento com horário marcado." },
+  { key: "takeout", label: "Retirada no local", description: "Pedidos podem ser retirados no estabelecimento." },
+] as const;
 
 function readSavedIds() {
   if (typeof window === "undefined") return [];
@@ -118,7 +126,7 @@ export function CommercialProfilePage({
   const { currentUser } = useAppContext();
   const { posts, reviews, getUserById, toggleFollow } = useSocial();
   const commercial = user.commercialProfile;
-  const [activeTab, setActiveTab] = useState<ProfileTab>("Visão geral");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [savedIds, setSavedIds] = useState<string[]>(readSavedIds);
   const [reviewsOpen, setReviewsOpen] = useState(false);
@@ -383,7 +391,7 @@ export function CommercialProfilePage({
         </nav>
 
         <div className="px-4 py-5 md:px-8">
-          {activeTab === "Visão geral" && (
+          {activeTab === "Informações" && (
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
               <div className="space-y-6">
                 <section>
@@ -399,6 +407,20 @@ export function CommercialProfilePage({
                     </div>
                   )}
                 </section>
+
+                {commercial.amenities && commercial.amenities.length > 0 && (
+                  <section>
+                    <h2 className="mb-3 text-lg font-bold">Recursos e comodidades</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {commercial.amenities.map((amenity) => (
+                        <span key={amenity} className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground">
+                          <Check className="mr-1 inline h-3.5 w-3.5 text-emerald-500" />
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
 
                 <section id="merchant-photos" className="scroll-mt-32">
                   <div className="mb-3 flex items-center justify-between">
@@ -426,15 +448,14 @@ export function CommercialProfilePage({
 
               <aside className="space-y-5">
                 <section className="rounded-2xl border border-border p-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-bold">Informações</h2>
-                    <button type="button" onClick={() => setActiveTab("Informações")} className="text-xs font-semibold text-primary hover:underline">
-                      Ver tudo
-                    </button>
+                  <h2 className="mb-2 font-bold">Informações do comércio</h2>
+                  <div className="divide-y divide-border">
+                    <InfoLine icon={<Clock3 className="h-4 w-4" />} title="Horário de funcionamento" value={commercial.openingHours ?? "Não informado"} />
+                    <InfoLine icon={<Phone className="h-4 w-4" />} title="Telefone" value={commercial.phone ?? "Não informado"} />
+                    <InfoLine icon={<MapPin className="h-4 w-4" />} title="Endereço" value={commercial.address} href={mapsUrl(commercial.address)} />
+                    <InfoLine icon={<Globe className="h-4 w-4" />} title="Site" value={user.website ?? "Não informado"} href={user.website} />
+                    <InfoLine title="Faixa de preço" value={priceLabel(commercial.priceLevel) || "Não informada"} />
                   </div>
-                  <InfoLine icon={<Clock3 className="h-4 w-4" />} title="Horário" value={commercial.openingHours ?? "Não informado"} />
-                  <InfoLine icon={<MapPin className="h-4 w-4" />} title="Endereço" value={commercial.address} />
-                  <InfoLine icon={<Phone className="h-4 w-4" />} title="Telefone" value={commercial.phone ?? "Não informado"} />
                 </section>
                 <section className="rounded-2xl border border-border p-4">
                   <div className="flex items-center justify-between gap-2">
@@ -467,32 +488,39 @@ export function CommercialProfilePage({
             </div>
           )}
 
-          {activeTab === "Informações" && (
-            <div className="max-w-2xl space-y-5">
-              <section>
-                <h2 className="mb-3 text-xl font-bold">Informações do comércio</h2>
-                <div className="divide-y divide-border rounded-2xl border border-border px-4">
-                  <InfoLine icon={<Clock3 className="h-4 w-4" />} title="Horário de funcionamento" value={commercial.openingHours ?? "Não informado"} />
-                  <InfoLine icon={<Phone className="h-4 w-4" />} title="Telefone" value={commercial.phone ?? "Não informado"} />
-                  <InfoLine icon={<MapPin className="h-4 w-4" />} title="Endereço" value={commercial.address} />
-                  <InfoLine icon={<Globe className="h-4 w-4" />} title="Site" value={user.website ?? "Não informado"} href={user.website} />
-                  <InfoLine title="Faixa de preço" value={priceLabel(commercial.priceLevel) || "Não informada"} />
-                </div>
-              </section>
-              {commercial.amenities && commercial.amenities.length > 0 && (
-                <section>
-                  <h2 className="mb-3 text-lg font-bold">Recursos e comodidades</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {commercial.amenities.map((amenity) => (
-                      <span key={amenity} className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground">
-                        <Check className="mr-1 inline h-3.5 w-3.5 text-emerald-500" />
-                        {amenity}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
+          {activeTab === "Serviços" && (
+            <section className="max-w-3xl">
+              <div className="mb-5">
+                <h2 className="text-xl font-bold">Serviços e formas de atendimento</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Confira como este comércio atende seus clientes.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {serviceOptions.map((service) => {
+                  const available = commercial.serviceOptions?.[service.key];
+                  return (
+                    <article key={service.key} className="rounded-2xl border border-border p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold">{service.label}</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          available === true
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : available === false
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                        }`}>
+                          {available === true ? "Disponível" : available === false ? "Não oferece" : "Não informado"}
+                        </span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
           )}
 
           {activeTab === "Avaliações" && (

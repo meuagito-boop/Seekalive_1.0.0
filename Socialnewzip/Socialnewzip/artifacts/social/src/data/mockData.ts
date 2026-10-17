@@ -36,6 +36,14 @@ export interface CommercialProfile {
   priceLevel?: 1 | 2 | 3 | 4;
   photos?: string[];
   amenities?: string[];
+  serviceOptions?: {
+    delivery?: boolean;
+    dineIn?: boolean;
+    tableService?: boolean;
+    reservations?: boolean;
+    appointments?: boolean;
+    takeout?: boolean;
+  };
   tags: string[];
 }
 
@@ -251,6 +259,14 @@ export const mockUsers: User[] = [
         "https://picsum.photos/seed/grill-food/800/560",
       ],
       amenities: ["Aceita reservas", "Área externa", "Acessível"],
+      serviceOptions: {
+        delivery: true,
+        dineIn: true,
+        tableService: true,
+        reservations: true,
+        appointments: false,
+        takeout: true,
+      },
       tags: ["Carnes", "Almoço", "Jantar"],
     },
     stats: { posts: 18, followers: 4200, following: 120, circles: 0 },
@@ -280,6 +296,14 @@ export const mockUsers: User[] = [
         "https://picsum.photos/seed/bar-cocktail/800/560",
       ],
       amenities: ["Música ao vivo", "Área externa", "Aceita cartões"],
+      serviceOptions: {
+        delivery: true,
+        dineIn: true,
+        tableService: true,
+        reservations: false,
+        appointments: false,
+        takeout: true,
+      },
       tags: ["Drinks", "Petiscos", "Ao vivo"],
     },
     stats: { posts: 31, followers: 6900, following: 80, circles: 0 },
@@ -309,6 +333,14 @@ export const mockUsers: User[] = [
         "https://picsum.photos/seed/cafe-brunch/800/560",
       ],
       amenities: ["Wi-Fi", "Tomadas", "Opções vegetarianas"],
+      serviceOptions: {
+        delivery: true,
+        dineIn: true,
+        tableService: true,
+        reservations: false,
+        appointments: false,
+        takeout: true,
+      },
       tags: ["Café especial", "Brunch", "Wi-Fi"],
     },
     stats: { posts: 46, followers: 8200, following: 90, circles: 0 },
@@ -338,6 +370,14 @@ export const mockUsers: User[] = [
         "https://picsum.photos/seed/gym-class/800/560",
       ],
       amenities: ["Vestiários", "Aulas coletivas", "Estacionamento"],
+      serviceOptions: {
+        delivery: false,
+        dineIn: false,
+        tableService: false,
+        reservations: true,
+        appointments: true,
+        takeout: false,
+      },
       tags: ["Musculação", "Pilates", "CrossFit"],
     },
     stats: { posts: 27, followers: 3100, following: 65, circles: 0 },
@@ -367,6 +407,14 @@ export const mockUsers: User[] = [
         "https://picsum.photos/seed/barber-chair/800/560",
       ],
       amenities: ["Agendamento", "Acessível", "Aceita cartões"],
+      serviceOptions: {
+        delivery: false,
+        dineIn: false,
+        tableService: false,
+        reservations: false,
+        appointments: true,
+        takeout: false,
+      },
       tags: ["Corte", "Barba", "Agendamento"],
     },
     stats: { posts: 22, followers: 5400, following: 48, circles: 0 },
@@ -396,6 +444,14 @@ export const mockUsers: User[] = [
         "https://picsum.photos/seed/book-cafe/800/560",
       ],
       amenities: ["Acessível", "Espaço infantil", "Café"],
+      serviceOptions: {
+        delivery: true,
+        dineIn: true,
+        tableService: false,
+        reservations: false,
+        appointments: false,
+        takeout: true,
+      },
       tags: ["Livros", "Papelaria", "Café"],
     },
     stats: { posts: 15, followers: 7700, following: 110, circles: 0 },
