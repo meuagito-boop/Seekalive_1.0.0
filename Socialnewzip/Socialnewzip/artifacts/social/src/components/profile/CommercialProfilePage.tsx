@@ -19,6 +19,7 @@ import { BusinessReviewsDialog } from "@/components/seek/BusinessReviewsDialog";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import type { User } from "@/data/mockData";
+import { getProfileMedia } from "@/lib/postMedia";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
 const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços", "Mídias"] as const;
@@ -127,6 +128,7 @@ export function CommercialProfilePage({
   const { currentUser } = useAppContext();
   const { posts, reviews, getUserById, toggleFollow } = useSocial();
   const commercial = user.commercialProfile;
+  const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
@@ -144,8 +146,15 @@ export function CommercialProfilePage({
     score,
     count: businessReviews.filter((review) => review.rating === score).length,
   }));
-  const photos = commercial?.photos?.length ? commercial.photos : [user.coverUrl];
-  const videos = commercial?.videos ?? [];
+  const photoUrls = [...new Set([
+    ...(commercial?.photos ?? []),
+    ...postMedia.filter((media) => media.type === "image").map((media) => media.url),
+  ])];
+  const photos = photoUrls.length ? photoUrls : [user.coverUrl];
+  const videos = [...new Set([
+    ...(commercial?.videos ?? []),
+    ...postMedia.filter((media) => media.type === "video").map((media) => media.url),
+  ])];
   const isSaved = savedIds.includes(user.id);
   const userPosts = posts.filter((post) => post.authorId === user.id);
 

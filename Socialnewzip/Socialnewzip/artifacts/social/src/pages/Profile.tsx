@@ -9,8 +9,9 @@ import { currentUser as mockCurrentUser, formatCount } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { CommercialProfilePage } from "@/components/profile/CommercialProfilePage";
+import { getProfileMedia } from "@/lib/postMedia";
 
-const tabs = ["Posts", "Respostas", "Mídia", "Curtidas"];
+const tabs = ["Posts", "Respostas", "Mídias", "Curtidas"];
 
 export default function Profile() {
   const params = useParams<{ username: string }>();
@@ -35,6 +36,7 @@ export default function Profile() {
 
   // Posts filtered to this user
   const userPosts = posts.filter(p => p.authorId === user.id);
+  const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false);
 
   function handleFollow() {
     if (isMe) return;
@@ -171,11 +173,6 @@ export default function Profile() {
           <div className="mb-4">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">{user.displayName}</h1>
-              {user.accountType === "commercial" && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                  Comercial
-                </span>
-              )}
               {user.isVerified && (
                 <span className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-white" />
@@ -243,7 +240,26 @@ export default function Profile() {
             </div>
           ) : userPosts.map(post => <PostCard key={post.id} post={post} />)
         )}
-        {activeTab !== 0 && (
+        {activeTab === 2 && (
+          userMedia.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-muted-foreground">
+              <p className="text-sm font-medium">Nenhuma mídia nesta conta ainda.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1 p-1 sm:grid-cols-3">
+              {userMedia.map((media) => (
+                <div key={media.id} className="aspect-square overflow-hidden rounded-lg bg-muted">
+                  {media.type === "video" ? (
+                    <video src={media.url} controls playsInline className="h-full w-full object-cover" />
+                  ) : (
+                    <img src={media.url} alt={`Mídia de ${user.displayName}`} className="h-full w-full object-cover" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        )}
+        {activeTab !== 0 && activeTab !== 2 && (
           <div className="flex flex-col items-center py-16 text-muted-foreground">
             <p className="text-sm">Nenhum conteúdo ainda.</p>
           </div>

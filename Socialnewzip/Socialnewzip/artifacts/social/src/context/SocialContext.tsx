@@ -283,7 +283,13 @@ interface SocialContextType extends SocialState {
   requestCircle: (userId: string) => void;
   acceptCircle: (userId: string) => void;
   cancelCircle: (userId: string) => void;
-  addPost: (content: string, audience: "public" | "circles" | "private") => void;
+  addPost: (
+    content: string,
+    audience: "public" | "circles" | "private",
+    authorId: string,
+    mediaUrls?: string[],
+    mediaTypes?: ("image" | "video")[],
+  ) => void;
   markAllNotificationsRead: () => void;
   markNotificationRead: (id: string) => void;
   markConversationRead: (convId: string) => void;
@@ -363,14 +369,16 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     requestCircle: (userId) => dispatch({ type: "REQUEST_CIRCLE", userId }),
     acceptCircle: (userId) => dispatch({ type: "ACCEPT_CIRCLE", userId }),
     cancelCircle: (userId) => dispatch({ type: "CANCEL_CIRCLE", userId }),
-    addPost: (content, audience) => dispatch({
+    addPost: (content, audience, authorId, mediaUrls = [], mediaTypes = []) => dispatch({
       type: "ADD_POST",
       post: {
         id: `post_${Date.now()}`,
-        authorId: "me",
+        authorId,
         content,
+        mediaUrls,
+        mediaTypes,
         audience,
-        type: "text",
+        type: mediaTypes.includes("video") ? "video" : "text",
         createdAt: new Date().toISOString(),
         likes: 0,
         comments: 0,

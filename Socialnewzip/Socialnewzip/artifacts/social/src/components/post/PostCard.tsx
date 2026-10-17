@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Post, currentUser, formatTimeAgo, formatCount } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
+import { getPostMediaType } from "@/lib/postMedia";
 
 interface PostCardProps {
   post: Post;
@@ -62,13 +63,17 @@ export function PostCard({ post, compact = false }: PostCardProps) {
           </Link>
 
           {post.mediaUrls && post.mediaUrls.length > 0 && (
-            <Link href={`/post/${post.id}`}>
-              <div className={`mt-3 rounded-2xl overflow-hidden border border-border ${post.mediaUrls.length > 1 ? "grid grid-cols-2 gap-0.5" : ""}`}>
-                {post.mediaUrls.slice(0, 4).map((url, i) => (
-                  <img key={i} src={url} alt={`Post media ${i + 1}`} className="w-full object-cover max-h-80" />
-                ))}
-              </div>
-            </Link>
+            <div className={`mt-3 rounded-2xl overflow-hidden border border-border ${post.mediaUrls.length > 1 ? "grid grid-cols-2 gap-0.5" : ""}`}>
+              {post.mediaUrls.slice(0, 4).map((url, i) => (
+                getPostMediaType(post, i) === "video" ? (
+                  <video key={url} src={url} controls playsInline className="w-full max-h-80 bg-black object-cover" />
+                ) : (
+                  <Link key={url} href={`/post/${post.id}`}>
+                    <img src={url} alt={`Post media ${i + 1}`} className="w-full object-cover max-h-80" />
+                  </Link>
+                )
+              ))}
+            </div>
           )}
 
           {post.audience !== "public" && (

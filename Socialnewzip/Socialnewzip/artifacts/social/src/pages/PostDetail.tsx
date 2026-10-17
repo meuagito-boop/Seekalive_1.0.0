@@ -3,13 +3,18 @@ import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, MessageCircle, Repeat2, Share2, Bookmark } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockPosts, getUserById, formatTimeAgo, formatCount } from "@/data/mockData";
+import { mockPosts, getUserById as getMockUserById, formatTimeAgo, formatCount } from "@/data/mockData";
+import { useSocial } from "@/context/SocialContext";
+import { getPostMediaType } from "@/lib/postMedia";
 
 export default function PostDetail() {
   const params = useParams<{ postId: string }>();
   const [, setLocation] = useLocation();
-  const post = mockPosts.find(p => p.id === params.postId) ?? mockPosts[0];
-  const author = getUserById(post.authorId);
+  const { posts, getUserById } = useSocial();
+  const post = posts.find((savedPost) => savedPost.id === params.postId)
+    ?? mockPosts.find((savedPost) => savedPost.id === params.postId)
+    ?? mockPosts[0];
+  const author = getUserById(post.authorId) ?? getMockUserById(post.authorId);
   const [liked, setLiked] = useState(post.isLiked ?? false);
   const [likes, setLikes] = useState(post.likes);
   const [replyText, setReplyText] = useState("");
@@ -45,8 +50,14 @@ export default function PostDetail() {
           <p className="text-lg leading-relaxed mb-3">{post.content}</p>
 
           {post.mediaUrls && post.mediaUrls.length > 0 && (
-            <div className="rounded-2xl overflow-hidden mb-3 border border-border">
-              <img src={post.mediaUrls[0]} alt="Post media" className="w-full h-auto max-h-96 object-cover" />
+            <div className={`rounded-2xl overflow-hidden mb-3 border border-border ${post.mediaUrls.length > 1 ? "grid grid-cols-2 gap-0.5" : ""}`}>
+              {post.mediaUrls.map((url, index) => (
+                getPostMediaType(post, index) === "video" ? (
+                  <video key={url} src={url} controls playsInline className="w-full max-h-96 bg-black object-cover" />
+                ) : (
+                  <img key={url} src={url} alt={`Post media ${index + 1}`} className="w-full h-auto max-h-96 object-cover" />
+                )
+              ))}
             </div>
           )}
 

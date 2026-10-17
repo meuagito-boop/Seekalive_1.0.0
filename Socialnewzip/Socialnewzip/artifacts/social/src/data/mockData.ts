@@ -65,6 +65,7 @@ export interface Post {
   authorId: string;
   content: string;
   mediaUrls?: string[];
+  mediaTypes?: ("image" | "video")[];
   createdAt: string;
   likes: number;
   comments: number;
