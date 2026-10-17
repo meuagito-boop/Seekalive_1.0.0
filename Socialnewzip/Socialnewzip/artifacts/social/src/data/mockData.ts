@@ -32,9 +32,9 @@ export interface CommercialProfile {
   distanceKm?: number;
   isOpen?: boolean;
   openingHours?: string;
-  phone?: string;
   priceLevel?: 1 | 2 | 3 | 4;
   photos?: string[];
+  videos?: string[];
   amenities?: string[];
   serviceOptions?: {
     delivery?: boolean;

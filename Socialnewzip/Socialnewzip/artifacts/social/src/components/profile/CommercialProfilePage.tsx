@@ -6,9 +6,9 @@ import {
   Camera,
   Check,
   Clock3,
+  Film,
   Globe,
   MapPin,
-  Phone,
   Share2,
   Star,
 } from "lucide-react";
@@ -21,8 +21,9 @@ import { useAppContext } from "@/context/AppContext";
 import type { User } from "@/data/mockData";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
-const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços"] as const;
+const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços", "Mídias"] as const;
 type ProfileTab = (typeof profileTabs)[number];
+type MediaTab = "Fotos" | "Vídeos";
 const serviceOptions = [
   { key: "delivery", label: "Delivery", description: "Entrega no endereço informado." },
   { key: "dineIn", label: "Atendimento no local", description: "Recebe clientes no estabelecimento." },
@@ -127,6 +128,7 @@ export function CommercialProfilePage({
   const { posts, reviews, getUserById, toggleFollow } = useSocial();
   const commercial = user.commercialProfile;
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
+  const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [savedIds, setSavedIds] = useState<string[]>(readSavedIds);
   const [reviewsOpen, setReviewsOpen] = useState(false);
@@ -143,8 +145,8 @@ export function CommercialProfilePage({
     count: businessReviews.filter((review) => review.rating === score).length,
   }));
   const photos = commercial?.photos?.length ? commercial.photos : [user.coverUrl];
+  const videos = commercial?.videos ?? [];
   const isSaved = savedIds.includes(user.id);
-  const phoneHref = commercial?.phone?.replace(/[^\d+]/g, "");
   const userPosts = posts.filter((post) => post.authorId === user.id);
 
   useEffect(() => {
@@ -184,7 +186,11 @@ export function CommercialProfilePage({
   }
 
   function jumpToPhotos() {
-    document.getElementById("merchant-photos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveMediaTab("Fotos");
+    setActiveTab("Mídias");
+    window.setTimeout(() => {
+      document.getElementById("merchant-media")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   }
 
   if (!commercial) return null;
@@ -203,7 +209,7 @@ export function CommercialProfilePage({
           </button>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold">{user.displayName}</p>
-            <p className="truncate text-[11px] text-muted-foreground">@{user.username} · Conta comercial Social</p>
+            <p className="truncate text-[11px] text-muted-foreground">@{user.username}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -241,28 +247,15 @@ export function CommercialProfilePage({
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/20" />
-          <div className="absolute left-4 top-4 flex items-center gap-2">
-            <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">
-              PERFIL COMERCIAL
-            </span>
-            {commercial.isOpen !== undefined && (
+          {commercial.isOpen !== undefined && (
+            <div className="absolute left-4 top-4">
               <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
                 commercial.isOpen ? "bg-emerald-500/90 text-white" : "bg-zinc-800/85 text-white"
               }`}>
                 {commercial.isOpen ? "Aberto agora" : "Fechado"}
               </span>
-            )}
-          </div>
-          <div className="absolute right-4 top-4 flex gap-2">
-            <button
-              type="button"
-              onClick={toggleSaved}
-              aria-label={isSaved ? "Remover dos salvos" : "Salvar comércio"}
-              className="rounded-full bg-black/45 p-2.5 text-white backdrop-blur-sm hover:bg-black/65"
-            >
-              <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-            </button>
-          </div>
+            </div>
+          )}
           <div className="absolute bottom-4 left-4 right-4 text-white md:bottom-6 md:left-8">
             <p className="mb-1 text-xs font-medium text-white/80">
               {priceLabel(commercial.priceLevel)}
@@ -328,27 +321,8 @@ export function CommercialProfilePage({
               className="h-10 shrink-0 rounded-full px-4"
             >
               <Star className="mr-2 h-4 w-4" />
-              Adicionar avaliação
+              Avaliar
             </Button>
-            {phoneHref ? (
-              <a
-                href={`tel:${phoneHref}`}
-                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 text-sm font-semibold text-foreground no-underline hover:bg-muted"
-              >
-                <Phone className="h-4 w-4" />
-                Ligar
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                title={isMe ? "Adicione um telefone ao perfil comercial" : "Telefone não informado"}
-                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-muted/30 px-4 text-sm font-semibold text-muted-foreground disabled:opacity-60"
-              >
-                <Phone className="h-4 w-4" />
-                Ligar
-              </button>
-            )}
             <a
               href={mapsUrl(commercial.address)}
               target="_blank"
@@ -370,22 +344,19 @@ export function CommercialProfilePage({
           {shareNotice && <p role="status" className="mt-2 text-xs text-primary">{shareNotice}</p>}
         </section>
 
-        <nav className="sticky top-14 z-30 flex overflow-x-auto border-b border-border bg-background/95 px-2 backdrop-blur">
+        <nav aria-label="Seções do perfil" className="sticky top-14 z-30 flex gap-1 overflow-x-auto border-b border-border bg-background/95 px-2 backdrop-blur [scrollbar-width:none]">
           {profileTabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`min-w-fit flex-1 border-b-2 px-3 py-3 text-xs font-semibold transition-colors md:px-5 md:text-sm ${
+              className={`flex-none whitespace-nowrap border-b-2 px-1.5 py-3 text-[10px] font-semibold transition-colors sm:px-2 sm:text-xs md:px-5 md:text-sm ${
                 activeTab === tab
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {tab}
-              {tab === "Avaliações" && businessReviews.length > 0 && (
-                <span className="ml-1 text-[10px] opacity-70">{businessReviews.length}</span>
-              )}
+              {tab === "Avaliações" ? `Avaliações${businessReviews.length ? ` (${businessReviews.length})` : ""}` : tab}
             </button>
           ))}
         </nav>
@@ -422,28 +393,6 @@ export function CommercialProfilePage({
                   </section>
                 )}
 
-                <section id="merchant-photos" className="scroll-mt-32">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-lg font-bold">Fotos</h2>
-                    <span className="text-xs text-muted-foreground">{photos.length} fotos</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                    {photos.map((photo, index) => (
-                      <button
-                        type="button"
-                        key={photo}
-                        onClick={() => {
-                          setSelectedPhoto(index);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        className="group relative h-32 overflow-hidden rounded-xl bg-muted md:h-40"
-                        aria-label={`Exibir foto ${index + 1}`}
-                      >
-                        <img src={photo} alt={`${user.displayName}, foto ${index + 1}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                      </button>
-                    ))}
-                  </div>
-                </section>
               </div>
 
               <aside className="space-y-5">
@@ -451,7 +400,6 @@ export function CommercialProfilePage({
                   <h2 className="mb-2 font-bold">Informações do comércio</h2>
                   <div className="divide-y divide-border">
                     <InfoLine icon={<Clock3 className="h-4 w-4" />} title="Horário de funcionamento" value={commercial.openingHours ?? "Não informado"} />
-                    <InfoLine icon={<Phone className="h-4 w-4" />} title="Telefone" value={commercial.phone ?? "Não informado"} />
                     <InfoLine icon={<MapPin className="h-4 w-4" />} title="Endereço" value={commercial.address} href={mapsUrl(commercial.address)} />
                     <InfoLine icon={<Globe className="h-4 w-4" />} title="Site" value={user.website ?? "Não informado"} href={user.website} />
                     <InfoLine title="Faixa de preço" value={priceLabel(commercial.priceLevel) || "Não informada"} />
@@ -486,6 +434,66 @@ export function CommercialProfilePage({
                 </section>
               </aside>
             </div>
+          )}
+
+          {activeTab === "Mídias" && (
+            <section id="merchant-media" className="max-w-4xl scroll-mt-32">
+              <div className="mb-5">
+                <h2 className="text-xl font-bold">Mídias de {user.displayName}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Fotos e vídeos compartilhados por este comércio.</p>
+              </div>
+              <div role="tablist" aria-label="Tipo de mídia" className="mb-5 flex gap-2 border-b border-border">
+                {(["Fotos", "Vídeos"] as const).map((mediaTab) => (
+                  <button
+                    key={mediaTab}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeMediaTab === mediaTab}
+                    onClick={() => setActiveMediaTab(mediaTab)}
+                    className={`border-b-2 px-4 py-3 text-sm font-semibold ${
+                      activeMediaTab === mediaTab
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {mediaTab} ({mediaTab === "Fotos" ? photos.length : videos.length})
+                  </button>
+                ))}
+              </div>
+
+              {activeMediaTab === "Fotos" ? (
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  {photos.map((photo, index) => (
+                    <button
+                      type="button"
+                      key={photo}
+                      onClick={() => {
+                        setSelectedPhoto(index);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="group relative h-36 overflow-hidden rounded-xl bg-muted md:h-52"
+                      aria-label={`Exibir foto ${index + 1}`}
+                    >
+                      <img src={photo} alt={`${user.displayName}, foto ${index + 1}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                    </button>
+                  ))}
+                </div>
+              ) : videos.length ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {videos.map((video) => (
+                    <video key={video} src={video} controls playsInline className="aspect-video w-full rounded-xl bg-black" />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-border px-5 text-center">
+                  <Film className="h-8 w-8 text-muted-foreground" />
+                  <h3 className="mt-3 font-semibold">Ainda não há vídeos</h3>
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                    Os vídeos deste comércio aparecerão aqui.
+                  </p>
+                </div>
+              )}
+            </section>
           )}
 
           {activeTab === "Serviços" && (
@@ -601,17 +609,10 @@ export function CommercialProfilePage({
             <Star className="mr-2 h-4 w-4" />
             Avaliar
           </Button>
-          {phoneHref ? (
-            <a href={`tel:${phoneHref}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-semibold text-foreground no-underline">
-              <Phone className="h-4 w-4" />
-              Ligar
-            </a>
-          ) : (
-            <a href={mapsUrl(commercial.address)} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-semibold text-foreground no-underline">
-              <MapPin className="h-4 w-4" />
-              Mapa
-            </a>
-          )}
+          <a href={mapsUrl(commercial.address)} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-semibold text-foreground no-underline">
+            <MapPin className="h-4 w-4" />
+            Mapa
+          </a>
         </div>
       </div>
 

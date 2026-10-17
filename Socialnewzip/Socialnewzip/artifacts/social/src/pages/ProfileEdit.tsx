@@ -20,7 +20,6 @@ const schema = z.object({
   location: z.string().max(50).optional(),
   website: z.string().url("URL inválida").optional().or(z.literal("")),
   businessAddress: z.string().max(120).optional(),
-  businessPhone: z.string().max(30).optional(),
   openingHours: z.string().max(120).optional(),
   priceLevel: z.string().regex(/^$|^[1-4]$/),
   serviceDelivery: z.enum(["unknown", "yes", "no"]),
@@ -66,7 +65,6 @@ export default function ProfileEdit() {
       location: currentUser.location ?? "",
       website: currentUser.website ?? "",
       businessAddress: currentUser.commercialProfile?.address ?? "",
-      businessPhone: currentUser.commercialProfile?.phone ?? "",
       openingHours: currentUser.commercialProfile?.openingHours ?? "",
       priceLevel: currentUser.commercialProfile?.priceLevel?.toString() ?? "",
       serviceDelivery: serviceStatus(currentUser.commercialProfile?.serviceOptions?.delivery),
@@ -81,7 +79,6 @@ export default function ProfileEdit() {
   function onSubmit(values: FormValues) {
     const {
       businessAddress,
-      businessPhone,
       openingHours,
       priceLevel,
       serviceDelivery,
@@ -101,7 +98,6 @@ export default function ProfileEdit() {
         ? {
             ...currentUser.commercialProfile,
             address: businessAddress?.trim() || currentUser.commercialProfile.address,
-            phone: businessPhone?.trim() || undefined,
             openingHours: openingHours?.trim() || undefined,
             priceLevel: priceLevel
               ? Number(priceLevel) as 1 | 2 | 3 | 4
@@ -247,19 +243,6 @@ export default function ProfileEdit() {
                       <FormLabel className="text-sm text-muted-foreground">Endereço</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="Rua, número, bairro" data-testid="input-business-address" className="h-12 rounded-xl border-border bg-card" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="businessPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm text-muted-foreground">Telefone</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="tel" placeholder="(11) 0000-0000" data-testid="input-business-phone" className="h-12 rounded-xl border-border bg-card" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
