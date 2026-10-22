@@ -98,3 +98,45 @@ mtime_ms = 1792675277975
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/f2ae3a55-f2ce-455a-a69e-f1515b73b895/c602140b-2ec9-4b4a-b185-50298e471f28"
 storage_version_token = "1792675429197304"
 content_type = "image/svg+xml"
+
+[[outputs]]
+id = "O8tJAmH-YX4aAHK227kyK"
+uri = "file://attached_assets/seekalive_logos/elo-refinado/apresentacao.png"
+type = "image"
+title = "SeekAlive — Elo refinado"
+description = "Símbolo escolhido com nome, versões para fundos claros e escuros, versão em uma cor e aplicação como ícone."
+logical_id = "8f0ecaf9-0851-4ffe-a735-cef12f806bb9"
+content_hash = "sha256:2867e1f2308da1ec7ae9071181127bd48858c01320c29cadfd5398a7cf6f5fe2"
+size = 120737
+mtime_ms = 1792675898539
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/8f0ecaf9-0851-4ffe-a735-cef12f806bb9/caa65a4b-ae47-457a-b25e-b53329200e2b"
+storage_version_token = "1792675933494519"
+content_type = "image/png"
+
+[[outputs]]
+id = "dalRzMFyAzACLaNRTFih9"
+uri = "file://attached_assets/seekalive_logos/elo-refinado/apresentacao.html"
+type = "html"
+title = "Elo — apresentação e versões em SVG"
+description = "Apresentação com botões para baixar os símbolos, as assinaturas e o ícone em SVG. O nome permanece como texto editável."
+logical_id = "e634d953-2dde-43d8-918d-0f2cdc3a838f"
+content_hash = "sha256:cd2bb0d3651a05a1d48f9eda1015279ae440ba557b832d4d20a068805a8629e6"
+size = 20538
+mtime_ms = 1792675888071
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/e634d953-2dde-43d8-918d-0f2cdc3a838f/c47d9528-8279-4ba2-989f-8a6c7302ffda"
+storage_version_token = "1792675934198700"
+content_type = "text/html"
+
+[[outputs]]
+id = "KAY7jrPd6sagD2FBz4ZMt"
+uri = "file://attached_assets/seekalive_logos/elo-refinado/icone-app-1024.png"
+type = "image"
+title = "SeekAlive — ícone Elo em 1024 × 1024"
+description = "Versão em PNG com o símbolo branco sobre o laranja da marca."
+logical_id = "4cfc8950-0161-4c1a-a5bc-b97a847395d7"
+content_hash = "sha256:f20b75a65f028f62c162e4dd71785ae2755c56fc292669272e4737cc747e030f"
+size = 22270
+mtime_ms = 1792675900091
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/4cfc8950-0161-4c1a-a5bc-b97a847395d7/0e43ff35-5231-4bdf-a33d-dd01277007af"
+storage_version_token = "1792675934787526"
+content_type = "image/png"
