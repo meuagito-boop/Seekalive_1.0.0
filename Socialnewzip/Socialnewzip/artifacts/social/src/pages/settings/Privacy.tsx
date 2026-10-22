@@ -85,11 +85,6 @@ export default function SettingsPrivacy() {
     }
   }
 
-  const requestOptions = [
-    { value: "everyone", label: "Todos" },
-    { value: "followers", label: "Só seguidores" },
-    { value: "nobody", label: "Ninguém" },
-  ];
   const messageOptions = [
     { value: "everyone", label: "Todos" },
     { value: "circle", label: "Só pessoas do Círculo" },
@@ -116,7 +111,6 @@ export default function SettingsPrivacy() {
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quem pode interagir</p>
         </div>
-        <SelectRow label="Quem pode pedir para entrar no seu Círculo" value={requestOptions.find(option => option.value === prefs.circleRequests)?.label ?? "Todos"} options={requestOptions.map(option => option.label)} onChange={label => update("circleRequests", requestOptions.find(option => option.label === label)?.value as typeof prefs.circleRequests)} testId="select-circle-requests" />
         <SelectRow label="Quem pode enviar mensagens diretas" value={messageOptions.find(option => option.value === prefs.messages)?.label ?? "Todos"} options={messageOptions.map(option => option.label)} onChange={label => update("messages", messageOptions.find(option => option.label === label)?.value as typeof prefs.messages)} testId="select-messages" />
 
         <div className="px-4 pt-5 pb-1">

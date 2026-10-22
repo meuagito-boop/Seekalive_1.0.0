@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, Heart, MessageCircle, Repeat2, UserPlus, Users, AtSign } from "lucide-react";
+import { Bell, Heart, MessageCircle, Repeat2, UserPlus, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatTimeAgo } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import type { Notification } from "@/data/mockData";
 
-const tabs = ["Todas", "Menções", "Círculo", "Reações"];
+const tabs = ["Todas", "Menções", "Seguidores", "Reações"];
 
 function notifIcon(type: Notification["type"]) {
   switch (type) {
@@ -14,8 +14,6 @@ function notifIcon(type: Notification["type"]) {
     case "comment": return <MessageCircle className="w-3.5 h-3.5 text-primary" />;
     case "repost": return <Repeat2 className="w-3.5 h-3.5 text-green-400" />;
     case "follow": return <UserPlus className="w-3.5 h-3.5 text-primary" />;
-    case "circle_request":
-    case "circle_accepted": return <Users className="w-3.5 h-3.5 text-purple-400" />;
     case "mention": return <AtSign className="w-3.5 h-3.5 text-yellow-400" />;
     default: return <Bell className="w-3.5 h-3.5 text-muted-foreground" />;
   }
@@ -27,8 +25,6 @@ function notifText(n: Notification, actorName: string): string {
     case "comment": return "comentou na sua publicação";
     case "repost": return "repostou sua publicação";
     case "follow": return "começou a te seguir";
-    case "circle_request": return "quer entrar no seu Círculo";
-    case "circle_accepted": return "aceitou sua solicitação para entrar no Círculo";
     case "mention": return "te mencionou";
     default: return "interagiu com você";
   }
@@ -38,7 +34,6 @@ export default function Notifications() {
   const {
     notifications, getUserById,
     markAllNotificationsRead, markNotificationRead,
-    acceptCircleNotification, declineCircleNotification,
   } = useSocial();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -48,19 +43,15 @@ export default function Notifications() {
     return () => clearTimeout(t);
   }, []);
 
-  const relevantNotifications = notifications.filter(n =>
-    n.type !== "circle_request" ||
-    (getUserById(n.actorId)?.circleStatus === "pending" && getUserById(n.actorId)?.circleRequestDirection === "incoming")
-  );
-  const filtered = relevantNotifications.filter(n => {
+  const filtered = notifications.filter(n => {
     if (activeTab === 0) return true;
     if (activeTab === 1) return n.type === "mention";
-    if (activeTab === 2) return n.type === "circle_request" || n.type === "circle_accepted";
+    if (activeTab === 2) return n.type === "follow";
     if (activeTab === 3) return n.type === "like" || n.type === "repost";
     return true;
   });
 
-  const unread = relevantNotifications.filter(n => !n.isRead).length;
+  const unread = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
@@ -133,24 +124,6 @@ export default function Notifications() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(n.createdAt)}</p>
 
-                  {n.type === "circle_request" && actor?.circleStatus === "pending" && actor.circleRequestDirection === "incoming" && (
-                    <div className="flex gap-2 mt-2.5">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); acceptCircleNotification(n.actorId, n.id); }}
-                        className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
-                        data-testid={`button-accept-circle-${n.id}`}
-                      >
-                        Aceitar
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); declineCircleNotification(n.actorId, n.id); }}
-                        className="px-4 py-1.5 rounded-full border border-border text-xs font-semibold text-muted-foreground hover:bg-muted/40 transition-colors"
-                        data-testid={`button-decline-circle-${n.id}`}
-                      >
-                        Recusar
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {!n.isRead && (

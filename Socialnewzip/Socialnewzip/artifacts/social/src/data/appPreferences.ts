@@ -4,7 +4,6 @@ const APPEARANCE_KEY = "seekalive-settings-appearance";
 
 export interface PrivacyPreferences {
   profilePrivate: boolean;
-  circleRequests: "everyone" | "followers" | "nobody";
   messages: "everyone" | "circle" | "nobody";
   readReceipts: boolean;
 }
@@ -21,7 +20,6 @@ export interface AppearancePreferences {
 
 export const defaultPrivacyPreferences: PrivacyPreferences = {
   profilePrivate: false,
-  circleRequests: "everyone",
   messages: "everyone",
   readReceipts: true,
 };
@@ -30,8 +28,6 @@ export const defaultNotificationPreferences: NotificationPreferences = {
   pushEnabled: true,
   emailEnabled: true,
   categories: {
-    circle_requests: true,
-    circle_accepted: true,
     new_followers: true,
     mentions_posts: true,
     mentions_comments: true,

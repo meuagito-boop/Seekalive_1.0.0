@@ -32,10 +32,9 @@ export interface User {
     following: number;
     circles: number;
   };
+  followingIds?: string[];
   isFollowing?: boolean;
   isInCircle?: boolean;
-  circleStatus?: "pending" | "accepted" | null;
-  circleRequestDirection?: "incoming" | "outgoing";
   isBlocked?: boolean;
   isMuted?: boolean;
 }
@@ -107,7 +106,7 @@ export interface Post {
 
 export interface Notification {
   id: string;
-  type: "follow" | "circle_request" | "circle_accepted" | "like" | "comment" | "repost" | "mention";
+  type: "follow" | "like" | "comment" | "repost" | "mention";
   actorId: string;
   entityId?: string;
   isRead: boolean;
@@ -159,8 +158,9 @@ export const mockUsers: User[] = [
     accountType: "personal",
     isVerified: true,
     stats: { posts: 89, followers: 34002, following: 210, circles: 18 },
+    followingIds: ["me"],
+    isFollowing: true,
     isInCircle: true,
-    circleStatus: "accepted",
   },
   {
     id: "u3",
@@ -187,8 +187,6 @@ export const mockUsers: User[] = [
     joinedAt: "2023-07-01T00:00:00Z",
     accountType: "personal",
     stats: { posts: 56, followers: 2100, following: 500, circles: 7 },
-    circleStatus: "pending",
-    circleRequestDirection: "incoming",
   },
   {
     id: "u5",
@@ -241,8 +239,9 @@ export const mockUsers: User[] = [
     joinedAt: "2023-04-05T00:00:00Z",
     accountType: "personal",
     stats: { posts: 445, followers: 22800, following: 310, circles: 28 },
+    followingIds: ["me"],
+    isFollowing: true,
     isInCircle: true,
-    circleStatus: "accepted",
   },
   {
     id: "biz1",
@@ -706,11 +705,9 @@ export const mockPosts: Post[] = [
 
 export const mockNotifications: Notification[] = [
   { id: "n1", type: "like", actorId: "u2", entityId: "p1", isRead: false, createdAt: new Date(Date.now() - 1800000).toISOString() },
-  { id: "n2", type: "circle_request", actorId: "u4", isRead: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
   { id: "n3", type: "follow", actorId: "u3", isRead: false, createdAt: new Date(Date.now() - 7200000).toISOString() },
   { id: "n4", type: "comment", actorId: "u5", entityId: "p1", isRead: false, createdAt: new Date(Date.now() - 10800000).toISOString() },
   { id: "n5", type: "repost", actorId: "u6", entityId: "p9", isRead: true, createdAt: new Date(Date.now() - 14400000).toISOString() },
-  { id: "n6", type: "circle_accepted", actorId: "u2", isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
   { id: "n7", type: "mention", actorId: "u7", entityId: "p7", isRead: true, createdAt: new Date(Date.now() - 172800000).toISOString() },
   { id: "n9", type: "like", actorId: "u8", entityId: "p4", isRead: true, createdAt: new Date(Date.now() - 345600000).toISOString() },
   { id: "n10", type: "follow", actorId: "u1", isRead: true, createdAt: new Date(Date.now() - 432000000).toISOString() },

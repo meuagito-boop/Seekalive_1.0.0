@@ -12,13 +12,6 @@ interface ToggleItem {
 
 const groups: { title: string; items: ToggleItem[] }[] = [
   {
-    title: "Círculo",
-    items: [
-      { label: "Solicitações de círculo", desc: "Quando alguém pede para entrar no seu círculo", key: "circle_requests" },
-      { label: "Círculo aceito", desc: "Quando sua solicitação é aceita", key: "circle_accepted" },
-    ],
-  },
-  {
     title: "Seguidores",
     items: [
       { label: "Novos seguidores", desc: "Quando alguém começa a te seguir", key: "new_followers" },
