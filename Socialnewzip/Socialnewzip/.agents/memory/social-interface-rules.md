@@ -3,11 +3,11 @@ name: Regras de interface Social e Seek
 description: Direção de navegação e transparência definida no prompt de auditoria do produto.
 ---
 
-Manter laranja como destaque principal, tema escuro e cores semânticas distintas. O menu móvel fica na barra inferior ao lado da pesquisa; o botão de adição abre a criação de publicação. O acesso principal ao próprio perfil fica no menu lateral, sem eliminar a identidade dos autores nas publicações. Não reintroduzir o compositor redundante no feed.
+Manter laranja como destaque principal, tema escuro e cores semânticas distintas. O menu móvel fica na barra inferior ao lado da pesquisa. Preservar as funções anteriores da barra: lupa abre Seek, Social abre o feed, adição abre o menu Criar e Shop abre Shop. Apenas acrescentar o botão do menu lateral, sem reorganizar seus itens nem alterar os demais botões.
 
-**Why:** O usuário especificou essas mudanças no prompt de auditoria dos módulos Social e Seek, para eliminar acessos duplicados e manter um padrão visual.
+**Why:** O usuário corrigiu expressamente a interpretação da auditoria: não autorizou remover Social, mudar o destino da lupa, substituir o menu de adição por acesso direto ou reorganizar a barra lateral. O pedido era somente mover o botão do menu para a barra inferior.
 
-**How to apply:** Em mudanças de navegação, preservar esses pontos de entrada e não oferecer seleção de outra cor de marca que contrarie essa direção.
+**How to apply:** Limitar mudanças de navegação ao pedido específico. Não interpretar mover um botão como autorização para redesenhar menus ou trocar destinos. O acesso principal ao próprio perfil continua no menu, e a identidade dos autores permanece nas publicações. Não reintroduzir o compositor redundante no feed nem seleção de cor que contrarie a marca.
 
 Retirar avisos temporários de demonstração da interface, sem transformar recursos não implementados em supostos sucessos. Dependências de back-end, persistência e integrações devem permanecer documentadas; opções sem implementação devem estar indisponíveis com explicação.
 

@@ -85,6 +85,19 @@ test("notificações contêm apenas recursos mantidos no aplicativo", () => {
   const allowed = new Set(["follow", "circle_request", "circle_accepted", "like", "comment", "repost", "mention"]);
   assert.ok(mockNotifications.every(notification => allowed.has(notification.type)));
 });
+test("mover menu não remove Social nem troca os destinos da barra inferior", () => {
+  const root = join(process.cwd(), "artifacts/social/src");
+  const bottom = readFileSync(join(root, "components/layout/BottomNav.tsx"), "utf8");
+  const sidebar = readFileSync(join(root, "components/social/SocialSidebar.tsx"), "utf8");
+  assert.match(bottom, /href="\/seek" aria-label="Seek"/);
+  assert.match(bottom, /href="\/feed" aria-label="Social"/);
+  assert.match(bottom, /href="\/shop"/);
+  assert.match(bottom, /aria-label="Abrir menu"/);
+  assert.match(bottom, /aria-label="Criar"/);
+  assert.match(bottom, /<DialogTitle>Criar<\/DialogTitle>/);
+  assert.doesNotMatch(bottom, /searchHref|Buscar no Social/);
+  assert.doesNotMatch(sidebar, /<SectionLabel>Explorar<\/SectionLabel>/);
+});
 test("comunidades não retornam em rotas, páginas, dados ou navegação", () => {
   const root = join(process.cwd(), "artifacts/social/src");
   const violations: string[] = [];

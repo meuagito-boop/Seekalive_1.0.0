@@ -126,7 +126,8 @@ try {
   await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape" });
   await wait("!document.querySelector('[role=\"dialog\"]')");
   await check("Drawer restores Menu focus", `document.activeElement?.getAttribute('aria-label') === 'Abrir menu'`);
-  await click('[aria-label="Criar publicação"]');
+  await click('[aria-label="Criar"]');
+  await textButton("Criar publicação");
   await wait("location.pathname.endsWith('/compose')");
   await check("Compose: empty publish disabled", "document.querySelector('[data-testid=\"button-post\"]').disabled");
   await click('[data-testid="button-add-image"]');
@@ -157,7 +158,8 @@ try {
   await wait("!!document.querySelector('img[src^=\"blob:\"]')");
   await check("Published photo appears in author media gallery", "!!document.querySelector('img[src^=\"blob:\"]')");
   await screenshot("profile-media-mobile");
-  await click('[aria-label="Criar publicação"]');
+  await click('[aria-label="Criar"]');
+  await textButton("Criar publicação");
   await wait("!!document.querySelector('#compose-text')");
   await click('[data-testid="button-add-image"]');
   await textButton("Tirar foto com a câmera");

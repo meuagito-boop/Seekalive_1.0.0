@@ -32,10 +32,12 @@ export function MediaPickerButtons({
   count,
   onAdd,
   disabled,
+  initialType,
 }: {
   count: number;
   onAdd: (files: FileList | File[] | null, type: "image" | "video") => void;
   disabled?: boolean;
+  initialType?: "image" | "video";
 }) {
   const imageRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
@@ -48,7 +50,7 @@ export function MediaPickerButtons({
       <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" multiple className="sr-only" tabIndex={-1} aria-label="Escolher vídeos da galeria"
         onChange={(e) => { onAdd(e.currentTarget.files, "video"); e.currentTarget.value = ""; }} />
       {(["image", "video"] as const).map((type) => (
-        <DropdownMenu key={type}>
+        <DropdownMenu key={type} defaultOpen={initialType === type}>
           <DropdownMenuTrigger asChild>
             <button type="button" disabled={full}
               className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-40"

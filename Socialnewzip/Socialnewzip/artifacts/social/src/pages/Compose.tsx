@@ -209,7 +209,9 @@ export default function Compose() {
 
       <div className="sticky bottom-0 border-t border-border bg-background px-4 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <MediaPickerButtons count={draft.media.length} disabled={busy || draft.preparing} onAdd={(f, t) => void draft.add(f, t)} />
+          <MediaPickerButtons count={draft.media.length} disabled={busy || draft.preparing}
+            initialType={new URLSearchParams(search).get("media") === "image" ? "image" : new URLSearchParams(search).get("media") === "video" ? "video" : undefined}
+            onAdd={(f, t) => void draft.add(f, t)} />
           <div className="relative h-8 w-8" aria-label={`${remaining} caracteres restantes`}>
             <svg className="h-8 w-8 -rotate-90" viewBox="0 0 32 32" aria-hidden>
               <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="2.5" fill="none" className="text-border" />

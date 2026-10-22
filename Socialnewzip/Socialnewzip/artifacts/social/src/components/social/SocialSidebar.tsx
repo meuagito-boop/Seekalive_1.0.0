@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   Users, Heart, Bookmark, MessageSquare, FileText, History,
-  ChevronRight, UserPlus, Compass, ShoppingBag, Search,
+  ChevronRight, UserPlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppContext } from "@/context/AppContext";
@@ -74,13 +74,6 @@ export function SocialSidebar({ onNavigate }: SocialSidebarProps) {
           <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         </Link>
       )}
-
-      {/* Explorar */}
-      <SectionLabel>Explorar</SectionLabel>
-      <NavItem icon={Users} label="Social" path="/feed" onNavigate={onNavigate} />
-      <NavItem icon={Search} label="Buscar no Social" path="/search" onNavigate={onNavigate} />
-      <NavItem icon={Compass} label="Seek" path="/seek" onNavigate={onNavigate} />
-      <NavItem icon={ShoppingBag} label="Shop" path="/shop" onNavigate={onNavigate} />
 
       {/* Rede */}
       <SectionLabel>Rede</SectionLabel>
