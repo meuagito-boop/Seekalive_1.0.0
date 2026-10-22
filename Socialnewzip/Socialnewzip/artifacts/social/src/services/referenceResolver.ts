@@ -51,7 +51,7 @@ function resolveDemo(reference: ContentReference, snapshot: ReferenceSnapshot): 
   const post = snapshot.posts.find(item => item.id === reference.id);
   if (!post) return null;
   const author = snapshot.users.find(user => user.id === post.authorId);
-  if (!author || author.isBlocked || !canReadPost(post, snapshot.viewerId, author.isInCircle ?? false)) return null;
+  if (!author || author.isBlocked || !canReadPost(post, snapshot.viewerId, author.isInCircle ?? false, author.isPrivate ?? false)) return null;
   const imageIndex = post.mediaUrls?.findIndex((_, index) => (post.mediaTypes?.[index] ?? (post.type === "video" ? "video" : "image")) === "image") ?? -1;
   return {
     ...reference, title: post.article?.title ?? post.content.slice(0, 200),

@@ -27,7 +27,7 @@ function useVisibleFeed() {
   return useMemo(() => {
     const visible = posts.filter((p) => {
       const author = getUserById(p.authorId);
-      return !!author && !author.isBlocked && canReadPost(p, viewerId, author.isInCircle ?? false);
+      return !!author && !author.isBlocked && canReadPost(p, viewerId, author.isInCircle ?? false, author.isPrivate ?? false);
     });
     const byId = new Map(visible.map((p) => [p.id, p]));
     const items: FeedItem[] = [

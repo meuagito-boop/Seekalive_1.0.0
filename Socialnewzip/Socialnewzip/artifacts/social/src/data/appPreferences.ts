@@ -1,4 +1,5 @@
 const PRIVACY_KEY = "seekalive-settings-privacy";
+const LEGACY_PRIVACY_KEY = PRIVACY_KEY;
 const NOTIFICATIONS_KEY = "seekalive-settings-notifications";
 const APPEARANCE_KEY = "seekalive-settings-appearance";
 
@@ -62,8 +63,12 @@ function write<T>(key: string, value: T) {
   }
 }
 
-export const getPrivacyPreferences = () => read(PRIVACY_KEY, defaultPrivacyPreferences);
-export const savePrivacyPreferences = (value: PrivacyPreferences) => write(PRIVACY_KEY, value);
+function privacyKey(accountId?: string) {
+  return accountId ? `${PRIVACY_KEY}:${accountId}` : LEGACY_PRIVACY_KEY;
+}
+
+export const getPrivacyPreferences = (accountId?: string) => read(privacyKey(accountId), defaultPrivacyPreferences);
+export const savePrivacyPreferences = (value: PrivacyPreferences, accountId?: string) => write(privacyKey(accountId), value);
 export const getNotificationPreferences = () => read(NOTIFICATIONS_KEY, defaultNotificationPreferences);
 export const saveNotificationPreferences = (value: NotificationPreferences) => write(NOTIFICATIONS_KEY, value);
 export const getAppearancePreferences = () => read(APPEARANCE_KEY, defaultAppearancePreferences);

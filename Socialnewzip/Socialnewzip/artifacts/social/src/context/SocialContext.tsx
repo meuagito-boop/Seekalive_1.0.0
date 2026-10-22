@@ -12,6 +12,7 @@ import { contentService, ContentServiceError } from "@/services/contentService";
 import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/contentValidation";
 import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
+import { getPrivacyPreferences } from "@/data/appPreferences";
 
 // ── State shape ──────────────────────────────────────────────────────
 export interface SocialState {
@@ -190,7 +191,7 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
       return {
         ...state,
         users: state.users.map(u =>
-          u.id !== action.userId ? u : { ...u, circleStatus: "pending" }
+          u.id !== action.userId ? u : { ...u, circleStatus: "pending", circleRequestDirection: "outgoing" }
         ),
       };
 
@@ -201,8 +202,9 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
           u.id !== action.userId ? u : {
             ...u,
             circleStatus: "accepted",
+            circleRequestDirection: undefined,
             isInCircle: true,
-            stats: { ...u.stats, circles: u.stats.circles + 1 },
+            stats: { ...u.stats, circles: u.stats.circles + (u.circleStatus === "accepted" || u.isInCircle ? 0 : 1) },
           }
         ),
       };
@@ -214,7 +216,9 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
           u.id !== action.userId ? u : {
             ...u,
             circleStatus: null,
+            circleRequestDirection: undefined,
             isInCircle: false,
+            stats: { ...u.stats, circles: Math.max(0, u.stats.circles - (u.circleStatus === "accepted" || u.isInCircle ? 1 : 0)) },
           }
         ),
       };
@@ -226,7 +230,13 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
           n.id !== action.notifId ? n : { ...n, isRead: true }
         ),
         users: state.users.map(u =>
-          u.id !== action.actorId ? u : { ...u, circleStatus: "accepted", isInCircle: true }
+          u.id !== action.actorId ? u : {
+            ...u,
+            circleStatus: "accepted",
+            circleRequestDirection: undefined,
+            isInCircle: true,
+            stats: { ...u.stats, circles: u.stats.circles + (u.circleStatus === "accepted" || u.isInCircle ? 0 : 1) },
+          }
         ),
       };
 
@@ -235,6 +245,14 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
         ...state,
         notifications: state.notifications.map(n =>
           n.id !== action.notifId ? n : { ...n, isRead: true }
+        ),
+        users: state.users.map(u =>
+          u.id !== action.actorId ? u : {
+            ...u,
+            circleStatus: null,
+            circleRequestDirection: undefined,
+            isInCircle: false,
+          }
         ),
       };
 
@@ -360,7 +378,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     const post = state.posts.find(item => item.id === postId);
     if (!post) throw new ContentServiceError("Conteúdo indisponível.", 404);
     const author = state.users.find(user => user.id === post.authorId);
-    if (!canReadPost(post, currentUser?.id, author?.isInCircle ?? false))
+    if (!canReadPost(post, currentUser?.id, author?.isInCircle ?? false, author?.isPrivate ?? false))
       throw new ContentServiceError("Você não tem acesso a esta publicação.", 403);
     return post;
   }
@@ -458,9 +476,47 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       saveStoredSeekReviews(nextReviews);
       dispatch({ type: "REPLY_TO_SEEK_REVIEW", reviewId, businessAccountId, content });
     },
-    requestCircle: (userId) => dispatch({ type: "REQUEST_CIRCLE", userId }),
-    acceptCircle: (userId) => dispatch({ type: "ACCEPT_CIRCLE", userId }),
-    cancelCircle: (userId) => dispatch({ type: "CANCEL_CIRCLE", userId }),
+    requestCircle: (userId) => {
+      if (!currentUser) throw new ContentServiceError("Entre na sua conta para solicitar entrada no Círculo.", 401);
+      const target = state.users.find(user => user.id === userId);
+      if (!target || target.isBlocked) throw new ContentServiceError("Este perfil não está disponível para solicitações.", 404);
+      if (target.circleStatus === "accepted") return;
+      if (target.circleStatus === "pending" && target.circleRequestDirection === "outgoing") return;
+      const policy = getPrivacyPreferences(target.id).circleRequests;
+      if (policy === "nobody") throw new ContentServiceError("Este perfil não está aceitando solicitações para o Círculo.", 403);
+      if (policy === "followers" && !target.isFollowing)
+        throw new ContentServiceError("Este perfil aceita solicitações apenas de quem segue a conta.", 403);
+      saveSocialAccount({ ...target, circleStatus: "pending", circleRequestDirection: "outgoing" });
+      dispatch({ type: "REQUEST_CIRCLE", userId });
+    },
+    acceptCircle: (userId) => {
+      if (!currentUser) throw new ContentServiceError("Entre na sua conta para responder à solicitação.", 401);
+      const target = state.users.find(user => user.id === userId);
+      if (!target || target.circleStatus !== "pending" || target.circleRequestDirection !== "incoming")
+        throw new ContentServiceError("Essa solicitação do Círculo não está disponível.", 404);
+      const accepted = {
+        ...target,
+        circleStatus: "accepted" as const,
+        circleRequestDirection: undefined,
+        isInCircle: true,
+        stats: { ...target.stats, circles: target.stats.circles + (target.isInCircle ? 0 : 1) },
+      };
+      saveSocialAccount(accepted);
+      dispatch({ type: "ACCEPT_CIRCLE", userId });
+    },
+    cancelCircle: (userId) => {
+      const target = state.users.find(user => user.id === userId);
+      if (target) {
+        saveSocialAccount({
+          ...target,
+          circleStatus: null,
+          circleRequestDirection: undefined,
+          isInCircle: false,
+          stats: { ...target.stats, circles: Math.max(0, target.stats.circles - (target.circleStatus === "accepted" || target.isInCircle ? 1 : 0)) },
+        });
+      }
+      dispatch({ type: "CANCEL_CIRCLE", userId });
+    },
     addPost: (content, audience, authorId, mediaUrls = [], mediaTypes = []) => dispatch({
       type: "ADD_POST",
       post: {
@@ -486,12 +542,40 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       if (currentUser && state.conversations.some(c => c.id === convId && c.participantIds.includes(currentUser.id)))
         dispatch({ type: "MARK_CONVERSATION_READ", convId });
     },
-    sendMessage: (convId, content) => dispatch({
-      type: "SEND_MESSAGE",
-      message: makeDemoMessage(state.conversations.find(c => c.id === convId), currentUser?.id, content),
-    }),
-    acceptCircleNotification: (actorId, notifId) => dispatch({ type: "ACCEPT_CIRCLE_NOTIFICATION", actorId, notifId }),
-    declineCircleNotification: (actorId, notifId) => dispatch({ type: "DECLINE_CIRCLE_NOTIFICATION", actorId, notifId }),
+    sendMessage: (convId, content) => {
+      const conversation = state.conversations.find(item => item.id === convId);
+      const message = makeDemoMessage(conversation, currentUser?.id, content);
+      const recipients = conversation?.participantIds
+        .filter(id => id !== currentUser?.id)
+        .map(id => state.users.find(user => user.id === id));
+      if (recipients?.some(recipient => !recipient))
+        throw new ContentServiceError("A pessoa desta conversa não está disponível.", 404);
+      const policies = (recipients ?? []).map(recipient => getPrivacyPreferences(recipient!.id).messages);
+      if (policies.includes("nobody"))
+        throw new ContentServiceError("Esta pessoa não está recebendo mensagens diretas.", 403);
+      if (policies.includes("circle") && recipients?.some(recipient =>
+        !recipient?.isInCircle && recipient?.circleStatus !== "accepted"))
+        throw new ContentServiceError("Esta pessoa recebe mensagens apenas do próprio Círculo.", 403);
+      dispatch({ type: "SEND_MESSAGE", message });
+    },
+    acceptCircleNotification: (actorId, notifId) => {
+      const target = state.users.find(user => user.id === actorId);
+      if (!target || target.circleStatus !== "pending")
+        throw new ContentServiceError("Essa solicitação do Círculo não está disponível.", 404);
+      saveSocialAccount({
+        ...target,
+        circleStatus: "accepted",
+        circleRequestDirection: undefined,
+        isInCircle: true,
+        stats: { ...target.stats, circles: target.stats.circles + (target.isInCircle ? 0 : 1) },
+      });
+      dispatch({ type: "ACCEPT_CIRCLE_NOTIFICATION", actorId, notifId });
+    },
+    declineCircleNotification: (actorId, notifId) => {
+      const target = state.users.find(user => user.id === actorId);
+      if (target) saveSocialAccount({ ...target, circleStatus: null, circleRequestDirection: undefined, isInCircle: false });
+      dispatch({ type: "DECLINE_CIRCLE_NOTIFICATION", actorId, notifId });
+    },
   };
 
   return <SocialContext.Provider value={ctx}>{children}</SocialContext.Provider>;

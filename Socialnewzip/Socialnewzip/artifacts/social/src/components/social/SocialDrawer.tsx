@@ -31,7 +31,7 @@ export function SocialDrawer({ open, onClose, returnFocus }: SocialDrawerProps) 
       <SheetContent
         side="left"
         onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus(); }}
-        className="w-72 max-w-[85vw] p-0 gap-0 flex flex-col bg-background border-r border-border [&>button:last-child]:hidden"
+        className="w-72 max-w-[85vw] p-0 gap-0 flex flex-col bg-background border-r border-border [&>button:first-child]:hidden"
       >
         <div className="flex items-center justify-between px-4 h-14 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2">

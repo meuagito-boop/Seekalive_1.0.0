@@ -1,4 +1,5 @@
 import type { ContentReference, PostFormat } from "@/types/content";
+import type { WeeklyOpeningHours } from "@/types/businessHours";
 
 export interface User {
   id: string;
@@ -34,6 +35,7 @@ export interface User {
   isFollowing?: boolean;
   isInCircle?: boolean;
   circleStatus?: "pending" | "accepted" | null;
+  circleRequestDirection?: "incoming" | "outgoing";
   isBlocked?: boolean;
   isMuted?: boolean;
 }
@@ -50,6 +52,7 @@ export interface CommercialProfile {
   distanceKm?: number;
   isOpen?: boolean;
   openingHours?: string;
+  weeklyHours?: WeeklyOpeningHours;
   priceLevel?: 1 | 2 | 3 | 4;
   photos?: string[];
   videos?: string[];
@@ -185,6 +188,7 @@ export const mockUsers: User[] = [
     accountType: "personal",
     stats: { posts: 56, followers: 2100, following: 500, circles: 7 },
     circleStatus: "pending",
+    circleRequestDirection: "incoming",
   },
   {
     id: "u5",

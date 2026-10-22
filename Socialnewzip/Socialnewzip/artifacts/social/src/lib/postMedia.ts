@@ -17,14 +17,15 @@ export function getProfileMedia(
   accountId: string,
   isOwner = false,
   canViewCirclePosts = false,
+  authorIsPrivate = false,
 ): ProfileMedia[] {
   return posts
     .filter((post) =>
       post.authorId === accountId &&
       (
         isOwner ||
-        post.audience === "public" ||
-        (canViewCirclePosts && post.audience === "circles")
+        (!authorIsPrivate || canViewCirclePosts) &&
+        (post.audience === "public" || (canViewCirclePosts && post.audience === "circles"))
       ),
     )
     .flatMap((post) =>

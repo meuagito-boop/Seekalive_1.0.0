@@ -22,6 +22,7 @@ import { useAppContext } from "@/context/AppContext";
 import type { User } from "@/data/mockData";
 import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/services/contentValidation";
+import { formatWeeklyHours, weeklyHoursRows } from "@/lib/businessHours";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
 const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços", "Mídias", "Artigos"] as const;
@@ -130,7 +131,11 @@ export function CommercialProfilePage({
   const { currentUser } = useAppContext();
   const { posts, reviews, repostEntries, getUserById, toggleFollow } = useSocial();
   const commercial = user.commercialProfile;
-  const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false);
+  const openingHoursSummary = commercial?.weeklyHours
+    ? formatWeeklyHours(commercial.weeklyHours)
+    : commercial?.openingHours ?? "Horário não informado";
+  const offeredServices = serviceOptions.filter(service => commercial?.serviceOptions?.[service.key] === true);
+  const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
@@ -160,7 +165,7 @@ export function CommercialProfilePage({
   const isSaved = savedIds.includes(user.id);
   const visiblePosts = posts.filter(post => {
     const author = getUserById(post.authorId);
-    return !!author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false);
+    return !!author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false);
   });
   const userPosts = visiblePosts.filter((post) => post.authorId === user.id);
   const userArticles = userPosts.filter((post) => post.format === "article");
@@ -316,7 +321,7 @@ export function CommercialProfilePage({
               </span>
             )}
             <span className="text-muted-foreground">
-              {commercial.openingHours ?? "Horário não informado"}
+              {openingHoursSummary}
             </span>
           </div>
 
@@ -410,7 +415,24 @@ export function CommercialProfilePage({
                 <section className="rounded-2xl border border-border p-4">
                   <h2 className="mb-2 font-bold">Informações do comércio</h2>
                   <div className="divide-y divide-border">
-                    <InfoLine icon={<Clock3 className="h-4 w-4" />} title="Horário de funcionamento" value={commercial.openingHours ?? "Não informado"} />
+                    {commercial.weeklyHours ? (
+                      <div className="border-b border-border py-3 last:border-0">
+                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                          <Clock3 className="h-4 w-4 text-muted-foreground" />
+                          Horário de funcionamento
+                        </div>
+                        <div className="space-y-1.5 pl-6">
+                          {weeklyHoursRows(commercial.weeklyHours).map(row => (
+                            <div key={row.label} className="flex justify-between gap-4 text-sm">
+                              <span className="text-muted-foreground">{row.label}</span>
+                              <span className="text-right">{row.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <InfoLine icon={<Clock3 className="h-4 w-4" />} title="Horário de funcionamento" value={openingHoursSummary} />
+                    )}
                     <InfoLine icon={<MapPin className="h-4 w-4" />} title="Endereço" value={commercial.address} href={mapsUrl(commercial.address)} />
                     <InfoLine icon={<Globe className="h-4 w-4" />} title="Site" value={user.website ?? "Não informado"} href={user.website} />
                     <InfoLine title="Faixa de preço" value={priceLabel(commercial.priceLevel) || "Não informada"} />
@@ -516,28 +538,16 @@ export function CommercialProfilePage({
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                {serviceOptions.map((service) => {
-                  const available = commercial.serviceOptions?.[service.key];
-                  return (
-                    <article key={service.key} className="rounded-2xl border border-border p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold">{service.label}</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
-                        </div>
-                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          available === true
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                            : available === false
-                              ? "bg-muted text-muted-foreground"
-                              : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                        }`}>
-                          {available === true ? "Disponível" : available === false ? "Não oferece" : "Não informado"}
-                        </span>
-                      </div>
-                    </article>
-                  );
-                })}
+                {offeredServices.length > 0 ? offeredServices.map(service => (
+                  <article key={service.key} className="rounded-2xl border border-border p-4">
+                    <h3 className="font-semibold">{service.label}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
+                  </article>
+                )) : (
+                  <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground sm:col-span-2">
+                    Este perfil ainda não informou serviços oferecidos.
+                  </p>
+                )}
               </div>
             </section>
           )}

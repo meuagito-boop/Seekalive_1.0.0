@@ -2,39 +2,35 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Users, Check, X, Clock, Search, UserCheck, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockUsers } from "@/data/mockData";
+import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/context/SocialContext";
 
-const tabs = ["Amigos", "Solicitações", "Enviadas"];
-
-const accepted = mockUsers.filter(u => u.circleStatus === "accepted");
-const requests = mockUsers.filter(u => u.circleStatus === "pending").slice(0, 2);
-const sent = mockUsers.filter(u => !u.isInCircle && !u.isFollowing).slice(0, 2);
+const tabs = ["Meu Círculo", "Solicitações", "Enviadas"];
 
 export default function Circles() {
   const [activeTab, setActiveTab] = useState(0);
-  const [acceptedList, setAcceptedList] = useState(accepted);
-  const [requestList, setRequestList] = useState(requests);
-  const [sentList, setSentList] = useState(sent);
   const [query, setQuery] = useState("");
+  const { currentUser } = useAppContext();
+  const { users, acceptCircle, cancelCircle } = useSocial();
+  const people = users.filter(user => user.id !== currentUser?.id && !user.isBlocked);
+  const acceptedList = people.filter(user => user.circleStatus === "accepted" || user.isInCircle);
+  const requestList = people.filter(user => user.circleStatus === "pending" && user.circleRequestDirection === "incoming");
+  const sentList = people.filter(user => user.circleStatus === "pending" && user.circleRequestDirection === "outgoing");
 
   function acceptRequest(id: string) {
-    const user = requestList.find(u => u.id === id);
-    if (user) {
-      setAcceptedList(prev => [...prev, { ...user, circleStatus: "accepted" as const }]);
-      setRequestList(prev => prev.filter(u => u.id !== id));
-    }
+    acceptCircle(id);
   }
 
   function declineRequest(id: string) {
-    setRequestList(prev => prev.filter(u => u.id !== id));
+    cancelCircle(id);
   }
 
   function cancelSent(id: string) {
-    setSentList(prev => prev.filter(u => u.id !== id));
+    cancelCircle(id);
   }
 
   function removeFriend(id: string) {
-    setAcceptedList(prev => prev.filter(u => u.id !== id));
+    cancelCircle(id);
   }
 
   const filteredAccepted = acceptedList.filter(u =>
@@ -55,8 +51,8 @@ export default function Circles() {
         </button>
         <UserCheck className="w-5 h-5 text-primary flex-shrink-0" />
         <div>
-          <h1 className="font-bold text-base leading-tight">Amigos</h1>
-          <p className="text-xs text-muted-foreground">{acceptedList.length} amigos</p>
+          <h1 className="font-bold text-base leading-tight">Meu Círculo</h1>
+          <p className="text-xs text-muted-foreground">{acceptedList.length} pessoas</p>
         </div>
       </div>
 
@@ -101,10 +97,10 @@ export default function Circles() {
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <Users className="w-12 h-12 mb-4 opacity-30" />
               <p className="font-medium">
-                {query ? "Nenhum amigo encontrado" : "Nenhum amigo ainda"}
+                {query ? "Ninguém do Círculo encontrado" : "Seu Círculo está vazio"}
               </p>
               <p className="text-sm mt-1 opacity-70">
-                {query ? `Sem resultado para "${query}"` : "Encontre pessoas e envie solicitações de amizade."}
+                {query ? `Sem resultado para "${query}"` : "Encontre um perfil e envie uma solicitação para adicioná-lo ao Círculo."}
               </p>
             </div>
           ) : (
@@ -132,7 +128,7 @@ export default function Circles() {
                     data-testid={`button-remove-circle-${user.id}`}
                     className="shrink-0 px-3 py-1.5 rounded-full border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
                   >
-                    Remover
+                  Remover do Círculo
                   </button>
                 </motion.div>
               ))}
@@ -148,7 +144,7 @@ export default function Circles() {
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <Check className="w-12 h-12 mb-4 opacity-30" />
               <p className="font-medium">Nenhuma solicitação</p>
-              <p className="text-sm mt-1 opacity-70">Solicitações de amizade aparecerão aqui.</p>
+                  <p className="text-sm mt-1 opacity-70">Solicitações para entrar no seu Círculo aparecerão aqui.</p>
             </div>
           ) : (
             requestList.map((user, i) => (

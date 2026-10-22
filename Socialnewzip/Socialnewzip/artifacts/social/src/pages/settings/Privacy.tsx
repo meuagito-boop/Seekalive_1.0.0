@@ -5,6 +5,8 @@ import { ChevronRight } from "lucide-react";
 import { SettingsSubheader } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
 import { getPrivacyPreferences, savePrivacyPreferences } from "@/data/appPreferences";
+import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/context/SocialContext";
 
 function SettingRow({ label, desc, checked, onToggle, testId }: {
   label: string;
@@ -63,14 +65,21 @@ function SelectRow({ label, value, options, onChange, testId }: {
 
 export default function SettingsPrivacy() {
   const [, setLocation] = useLocation();
-  const [prefs, setPrefs] = useState(getPrivacyPreferences);
+  const { currentUser, updateAccount } = useAppContext();
+  const { updateUser } = useSocial();
+  const [prefs, setPrefs] = useState(() => getPrivacyPreferences(currentUser?.id));
 
   function update<K extends keyof typeof prefs>(key: K, value: (typeof prefs)[K]) {
     setPrefs(previous => {
       const next = { ...previous, [key]: value };
-      savePrivacyPreferences(next);
+      savePrivacyPreferences(next, currentUser?.id);
       return next;
     });
+    if (key === "profilePrivate" && currentUser) {
+      const updated = { ...currentUser, isPrivate: Boolean(value) };
+      updateAccount(updated);
+      updateUser(updated);
+    }
   }
 
   const requestOptions = [
@@ -87,7 +96,7 @@ export default function SettingsPrivacy() {
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
       <SettingsSubheader title="Privacidade" />
-      <p className="px-4 pt-3 text-xs text-muted-foreground">As escolhas ficam salvas neste navegador. A aplicação em todas as telas será conectada ao serviço de contas posteriormente.</p>
+      <p className="px-4 pt-3 text-xs text-muted-foreground">As escolhas ficam salvas neste navegador. Perfis privados e regras de Círculo são aplicados aos conteúdos no protótipo.</p>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="px-4 pt-5 pb-1">
@@ -95,7 +104,7 @@ export default function SettingsPrivacy() {
         </div>
         <SettingRow
           label="Perfil privado"
-          desc="Ative para que o conteúdo do perfil fique restrito a seguidores aprovados."
+          desc="Somente você e pessoas do seu Círculo poderão ver o perfil e suas publicações."
           checked={prefs.profilePrivate}
           onToggle={() => update("profilePrivate", !prefs.profilePrivate)}
           testId="toggle-private-profile"
@@ -104,8 +113,8 @@ export default function SettingsPrivacy() {
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quem pode interagir</p>
         </div>
-        <SelectRow label="Enviar solicitações de Círculo" value={requestOptions.find(option => option.value === prefs.circleRequests)?.label ?? "Todos"} options={requestOptions.map(option => option.label)} onChange={label => update("circleRequests", requestOptions.find(option => option.label === label)?.value as typeof prefs.circleRequests)} testId="select-circle-requests" />
-        <SelectRow label="Enviar mensagens diretas" value={messageOptions.find(option => option.value === prefs.messages)?.label ?? "Todos"} options={messageOptions.map(option => option.label)} onChange={label => update("messages", messageOptions.find(option => option.label === label)?.value as typeof prefs.messages)} testId="select-messages" />
+        <SelectRow label="Quem pode pedir para entrar no seu Círculo" value={requestOptions.find(option => option.value === prefs.circleRequests)?.label ?? "Todos"} options={requestOptions.map(option => option.label)} onChange={label => update("circleRequests", requestOptions.find(option => option.label === label)?.value as typeof prefs.circleRequests)} testId="select-circle-requests" />
+        <SelectRow label="Quem pode enviar mensagens diretas" value={messageOptions.find(option => option.value === prefs.messages)?.label ?? "Todos"} options={messageOptions.map(option => option.label)} onChange={label => update("messages", messageOptions.find(option => option.label === label)?.value as typeof prefs.messages)} testId="select-messages" />
 
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagens</p>

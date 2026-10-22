@@ -15,6 +15,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { currentUser as mockCurrentUser } from "@/data/mockData";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
+import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/types/businessHours";
+import { emptyWeeklyHours, formatWeeklyHours, hasInvalidOpenHours, makeWeeklyHours } from "@/lib/businessHours";
 
 const schema = z.object({
   displayName: z.string().min(2),
@@ -23,7 +25,6 @@ const schema = z.object({
   location: z.string().max(50).optional(),
   website: z.string().url("URL inválida").optional().or(z.literal("")),
   businessAddress: z.string().max(120).optional(),
-  openingHours: z.string().max(120).optional(),
   priceLevel: z.string().regex(/^$|^[1-4]$/),
   serviceDelivery: z.enum(["unknown", "yes", "no"]),
   serviceDineIn: z.enum(["unknown", "yes", "no"]),
@@ -63,6 +64,10 @@ export default function ProfileEdit() {
     profile?.cityId && profile.cityName && profile.cityState
       ? { id: profile.cityId, city: profile.cityName, state: profile.cityState, source: "manual", label: `${profile.cityName}, ${profile.cityState}` }
       : null);
+  const [weeklyHours, setWeeklyHours] = useState<WeeklyOpeningHours>(() =>
+    makeWeeklyHours(profile?.weeklyHours, profile?.openingHours));
+  const [hoursTouched, setHoursTouched] = useState(false);
+  const [hoursError, setHoursError] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -73,7 +78,6 @@ export default function ProfileEdit() {
       location: currentUser.location ?? "",
       website: currentUser.website ?? "",
       businessAddress: currentUser.commercialProfile?.address ?? "",
-      openingHours: currentUser.commercialProfile?.openingHours ?? "",
       priceLevel: currentUser.commercialProfile?.priceLevel?.toString() ?? "",
       serviceDelivery: serviceStatus(currentUser.commercialProfile?.serviceOptions?.delivery),
       serviceDineIn: serviceStatus(currentUser.commercialProfile?.serviceOptions?.dineIn),
@@ -84,10 +88,22 @@ export default function ProfileEdit() {
     },
   });
 
+  function updateDayHours(day: BusinessDayKey, changes: Partial<BusinessDayHours>) {
+    setHoursTouched(true);
+    setHoursError("");
+    setWeeklyHours(previous => ({
+      ...previous,
+      [day]: { ...previous[day], ...changes },
+    }));
+  }
+
   function onSubmit(values: FormValues) {
+    if (currentUser.accountType === "commercial" && hoursTouched && hasInvalidOpenHours(weeklyHours)) {
+      setHoursError("Informe horários válidos para cada dia marcado como aberto.");
+      return;
+    }
     const {
       businessAddress,
-      openingHours,
       priceLevel,
       serviceDelivery,
       serviceDineIn,
@@ -97,6 +113,14 @@ export default function ProfileEdit() {
       serviceTakeout,
       ...profileValues
     } = values;
+    const nextWeeklyHours = hoursTouched
+      ? weeklyHours
+      : profile?.weeklyHours;
+    const nextOpeningHours = hoursTouched
+      ? formatWeeklyHours(weeklyHours) === "Horário não informado" ? undefined : formatWeeklyHours(weeklyHours)
+      : profile?.weeklyHours
+        ? formatWeeklyHours(profile.weeklyHours)
+        : profile?.openingHours;
     const updatedUser = {
       ...currentUser,
       ...profileValues,
@@ -109,7 +133,8 @@ export default function ProfileEdit() {
             cityName: discoveryCity?.city,
             cityState: discoveryCity?.state,
             address: businessAddress?.trim() || currentUser.commercialProfile.address,
-            openingHours: openingHours?.trim() || undefined,
+            weeklyHours: nextWeeklyHours,
+            openingHours: nextOpeningHours,
             priceLevel: priceLevel
               ? Number(priceLevel) as 1 | 2 | 3 | 4
               : undefined,
@@ -260,19 +285,62 @@ export default function ProfileEdit() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="openingHours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm text-muted-foreground">Horário de funcionamento</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Seg–Sex · 09h–18h" data-testid="input-opening-hours" className="h-12 rounded-xl border-border bg-card" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Dias e horários de funcionamento</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">Defina cada dia separadamente. Dias sem informação não serão exibidos como horário confirmado.</p>
+                  </div>
+                  <div className="space-y-2">
+                    {businessDays.map(day => {
+                      const value = weeklyHours[day.key] ?? emptyWeeklyHours()[day.key];
+                      return (
+                        <div key={day.key} className="rounded-xl border border-border bg-card/50 p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <span className="min-w-[8rem] text-sm font-medium">{day.label}</span>
+                            <select
+                              value={value.status}
+                              onChange={event => updateDayHours(day.key, { status: event.target.value as BusinessDayHours["status"] })}
+                              aria-label={`Situação de ${day.label}`}
+                              data-testid={`select-hours-${day.key}`}
+                              className="h-10 min-w-[9rem] rounded-lg border border-border bg-background px-3 text-sm"
+                            >
+                              <option value="unknown">Não informado</option>
+                              <option value="open">Aberto</option>
+                              <option value="closed">Fechado</option>
+                            </select>
+                          </div>
+                          {value.status === "open" && (
+                            <div className="mt-3 grid grid-cols-2 gap-3">
+                              <label className="text-xs text-muted-foreground">
+                                Abre às
+                                <Input
+                                  type="time"
+                                  value={value.opensAt}
+                                  onChange={event => updateDayHours(day.key, { opensAt: event.target.value })}
+                                  aria-label={`Horário de abertura de ${day.label}`}
+                                  data-testid={`input-hours-open-${day.key}`}
+                                  className="mt-1 h-10 bg-background"
+                                />
+                              </label>
+                              <label className="text-xs text-muted-foreground">
+                                Fecha às
+                                <Input
+                                  type="time"
+                                  value={value.closesAt}
+                                  onChange={event => updateDayHours(day.key, { closesAt: event.target.value })}
+                                  aria-label={`Horário de fechamento de ${day.label}`}
+                                  data-testid={`input-hours-close-${day.key}`}
+                                  className="mt-1 h-10 bg-background"
+                                />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {hoursError && <p role="alert" className="text-sm text-destructive">{hoursError}</p>}
+                </section>
                 <FormField
                   control={form.control}
                   name="priceLevel"

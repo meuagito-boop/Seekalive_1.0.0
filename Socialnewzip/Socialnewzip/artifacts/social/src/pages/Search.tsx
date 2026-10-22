@@ -39,7 +39,7 @@ export default function Search() {
   const q = query.trim().toLowerCase();
   const filteredPosts = posts.filter(p => {
     const author = users.find(u => u.id === p.authorId);
-    if (!canReadPost(p, viewerId, author?.isInCircle ?? false)) return false;
+    if (!author || !canReadPost(p, viewerId, author.isInCircle ?? false, author.isPrivate ?? false)) return false;
     const haystack = [p.content, p.article?.title ?? "", p.article?.body ?? "", ...(p.hashtags ?? []).map(t => `#${t}`), ...(p.mentions ?? []).map(m => `@${m}`)].join(" ").toLowerCase();
     return haystack.includes(q);
   });

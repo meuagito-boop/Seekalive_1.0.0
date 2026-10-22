@@ -36,7 +36,7 @@ export function PostCard({ post, compact = false, repostedById }: PostCardProps)
   const reposter = repostedById ? getUserById(repostedById) : undefined;
   const viewerId = currentUser?.id ?? "me";
 
-  if (!author || author.isBlocked || !canReadPost(post, currentUser?.id, author.isInCircle ?? false)) {
+  if (!author || author.isBlocked || !canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false)) {
     return (
       <div className="border-b border-border px-4 py-4 text-sm text-muted-foreground" role="status">
         Publicação indisponível — a conta autora não está acessível.
@@ -170,7 +170,7 @@ export function PostCard({ post, compact = false, repostedById }: PostCardProps)
             <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
               post.audience === "circles" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
             }`}>
-              {post.audience === "circles" ? "Amigos" : "Privado"}
+              {post.audience === "circles" ? "Círculo" : "Privado"}
             </span>
           )}
 

@@ -19,7 +19,7 @@ const MAX_CHARS = 280;
 
 const audiences = [
   { value: "public" as const, label: "Público", icon: Globe, desc: "Qualquer pessoa pode ver" },
-  { value: "circles" as const, label: "Amigos", icon: Users, desc: "Apenas seus amigos" },
+  { value: "circles" as const, label: "Círculo", icon: Users, desc: "Apenas pessoas do seu Círculo" },
   { value: "private" as const, label: "Privado", icon: Lock, desc: "Somente você" },
 ];
 

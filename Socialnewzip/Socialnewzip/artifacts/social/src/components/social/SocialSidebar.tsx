@@ -77,7 +77,7 @@ export function SocialSidebar({ onNavigate }: SocialSidebarProps) {
 
       {/* Rede */}
       <SectionLabel>Rede</SectionLabel>
-      <NavItem icon={Users} label="Amigos" path="/circles" onNavigate={onNavigate} />
+      <NavItem icon={Users} label="Círculo" path="/circles" onNavigate={onNavigate} />
       <NavItem icon={UserPlus} label="Seguir" path="/social/suggestions" onNavigate={onNavigate} />
 
       {/* Atividades */}

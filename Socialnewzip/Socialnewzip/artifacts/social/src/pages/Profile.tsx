@@ -30,7 +30,7 @@ export default function Profile() {
   const [showMenu, setShowMenu] = useState(false);
   const { toast } = useToast();
 
-  const { users, posts, repostEntries, postComments, toggleFollow, requestCircle, cancelCircle } = useSocial();
+  const { users, posts, repostEntries, postComments, toggleFollow, requestCircle, acceptCircle, cancelCircle } = useSocial();
   const { currentUser: signedInUser } = useAppContext();
   const viewer = signedInUser ?? mockCurrentUser;
 
@@ -52,11 +52,12 @@ export default function Profile() {
 
   const following = user.isFollowing ?? false;
   const circleStatus = user.circleStatus ?? null;
+  const hasIncomingCircleRequest = circleStatus === "pending" && user.circleRequestDirection === "incoming";
 
   // Posts filtered to this user
   const visibleToViewer = (p: (typeof posts)[number]) => {
     const author = users.find(u => u.id === p.authorId) ?? (p.authorId === viewer.id ? viewer : undefined);
-    return !!author && !author.isBlocked && canReadPost(p, viewer.id, author.isInCircle ?? false);
+    return !!author && !author.isBlocked && canReadPost(p, viewer.id, author.isInCircle ?? false, author.isPrivate ?? false);
   };
   // Authored posts plus repost distribution records (original author preserved).
   const timeline = [
@@ -72,7 +73,7 @@ export default function Profile() {
     return c.authorId === user.id && !!target && visibleToViewer(target);
   }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const likedPosts = isMe ? posts.filter(p => p.isLiked && visibleToViewer(p)) : [];
-  const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false);
+  const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false);
 
   function handleFollow() {
     if (isMe) return;
@@ -81,9 +82,45 @@ export default function Profile() {
 
   function handleCircle() {
     if (isMe) return;
-    if (!circleStatus || circleStatus === null) requestCircle(user.id);
-    else if (circleStatus === "pending") cancelCircle(user.id);
-    // accepted → no-op (manage from Circles page)
+    if (circleStatus === "accepted") return;
+    if (hasIncomingCircleRequest) {
+      acceptCircle(user.id);
+      toast({ title: "Adicionado ao seu Círculo" });
+      return;
+    }
+    if (circleStatus === "pending") {
+      cancelCircle(user.id);
+      return;
+    }
+    try {
+      requestCircle(user.id);
+      toast({ title: "Solicitação enviada" });
+    } catch (error) {
+      toast({
+        title: "Não foi possível enviar a solicitação",
+        description: error instanceof Error ? error.message : "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  if (!isMe && user.isPrivate && !user.isInCircle) {
+    return (
+      <div className="min-h-[70vh] px-5 py-16">
+        <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center">
+          <Avatar className="mx-auto mb-4 h-16 w-16">
+            <AvatarImage src={user.avatarUrl} alt="" />
+            <AvatarFallback>{user.displayName[0]}</AvatarFallback>
+          </Avatar>
+          <h1 className="text-xl font-bold">{user.displayName}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">@{user.username}</p>
+          <p className="mt-4 text-sm text-muted-foreground">Este perfil é privado. Publicações e informações aparecem para pessoas do Círculo.</p>
+          <Button onClick={handleCircle} className="mt-5 rounded-full" disabled={circleStatus === "accepted"}>
+            {hasIncomingCircleRequest ? "Aceitar solicitação" : circleStatus === "pending" ? "Solicitação enviada" : "Pedir para entrar no Círculo"}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (user.accountType === "commercial" && user.commercialProfile) {
@@ -136,7 +173,7 @@ export default function Profile() {
                     type="button"
                     onClick={handleCircle}
                     disabled={circleStatus === "accepted"}
-                    title={circleStatus === "accepted" ? "Gerencie amizades na página Círculos" : undefined}
+                    title={circleStatus === "accepted" ? "Gerencie seu Círculo na página Meu Círculo" : undefined}
                     data-testid="button-circle"
                     className={`flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-semibold border transition-all ${
                       circleStatus === "accepted"
@@ -149,8 +186,10 @@ export default function Profile() {
                     {circleStatus === "accepted"
                       ? <><Check className="w-3 h-3" /> Amigos</>
                       : circleStatus === "pending"
-                      ? <><Users className="w-3 h-3" /> Solicitado</>
-                      : <><UserPlus className="w-3 h-3" /> Adicionar amigo</>
+                      ? hasIncomingCircleRequest
+                        ? <><Check className="w-3 h-3" /> Aceitar solicitação</>
+                        : <><Users className="w-3 h-3" /> Solicitação enviada</>
+                      : <><UserPlus className="w-3 h-3" /> Adicionar ao Círculo</>
                     }
                   </button>
 
@@ -263,7 +302,7 @@ export default function Profile() {
             </Link>
             <Link href={`/profile/${user.username}/circles`} className="hover:underline" data-testid="link-circles">
               <span className="font-bold">{formatCount(user.stats.circles)}</span>
-              <span className="text-muted-foreground ml-1">Amigos</span>
+              <span className="text-muted-foreground ml-1">Círculo</span>
             </Link>
           </div>
         </div>

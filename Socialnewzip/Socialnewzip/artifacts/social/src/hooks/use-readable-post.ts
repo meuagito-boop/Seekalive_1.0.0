@@ -16,6 +16,6 @@ export function useReadablePost(postId: string | undefined): ReadablePost {
   if (!post) return { state: "missing" };
   const author = getUserById(post.authorId);
   if (!author || author.isBlocked) return { state: "missing" };
-  if (!canReadPost(post, currentUser?.id, author.isInCircle ?? false)) return { state: "forbidden" };
+  if (!canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false)) return { state: "forbidden" };
   return { state: "ok", post, author };
 }

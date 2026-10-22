@@ -4,13 +4,14 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { interests } from "@/data/mockData";
+import { onboardingInterestSteps } from "@/data/onboardingInterestSteps";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
 import { saveAccountInterests } from "@/data/appPreferences";
 
 export default function OnboardingInterests() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [step, setStep] = useState(0);
   const [, setLocation] = useLocation();
   const { currentUser, updateAccount } = useAppContext();
   const { updateUser } = useSocial();
@@ -29,7 +30,7 @@ export default function OnboardingInterests() {
     });
   }
 
-  const canContinue = selected.size >= 3;
+  const currentStep = onboardingInterestSteps[step];
 
   function saveAndContinue(skipped: boolean) {
     if (!currentUser) {
@@ -61,26 +62,27 @@ export default function OnboardingInterests() {
         </div>
 
         <div className="mb-2">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Passo 1 de 2 · Seus interesses</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Passo {step + 1} de 3 · Seus interesses</p>
           <div className="flex gap-2 mb-6">
-            <div className="h-1 flex-1 rounded-full bg-primary" />
-            <div className="h-1 flex-1 rounded-full bg-border" />
+            {onboardingInterestSteps.map((item, index) => (
+              <div key={item.title} className={`h-1 flex-1 rounded-full ${index <= step ? "bg-primary" : "bg-border"}`} />
+            ))}
           </div>
         </div>
 
-        <h1 className="mb-2 text-3xl font-bold tracking-tight">O que desperta sua curiosidade?</h1>
+        <h1 className="mb-2 text-3xl font-bold tracking-tight">{currentStep.title}</h1>
         <p className="mb-8 text-sm leading-6 text-muted-foreground">
-          Escolha pelo menos 3 temas. Vamos usá-los para aproximar você de pessoas, conteúdos e lugares relevantes.
+          {currentStep.description} Você pode avançar sem escolher ou pular esta etapa; isso não é obrigatório.
           {selected.size > 0 && (
             <span aria-live="polite" className="font-medium text-primary"> {selected.size} selecionados</span>
           )}
         </p>
 
         <div className="flex flex-wrap gap-2 mb-10">
-          {interests.map((interest, i) => {
+          {currentStep.options.map((interest, i) => {
             const isSelected = selected.has(interest);
             return (
-              <motion.button
+          <motion.button
                 key={interest}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -103,14 +105,21 @@ export default function OnboardingInterests() {
           })}
         </div>
 
-        <Button
-          className="w-full h-12 rounded-xl font-semibold"
-          disabled={!canContinue}
-          onClick={() => saveAndContinue(false)}
-          data-testid="button-next-onboarding"
-        >
-          {canContinue ? "Continuar" : `Escolha mais ${3 - selected.size}`}
-        </Button>
+        <div className="flex gap-3">
+          {step > 0 && (
+            <Button type="button" variant="outline" className="h-12 flex-1 rounded-xl" onClick={() => setStep(value => value - 1)}>
+              Voltar
+            </Button>
+          )}
+          <Button
+            type="button"
+            className="h-12 flex-1 rounded-xl font-semibold"
+            onClick={() => step < onboardingInterestSteps.length - 1 ? setStep(value => value + 1) : saveAndContinue(false)}
+            data-testid="button-next-onboarding"
+          >
+            {step < onboardingInterestSteps.length - 1 ? "Próximo" : "Concluir"}
+          </Button>
+        </div>
         <button
           type="button"
           className="mt-4 w-full text-center text-sm text-muted-foreground transition-colors hover:text-foreground"

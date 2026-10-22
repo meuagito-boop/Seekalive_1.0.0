@@ -6,7 +6,7 @@ import { formatTimeAgo } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import type { Notification } from "@/data/mockData";
 
-const tabs = ["Todas", "Menções", "Amigos", "Reações"];
+const tabs = ["Todas", "Menções", "Círculo", "Reações"];
 
 function notifIcon(type: Notification["type"]) {
   switch (type) {
@@ -27,8 +27,8 @@ function notifText(n: Notification, actorName: string): string {
     case "comment": return "comentou na sua publicação";
     case "repost": return "repostou sua publicação";
     case "follow": return "começou a te seguir";
-    case "circle_request": return "quer ser seu amigo";
-    case "circle_accepted": return "aceitou sua solicitação de amizade";
+    case "circle_request": return "quer entrar no seu Círculo";
+    case "circle_accepted": return "aceitou sua solicitação para entrar no Círculo";
     case "mention": return "te mencionou";
     default: return "interagiu com você";
   }

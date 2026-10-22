@@ -44,7 +44,7 @@ export default function ActivityPage() {
   const { currentUser } = useAppContext();
   const visible = posts.filter(post => {
     const author = getUserById(post.authorId);
-    return author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false);
+    return author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false);
   });
   const savedItems = visible.filter(post => post.isBookmarked);
   const likedItems = visible.filter(post => post.isLiked);

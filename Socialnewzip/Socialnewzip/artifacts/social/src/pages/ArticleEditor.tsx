@@ -16,7 +16,7 @@ const TITLE_MAX = 160;
 
 const audiences = [
   { value: "public" as const, label: "Público", icon: Globe },
-  { value: "circles" as const, label: "Amigos", icon: Users },
+  { value: "circles" as const, label: "Círculo", icon: Users },
   { value: "private" as const, label: "Privado", icon: Lock },
 ];
 

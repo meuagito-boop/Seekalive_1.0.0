@@ -38,8 +38,15 @@ export function extractSocialTokens(text: string) {
     hashtags: [...new Set(Array.from(text.matchAll(/#([\p{L}\p{N}_]+)/gu), match => match[1].toLocaleLowerCase("pt-BR")))],
   };
 }
-export function canReadPost(post: Post, viewerId: string | undefined, circleMember: boolean) {
-  return post.audience === "public" || post.authorId === viewerId || (post.audience === "circles" && circleMember);
+export function canReadPost(
+  post: Post,
+  viewerId: string | undefined,
+  circleMember: boolean,
+  authorIsPrivate = false,
+) {
+  if (post.authorId === viewerId) return true;
+  if (authorIsPrivate && !circleMember) return false;
+  return post.audience === "public" || (post.audience === "circles" && circleMember);
 }
 export function makeDemoMessage(conversation: Conversation | undefined, authorId: string | undefined, content: string): Message {
   if (!authorId) throw new ContentServiceError("Entre na sua conta para enviar mensagens.", 401);
