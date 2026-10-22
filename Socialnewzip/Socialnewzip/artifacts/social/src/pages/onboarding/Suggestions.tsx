@@ -28,7 +28,7 @@ export default function OnboardingSuggestions() {
       >
         <div className="flex items-center gap-2 mb-10">
           <Circle className="w-7 h-7 fill-primary text-primary" />
-          <span className="text-xl font-bold tracking-tight">Orbit</span>
+          <span className="text-xl font-bold tracking-tight">SeekAlive</span>
         </div>
 
         <div className="mb-2">
@@ -86,7 +86,7 @@ export default function OnboardingSuggestions() {
           onClick={() => setLocation("/feed")}
           data-testid="button-finish-onboarding"
         >
-          {followed.size > 0 ? `Seguir ${followed.size} e entrar` : "Entrar no Orbit"}
+          {followed.size > 0 ? `Seguir ${followed.size} e entrar` : "Entrar no SeekAlive"}
         </Button>
 
         <button

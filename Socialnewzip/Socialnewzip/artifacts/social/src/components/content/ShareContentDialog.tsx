@@ -54,7 +54,7 @@ export function ShareContentDialog({ open, onOpenChange, reference, title, linkP
           <button type="button" className={option} onClick={() => go(composePath(reference))} data-testid="share-create-post">
             <PenSquare className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <span>
-              <span className="block text-sm font-semibold">Criar post comum</span>
+              <span className="block text-sm font-semibold">Criar publicação</span>
               <span className="block text-xs text-muted-foreground">Texto curto ou mídia com este conteúdo anexado.</span>
             </span>
           </button>
@@ -74,7 +74,7 @@ export function ShareContentDialog({ open, onOpenChange, reference, title, linkP
             >
               <Repeat2 className={`mt-0.5 h-5 w-5 shrink-0 ${repost.active ? "text-green-500" : "text-muted-foreground"}`} aria-hidden />
               <span>
-                <span className="block text-sm font-semibold">{repost.active ? "Desfazer repost" : "Repostar"}</span>
+                <span className="block text-sm font-semibold">{repost.active ? "Desfazer repostagem" : "Repostar"}</span>
                 <span className="block text-xs text-muted-foreground">Distribui o original sem criar conteúdo novo; autoria preservada.</span>
               </span>
             </button>

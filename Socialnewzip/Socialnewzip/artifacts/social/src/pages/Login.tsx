@@ -42,7 +42,7 @@ export default function Login() {
       >
         <div className="flex items-center gap-2 mb-10">
           <Circle className="w-8 h-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold tracking-tight text-foreground">Orbit</span>
+          <span className="text-2xl font-bold tracking-tight text-foreground">SeekAlive</span>
         </div>
 
         <h1 className="text-3xl font-bold text-foreground mb-2">Entrar</h1>

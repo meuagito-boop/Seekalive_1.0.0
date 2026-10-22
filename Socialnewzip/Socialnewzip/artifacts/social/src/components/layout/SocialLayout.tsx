@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { useLocation } from "wouter";
 import { Search, Menu } from "lucide-react";
 import { Header } from "./Header";
 import { BottomNav } from "./BottomNav";
@@ -13,6 +14,14 @@ interface SocialLayoutProps {
 
 export function SocialLayout({ children }: SocialLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [, setLocation] = useLocation();
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const q = query.trim();
+    setLocation(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -26,14 +35,17 @@ export function SocialLayout({ children }: SocialLayoutProps) {
       {/* ── Desktop: central search bar ────────────────────────── */}
       <div className="hidden md:block sticky top-14 z-30 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-2">
-          <div className="relative max-w-xl mx-auto">
+          <form role="search" onSubmit={submitSearch} className="relative max-w-xl mx-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
-              type="text"
-              placeholder="Buscar posts, pessoas, vídeos e comunidades..."
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Buscar no Social"
+              placeholder="Buscar publicações, pessoas e vídeos"
               className="w-full h-10 pl-9 pr-4 bg-muted/60 border border-border rounded-full text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
             />
-          </div>
+          </form>
         </div>
       </div>
 
@@ -70,14 +82,17 @@ export function SocialLayout({ children }: SocialLayoutProps) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="relative flex-1">
+          <form role="search" onSubmit={submitSearch} className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
-              type="text"
-              placeholder="Buscar posts, pessoas, vídeos..."
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Buscar no Social"
+              placeholder="Buscar publicações, pessoas e vídeos"
               className="w-full h-9 pl-9 pr-4 bg-muted/60 border border-border rounded-full text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
             />
-          </div>
+          </form>
         </div>
 
         {/* Feed content */}

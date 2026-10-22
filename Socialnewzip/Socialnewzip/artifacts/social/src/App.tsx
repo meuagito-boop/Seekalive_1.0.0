@@ -39,10 +39,6 @@ import Followers from "@/pages/Followers";
 import Following from "@/pages/Following";
 
 import Circles from "@/pages/Circles";
-import Communities from "@/pages/Communities";
-import CommunityCreate from "@/pages/CommunityCreate";
-import CommunityDetail from "@/pages/CommunityDetail";
-import CommunitySettings from "@/pages/CommunitySettings";
 
 import Settings from "@/pages/Settings";
 import StyleGuide from "@/pages/StyleGuide";
@@ -131,11 +127,6 @@ function AuthRouter() {
 
             <Route path="/social/activity" component={ActivityPage} />
             <Route path="/social/suggestions" component={SuggestionsPage} />
-
-            <Route path="/communities/create" component={CommunityCreate} />
-            <Route path="/communities/:communityId/settings" component={CommunitySettings} />
-            <Route path="/communities/:communityId" component={CommunityDetail} />
-            <Route path="/communities" component={Communities} />
 
             <Route path="/settings/account" component={SettingsAccount} />
             <Route path="/settings/privacy" component={SettingsPrivacy} />

@@ -146,7 +146,7 @@ export function ReferencePreviewCard({
             {preview.rating !== undefined && (
               <span className="inline-flex items-center gap-0.5">
                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" aria-hidden />
-                {preview.rating.toFixed(1)}
+                {preview.rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                 {preview.ratingCount !== undefined && <span>({preview.ratingCount})</span>}
               </span>
             )}

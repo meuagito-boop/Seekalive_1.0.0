@@ -15,7 +15,7 @@ export function Sidebar() {
     { icon: Bell, path: "/notifications", label: "Notificações", badge: unreadNotifications },
     { icon: Mail, path: "/messages", label: "Mensagens", badge: unreadMessages },
     { icon: ShoppingBag, path: "/feed", label: "Shop", badge: 0 },
-    { icon: Users, path: "/communities", label: "Comunidades", badge: 0 },
+    { icon: Users, path: "/circles", label: "Círculos", badge: 0 },
     { icon: Settings, path: "/settings", label: "Configurações", badge: 0 },
     {
       icon: User,

@@ -29,7 +29,7 @@ export default function OnboardingInterests() {
       >
         <div className="flex items-center gap-2 mb-10">
           <Circle className="w-7 h-7 fill-primary text-primary" />
-          <span className="text-xl font-bold tracking-tight">Orbit</span>
+          <span className="text-xl font-bold tracking-tight">SeekAlive</span>
         </div>
 
         <div className="mb-2">

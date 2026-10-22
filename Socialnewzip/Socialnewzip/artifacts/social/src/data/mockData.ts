@@ -78,7 +78,6 @@ export interface Post {
   isBookmarked?: boolean;
   audience: "public" | "circles" | "private";
   type: "text" | "video";
-  communityId?: string;
   parentPostId?: string;
   format?: PostFormat;
   article?: { title: string; body: string };
@@ -87,27 +86,9 @@ export interface Post {
   hashtags?: string[];
 }
 
-export interface Community {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  memberCount: number;
-  postsCount: number;
-  category: string;
-  iconUrl?: string;
-  bannerUrl?: string;
-  isJoined?: boolean;
-  isPrivate?: boolean;
-  ownerId: string;
-  moderatorIds: string[];
-  rules: string[];
-  createdAt: string;
-}
-
 export interface Notification {
   id: string;
-  type: "follow" | "circle_request" | "circle_accepted" | "like" | "comment" | "repost" | "mention" | "community_invite";
+  type: "follow" | "circle_request" | "circle_accepted" | "like" | "comment" | "repost" | "mention";
   actorId: string;
   entityId?: string;
   isRead: boolean;
@@ -136,7 +117,7 @@ export const mockUsers: User[] = [
     id: "u1",
     username: "alex_dev",
     displayName: "Alex Rivera",
-    bio: "Building the future of web. Coffee enthusiast. Full-stack engineer at Vercel.",
+    bio: "Construindo o futuro da web. Apaixonado por café. Engenheiro de software na Vercel.",
     avatarUrl: "https://i.pravatar.cc/150?img=11",
     coverUrl: "https://picsum.photos/800/200?random=1",
     location: "San Francisco, CA",
@@ -151,7 +132,7 @@ export const mockUsers: User[] = [
     id: "u2",
     username: "sarah_designs",
     displayName: "Sarah Chen",
-    bio: "Product designer pushing pixels. UI/UX nerd. Architecture & Art lover.",
+    bio: "Designer de produtos. Entusiasta de interfaces e experiência do usuário. Apaixonada por arquitetura e arte.",
     avatarUrl: "https://i.pravatar.cc/150?img=5",
     coverUrl: "https://picsum.photos/800/200?random=2",
     location: "New York, NY",
@@ -166,7 +147,7 @@ export const mockUsers: User[] = [
     id: "u3",
     username: "marco_foto",
     displayName: "Marco Silva",
-    bio: "Photographer. Capturing light and stories. Based in Lisboa.",
+    bio: "Fotógrafo. Registrando luz e histórias. Em Lisboa.",
     avatarUrl: "https://i.pravatar.cc/150?img=33",
     coverUrl: "https://picsum.photos/800/200?random=3",
     location: "Lisboa, Portugal",
@@ -180,7 +161,7 @@ export const mockUsers: User[] = [
     id: "u4",
     username: "julia_code",
     displayName: "Julia Martins",
-    bio: "Software engineer. Open source contributor. She/her. Coffee before code.",
+    bio: "Engenheira de software. Colaboradora de projetos de código aberto. Ela/dela. Café antes do código.",
     avatarUrl: "https://i.pravatar.cc/150?img=47",
     coverUrl: "https://picsum.photos/800/200?random=4",
     location: "São Paulo, BR",
@@ -193,7 +174,7 @@ export const mockUsers: User[] = [
     id: "u5",
     username: "lucas_beats",
     displayName: "Lucas Oliveira",
-    bio: "Music producer. Electronic soul. Releasing beats since 2019.",
+    bio: "Produtor musical. Alma eletrônica. Criando músicas desde 2019.",
     avatarUrl: "https://i.pravatar.cc/150?img=52",
     coverUrl: "https://picsum.photos/800/200?random=5",
     location: "Rio de Janeiro, BR",
@@ -206,7 +187,7 @@ export const mockUsers: User[] = [
     id: "u6",
     username: "ana_writes",
     displayName: "Ana Pereira",
-    bio: "Journalist & storyteller. Words that matter. Views my own.",
+    bio: "Jornalista e contadora de histórias. Palavras que importam. Opiniões pessoais.",
     avatarUrl: "https://i.pravatar.cc/150?img=9",
     coverUrl: "https://picsum.photos/800/200?random=6",
     location: "Porto, Portugal",
@@ -220,7 +201,7 @@ export const mockUsers: User[] = [
     id: "u7",
     username: "pedro_tech",
     displayName: "Pedro Costa",
-    bio: "AI researcher. Building intelligent systems. PhD candidate.",
+    bio: "Pesquisador de inteligência artificial. Desenvolvendo sistemas inteligentes. Doutorando.",
     avatarUrl: "https://i.pravatar.cc/150?img=60",
     coverUrl: "https://picsum.photos/800/200?random=7",
     location: "Campinas, BR",
@@ -232,7 +213,7 @@ export const mockUsers: User[] = [
     id: "u8",
     username: "ines_art",
     displayName: "Inês Carvalho",
-    bio: "Digital artist & illustrator. Creating worlds one pixel at a time.",
+    bio: "Artista digital e ilustradora. Criando mundos, um pixel de cada vez.",
     avatarUrl: "https://i.pravatar.cc/150?img=16",
     coverUrl: "https://picsum.photos/800/200?random=8",
     location: "Braga, Portugal",
@@ -574,7 +555,7 @@ export const mockPosts: Post[] = [
   {
     id: "p1",
     authorId: "u1",
-    content: "Just shipped a massive update to our design system! The new dark mode feels incredible. Can't wait to see what everyone builds with it. The attention to detail took months but it was worth every late night.",
+    content: "Acabamos de lançar uma grande atualização do nosso sistema de design! O novo tema escuro ficou incrível. Quero ver o que vocês vão criar com ele. Foram meses de atenção aos detalhes, mas valeu cada noite de trabalho.",
     createdAt: new Date(Date.now() - 3600000).toISOString(),
     likes: 842,
     comments: 45,
@@ -586,7 +567,7 @@ export const mockPosts: Post[] = [
   {
     id: "p2",
     authorId: "u2",
-    content: "Exploring some new layouts for the dashboard project. The grid system is evolving nicely. What do you think — more whitespace or denser information?",
+    content: "Explorando novas opções de layout para o painel. A organização das informações está evoluindo bem. O que vocês preferem: mais espaço entre os elementos ou mais informações na tela?",
     mediaUrls: ["https://picsum.photos/600/400?random=10"],
     createdAt: new Date(Date.now() - 7200000).toISOString(),
     likes: 1280,
@@ -600,7 +581,7 @@ export const mockPosts: Post[] = [
   {
     id: "p3",
     authorId: "u3",
-    content: "Golden hour in Lisboa never gets old. Shot this at Miradouro da Graça with a 50mm. Sometimes the best camera is the one you have with you.",
+    content: "A luz do fim da tarde em Lisboa nunca perde a graça. Fiz esta foto no Miradouro da Graça com uma lente de 50 mm. Às vezes, a melhor câmera é a que está com você.",
     mediaUrls: ["https://picsum.photos/600/400?random=20"],
     createdAt: new Date(Date.now() - 10800000).toISOString(),
     likes: 2340,
@@ -614,7 +595,7 @@ export const mockPosts: Post[] = [
   {
     id: "p4",
     authorId: "u4",
-    content: "Just merged my first PR to a major open source project after 3 attempts and months of learning. Persistence pays off. To everyone just starting out: keep going.",
+    content: "Minha primeira contribuição foi aceita em um grande projeto de código aberto, depois de três tentativas e meses de aprendizado. A persistência faz diferença. Para quem está começando: continue!",
     createdAt: new Date(Date.now() - 14400000).toISOString(),
     likes: 5600,
     comments: 230,
@@ -627,7 +608,7 @@ export const mockPosts: Post[] = [
   {
     id: "p5",
     authorId: "u5",
-    content: "New track dropping Friday. Been working on this one for 6 months. Electronic but organic. It has a heartbeat.",
+    content: "Música nova nesta sexta-feira. Estou trabalhando nela há seis meses. Eletrônica, mas com uma sonoridade orgânica. Feita com muita dedicação.",
     mediaUrls: ["https://picsum.photos/600/300?random=30"],
     createdAt: new Date(Date.now() - 18000000).toISOString(),
     likes: 3400,
@@ -640,7 +621,7 @@ export const mockPosts: Post[] = [
   {
     id: "p6",
     authorId: "u6",
-    content: "Breaking: The intersection of AI and journalism is not about replacing reporters — it's about giving them superpowers to find stories hidden in data that would take a team of humans years to surface. Long read coming tomorrow.",
+    content: "A relação entre inteligência artificial e jornalismo não precisa ser sobre substituir repórteres. Pode ser sobre ajudar a encontrar histórias em dados que levariam anos para uma equipe analisar. Amanhã publico um artigo sobre isso.",
     createdAt: new Date(Date.now() - 21600000).toISOString(),
     likes: 7800,
     comments: 420,
@@ -653,7 +634,7 @@ export const mockPosts: Post[] = [
   {
     id: "p7",
     authorId: "u7",
-    content: "Fascinating result from our latest experiment: LLMs show emergent reasoning capabilities at specific parameter thresholds. The implications for how we think about intelligence are profound. Full paper link in bio.",
+    content: "Um resultado interessante do nosso último experimento: modelos de linguagem apresentaram novas capacidades de raciocínio em determinadas escalas. Isso traz questões importantes para a pesquisa em inteligência artificial.",
     createdAt: new Date(Date.now() - 28800000).toISOString(),
     likes: 4200,
     comments: 340,
@@ -665,7 +646,7 @@ export const mockPosts: Post[] = [
   {
     id: "p8",
     authorId: "u8",
-    content: "Finished this illustration after 40 hours. A universe inside a teardrop. Sometimes I don't know where the idea ends and the art begins.",
+    content: "Terminei esta ilustração depois de 40 horas de trabalho. Um universo dentro de uma lágrima. Às vezes, não sei onde a ideia termina e a arte começa.",
     mediaUrls: ["https://picsum.photos/600/600?random=40"],
     createdAt: new Date(Date.now() - 36000000).toISOString(),
     likes: 8900,
@@ -679,7 +660,7 @@ export const mockPosts: Post[] = [
   {
     id: "p9",
     authorId: "u1",
-    content: "Hot take: The best code is the code you delete. Spent the morning removing 2000 lines and the app is faster, simpler, and more maintainable. Reduction is a skill.",
+    content: "Às vezes, o melhor código é aquele que você remove. Passei a manhã eliminando duas mil linhas e o aplicativo ficou mais rápido, simples e fácil de manter. Simplificar também exige prática.",
     createdAt: new Date(Date.now() - 48000000).toISOString(),
     likes: 3100,
     comments: 120,
@@ -691,7 +672,7 @@ export const mockPosts: Post[] = [
   {
     id: "p10",
     authorId: "u2",
-    content: "Design principle I keep coming back to: every element on screen should either guide attention or carry meaning. If it does neither, remove it. Ruthless editing creates beautiful products.",
+    content: "Um princípio de design que sempre revisito: cada elemento na tela deve orientar a atenção ou comunicar algo. Se não faz nenhuma dessas coisas, vale repensar sua presença. Uma boa revisão melhora o produto.",
     createdAt: new Date(Date.now() - 54000000).toISOString(),
     likes: 6700,
     comments: 280,
@@ -703,102 +684,6 @@ export const mockPosts: Post[] = [
   },
 ];
 
-export const mockCommunities: Community[] = [
-  {
-    id: "c1",
-    name: "Design Matters",
-    slug: "design-matters",
-    description: "A community for designers, design thinkers, and anyone who cares about beautiful, functional interfaces. Share work, get feedback, discuss trends.",
-    memberCount: 24500,
-    postsCount: 8900,
-    category: "Design",
-    iconUrl: "https://i.pravatar.cc/150?img=20",
-    bannerUrl: "https://picsum.photos/800/300?random=51",
-    isJoined: true,
-    ownerId: "u2",
-    moderatorIds: ["u8"],
-    rules: ["Be respectful", "Share original work", "No self-promotion spam"],
-    createdAt: "2022-06-01T00:00:00Z",
-  },
-  {
-    id: "c2",
-    name: "Open Source Hub",
-    slug: "open-source-hub",
-    description: "Discuss, contribute to, and celebrate open source software. All languages and frameworks welcome. Share projects and PRs.",
-    memberCount: 18200,
-    postsCount: 5600,
-    category: "Technology",
-    iconUrl: "https://i.pravatar.cc/150?img=25",
-    bannerUrl: "https://picsum.photos/800/300?random=52",
-    ownerId: "u1",
-    moderatorIds: ["u4", "u7"],
-    rules: ["Follow OSS etiquette", "No FUD", "Credit original authors"],
-    createdAt: "2022-08-15T00:00:00Z",
-  },
-  {
-    id: "c3",
-    name: "Photography Club",
-    slug: "photography-club",
-    description: "Share your shots, techniques, and stories. From mobile photography to professional equipment. All skill levels welcome.",
-    memberCount: 31000,
-    postsCount: 12400,
-    category: "Photography",
-    iconUrl: "https://i.pravatar.cc/150?img=30",
-    bannerUrl: "https://picsum.photos/800/300?random=53",
-    isJoined: true,
-    ownerId: "u3",
-    moderatorIds: [],
-    rules: ["Original photos only", "Credit your gear", "Constructive feedback only"],
-    createdAt: "2022-04-20T00:00:00Z",
-  },
-  {
-    id: "c4",
-    name: "Electronic Music Lab",
-    slug: "electronic-music-lab",
-    description: "Producers, DJs, and music lovers. Share tracks, get feedback, discuss production techniques and gear.",
-    memberCount: 9800,
-    postsCount: 3200,
-    category: "Music",
-    iconUrl: "https://i.pravatar.cc/150?img=35",
-    bannerUrl: "https://picsum.photos/800/300?random=54",
-    ownerId: "u5",
-    moderatorIds: [],
-    rules: ["Original content preferred", "Be constructive", "No piracy links"],
-    createdAt: "2023-01-10T00:00:00Z",
-  },
-  {
-    id: "c5",
-    name: "AI & Machine Learning",
-    slug: "ai-ml",
-    description: "The frontier of AI research, applications, and ethics. Papers, discussions, demos, and debates.",
-    memberCount: 42000,
-    postsCount: 18900,
-    category: "Science",
-    iconUrl: "https://i.pravatar.cc/150?img=40",
-    bannerUrl: "https://picsum.photos/800/300?random=55",
-    isJoined: false,
-    ownerId: "u7",
-    moderatorIds: ["u1"],
-    rules: ["Cite your sources", "No hype without substance", "Welcome to beginners"],
-    createdAt: "2022-03-05T00:00:00Z",
-  },
-  {
-    id: "c6",
-    name: "Writers Room",
-    slug: "writers-room",
-    description: "For writers, journalists, bloggers, and storytellers. Share drafts, writing prompts, and craft discussions.",
-    memberCount: 15600,
-    postsCount: 6700,
-    category: "Writing",
-    iconUrl: "https://i.pravatar.cc/150?img=45",
-    bannerUrl: "https://picsum.photos/800/300?random=56",
-    ownerId: "u6",
-    moderatorIds: [],
-    rules: ["Respect all genres", "Feedback should be constructive", "No plagiarism"],
-    createdAt: "2022-09-22T00:00:00Z",
-  },
-];
-
 export const mockNotifications: Notification[] = [
   { id: "n1", type: "like", actorId: "u2", entityId: "p1", isRead: false, createdAt: new Date(Date.now() - 1800000).toISOString() },
   { id: "n2", type: "circle_request", actorId: "u4", isRead: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
@@ -807,19 +692,18 @@ export const mockNotifications: Notification[] = [
   { id: "n5", type: "repost", actorId: "u6", entityId: "p9", isRead: true, createdAt: new Date(Date.now() - 14400000).toISOString() },
   { id: "n6", type: "circle_accepted", actorId: "u2", isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
   { id: "n7", type: "mention", actorId: "u7", entityId: "p7", isRead: true, createdAt: new Date(Date.now() - 172800000).toISOString() },
-  { id: "n8", type: "community_invite", actorId: "u2", entityId: "c1", isRead: true, createdAt: new Date(Date.now() - 259200000).toISOString() },
   { id: "n9", type: "like", actorId: "u8", entityId: "p4", isRead: true, createdAt: new Date(Date.now() - 345600000).toISOString() },
   { id: "n10", type: "follow", actorId: "u1", isRead: true, createdAt: new Date(Date.now() - 432000000).toISOString() },
 ];
 
 export const mockMessages: Message[] = [
-  { id: "m1", conversationId: "conv1", senderId: "u2", content: "Hey! Loved your last post about dark mode. Mind if I ask about your color system?", isRead: true, createdAt: new Date(Date.now() - 7200000).toISOString() },
-  { id: "m2", conversationId: "conv1", senderId: "me", content: "Of course! It's all built on HSL variables. Makes theming so much easier.", isRead: true, createdAt: new Date(Date.now() - 7100000).toISOString() },
-  { id: "m3", conversationId: "conv1", senderId: "u2", content: "That makes total sense. Do you have a public repo?", isRead: true, createdAt: new Date(Date.now() - 7000000).toISOString() },
-  { id: "m4", conversationId: "conv1", senderId: "me", content: "Yeah, I'll send you the link. Working on cleaning up the docs first.", isRead: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: "m5", conversationId: "conv2", senderId: "u5", content: "Bro, you need to hear this new track. It's different. Real different.", isRead: false, createdAt: new Date(Date.now() - 1800000).toISOString() },
-  { id: "m6", conversationId: "conv2", senderId: "me", content: "Send it! I've been waiting for new music from you", isRead: true, createdAt: new Date(Date.now() - 5400000).toISOString() },
-  { id: "m7", conversationId: "conv3", senderId: "u1", content: "Want to collaborate on something? I've been thinking about a design x code project.", isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
+  { id: "m1", conversationId: "conv1", senderId: "u2", content: "Oi! Adorei sua última publicação sobre tema escuro. Posso perguntar sobre o sistema de cores?", isRead: true, createdAt: new Date(Date.now() - 7200000).toISOString() },
+  { id: "m2", conversationId: "conv1", senderId: "me", content: "Claro! Tudo foi feito com variáveis HSL. Isso facilita bastante a criação dos temas.", isRead: true, createdAt: new Date(Date.now() - 7100000).toISOString() },
+  { id: "m3", conversationId: "conv1", senderId: "u2", content: "Faz sentido! Você tem um repositório público?", isRead: true, createdAt: new Date(Date.now() - 7000000).toISOString() },
+  { id: "m4", conversationId: "conv1", senderId: "me", content: "Tenho, sim! Vou enviar o link depois de organizar a documentação.", isRead: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
+  { id: "m5", conversationId: "conv2", senderId: "u5", content: "Você precisa ouvir esta música nova. Ficou bem diferente das anteriores!", isRead: false, createdAt: new Date(Date.now() - 1800000).toISOString() },
+  { id: "m6", conversationId: "conv2", senderId: "me", content: "Pode mandar! Estava esperando suas músicas novas.", isRead: true, createdAt: new Date(Date.now() - 5400000).toISOString() },
+  { id: "m7", conversationId: "conv3", senderId: "u1", content: "Quer colaborar em um projeto? Estou pensando em algo que una design e programação.", isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
 ];
 
 export const mockConversations: Conversation[] = [
@@ -855,13 +739,12 @@ export const interests = [
 
 export const currentUser: User = {
   id: "me",
-  username: "orbit_user",
-  displayName: "Orbit User",
-  bio: "Exploring the universe of ideas. Building something new every day.",
+  username: "usuario_demo",
+  displayName: "Conta de demonstração",
+  bio: "Explorando ideias e criando algo novo a cada dia.",
   avatarUrl: "https://i.pravatar.cc/150?img=68",
   coverUrl: "https://picsum.photos/800/200?random=100",
   location: "Internet",
-  website: "https://orbit.social",
   joinedAt: new Date().toISOString(),
   accountType: "personal",
   stats: { posts: 12, followers: 142, following: 38, circles: 5 },
@@ -874,19 +757,20 @@ export function getUserById(id: string): User | undefined {
 
 export function formatTimeAgo(dateStr: string): string {
   const now = Date.now();
-  const diff = now - new Date(dateStr).getTime();
+  const timestamp = new Date(dateStr).getTime();
+  if (!Number.isFinite(timestamp)) return "Data indisponível";
+  const diff = Math.max(0, now - timestamp);
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 7) return `${days}d`;
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (minutes < 1) return "agora";
+  if (minutes < 60) return `há ${minutes} min`;
+  if (hours < 24) return `há ${hours} h`;
+  if (days < 7) return `há ${days} d`;
+  return new Date(timestamp).toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
 }
 
 export function formatCount(n: number): string {
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
-  return String(n);
+  return new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 })
+    .format(Number.isFinite(n) ? Math.max(0, n) : 0);
 }

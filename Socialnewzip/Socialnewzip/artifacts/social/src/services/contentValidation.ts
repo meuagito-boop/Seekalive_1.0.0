@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Post } from "@/data/mockData";
+import type { Post, Conversation, Message } from "@/data/mockData";
 import type { PublishPostInput, SocialComment } from "@/types/content";
 
 export class ContentServiceError extends Error {
@@ -40,6 +40,19 @@ export function extractSocialTokens(text: string) {
 }
 export function canReadPost(post: Post, viewerId: string | undefined, circleMember: boolean) {
   return post.audience === "public" || post.authorId === viewerId || (post.audience === "circles" && circleMember);
+}
+export function makeDemoMessage(conversation: Conversation | undefined, authorId: string | undefined, content: string): Message {
+  if (!authorId) throw new ContentServiceError("Entre na sua conta para enviar mensagens.", 401);
+  if (!conversation) throw new ContentServiceError("Conversa indisponível.", 404);
+  if (!conversation.participantIds.includes(authorId))
+    throw new ContentServiceError("Você não participa desta conversa.", 403);
+  const value = content.trim();
+  if (!value || value.length > 5000)
+    throw new ContentServiceError("Escreva uma mensagem com até 5.000 caracteres.", 422);
+  return {
+    id: `msg_${crypto.randomUUID()}`, conversationId: conversation.id,
+    senderId: authorId, content: value, isRead: false, createdAt: new Date().toISOString(),
+  };
 }
 export function makeDemoPost(input: PublishPostInput): Post {
   const value = validatePublication(input);

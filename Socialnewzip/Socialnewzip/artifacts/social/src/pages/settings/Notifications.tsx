@@ -27,7 +27,7 @@ const groups: { title: string; items: ToggleItem[] }[] = [
   {
     title: "Menções",
     items: [
-      { label: "Menções em posts", key: "mentions_posts" },
+      { label: "Menções em publicações", key: "mentions_posts" },
       { label: "Menções em comentários", key: "mentions_comments" },
     ],
   },
@@ -35,14 +35,7 @@ const groups: { title: string; items: ToggleItem[] }[] = [
     title: "Reações",
     items: [
       { label: "Curtidas", key: "likes" },
-      { label: "Reposts", key: "reposts" },
-    ],
-  },
-  {
-    title: "Comunidades",
-    items: [
-      { label: "Novos posts em comunidades", key: "community_posts" },
-      { label: "Convites para comunidades", key: "community_invites" },
+      { label: "Repostagens", key: "reposts" },
     ],
   },
   {

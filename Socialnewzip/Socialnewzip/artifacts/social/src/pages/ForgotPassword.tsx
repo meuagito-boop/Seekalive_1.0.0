@@ -36,7 +36,7 @@ export default function ForgotPassword() {
       >
         <div className="flex items-center gap-2 mb-10">
           <Circle className="w-8 h-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold tracking-tight">Orbit</span>
+          <span className="text-2xl font-bold tracking-tight">SeekAlive</span>
         </div>
 
         <AnimatePresence mode="wait">

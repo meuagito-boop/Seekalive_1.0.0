@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   Users, Heart, Bookmark, MessageSquare, FileText, History,
-  ChevronRight, UserPlus, LayoutGrid, User,
+  ChevronRight, UserPlus, User,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppContext } from "@/context/AppContext";
@@ -88,9 +88,6 @@ export function SocialSidebar({ onNavigate }: SocialSidebarProps) {
       <NavItem icon={MessageSquare} label="Comentários" path="/social/activity" onNavigate={onNavigate} />
       <NavItem icon={FileText} label="Publicações" path="/social/activity" onNavigate={onNavigate} />
 
-      {/* Comunidades */}
-      <SectionLabel>Comunidades</SectionLabel>
-      <NavItem icon={LayoutGrid} label="Comunidades" path="/communities" onNavigate={onNavigate} />
 
       {/* Profile link */}
       <div className="mt-4 pt-4 border-t border-border px-3">

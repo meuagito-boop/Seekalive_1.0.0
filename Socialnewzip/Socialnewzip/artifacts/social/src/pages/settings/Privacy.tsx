@@ -79,7 +79,7 @@ export default function SettingsPrivacy() {
         </div>
         <SettingRow
           label="Perfil privado"
-          desc="Apenas seguidores aprovados podem ver seus posts"
+          desc="Apenas seguidores aprovados podem ver suas publicações"
           checked={privateProfile}
           onToggle={() => setPrivateProfile(v => !v)}
           testId="toggle-private-profile"

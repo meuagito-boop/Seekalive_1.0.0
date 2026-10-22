@@ -1,37 +1,27 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { UserPlus, Users, Hash, LayoutGrid, Store, ArrowLeft } from "lucide-react";
+import { UserPlus, Hash, Store, ArrowLeft, Star } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Header } from "@/components/layout/Header";
-import { Badge } from "@/components/ui/badge";
-import { mockUsers } from "@/data/mockData";
-import { useLocation } from "wouter";
+import { DemoBadge } from "@/components/content/StateBlocks";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
+import { Link, useLocation } from "wouter";
 
-const suggestPeople = mockUsers.filter(u => !u.isFollowing);
 const suggestTopics = [
-  { id: 1, name: "Fotografia", posts: "12.4K posts", color: "bg-blue-500/10 text-blue-400" },
-  { id: 2, name: "Tech & IA", posts: "34.1K posts", color: "bg-purple-500/10 text-purple-400" },
-  { id: 3, name: "Gastronomia", posts: "8.7K posts", color: "bg-orange-500/10 text-orange-400" },
-  { id: 4, name: "Arte Urbana", posts: "5.2K posts", color: "bg-pink-500/10 text-pink-400" },
-  { id: 5, name: "Sustentabilidade", posts: "9.8K posts", color: "bg-green-500/10 text-green-400" },
-  { id: 6, name: "Música", posts: "22.0K posts", color: "bg-yellow-500/10 text-yellow-400" },
+  { id: 1, name: "Fotografia", posts: "12,4 mil publicações", color: "bg-blue-500/10 text-blue-400" },
+  { id: 2, name: "Tech & IA", posts: "34,1 mil publicações", color: "bg-purple-500/10 text-purple-400" },
+  { id: 3, name: "Gastronomia", posts: "8,7 mil publicações", color: "bg-orange-500/10 text-orange-400" },
+  { id: 4, name: "Arte Urbana", posts: "5,2 mil publicações", color: "bg-pink-500/10 text-pink-400" },
+  { id: 5, name: "Sustentabilidade", posts: "9,8 mil publicações", color: "bg-green-500/10 text-green-400" },
+  { id: 6, name: "Música", posts: "22 mil publicações", color: "bg-yellow-500/10 text-yellow-400" },
 ];
-const suggestCommunities = [
-  { id: "c1", name: "Fotografia Urbana SP", members: 3240, category: "Arte" },
-  { id: "c2", name: "Tech Talks Brasil", members: 8100, category: "Tecnologia" },
-  { id: "c3", name: "Rolê Gastronômico", members: 1890, category: "Gastronomia" },
-];
-const suggestBusinesses = [
-  { id: "b1", name: "Café Moderno", category: "Café & Brunch", rating: 4.8, img: "https://picsum.photos/seed/biz1/40/40" },
-  { id: "b2", name: "Studio Ink", category: "Arte & Design", rating: 4.7, img: "https://picsum.photos/seed/biz2/40/40" },
-  { id: "b3", name: "Feira Natural", category: "Alimentação", rating: 4.6, img: "https://picsum.photos/seed/biz3/40/40" },
-];
-
 export default function SuggestionsPage() {
-  const [followed, setFollowed] = useState<Set<string>>(new Set());
-  const [joinedCommunities, setJoinedCommunities] = useState<Set<string>>(new Set());
-  const [followedTopics, setFollowedTopics] = useState<Set<number>>(new Set());
+  const { users, reviews, toggleFollow } = useSocial();
+  const { currentUser } = useAppContext();
+  const availableUsers = users.filter(user => user.id !== currentUser?.id && !user.isBlocked);
+  const suggestPeople = availableUsers.filter(user => user.accountType !== "commercial");
+  const suggestBusinesses = availableUsers.filter(user => user.accountType === "commercial" && user.commercialProfile);
   const [, navigate] = useLocation();
 
   return (
@@ -41,14 +31,16 @@ export default function SuggestionsPage() {
       <div className="sticky top-14 md:top-0 z-20 bg-background border-b border-border">
         <div className="flex items-center gap-2 px-4 h-12">
           <button
-            onClick={() => navigate(-1 as never)}
+            type="button"
+            aria-label="Voltar"
+            onClick={() => (window.history.length > 1 ? window.history.back() : navigate("/feed"))}
             className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <h1 className="font-bold text-base text-foreground">Seguir</h1>
-            <p className="text-xs text-muted-foreground -mt-0.5">Pessoas, tópicos e comunidades</p>
+            <p className="text-xs text-muted-foreground -mt-0.5">Pessoas, tópicos e comércios</p>
           </div>
         </div>
       </div>
@@ -63,10 +55,6 @@ export default function SuggestionsPage() {
             <Hash className="w-3.5 h-3.5" />
             Tópicos
           </TabsTrigger>
-          <TabsTrigger value="communities" className="flex-shrink-0 flex items-center gap-1.5">
-            <LayoutGrid className="w-3.5 h-3.5" />
-            Comunidades
-          </TabsTrigger>
           <TabsTrigger value="business" className="flex-shrink-0 flex items-center gap-1.5">
             <Store className="w-3.5 h-3.5" />
             Comércios
@@ -76,7 +64,7 @@ export default function SuggestionsPage() {
         {/* Pessoas */}
         <TabsContent value="people">
           {suggestPeople.map((user, i) => {
-            const isFollowing = followed.has(user.id);
+            const isFollowing = user.isFollowing ?? false;
             return (
               <motion.div
                 key={user.id}
@@ -90,16 +78,14 @@ export default function SuggestionsPage() {
                   <AvatarFallback className="font-bold">{user.displayName[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{user.displayName}</p>
+                  <Link href={`/profile/${user.username}`} className="block font-semibold text-sm text-foreground truncate hover:underline">{user.displayName}</Link>
                   <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
                   <p className="text-xs text-muted-foreground truncate mt-0.5 line-clamp-1">{user.bio}</p>
                 </div>
                 <button
-                  onClick={() => setFollowed(prev => {
-                    const next = new Set(prev);
-                    if (next.has(user.id)) next.delete(user.id); else next.add(user.id);
-                    return next;
-                  })}
+                  type="button"
+                  aria-label={`${isFollowing ? "Deixar de seguir" : "Seguir"} ${user.displayName}`}
+                  onClick={() => toggleFollow(user.id)}
                   className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                     isFollowing
                       ? "bg-muted text-muted-foreground border border-border"
@@ -115,9 +101,9 @@ export default function SuggestionsPage() {
 
         {/* Tópicos */}
         <TabsContent value="topics">
+          <div className="px-4 pt-4"><DemoBadge label="Tópicos e contagens de exemplo" /></div>
           <div className="p-4 grid grid-cols-2 gap-3">
             {suggestTopics.map((topic, i) => {
-              const following = followedTopics.has(topic.id);
               return (
                 <motion.div
                   key={topic.id}
@@ -133,67 +119,24 @@ export default function SuggestionsPage() {
                     <p className="font-semibold text-sm text-foreground">{topic.name}</p>
                     <p className="text-[11px] text-muted-foreground">{topic.posts}</p>
                   </div>
-                  <button
-                    onClick={() => setFollowedTopics(prev => {
-                      const next = new Set(prev);
-                      if (next.has(topic.id)) next.delete(topic.id); else next.add(topic.id);
-                      return next;
-                    })}
-                    className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      following
-                        ? "bg-muted text-muted-foreground"
-                        : "bg-primary/10 text-primary hover:bg-primary/20"
-                    }`}
+                  <Link
+                    href={`/search?q=${encodeURIComponent(topic.name)}`}
+                    className="w-full py-1.5 rounded-lg text-center text-xs font-semibold transition-all bg-primary/10 text-primary hover:bg-primary/20"
                   >
-                    {following ? "Seguindo" : "Seguir"}
-                  </button>
+                    Ver publicações
+                  </Link>
                 </motion.div>
               );
             })}
           </div>
         </TabsContent>
 
-        {/* Comunidades */}
-        <TabsContent value="communities">
-          {suggestCommunities.map((c, i) => {
-            const joined = joinedCommunities.has(c.id);
-            return (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className="flex items-center gap-3 px-4 py-3 border-b border-border hover:bg-muted/20 transition-colors"
-              >
-                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <LayoutGrid className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground">{c.name}</p>
-                  <p className="text-xs text-muted-foreground">{c.members.toLocaleString()} membros · {c.category}</p>
-                </div>
-                <button
-                  onClick={() => setJoinedCommunities(prev => {
-                    const next = new Set(prev);
-                    if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
-                    return next;
-                  })}
-                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    joined
-                      ? "bg-muted text-muted-foreground border border-border"
-                      : "bg-primary text-primary-foreground"
-                  }`}
-                >
-                  {joined ? "Membro" : "Entrar"}
-                </button>
-              </motion.div>
-            );
-          })}
-        </TabsContent>
-
         {/* Comércios */}
         <TabsContent value="business">
-          {suggestBusinesses.map((b, i) => (
+          {suggestBusinesses.map((b, i) => {
+            const businessReviews = reviews.filter(review => review.businessAccountId === b.id);
+            const rating = businessReviews.length ? businessReviews.reduce((sum, review) => sum + review.rating, 0) / businessReviews.length : undefined;
+            return (
             <motion.div
               key={b.id}
               initial={{ opacity: 0, y: 6 }}
@@ -201,20 +144,20 @@ export default function SuggestionsPage() {
               transition={{ delay: i * 0.06 }}
               className="flex items-center gap-3 px-4 py-3 border-b border-border hover:bg-muted/20 transition-colors"
             >
-              <img src={b.img} alt={b.name} className="w-11 h-11 rounded-xl object-cover flex-shrink-0" />
+              <img src={b.avatarUrl} alt="" className="w-11 h-11 rounded-xl object-cover flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-foreground">{b.name}</p>
-                <p className="text-xs text-muted-foreground">{b.category}</p>
+                <Link href={`/profile/${b.username}`} className="font-semibold text-sm text-foreground hover:underline">{b.displayName}</Link>
+                <p className="text-xs text-muted-foreground">{b.commercialProfile?.category}</p>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[11px] text-warning">★</span>
-                  <span className="text-[11px] text-foreground font-medium">{b.rating}</span>
+                  <Star className="h-3 w-3 text-warning" aria-hidden />
+                  <span className="text-[11px] text-foreground font-medium">{rating === undefined ? "Sem avaliações" : rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                 </div>
               </div>
-              <button className="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                Seguir
+              <button type="button" onClick={() => toggleFollow(b.id)} aria-label={`${b.isFollowing ? "Deixar de seguir" : "Seguir"} ${b.displayName}`} className="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                {b.isFollowing ? "Seguindo" : "Seguir"}
               </button>
             </motion.div>
-          ))}
+          ); })}
         </TabsContent>
       </Tabs>
     </div>

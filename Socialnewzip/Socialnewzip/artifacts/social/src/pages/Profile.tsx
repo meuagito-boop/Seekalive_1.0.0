@@ -13,14 +13,22 @@ import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/services/contentValidation";
 import { postPath } from "@/lib/contentLinks";
 import { UnavailableState } from "@/components/content/StateBlocks";
+import { useToast } from "@/hooks/use-toast";
 
-const tabs = ["Posts", "Respostas", "Mídias", "Curtidas", "Artigos"];
+const tabs = [
+  { label: "Publicações", id: "Posts" },
+  { label: "Respostas", id: "Respostas" },
+  { label: "Mídias", id: "Mídias" },
+  { label: "Curtidas", id: "Curtidas" },
+  { label: "Artigos", id: "Artigos" },
+];
 
 export default function Profile() {
   const params = useParams<{ username: string }>();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const { toast } = useToast();
 
   const { users, posts, repostEntries, postComments, toggleFollow, requestCircle, cancelCircle } = useSocial();
   const { currentUser: signedInUser } = useAppContext();
@@ -83,19 +91,21 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen pb-16 md:pb-0">
+    <div className="min-h-[100dvh] pb-16 md:pb-0">
       {/* Sticky back + title bar */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg flex items-center gap-4 px-4 h-14 border-b border-border">
         <button
-          onClick={() => window.history.back()}
+          type="button"
+          onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/feed"))}
+          aria-label="Voltar"
           className="text-muted-foreground hover:text-foreground p-1"
           data-testid="button-back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <p className="font-bold text-base leading-tight">{user.displayName}</p>
-          <p className="text-xs text-muted-foreground">{formatCount(user.stats.posts)} posts</p>
+        <div className="min-w-0">
+          <p className="truncate font-bold text-base leading-tight">{user.displayName}</p>
+          <p className="text-xs text-muted-foreground">{formatCount(timeline.length)} {timeline.length === 1 ? "publicação" : "publicações"}</p>
         </div>
       </div>
 
@@ -103,33 +113,30 @@ export default function Profile() {
       <div className="relative">
         <div className="h-36 md:h-48 bg-gradient-to-br from-primary/20 via-accent/20 to-background overflow-hidden">
           {user.coverUrl && (
-            <img src={user.coverUrl} alt="Cover" className="w-full h-full object-cover" />
+            <img src={user.coverUrl} alt={`Capa de ${user.displayName}`} className="w-full h-full object-cover" />
           )}
         </div>
 
         <div className="px-4">
-          <div className="flex items-end justify-between -mt-12 mb-3">
+          <div className="flex flex-wrap items-end justify-between gap-2 -mt-12 mb-3">
             <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-primary/30">
-              <AvatarImage src={user.avatarUrl} />
+              <AvatarImage src={user.avatarUrl} alt={`Foto de ${user.displayName}`} />
               <AvatarFallback className="text-2xl">{user.displayName[0]}</AvatarFallback>
             </Avatar>
 
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex flex-wrap items-center justify-end gap-2 mt-2">
               {isMe ? (
-                <Link href="/profile/edit">
-                  <Button
-                    variant="outline"
-                    className="rounded-full h-9 px-5 text-sm font-semibold border-border"
-                    data-testid="button-edit-profile"
-                  >
-                    Editar perfil
-                  </Button>
-                </Link>
+                <Button asChild variant="outline" className="rounded-full h-9 px-5 text-sm font-semibold border-border" data-testid="button-edit-profile">
+                  <Link href="/profile/edit">Editar perfil</Link>
+                </Button>
               ) : (
                 <>
                   {/* Amigos button */}
                   <button
+                    type="button"
                     onClick={handleCircle}
+                    disabled={circleStatus === "accepted"}
+                    title={circleStatus === "accepted" ? "Gerencie amizades na página Círculos" : undefined}
                     data-testid="button-circle"
                     className={`flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-semibold border transition-all ${
                       circleStatus === "accepted"
@@ -143,7 +150,7 @@ export default function Profile() {
                       ? <><Check className="w-3 h-3" /> Amigos</>
                       : circleStatus === "pending"
                       ? <><Users className="w-3 h-3" /> Solicitado</>
-                      : <><UserPlus className="w-3 h-3" /> Adicionar</>
+                      : <><UserPlus className="w-3 h-3" /> Adicionar amigo</>
                     }
                   </button>
 
@@ -162,7 +169,10 @@ export default function Profile() {
                   {/* More menu */}
                   <div className="relative">
                     <button
+                      type="button"
                       onClick={() => setShowMenu(v => !v)}
+                      aria-label="Mais opções do perfil"
+                      aria-expanded={showMenu}
                       className="w-9 h-9 flex items-center justify-center rounded-full border border-border hover:bg-muted/50 transition-colors"
                       data-testid="button-more"
                     >
@@ -176,18 +186,34 @@ export default function Profile() {
                           exit={{ opacity: 0, scale: 0.95, y: -4 }}
                           className="absolute right-0 top-10 w-44 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50"
                         >
-                          {["Silenciar", "Bloquear", "Reportar", "Compartilhar perfil"].map(action => (
+                          {["Silenciar", "Bloquear", "Denunciar"].map(action => (
                             <button
                               key={action}
-                              className={`w-full text-left px-4 py-3 text-sm hover:bg-muted/50 transition-colors ${
-                                action === "Bloquear" ? "text-destructive" : "text-foreground"
-                              }`}
-                              onClick={() => setShowMenu(false)}
-                              data-testid={`action-${action.toLowerCase().replace(" ", "-")}`}
+                              type="button"
+                              disabled
+                              aria-disabled="true"
+                              className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
+                              data-testid={`action-${action.toLowerCase()}`}
                             >
                               {action}
+                              <span className="block text-[11px]">Indisponível nesta versão</span>
                             </button>
                           ))}
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                            onClick={() => {
+                              setShowMenu(false);
+                              const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/profile/${user.username}`;
+                              navigator.clipboard?.writeText(url).then(
+                                () => toast({ title: "Link do perfil copiado" }),
+                                () => toast({ title: "Não foi possível copiar o link", variant: "destructive" }),
+                              );
+                            }}
+                            data-testid="action-compartilhar-perfil"
+                          >
+                            Copiar link do perfil
+                          </button>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -199,23 +225,23 @@ export default function Profile() {
 
           {/* User info */}
           <div className="mb-4">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">{user.displayName}</h1>
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="min-w-0 break-words text-xl font-bold">{user.displayName}</h1>
               {user.isVerified && (
-                <span className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                <span className="w-5 h-5 shrink-0 bg-primary rounded-full flex items-center justify-center" aria-label="Conta verificada" title="Conta verificada">
                   <Check className="w-3 h-3 text-white" />
                 </span>
               )}
             </div>
-            <p className="text-muted-foreground text-sm">@{user.username}</p>
-            {user.bio && <p className="mt-2 text-sm leading-relaxed">{user.bio}</p>}
+            <p className="text-muted-foreground text-sm break-all">@{user.username}</p>
+            {user.bio && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">{user.bio}</p>}
             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
               {user.location && (
                 <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{user.location}</span>
               )}
               {user.website && (
-                <a href={user.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
-                  <Globe className="w-3.5 h-3.5" />{user.website.replace("https://", "")}
+                <a href={user.website} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 break-all text-primary hover:underline">
+                  <Globe className="w-3.5 h-3.5" />{user.website.replace(/^https?:\/\//, "")}
                 </a>
               )}
               <span className="flex items-center gap-1">
@@ -226,7 +252,7 @@ export default function Profile() {
           </div>
 
           {/* Stats */}
-          <div className="flex gap-5 mb-1 text-sm">
+          <div className="flex flex-wrap gap-x-5 gap-y-1 mb-1 text-sm">
             <Link href={`/profile/${user.username}/following`} className="hover:underline" data-testid="link-following">
               <span className="font-bold">{formatCount(user.stats.following)}</span>
               <span className="text-muted-foreground ml-1">Seguindo</span>
@@ -244,17 +270,20 @@ export default function Profile() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-border sticky top-14 bg-background z-20">
+      <div role="tablist" aria-label="Seções do perfil" className="flex overflow-x-auto border-b border-border sticky top-14 bg-background z-20 [scrollbar-width:none]">
         {tabs.map((tab, i) => (
           <button
-            key={tab}
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === i}
             onClick={() => setActiveTab(i)}
-            data-testid={`tab-profile-${tab}`}
-            className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${
+            data-testid={`tab-profile-${tab.id}`}
+            className={`min-w-[96px] flex-1 shrink-0 whitespace-nowrap px-2 py-3 text-sm font-medium transition-colors border-b-2 ${
               activeTab === i ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -264,7 +293,7 @@ export default function Profile() {
         {activeTab === 0 && (
           timeline.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-muted-foreground">
-              <p className="text-sm font-medium">Nenhum post ainda</p>
+              <p className="text-sm font-medium">Nenhuma publicação ainda.</p>
             </div>
           ) : timeline.map(item => <PostCard key={item.key} post={item.post} repostedById={item.repostedById} />)
         )}

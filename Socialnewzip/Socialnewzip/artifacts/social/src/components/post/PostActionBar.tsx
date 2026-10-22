@@ -21,7 +21,7 @@ export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" |
     try {
       toggleRepost(post.id, viewerId);
     } catch (error) {
-      toast({ title: "Repost indisponível", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+      toast({ title: "Repostagem indisponível", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
     }
   }
   const reposted = repostEntries.some((r) => r.postId === post.id && r.authorId === viewerId);
@@ -48,7 +48,7 @@ export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" |
           disabled={!canRepost}
           title={canRepost ? undefined : "Somente publicações públicas podem ser repostadas"}
           aria-pressed={reposted}
-          aria-label={reposted ? "Desfazer repost" : "Repostar"}
+          aria-label={reposted ? "Desfazer repostagem" : "Repostar"}
           data-testid={`button-repost-${post.id}`}
           className={`${btn} hover:bg-green-500/10 disabled:opacity-40 disabled:hover:bg-transparent ${reposted ? "text-green-500" : "hover:text-green-500"}`}
         >

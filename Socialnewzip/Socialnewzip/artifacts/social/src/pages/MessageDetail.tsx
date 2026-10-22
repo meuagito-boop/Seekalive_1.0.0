@@ -1,30 +1,35 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowLeft, Send, Image, Smile, Check, CheckCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatTimeAgo } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
+import { UnavailableState } from "@/components/content/StateBlocks";
 
 export default function MessageDetail() {
   const params = useParams<{ conversationId: string }>();
   const [, setLocation] = useLocation();
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const convId = params.conversationId ?? "";
 
   const { conversations, getConversationMessages, getUserById, sendMessage, markConversationRead } = useSocial();
 
-  const conv = conversations.find(c => c.id === convId);
-  const otherId = conv?.participantIds.find(id => id !== "me") ?? "";
+  const { currentUser } = useAppContext();
+  const myId = currentUser?.id ?? "";
+  const conv = conversations.find(c => c.id === convId && !!myId && c.participantIds.includes(myId));
+  const otherId = conv?.participantIds.find(id => id !== myId) ?? "";
   const other = getUserById(otherId);
-  const messages = getConversationMessages(convId);
+  const messages = conv ? getConversationMessages(convId) : [];
+  const canAccess = !!conv;
 
   // Mark as read when opened
   useEffect(() => {
-    markConversationRead(convId);
-  }, [convId]);
+    if (canAccess) markConversationRead(convId);
+  }, [convId, canAccess]);
 
   // Simulate other user "typing" after we send a message
   useEffect(() => {
@@ -32,12 +37,15 @@ export default function MessageDetail() {
   }, [messages]);
 
   function handleSend() {
-    if (!input.trim()) return;
-    sendMessage(convId, input.trim());
-    setInput("");
-    // Simulate typing indicator after user sends
-    setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 2500);
+    const text = input.trim();
+    if (!text) return;
+    try {
+      sendMessage(convId, text);
+      setInput("");
+      setSendError(null);
+    } catch (error) {
+      setSendError(error instanceof Error && error.message ? error.message : "Não foi possível enviar a mensagem. Seu texto foi mantido.");
+    }
   }
 
   function handleKey(e: React.KeyboardEvent) {
@@ -47,11 +55,23 @@ export default function MessageDetail() {
     }
   }
 
+  if (!conv || !other) {
+    return (
+      <UnavailableState
+        title="Conversa indisponível"
+        description="Esta conversa não existe, não inclui sua conta ou a outra pessoa não está mais disponível."
+        action={<button type="button" onClick={() => setLocation("/messages")} className="text-sm font-semibold text-info hover:underline">Voltar às mensagens</button>}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-[100dvh] bg-background">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 h-14 border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-40 shrink-0">
         <button
+          type="button"
+          aria-label="Voltar às mensagens"
           onClick={() => setLocation("/messages")}
           className="text-muted-foreground hover:text-foreground p-1"
           data-testid="button-back"
@@ -65,11 +85,10 @@ export default function MessageDetail() {
                 <AvatarImage src={other.avatarUrl} />
                 <AvatarFallback>{other.displayName[0]}</AvatarFallback>
               </Avatar>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-sm leading-tight truncate">{other.displayName}</p>
-              <p className="text-xs text-green-500">online</p>
+              <p className="text-xs text-muted-foreground truncate">@{other.username}</p>
             </div>
           </div>
         )}
@@ -84,7 +103,7 @@ export default function MessageDetail() {
           </div>
         ) : (
           messages.map((msg, i) => {
-            const isMe = msg.senderId === "me";
+            const isMe = msg.senderId === myId;
             const showAvatar = !isMe && (i === 0 || messages[i - 1]?.senderId !== msg.senderId);
             return (
               <motion.div
@@ -127,42 +146,19 @@ export default function MessageDetail() {
           })
         )}
 
-        {/* Typing indicator */}
-        <AnimatePresence>
-          {isTyping && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="flex items-end gap-2"
-            >
-              <Avatar className="w-7 h-7 shrink-0">
-                <AvatarImage src={other?.avatarUrl} />
-                <AvatarFallback>{other?.displayName?.[0]}</AvatarFallback>
-              </Avatar>
-              <div className="bg-card border border-border px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center">
-                {[0, 1, 2].map(i => (
-                  <motion.div
-                    key={i}
-                    className="w-2 h-2 bg-muted-foreground rounded-full"
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                  />
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <div ref={bottomRef} />
       </div>
 
+      {sendError && (
+        <p role="alert" className="border-t border-border bg-destructive/10 px-4 py-2 text-xs text-destructive">{sendError}</p>
+      )}
       {/* Input */}
       <div className="border-t border-border px-4 py-3 bg-background flex items-end gap-2 shrink-0">
-        <button className="text-muted-foreground hover:text-primary p-1 transition-colors" data-testid="button-attach-image">
+        <button type="button" disabled aria-label="Anexar imagem (indisponível)" title="Anexar imagem: indisponível nesta versão" className="text-muted-foreground/50 cursor-not-allowed p-1" data-testid="button-attach-image">
           <Image className="w-5 h-5" />
         </button>
-        <button className="text-muted-foreground hover:text-primary p-1 transition-colors" data-testid="button-emoji">
+        <button type="button" disabled aria-label="Inserir emoji (indisponível)" title="Inserir emoji: indisponível nesta versão" className="text-muted-foreground/50 cursor-not-allowed p-1" data-testid="button-emoji">
           <Smile className="w-5 h-5" />
         </button>
         <textarea
@@ -171,6 +167,8 @@ export default function MessageDetail() {
           onKeyDown={handleKey}
           placeholder="Escreva uma mensagem..."
           rows={1}
+          maxLength={5000}
+          aria-label="Mensagem"
           data-testid="input-message"
           className="flex-1 bg-muted/50 rounded-2xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground border border-transparent focus:border-primary focus:outline-none resize-none max-h-32"
         />
@@ -178,6 +176,7 @@ export default function MessageDetail() {
           whileTap={{ scale: 0.9 }}
           onClick={handleSend}
           disabled={!input.trim()}
+          aria-label="Enviar mensagem"
           data-testid="button-send"
           className="w-9 h-9 flex items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity shrink-0"
         >

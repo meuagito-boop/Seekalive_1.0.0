@@ -2,13 +2,14 @@ import React, { createContext, useContext, useReducer, ReactNode } from "react";
 import {
   Post, User, Notification, Conversation, Message, SeekReview,
   mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages, mockSeekReviews,
+  currentUser as demoCurrentUser,
 } from "@/data/mockData";
 import { getStoredAccounts, saveSocialAccount } from "@/data/accountStorage";
 import { getStoredSeekReviews, saveStoredSeekReviews } from "@/data/reviewStorage";
 import { useAppContext } from "@/context/AppContext";
 import type { PublishPostInput, SocialComment, SocialRepost } from "@/types/content";
 import { contentService, ContentServiceError } from "@/services/contentService";
-import { canReadPost, assertCommentParent } from "@/services/contentValidation";
+import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/contentValidation";
 import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
 
 // ── State shape ──────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ type Action =
   | { type: "MARK_ALL_NOTIFICATIONS_READ" }
   | { type: "MARK_NOTIFICATION_READ"; id: string }
   | { type: "MARK_CONVERSATION_READ"; convId: string }
-  | { type: "SEND_MESSAGE"; convId: string; content: string };
+  | { type: "SEND_MESSAGE"; message: Message };
 
 // ── Reducer ──────────────────────────────────────────────────────────
 export function socialReducer(state: SocialState, action: Action): SocialState {
@@ -258,19 +259,14 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
       };
 
     case "SEND_MESSAGE": {
-      const newMsg: Message = {
-        id: `msg_${Date.now()}`,
-        conversationId: action.convId,
-        senderId: "me",
-        content: action.content,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      };
+      const newMsg = action.message;
+      const conversation = state.conversations.find(item => item.id === newMsg.conversationId);
+      if (!conversation?.participantIds.includes(newMsg.senderId) || state.messages.some(item => item.id === newMsg.id)) return state;
       return {
         ...state,
         messages: [...state.messages, newMsg],
         conversations: state.conversations.map(c =>
-          c.id !== action.convId ? c : { ...c, lastMessage: newMsg }
+          c.id !== newMsg.conversationId ? c : { ...c, lastMessage: newMsg, unreadCount: 0 }
         ),
       };
     }
@@ -367,27 +363,13 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     getPostById: (id) => state.posts.find(p => p.id === id),
     getUserById: (id) => {
       if (id === currentUser?.id) return currentUser;
-      if (id === "me") {
-        // return currentUser — import avoids circular dep by using mockData directly
-        return {
-          id: "me",
-          username: "orbit_user",
-          displayName: "Orbit User",
-          bio: "Exploring the universe of ideas. Building something new every day.",
-          avatarUrl: "https://i.pravatar.cc/150?img=68",
-          coverUrl: "https://picsum.photos/800/200?random=100",
-          location: "Internet",
-          website: "https://orbit.social",
-          joinedAt: new Date().toISOString(),
-          accountType: "personal",
-          stats: { posts: 12, followers: 142, following: 38, circles: 5 },
-        };
-      }
+      if (id === "me") return demoCurrentUser;
       return state.users.find(u => u.id === id);
     },
-    getConversationMessages: (convId) => state.messages.filter(m => m.conversationId === convId),
+    getConversationMessages: (convId) => currentUser && state.conversations.some(c => c.id === convId && c.participantIds.includes(currentUser.id))
+      ? state.messages.filter(m => m.conversationId === convId) : [],
     unreadNotifications: state.notifications.filter(n => !n.isRead).length,
-    unreadMessages: state.conversations.reduce((acc, c) => acc + c.unreadCount, 0),
+    unreadMessages: state.conversations.filter(c => currentUser && c.participantIds.includes(currentUser.id)).reduce((acc, c) => acc + c.unreadCount, 0),
 
     toggleLike: (postId) => dispatch({ type: "TOGGLE_LIKE", postId }),
     toggleRepost: (postId, actorId = currentUser?.id ?? "") => {
@@ -477,8 +459,14 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     }),
     markAllNotificationsRead: () => dispatch({ type: "MARK_ALL_NOTIFICATIONS_READ" }),
     markNotificationRead: (id) => dispatch({ type: "MARK_NOTIFICATION_READ", id }),
-    markConversationRead: (convId) => dispatch({ type: "MARK_CONVERSATION_READ", convId }),
-    sendMessage: (convId, content) => dispatch({ type: "SEND_MESSAGE", convId, content }),
+    markConversationRead: (convId) => {
+      if (currentUser && state.conversations.some(c => c.id === convId && c.participantIds.includes(currentUser.id)))
+        dispatch({ type: "MARK_CONVERSATION_READ", convId });
+    },
+    sendMessage: (convId, content) => dispatch({
+      type: "SEND_MESSAGE",
+      message: makeDemoMessage(state.conversations.find(c => c.id === convId), currentUser?.id, content),
+    }),
     acceptCircleNotification: (actorId, notifId) => dispatch({ type: "ACCEPT_CIRCLE_NOTIFICATION", actorId, notifId }),
     declineCircleNotification: (actorId, notifId) => dispatch({ type: "DECLINE_CIRCLE_NOTIFICATION", actorId, notifId }),
   };

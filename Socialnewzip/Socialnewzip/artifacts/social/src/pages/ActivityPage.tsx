@@ -1,37 +1,22 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   History, Bookmark, Heart, MessageSquare, FileText,
-  Clock, Image, ThumbsUp, ArrowLeft,
+  ThumbsUp, ArrowLeft,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Header } from "@/components/layout/Header";
-import { mockPosts, mockUsers, getUserById } from "@/data/mockData";
-import { useLocation } from "wouter";
+import type { Post } from "@/data/mockData";
+import { Link, useLocation } from "wouter";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
+import { canReadPost } from "@/services/contentValidation";
+import { postPath } from "@/lib/contentLinks";
 
-const historyItems = mockPosts.slice(0, 4).map((p, i) => ({
-  ...p,
-  viewedAt: new Date(Date.now() - i * 3600000 * 2).toISOString(),
-}));
-
-const savedItems = mockPosts.slice(2, 5).map(p => ({
-  ...p,
-  savedAt: new Date(Date.now() - Math.random() * 86400000 * 3).toISOString(),
-}));
-
-const likedItems = mockPosts.filter(p => p.isLiked);
-
-const commentItems = mockPosts.slice(1, 4).map((p, i) => ({
-  ...p,
-  myComment: ["Muito bom!", "Concordo totalmente.", "Incrível demais!"][i],
-  commentedAt: new Date(Date.now() - i * 7200000).toISOString(),
-}));
-
-const myPosts = mockPosts.slice(0, 3);
-
-function PostRow({ post, meta }: { post: typeof mockPosts[0]; meta?: React.ReactNode }) {
-  const author = getUserById(post.authorId) ?? mockUsers[0];
+function PostRow({ post, meta }: { post: Post; meta?: React.ReactNode }) {
+  const { getUserById } = useSocial();
+  const author = getUserById(post.authorId);
+  if (!author) return null;
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -47,7 +32,7 @@ function PostRow({ post, meta }: { post: typeof mockPosts[0]; meta?: React.React
           <span className="text-sm font-semibold text-foreground">{author.displayName}</span>
           <span className="text-xs text-muted-foreground">@{author.username}</span>
         </div>
-        <p className="text-sm text-foreground/80 line-clamp-2">{post.content}</p>
+        <Link href={postPath(post)} className="block text-sm text-foreground/80 line-clamp-2 hover:underline">{post.article?.title ?? (post.content || "Publicação com mídia")}</Link>
         {meta && <div className="mt-1.5">{meta}</div>}
       </div>
     </motion.div>
@@ -56,6 +41,19 @@ function PostRow({ post, meta }: { post: typeof mockPosts[0]; meta?: React.React
 
 export default function ActivityPage() {
   const [, navigate] = useLocation();
+  const { posts, postComments, getUserById } = useSocial();
+  const { currentUser } = useAppContext();
+  const visible = posts.filter(post => {
+    const author = getUserById(post.authorId);
+    return author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false);
+  });
+  const savedItems = visible.filter(post => post.isBookmarked);
+  const likedItems = visible.filter(post => post.isLiked);
+  const myPosts = visible.filter(post => post.authorId === currentUser?.id);
+  const commentItems = postComments.filter(comment => comment.authorId === currentUser?.id).flatMap(comment => {
+    const post = visible.find(post => post.id === comment.postId);
+    return post ? [{ post, comment }] : [];
+  });
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -64,7 +62,9 @@ export default function ActivityPage() {
       <div className="sticky top-14 md:top-0 z-20 bg-background border-b border-border">
         <div className="flex items-center gap-2 px-4 h-12">
           <button
-            onClick={() => navigate(-1 as never)}
+            type="button"
+            aria-label="Voltar ao Social"
+            onClick={() => (window.history.length > 1 ? window.history.back() : navigate("/feed"))}
             className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -98,22 +98,7 @@ export default function ActivityPage() {
         </TabsList>
 
         <TabsContent value="history">
-          {historyItems.length === 0 ? (
-            <EmptyState icon={<History />} label="Nenhum histórico ainda" />
-          ) : (
-            historyItems.map((p) => (
-              <PostRow
-                key={p.id}
-                post={p}
-                meta={
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    Visto {new Date(p.viewedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                }
-              />
-            ))
-          )}
+          <EmptyState icon={<History />} label="Histórico de visualizações indisponível nesta versão" />
         </TabsContent>
 
         <TabsContent value="saved">
@@ -155,14 +140,15 @@ export default function ActivityPage() {
         </TabsContent>
 
         <TabsContent value="comments">
-          {commentItems.map((p) => (
+          {commentItems.length === 0 && <EmptyState icon={<MessageSquare />} label="Nenhum comentário seu nesta sessão" />}
+          {commentItems.map(({ post, comment }) => (
             <PostRow
-              key={p.id}
-              post={p}
+              key={comment.id}
+              post={post}
               meta={
                 <div className="mt-1 bg-muted/40 rounded-lg px-3 py-2">
                   <p className="text-xs text-muted-foreground mb-0.5">Seu comentário</p>
-                  <p className="text-xs text-foreground">{p.myComment}</p>
+                  <p className="text-xs text-foreground">{comment.content}</p>
                 </div>
               }
             />

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, LayoutGrid, Play, BookOpenText } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, Play, BookOpenText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PostCard } from "@/components/post/PostCard";
@@ -15,12 +15,10 @@ import { canReadPost } from "@/services/contentValidation";
 import { getPostMediaType } from "@/lib/postMedia";
 import { useToast } from "@/hooks/use-toast";
 
-const feedTabs = ["Para você", "Seguindo", "Artigos", "Comunidades", "Vídeos"] as const;
+const feedTabs = ["Para você", "Seguindo", "Artigos", "Vídeos"] as const;
 
 type FeedItem = { key: string; post: Post; repostedById?: string; at: string };
 
-// Community labels for sample posts — demonstration only, membership is not real.
-const demoCommunityLabels = ["Fotografia Urbana SP", "Tech Talks Brasil", "Rolê Gastronômico", "Fotografia Urbana SP"];
 
 function useVisibleFeed() {
   const { posts, users, repostEntries, getUserById } = useSocial();
@@ -61,7 +59,7 @@ function VideoFeedItem({ post }: { post: Post }) {
 
   function repost() {
     try { toggleRepost(post.id, viewerId); } catch (e) {
-      toast({ title: "Repost indisponível", description: e instanceof Error ? e.message : "", variant: "destructive" });
+      toast({ title: "Repostagem indisponível", description: e instanceof Error ? e.message : "", variant: "destructive" });
     }
   }
 
@@ -133,7 +131,6 @@ export default function Feed() {
 
   const followingItems = items.filter((i) => getUserById(i.post.authorId)?.isFollowing || (i.repostedById && getUserById(i.repostedById)?.isFollowing));
   const articles = visible.filter((p) => p.format === "article");
-  const communityPosts = visible.filter((p) => p.format !== "article").slice(0, 4);
   const videoPosts = visible.filter((p) => p.format !== "article" && (p.type === "video" || (p.mediaUrls?.length ?? 0) > 0));
 
   const list = (feed: FeedItem[]) => feed.map((i) => <PostCard key={i.key} post={i.post} repostedById={i.repostedById} />);
@@ -141,7 +138,7 @@ export default function Feed() {
 
   return (
     <div className="relative min-h-[100dvh]">
-      {activeTab !== 4 && <SocialComposer />}
+      {activeTab !== 3 && <SocialComposer />}
 
       <div className="border-b border-border bg-background">
         <div role="tablist" aria-label="Seções do feed" className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
@@ -169,7 +166,7 @@ export default function Feed() {
         {activeTab === 1 && (
           <motion.div key="following" {...fade}>
             {followingItems.length === 0 ? (
-              <EmptyState title="Nenhum post ainda" description="Siga pessoas para ver seus posts e reposts aqui."
+              <EmptyState title="Nenhuma publicação ainda" description="Siga pessoas para ver as publicações e repostagens delas aqui."
                 action={<Button asChild className="rounded-full"><Link href="/search">Descobrir pessoas</Link></Button>} />
             ) : list(followingItems)}
           </motion.div>
@@ -183,25 +180,8 @@ export default function Feed() {
           </motion.div>
         )}
         {activeTab === 3 && (
-          <motion.div key="communities" {...fade}>
-            {communityPosts.map((post, i) => (
-              <div key={post.id}>
-                <div className="flex items-center gap-2 px-4 pb-1 pt-3">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/15"><LayoutGrid className="h-3 w-3 text-primary" /></div>
-                  <Link href="/communities" className="text-xs font-semibold text-primary hover:underline">{demoCommunityLabels[i % demoCommunityLabels.length]}</Link>
-                  <DemoBadge label="Rótulo de exemplo" />
-                </div>
-                <PostCard post={post} />
-              </div>
-            ))}
-            <div className="flex justify-center py-6">
-              <Button asChild variant="outline" size="sm" className="rounded-full"><Link href="/communities">Ver todas as comunidades</Link></Button>
-            </div>
-          </motion.div>
-        )}
-        {activeTab === 4 && (
           <motion.div key="videos" {...fade} data-testid="video-feed">
-            {videoPosts.length ? videoPosts.map((p) => <VideoFeedItem key={p.id} post={p} />) : <EmptyState title="Nenhum vídeo ainda" />}
+            {videoPosts.length ? videoPosts.map((p) => <VideoFeedItem key={p.id} post={p} />) : <EmptyState title="Nenhum vídeo ainda" description="Vídeos publicados por quem você pode ver aparecem aqui." />}
           </motion.div>
         )}
       </AnimatePresence>

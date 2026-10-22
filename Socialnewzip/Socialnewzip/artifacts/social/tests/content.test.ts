@@ -1,15 +1,62 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { makeDemoPost, makeDemoComment, extractSocialTokens, validatePublication, canReadPost, assertCommentParent } from "../src/services/contentValidation";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { makeDemoPost, makeDemoComment, makeDemoMessage, extractSocialTokens, validatePublication, canReadPost, assertCommentParent } from "../src/services/contentValidation";
 import { apiRequest, restContentAdapter } from "../src/services/contentService";
 import { resolveReference } from "../src/services/referenceResolver";
 import { socialReducer, type SocialState } from "../src/context/SocialContext";
-import { mockUsers } from "../src/data/mockData";
+import { mockUsers, mockNotifications, currentUser, formatCount, formatTimeAgo } from "../src/data/mockData";
 import type { PublishPostInput } from "../src/types/content";
 
 const input: PublishPostInput = { content: "Minha opinião #café", authorId: "me", audience: "public" };
 const post = makeDemoPost(input);
 const state = (): SocialState => ({ posts: [post], users: mockUsers, conversations: [], messages: [], notifications: [], reviews: [], postComments: [], repostEntries: [] });
+test("datas e contagens usam português e toleram valores inválidos", () => {
+  assert.equal(formatTimeAgo(new Date(Date.now() - 90_000).toISOString()), "há 1 min");
+  assert.equal(formatTimeAgo(new Date(Date.now() + 60_000).toISOString()), "agora");
+  assert.equal(formatTimeAgo("inválida"), "Data indisponível");
+  assert.match(formatCount(1200), /1,2\s*mil/);
+  assert.equal(formatCount(-1), "0");
+  assert.equal(formatCount(Number.NaN), "0");
+});
+test("conta de exemplo usa a identidade atual sem website fictício", () => {
+  assert.equal(currentUser.username, "usuario_demo");
+  assert.equal(currentUser.displayName, "Conta de demonstração");
+  assert.equal(currentUser.website, undefined);
+});
+test("mensagens respeitam a conta participante e preservam remetente e conversa", () => {
+  const conversation = { id: "conversa-local", participantIds: ["conta-criada", "u1"], unreadCount: 1, createdAt: new Date().toISOString() };
+  const message = makeDemoMessage(conversation, "conta-criada", "  Olá!  ");
+  assert.equal(message.senderId, "conta-criada");
+  assert.equal(message.content, "Olá!");
+  const initial = { ...state(), conversations: [conversation] };
+  const sent = socialReducer(initial, { type: "SEND_MESSAGE", message });
+  assert.equal(sent.messages[0].senderId, "conta-criada");
+  assert.equal(sent.conversations[0].lastMessage?.id, message.id);
+  assert.equal(socialReducer(sent, { type: "SEND_MESSAGE", message }).messages.length, 1);
+  for (const author of [undefined, "outra-conta"]) assert.throws(() => makeDemoMessage(conversation, author, "Olá"));
+  assert.throws(() => makeDemoMessage(undefined, "conta-criada", "Olá"));
+  assert.throws(() => makeDemoMessage(conversation, "conta-criada", " "));
+});
+test("notificações contêm apenas recursos mantidos no aplicativo", () => {
+  const allowed = new Set(["follow", "circle_request", "circle_accepted", "like", "comment", "repost", "mention"]);
+  assert.ok(mockNotifications.every(notification => allowed.has(notification.type)));
+});
+test("comunidades não retornam em rotas, páginas, dados ou navegação", () => {
+  const root = join(process.cwd(), "artifacts/social/src");
+  const violations: string[] = [];
+  function inspect(directory: string) {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (/comunidad|communit/i.test(entry.name)) violations.push(path);
+      if (entry.isDirectory()) inspect(path);
+      else if (/\.(tsx?|css|json)$/.test(entry.name) && /comunidad|communit/i.test(readFileSync(path, "utf8"))) violations.push(path);
+    }
+  }
+  inspect(root);
+  assert.deepEqual(violations, []);
+});
 test("não publica vazio, mídia incoerente nem artigo sem título/corpo", () => {
   for (const value of [
     { ...input, content: "" },

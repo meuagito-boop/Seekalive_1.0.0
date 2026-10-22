@@ -96,7 +96,7 @@ export default function StyleGuide() {
             </div>
             <div>
               <p className="sk-text-meta text-muted-foreground mb-1">CAPTION — 0.75rem / 400</p>
-              <p className="sk-text-caption text-muted-foreground">3.2K seguidores · 142 posts</p>
+              <p className="sk-text-caption text-muted-foreground">3,2 mil seguidores · 142 publicações</p>
             </div>
             <div>
               <p className="sk-text-meta text-muted-foreground mb-1">META — 0.6875rem / 500 / UPPERCASE</p>

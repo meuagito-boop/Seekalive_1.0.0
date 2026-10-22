@@ -122,7 +122,7 @@ export function BusinessReviewsDialog({
         <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-3">
           <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
           <span className="text-lg font-bold">
-            {businessReviews.length ? averageRating.toFixed(1) : "—"}
+            {businessReviews.length ? averageRating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}
           </span>
           <span className="text-sm text-muted-foreground">
             {businessReviews.length} {businessReviews.length === 1 ? "avaliação" : "avaliações"}

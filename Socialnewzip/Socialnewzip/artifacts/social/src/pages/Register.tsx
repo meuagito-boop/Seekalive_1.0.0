@@ -127,7 +127,7 @@ export default function Register() {
       >
         <div className="flex items-center gap-2 mb-8">
           <Circle className="w-8 h-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold tracking-tight">Orbit</span>
+          <span className="text-2xl font-bold tracking-tight">SeekAlive</span>
         </div>
 
         <h1 className="text-3xl font-bold mb-2">Criar conta</h1>

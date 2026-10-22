@@ -155,7 +155,7 @@ function BusinessCard({
             {b.rating !== undefined ? (
               <>
               <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-              <span className="text-xs font-semibold text-foreground">{b.rating.toFixed(1)}</span>
+              <span className="text-xs font-semibold text-foreground">{b.rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
               <span className="text-[10px] text-muted-foreground ml-0.5">({b.reviews ?? 0})</span>
               </>
             ) : (
@@ -695,7 +695,7 @@ export default function Seek() {
                               {filteredBusinesses[0].rating !== undefined ? (
                                 <>
                                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                <span className="text-sm font-bold text-foreground">{filteredBusinesses[0].rating.toFixed(1)}</span>
+                                <span className="text-sm font-bold text-foreground">{filteredBusinesses[0].rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                                 <span className="text-xs text-muted-foreground ml-1">({filteredBusinesses[0].reviews ?? 0})</span>
                                 </>
                               ) : (
@@ -807,7 +807,7 @@ export default function Seek() {
                 {business.rating !== undefined && (
                   <div className="flex items-center gap-0.5 flex-shrink-0">
                     <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                    <span className="text-[11px] font-medium">{business.rating.toFixed(1)}</span>
+                    <span className="text-[11px] font-medium">{business.rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                   </div>
                 )}
               </Link>

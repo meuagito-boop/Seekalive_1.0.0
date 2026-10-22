@@ -62,7 +62,7 @@ export default function VerifyEmail() {
       >
         <div className="flex items-center justify-center gap-2 mb-10">
           <Circle className="w-8 h-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold tracking-tight">Orbit</span>
+          <span className="text-2xl font-bold tracking-tight">SeekAlive</span>
         </div>
 
         {verified ? (

@@ -18,21 +18,19 @@ function notifIcon(type: Notification["type"]) {
     case "circle_request":
     case "circle_accepted": return <Users className="w-3.5 h-3.5 text-purple-400" />;
     case "mention": return <AtSign className="w-3.5 h-3.5 text-yellow-400" />;
-    case "community_invite": return <Bell className="w-3.5 h-3.5 text-orange-400" />;
     default: return <Bell className="w-3.5 h-3.5 text-muted-foreground" />;
   }
 }
 
 function notifText(n: Notification, actorName: string): string {
   switch (n.type) {
-    case "like": return "curtiu seu post";
-    case "comment": return "comentou no seu post";
-    case "repost": return "repostou seu post";
+    case "like": return "curtiu sua publicação";
+    case "comment": return "comentou na sua publicação";
+    case "repost": return "repostou sua publicação";
     case "follow": return "começou a te seguir";
     case "circle_request": return "quer ser seu amigo";
     case "circle_accepted": return "aceitou sua solicitação de amizade";
     case "mention": return "te mencionou";
-    case "community_invite": return "te convidou para uma comunidade";
     default: return "interagiu com você";
   }
 }

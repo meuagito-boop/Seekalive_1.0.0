@@ -12,8 +12,8 @@ export const demoShopItems: ShopItem[] = [
   { id: "p8", name: "Livro: Hábitos Atômicos", store: "Livraria Cultura", price: "R$ 49,90", oldPrice: null, rating: 4.9, reviews: 1204, tag: "produtos", img: "https://picsum.photos/seed/book8/300/300" },
 ];
 export const demoStores = [
-  { id: "s1", name: "TechMania", category: "Eletrônicos", img: "https://picsum.photos/seed/store1/48/48", followers: "12k" },
-  { id: "s2", name: "SportZone", category: "Esportes", img: "https://picsum.photos/seed/store2/48/48", followers: "8,4k" },
-  { id: "s3", name: "Casa & Gosto", category: "Casa", img: "https://picsum.photos/seed/store3/48/48", followers: "5,1k" },
-  { id: "s4", name: "Vida Saudável", category: "Saúde", img: "https://picsum.photos/seed/store4/48/48", followers: "9,7k" },
+  { id: "s1", name: "TechMania", category: "Eletrônicos", img: "https://picsum.photos/seed/store1/48/48", followers: "12 mil" },
+  { id: "s2", name: "SportZone", category: "Esportes", img: "https://picsum.photos/seed/store2/48/48", followers: "8,4 mil" },
+  { id: "s3", name: "Casa & Gosto", category: "Casa", img: "https://picsum.photos/seed/store3/48/48", followers: "5,1 mil" },
+  { id: "s4", name: "Vida Saudável", category: "Saúde", img: "https://picsum.photos/seed/store4/48/48", followers: "9,7 mil" },
 ];

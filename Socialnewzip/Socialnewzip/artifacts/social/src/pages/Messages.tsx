@@ -6,13 +6,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/layout/Header";
 import { formatTimeAgo } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
 
 export default function Messages() {
   const { conversations, getUserById, unreadMessages } = useSocial();
   const [query, setQuery] = useState("");
+  const { currentUser } = useAppContext();
+  const myId = currentUser?.id;
 
   const filtered = conversations.filter(conv => {
-    const otherId = conv.participantIds.find(id => id !== "me");
+    if (!myId || !conv.participantIds.includes(myId)) return false;
+    const otherId = conv.participantIds.find(id => id !== myId);
     const user = getUserById(otherId ?? "");
     if (!user) return false;
     return (
@@ -59,12 +63,12 @@ export default function Messages() {
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <Mail className="w-12 h-12 mb-4 opacity-30" />
           <p className="font-medium">Nenhuma conversa</p>
-          <p className="text-sm mt-1 opacity-70">Inicie uma conversa com alguém.</p>
+          <p className="text-sm mt-1 opacity-70">Conversas das quais você participa aparecem aqui.</p>
         </div>
       ) : (
         <div>
           {filtered.map((conv, i) => {
-            const otherId = conv.participantIds.find(id => id !== "me") ?? "";
+            const otherId = conv.participantIds.find(id => id !== myId) ?? "";
             const other = getUserById(otherId);
             if (!other) return null;
             return (
@@ -102,7 +106,7 @@ export default function Messages() {
                       </span>
                     </div>
                     <p className={`text-sm truncate mt-0.5 ${conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                      {conv.lastMessage?.senderId === "me" ? "Você: " : ""}
+                      {conv.lastMessage?.senderId === myId ? "Você: " : ""}
                       {conv.lastMessage?.content ?? ""}
                     </p>
                   </div>

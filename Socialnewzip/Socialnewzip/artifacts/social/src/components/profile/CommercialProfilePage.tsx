@@ -208,7 +208,7 @@ export function CommercialProfilePage({
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
-            onClick={() => window.history.back()}
+            onClick={() => (window.history.length > 1 ? window.history.back() : window.location.assign(`${import.meta.env.BASE_URL}feed`))}
             aria-label="Voltar"
             className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
@@ -229,11 +229,9 @@ export function CommercialProfilePage({
             <Share2 className="h-4 w-4" />
           </button>
           {isMe ? (
-            <Link href="/profile/edit">
-              <Button variant="outline" className="h-8 rounded-full px-3 text-xs">
-                Editar
-              </Button>
-            </Link>
+            <Button asChild variant="outline" className="h-8 rounded-full px-3 text-xs">
+              <Link href="/profile/edit">Editar perfil</Link>
+            </Button>
           ) : (
             <Button
               variant={user.isFollowing ? "outline" : "default"}
@@ -270,10 +268,10 @@ export function CommercialProfilePage({
               {commercial.category}
             </p>
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h1 className="text-2xl font-black leading-tight md:text-4xl">{user.displayName}</h1>
+              <div className="min-w-0">
+                <h1 className="break-words text-2xl font-black leading-tight md:text-4xl">{user.displayName}</h1>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <span className="flex items-center gap-0.5" aria-label={rating === null ? "Sem avaliações" : `Nota ${rating.toFixed(1)} de 5`}>
+                  <span className="flex items-center gap-0.5" aria-label={rating === null ? "Sem avaliações" : `Nota ${rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} de 5`}>
                     {[1, 2, 3, 4, 5].map((score) => (
                       <Star
                         key={score}
@@ -289,7 +287,7 @@ export function CommercialProfilePage({
                     }}
                     className="text-sm font-semibold text-white underline-offset-2 hover:underline"
                   >
-                    {rating === null ? "Seja a primeira avaliação" : `${rating.toFixed(1)} · ${businessReviews.length} avaliações`}
+                    {rating === null ? "Sem avaliações" : `${rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} · ${businessReviews.length} ${businessReviews.length === 1 ? "avaliação" : "avaliações"}`}
                   </button>
                 </div>
               </div>
@@ -309,7 +307,7 @@ export function CommercialProfilePage({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <span className="font-semibold">{commercial.category}</span>
             {commercial.priceLevel && <span className="text-muted-foreground">· {priceLabel(commercial.priceLevel)}</span>}
-            <span className="text-muted-foreground">· {commercial.address}</span>
+            <span className="min-w-0 break-words text-muted-foreground">· {commercial.address}</span>
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
             {commercial.isOpen !== undefined && (
@@ -322,7 +320,7 @@ export function CommercialProfilePage({
             </span>
           </div>
 
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          <div className="mt-4 flex flex-wrap gap-2 pb-1">
             <Button
               onClick={() => setReviewsOpen(true)}
               className="h-10 shrink-0 rounded-full px-4"
@@ -345,7 +343,7 @@ export function CommercialProfilePage({
               className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 text-sm font-semibold text-foreground hover:bg-muted"
             >
               <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-              {isSaved ? "Salvo" : "Salvar"}
+              {isSaved ? "Salvo neste navegador" : "Salvar"}
             </button>
           </div>
         </section>
@@ -423,10 +421,10 @@ export function CommercialProfilePage({
                     <div>
                       <h2 className="font-bold">Avaliações</h2>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {businessReviews.length ? `${businessReviews.length} experiências da comunidade` : "Ainda sem avaliações"}
+                        {businessReviews.length ? `${businessReviews.length} avaliações publicadas` : "Ainda sem avaliações"}
                       </p>
                     </div>
-                    {rating !== null && <p className="text-2xl font-black">{rating.toFixed(1)}</p>}
+                    {rating !== null && <p className="text-2xl font-black">{rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>}
                   </div>
                   {businessReviews.slice(0, 2).map((review) => (
                     <ReviewEntry
@@ -548,8 +546,8 @@ export function CommercialProfilePage({
             <section className="max-w-3xl">
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-bold">Avaliações da comunidade</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Opiniões publicadas por contas Social.</p>
+                  <h2 className="text-xl font-bold">Avaliações de clientes</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Opiniões publicadas por contas do SeekAlive.</p>
                 </div>
                 <Button onClick={() => setReviewsOpen(true)} className="rounded-full">
                   <Star className="mr-2 h-4 w-4" />
@@ -559,7 +557,7 @@ export function CommercialProfilePage({
 
               <div className="mb-5 grid gap-4 rounded-2xl border border-border p-4 sm:grid-cols-[150px_1fr] sm:p-5">
                 <div>
-                  <p className="text-4xl font-black">{rating === null ? "—" : rating.toFixed(1)}</p>
+                  <p className="text-4xl font-black">{rating === null ? "—" : rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
                   <div className="mt-1 flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((score) => (
                       <Star key={score} className={`h-4 w-4 ${rating !== null && score <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
@@ -597,7 +595,7 @@ export function CommercialProfilePage({
               ) : (
                 <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center">
                   <p className="font-semibold">Ainda não há avaliações</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Compartilhe sua experiência para ajudar a comunidade.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Compartilhe sua experiência para ajudar outras pessoas.</p>
                 </div>
               )}
             </section>
@@ -619,7 +617,7 @@ export function CommercialProfilePage({
               <h2 className="mb-4 text-xl font-bold">Publicações de {user.displayName}</h2>
               {timeline.length ? timeline.map(item => <PostCard key={item.key} post={item.post} repostedById={item.repostedById} />) : (
                 <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center text-sm text-muted-foreground">
-                  Este perfil comercial ainda não publicou conteúdo na rede Social.
+                  Este perfil comercial ainda não publicou nada no Social.
                 </div>
               )}
             </section>
