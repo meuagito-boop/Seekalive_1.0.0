@@ -1,7 +1,9 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Image, Video, Trash2 } from "lucide-react";
 import type { PreparedMedia } from "@/services/mediaService";
 import { MAX_MEDIA_ITEMS } from "@/hooks/use-draft-media";
+import { CameraCapture } from "./CameraCapture";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function MediaDraftGrid({ media, onRemove }: { media: PreparedMedia[]; onRemove: (url: string) => void }) {
   if (!media.length) return null;
@@ -32,28 +34,45 @@ export function MediaPickerButtons({
   disabled,
 }: {
   count: number;
-  onAdd: (files: FileList | null, type: "image" | "video") => void;
+  onAdd: (files: FileList | File[] | null, type: "image" | "video") => void;
   disabled?: boolean;
 }) {
   const imageRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+  const [capture, setCapture] = useState<"image" | "video" | null>(null);
   const full = count >= MAX_MEDIA_ITEMS || disabled;
   return (
     <div className="flex gap-4">
-      <input ref={imageRef} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1}
+      <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple className="sr-only" tabIndex={-1} aria-label="Escolher fotos da galeria"
         onChange={(e) => { onAdd(e.currentTarget.files, "image"); e.currentTarget.value = ""; }} />
-      <input ref={videoRef} type="file" accept="video/*" multiple className="sr-only" tabIndex={-1}
+      <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" multiple className="sr-only" tabIndex={-1} aria-label="Escolher vídeos da galeria"
         onChange={(e) => { onAdd(e.currentTarget.files, "video"); e.currentTarget.value = ""; }} />
-      <button type="button" onClick={() => imageRef.current?.click()} disabled={full}
-        className="text-primary transition-opacity hover:opacity-70 disabled:opacity-40"
-        aria-label="Adicionar fotos" title="Adicionar fotos" data-testid="button-add-image">
-        <Image className="h-5 w-5" />
-      </button>
-      <button type="button" onClick={() => videoRef.current?.click()} disabled={full}
-        className="text-primary transition-opacity hover:opacity-70 disabled:opacity-40"
-        aria-label="Adicionar vídeos" title="Adicionar vídeos" data-testid="button-add-video">
-        <Video className="h-5 w-5" />
-      </button>
+      {(["image", "video"] as const).map((type) => (
+        <DropdownMenu key={type}>
+          <DropdownMenuTrigger asChild>
+            <button type="button" disabled={full}
+              className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-40"
+              aria-label={type === "image" ? "Adicionar fotos" : "Adicionar vídeos"} data-testid={`button-add-${type}`}>
+              {type === "image" ? <Image className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+              {type === "image" ? "Fotos" : "Vídeos"}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onSelect={() => (type === "image" ? imageRef : videoRef).current?.click()}>
+              {type === "image" ? "Escolher foto da galeria" : "Escolher vídeo da galeria"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setCapture(type)}>
+              {type === "image" ? "Tirar foto com a câmera" : "Gravar vídeo agora"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ))}
+      <CameraCapture type={capture} onClose={() => setCapture(null)} onCapture={(file, type) => onAdd([file], type)}
+        onChooseFile={() => {
+          const type = capture;
+          setCapture(null);
+          (type === "image" ? imageRef : videoRef).current?.click();
+        }} />
     </div>
   );
 }

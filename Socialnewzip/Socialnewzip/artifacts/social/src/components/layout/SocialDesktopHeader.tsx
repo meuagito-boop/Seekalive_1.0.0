@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Bell, Mail, ShoppingCart, Settings } from "lucide-react";
+import { Bell, Mail, ShoppingCart, Settings, PenSquare } from "lucide-react";
 import { useSocial } from "@/context/SocialContext";
 
 const moduleNav = [
@@ -25,7 +25,7 @@ export function SocialDesktopHeader() {
       {/* Logo + name */}
       <Link href="/feed" className="flex items-center gap-2 no-underline flex-shrink-0 mr-8">
         <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-[0_0_10px_hsl(24_95%_53%_/_0.3)]">
-          <span className="text-white font-black text-xs leading-none">S</span>
+          <span className="text-primary-foreground font-black text-xs leading-none">S</span>
         </div>
         <span className="font-bold text-base tracking-tight text-foreground">SeekAlive</span>
       </Link>
@@ -56,7 +56,15 @@ export function SocialDesktopHeader() {
       {/* Right icons */}
       <div className="flex items-center gap-0.5 flex-shrink-0 ml-8">
         <Link
+          href="/compose"
+          className="mr-2 inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors no-underline"
+        >
+          <PenSquare className="w-4 h-4" />
+          Publicar
+        </Link>
+        <Link
           href="/notifications"
+          aria-label="Notificações"
           className="relative w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <Bell className="w-5 h-5" />
@@ -66,6 +74,7 @@ export function SocialDesktopHeader() {
         </Link>
         <Link
           href="/messages"
+          aria-label="Mensagens"
           className="relative w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <Mail className="w-5 h-5" />
@@ -75,12 +84,14 @@ export function SocialDesktopHeader() {
         </Link>
         <Link
           href="/shop"
+          aria-label="Shop"
           className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <ShoppingCart className="w-5 h-5" />
         </Link>
         <Link
           href="/settings"
+          aria-label="Configurações"
           className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <Settings className="w-5 h-5" />

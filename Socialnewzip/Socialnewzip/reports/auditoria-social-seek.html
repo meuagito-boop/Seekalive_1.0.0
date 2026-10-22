@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SeekAlive — Auditoria Social e Seek</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0b0d12;color:#eef0f4;font:16px/1.65 system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:48px 24px 80px}h1{font-size:clamp(30px,5vw,48px);line-height:1.1;letter-spacing:-1px}h2{margin-top:48px;font-size:25px}h3{font-size:19px;color:#ff984b}p,li{color:#c7ccd6}strong{color:#f5f6f8}.eyebrow{color:#fa7a15;text-transform:uppercase;letter-spacing:2px;font-weight:700;font-size:12px}.note{border-left:4px solid #fa7a15;background:#171b23;padding:18px 22px;border-radius:8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.metric{padding:20px;border:1px solid #303541;border-radius:12px}.metric b{font-size:28px;display:block;color:#fa7a15}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;vertical-align:top;padding:14px 12px;border-bottom:1px solid #303541}th{color:#ff984b;background:#171b23}code{font-size:13px;color:#ffb27b;overflow-wrap:anywhere}a{color:#ff984b}.status{font-size:13px;font-weight:700;color:#90d9ac}.partial{color:#ffd089}.muted{color:#a3acba}li{margin-bottom:8px}@media print{body{background:white;color:#111}p,li,strong,td{color:#222}th,.note{background:#f3f3f3}h3,code,.eyebrow,.metric b{color:#a13c00}main{padding:10px}tr{break-inside:avoid}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">SeekAlive · Engenharia de produto</div>
+<h1>Auditoria dos módulos<br>Social e Seek</h1>
+<p>Relatório técnico · 22 de outubro de 2026 · alterações no projeto existente</p>
+<div class="note"><strong>Escopo respeitado:</strong> front-end e armazenamento já existente no navegador. Nenhum banco, serviço de upload ou nova infraestrutura de back-end foi criado. Social continua sendo a origem das contas comerciais do Seek; Comunidades não foi reintroduzido e o Seek permanece sem mapas visuais.</div>
+<section class="grid" style="margin-top:24px">
+<div class="metric"><b>19</b>testes automatizados de lógica e regressão</div>
+<div class="metric"><b>2</b>larguras verificadas: 402 e 1440 px</div>
+<div class="metric"><b>1</b>cabeçalho principal por tela</div>
+<div class="metric"><b>0</b>novos serviços ou bancos de dados</div>
+</section>
+
+<h2>A. Problemas encontrados e causas</h2>
+<div class="scroll"><table><thead><tr><th>Problema</th><th>Causa confirmada</th><th>Impacto</th></tr></thead><tbody>
+<tr><td>Cabeçalho principal repetido em Configurações, Atividades, Notificações e Sugestões</td><td>A página incluía outro Header dentro de um layout que já o renderizava.</td><td>Alto · redundância, perda de espaço e navegação inconsistente.</td></tr>
+<tr><td>Menu móvel junto à pesquisa, atalhos próprios repetidos e compositor duplicado</td><td>Vários pontos independentes para as mesmas funções.</td><td>Médio · interface sobrecarregada.</td></tr>
+<tr><td>Links e estados interativos azuis; Aparência substituía a marca por outras cores</td><td>Uso de tokens informativos em ações de marca e seletor de cor independente.</td><td>Médio · identidade visual inconsistente.</td></tr>
+<tr><td>Rótulos de demonstração e sessão espalhados</td><td>Etiquetas temporárias e textos de fixtures expostos na interface.</td><td>Médio · conteúdo provisório na experiência final.</td></tr>
+<tr><td>Seleção de mídia sem câmera e validação insuficiente</td><td>Seletor simples, sem captura, verificação de leitura ou bloqueio durante preparação.</td><td>Alto · arquivos inválidos e risco de publicar antes de concluir a prévia.</td></tr>
+<tr><td>Seguidores fictícios em listas de perfis</td><td>Contas não relacionadas eram apresentadas como conexões.</td><td>Alto · informação social incorreta.</td></tr>
+<tr><td>Controles de segurança, privacidade e notificações simulavam configuração</td><td>Estado local decorativo, dispositivos inventados e nenhuma integração que aplicasse as políticas.</td><td>Alto · falsa expectativa de proteção e funcionamento.</td></tr>
+<tr><td>Busca do Seek não tratava acentos; filtros incompletos e estados vazios diferentes</td><td>Comparação textual direta e lógica duplicada entre telas.</td><td>Médio · resultados inconsistentes.</td></tr>
+<tr><td>“Próximos de mim” sem geolocalização</td><td>Dados contêm distâncias predefinidas, não coordenadas nem posição atual.</td><td>Alto · proximidade não comprovada.</td></tr>
+<tr><td>Falha ao salvar avaliação poderia parecer sucesso</td><td>Erro de armazenamento era apenas registrado no console.</td><td>Alto · feedback de salvamento incorreto.</td></tr>
+<tr><td>Menu não devolvia foco ao botão de abertura</td><td>Sheet controlado sem gatilho associado para restauração automática.</td><td>Médio · problema de navegação por teclado identificado no navegador.</td></tr>
+</tbody></table></div>
+
+<h2>B. Correções implementadas</h2>
+<h3>Navegação e layouts</h3>
+<ul>
+<li>Barra inferior: pesquisa contextual, menu lateral, adição e Shop. A adição abre diretamente <code>/compose</code>; artigos continuam acessíveis pelo editor.</li>
+<li>Menu compartilhado em AppShell e SocialLayout, baseado em Radix Sheet: fechamento por Escape, clique fora, botão ou navegação; foco contido e retorno explícito ao botão Menu.</li>
+<li>Acesso principal ao próprio perfil concentrado no cartão do menu. Links de identificação de autores e perfis de terceiros foram preservados.</li>
+<li>Removidos compositor redundante e componente sem uso. Publicar permanece disponível no cabeçalho de desktop.</li>
+<li>Subcabeçalho compartilhado das configurações com retorno explícito para Configurações. Rotas desconhecidas mostram página de erro em português em vez de redirecionamento silencioso.</li>
+</ul>
+<p><strong>Arquivos:</strong> <code>App.tsx</code>, <code>components/layout/{Header,BottomNav,SocialLayout,SocialDesktopHeader,AppShell}.tsx</code>, <code>components/social/{SocialDrawer,SocialSidebar}.tsx</code>, páginas de Configurações, Atividades, Notificações e Sugestões, <code>pages/not-found.tsx</code>. Removidos <code>Sidebar.tsx</code> e <code>SocialComposer.tsx</code> sem uso.</p>
+<h3>Identidade, nomenclatura e acessibilidade</h3>
+<ul>
+<li>Destaque laranja centralizado nos tokens; ações antes azuis passaram a usar primary. Sucesso, erro e reações com significado próprio mantêm suas cores semânticas.</li>
+<li>Texto escuro em botões laranja e texto secundário mais claro. Foco visível centralizado e respeito à preferência de movimento reduzido.</li>
+<li>Sem redução das abas. Configurações de texto agora realmente aumentam a base da interface para 18 ou 20 px; padrão de 16 px, sem opção de encolher.</li>
+<li>Rótulos temporários removidos da interface, inclusive do componente DemoBadge, sem declarar persistência ou upload inexistentes.</li>
+<li>Vocabulário brasileiro revisado, incluindo Criar publicação, Informações, Avaliações, Serviços, Mídias, Escrever artigo, Modo escuro e Fechar.</li>
+</ul>
+<p><strong>Arquivos:</strong> <code>index.css</code>, componentes de conteúdo, cartões e ações de publicações, perfis, artigos, compartilhamento e páginas de descoberta. Os componentes compartilhados mantêm os mesmos rótulos e comportamentos; não foi introduzido um sistema de traduções paralelo.</p>
+<h3>Publicação e mídia</h3>
+<ul>
+<li>Autor identificado, texto, visibilidade, limites legíveis e botão com estados coerentes. Cancelamento pelo editor confirma o descarte do rascunho.</li>
+<li>Prévia de foto/vídeo, remoção e validação por formato, quantidade, tamanho e leitura efetiva do arquivo. SVG é rejeitado; arquivos vazios ou corrompidos não são anexados.</li>
+<li>Até 8 mídias, fotos até 10 MB e vídeos até 100 MB, preservando os limites existentes. Não se inventou um limite de duração; vídeo é limitado pelo tamanho e pela capacidade do navegador.</li>
+<li>Câmera com getUserMedia e vídeo com MediaRecorder. Captura só começa após ação do usuário; prévia antes de anexar, cancelar/descartar e alternativa pela galeria.</li>
+<li>Fluxos para permissão negada, câmera ausente/ocupada, navegador sem suporte e falha de gravação. Recursos e URLs de rascunho são liberados ao cancelar.</li>
+<li>Preparação de arquivos impede publicação antecipada e seleções concorrentes; bloqueio de submissão continua impedindo cliques duplicados. Fotos e vídeos publicados alimentam a galeria do autor com a audiência original.</li>
+<li>Criar conteúdo e compartilhar continuam sendo fluxos distintos, preservando autoria e referência ao original.</li>
+</ul>
+<p><strong>Arquivos:</strong> <code>pages/{Compose,ArticleEditor}.tsx</code>, <code>hooks/use-draft-media.ts</code>, <code>services/mediaService.ts</code>, <code>components/content/{MediaDraftGrid,CameraCapture,ShareContentDialog}.tsx</code>.</p>
+<h3>Social, Seek e configurações</h3>
+<ul>
+<li>Somente a própria lista Seguindo usa relações disponíveis; listas de seguidores ou relações de terceiros não disponíveis deixaram de apresentar contas inventadas.</li>
+<li>Controles sem suporte real de privacidade, notificações, autenticação adicional e contas conectadas ficam indisponíveis com explicação. Removidos dispositivos e histórico de acesso fictícios.</li>
+<li>Alteração do nome de usuário usa o fluxo existente de conta com validação local. Aparência não permite substituir o destaque laranja.</li>
+<li>Seek busca sem depender de acentos e combina termos, categoria, nota, status e distância informada. Ordena por avaliação ou distância com critério estável e ignora distâncias inválidas.</li>
+<li>Contas bloqueadas não aparecem nos resultados comerciais. Menor distância e os intervalos de distância usam somente valores cadastrados; não afirmam usar localização real.</li>
+<li>Filtros de comércio não são oferecidos como se afetassem eventos; limpar filtros também limpa a distância. Estado vazio de eventos corrigido no desktop.</li>
+<li>Removido botão Salvar repetido no cartão comercial. Os comércios continuam sendo perfis comerciais do Social e não cadastros independentes.</li>
+<li>Avaliação e resposta verificam identidade e elegibilidade no front-end. Falha ao gravar localmente gera erro e mantém o formulário; só há confirmação após a escrita. Isso não substitui autorização de servidor.</li>
+</ul>
+<p><strong>Arquivos:</strong> <code>pages/Seek.tsx</code>, <code>lib/seekFilters.ts</code>, <code>components/profile/ConnectionList.tsx</code>, <code>context/SocialContext.tsx</code>, <code>data/reviewStorage.ts</code>, <code>components/seek/BusinessReviewsDialog.tsx</code>, <code>pages/settings/*</code>.</p>
+
+<h2>C. Testes executados e resultados</h2>
+<div class="scroll"><table><thead><tr><th>Verificação</th><th>Ambiente</th><th>Resultado real</th></tr></thead><tbody>
+<tr><td>Compilação e tipagem de todos os workspaces</td><td>Node/pnpm · PORT=5000 BASE_PATH=/ pnpm run build</td><td class="status">Aprovada</td></tr>
+<tr><td>19 testes: texto, mídia, armazenamento, Seek, identidade, mensagens, notificações, remoção de módulo, publicação, artigos, curtidas, repost, respostas, exclusão, privacidade, referências e contrato REST</td><td>pnpm run test:social</td><td class="status">19 aprovados</td></tr>
+<tr><td>Feed sem compositor/aviso duplicado, menu, foco inicial, Escape e retorno do foco; adição abre editor</td><td>Chromium headless · 402 × 874</td><td class="status">Aprovados</td></tr>
+<tr><td>Foto PNG real gerada no navegador, arquivo decodificado, publicação privada e exibição na galeria do autor sem recarregar</td><td>Navegador · fluxo de interface completo</td><td class="status">Aprovado</td></tr>
+<tr><td>Tirar foto, gravar vídeo, concluir, visualizar e anexar</td><td>Chromium com dispositivo de câmera e microfone sintéticos</td><td class="status">Aprovados nesse ambiente</td></tr>
+<tr><td>Permissão negada e alternativa pela galeria</td><td>Navegador com rejeição NotAllowedError injetada em getUserMedia</td><td class="status">Aprovado · não equivale a teste em aparelho físico</td></tr>
+<tr><td>Busca “cafe” encontra Café; painel inclui distância e ordenação</td><td>Navegador móvel + testes de lógica combinada dos filtros</td><td class="status">Aprovados</td></tr>
+<tr><td>Informações, Serviços e Avaliações do perfil comercial; avaliação salva com feedback correto</td><td>Navegador · perfil cafecentralsp</td><td class="status">Aprovados</td></tr>
+<tr><td>Aumento de texto real, retorno ao padrão, controles indisponíveis de segurança/privacidade/notificações</td><td>Navegador · páginas de configurações</td><td class="status">Aprovados</td></tr>
+<tr><td>Cabeçalho único em Configurações, Publicar no desktop e rota inexistente localizada</td><td>Chromium · 402 × 874 e 1440 × 1000</td><td class="status">Aprovados</td></tr>
+<tr><td>Console e workflow</td><td>Navegador e Vite</td><td class="status">Sem exceções não tratadas nos fluxos concluídos; aplicação em execução</td></tr>
+<tr><td>Formatação de diferenças</td><td>git diff --check</td><td class="status">Aprovada</td></tr>
+</tbody></table></div>
+<p class="muted">Não se afirma cobertura E2E completa de cada recurso de Social e Seek. Os recursos não percorridos no navegador foram inspecionados no código e, quando disponíveis, cobertos por testes de lógica. A proteção REST foi testada no adaptador com respostas controladas, não em um servidor de conteúdo real.</p>
+
+<h2>D. Dependências e itens pendentes</h2>
+<ol>
+<li><strong>Upload e persistência de conteúdo:</strong> publicações e arquivos novos continuam em memória/URLs locais durante a sessão. Recarregar não é um teste de persistência aprovado. Exige API de conteúdo, armazenamento de objetos e autorização no servidor, numa próxima etapa autorizada pelo usuário.</li>
+<li><strong>Autenticação e segurança reais:</strong> o aplicativo usa um estado de acesso local. E-mail, senha, 2FA, sessões, histórico, contas conectadas, desativação e exclusão precisam de serviço de identidade e regras de servidor. Não há garantia de proteção equivalente a produção.</li>
+<li><strong>Privacidade de conta e preferências:</strong> política de perfil privado, regras de mensagens/amizades, confirmações de leitura e envio de notificações não estão implementados. Audiência das publicações no front-end continua funcionando, mas não substitui autorização no servidor.</li>
+<li><strong>Conexões e bloqueios:</strong> relações completas de seguidores/terceiros e gestão real de bloquear/desbloquear precisam de modelo e ações adequados. As listas indisponíveis não usam dados falsos como substituto.</li>
+<li><strong>Geolocalização:</strong> faltam coordenadas confiáveis dos estabelecimentos, origem de referência e cálculo de distância. Nenhuma permissão de localização foi solicitada apenas para aparentar funcionamento. Distâncias cadastradas são identificadas como tais.</li>
+<li><strong>Status de funcionamento e eventos:</strong> são dados fornecidos no catálogo atual; não existe cálculo de horário com agenda estruturada/fuso, atualização ao vivo de eventos nem confirmação de ingressos/disponibilidade.</li>
+<li><strong>Captura em aparelhos reais:</strong> foto e vídeo funcionaram com dispositivos sintéticos Chromium; compatibilidade específica em Safari/iOS, Android e câmeras físicas permanece a validar. Navegadores sem suporte recebem alternativa pela galeria.</li>
+<li><strong>Dados existentes:</strong> retirar etiquetas não transforma fixtures em dados reais. O catálogo inicial permanece local. Contas já salvas não foram renomeadas silenciosamente.</li>
+<li><strong>Desempenho:</strong> a compilação emite aviso de pacote JavaScript acima de 500 kB e avisos de sourcemap em componentes existentes. Não bloquearam build. Divisão de código e medição formal de desempenho seguem pendentes; não foi feita reestruturação desnecessária.</li>
+<li><strong>Acessibilidade:</strong> foco, contraste de tokens, nomes e teclado foram revisados; não foi executada auditoria completa com leitor de tela nem certificação WCAG.</li>
+</ol>
+
+<h2>E. Estado final por solicitação</h2>
+<div class="scroll"><table><thead><tr><th>Solicitação</th><th>Classificação</th></tr></thead><tbody>
+<tr><td>Laranja, remoção dos avisos temporários, cabeçalho único, menu inferior, perfil sem atalhos redundantes e remoção do compositor</td><td class="status">Concluída e validada nos fluxos descritos</td></tr>
+<tr><td>Editor claro, distinção criação/compartilhamento, fotos/vídeos e prévias</td><td class="status">Concluída e validada no front-end</td></tr>
+<tr><td>Captura direta e gravação</td><td class="partial">Implementada e validada em Chromium sintético; aparelhos físicos ainda não validados</td></tr>
+<tr><td>Nomes, organização, abas e principais rotas</td><td class="status">Revisadas; principais destinos validados</td></tr>
+<tr><td>Auditoria funcional Social/Seek</td><td class="partial">Concluída no escopo de front-end disponível; cobertura E2E integral e funções dependentes de servidor permanecem parciais</td></tr>
+<tr><td>Seek sem mapas visuais</td><td class="status">Preservado</td></tr>
+<tr><td>Persistência, upload, autenticação, políticas e integrações reais</td><td class="partial">Bloqueadas por infraestrutura fora da fase autorizada</td></tr>
+<tr><td>Regressão</td><td class="status">19 testes aprovados; sem regressão conhecida nos fluxos efetivamente verificados</td></tr>
+</tbody></table></div>
+
+<h2>F. Evidências e reprodução</h2>
+<p>Capturas posteriores geradas durante o teste: <code>generated-artifacts/social-audit/feed-mobile.jpg</code>, <code>compose-photo-mobile.jpg</code>, <code>profile-media-mobile.jpg</code>, <code>seek-filters-mobile.jpg</code>, <code>settings-mobile.jpg</code>, <code>feed-desktop.jpg</code>, <code>security-mobile.jpg</code> e <code>commercial-reviews-mobile.jpg</code>. Não foram produzidas capturas “antes” retroativas.</p>
+<p>Runner sem dependências adicionais: <code>scripts/audit-social-browser.mjs</code>, usando Chromium com depuração remota em ambiente descartável. O fluxo principal e a parte de configurações foram executados separadamente; a permissão negada foi revalidada isoladamente. Resultados gerados ficam fora do Git e da publicação.</p>
+<div class="note"><strong>Conclusão:</strong> as correções de front-end foram aplicadas no produto existente e verificadas conforme as evidências acima. Recursos de servidor não foram simulados nem declarados como finalizados. Não há certificação de produção ou garantia de persistência de publicações.</div>
+</main></body></html>

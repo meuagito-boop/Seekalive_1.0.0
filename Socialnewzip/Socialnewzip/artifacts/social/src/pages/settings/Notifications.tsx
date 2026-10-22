@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { SettingsSubheader, UnavailableNotice } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
 
 interface ToggleItem {
@@ -47,7 +46,6 @@ const groups: { title: string; items: ToggleItem[] }[] = [
 ];
 
 export default function SettingsNotifications() {
-  const [, setLocation] = useLocation();
   const [prefs, setPrefs] = useState<Record<string, boolean>>(
     Object.fromEntries(groups.flatMap(g => g.items.map(i => [i.key, true])))
   );
@@ -59,13 +57,9 @@ export default function SettingsNotifications() {
   }
 
   return (
-    <div className="min-h-screen pb-16 md:pb-0">
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg flex items-center gap-3 px-4 h-14 border-b border-border">
-        <button onClick={() => window.history.back()} className="text-muted-foreground hover:text-foreground" data-testid="button-back">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="font-bold text-lg">Notificações</h1>
-      </div>
+    <div className="min-h-[100dvh] pb-16 md:pb-0">
+      <SettingsSubheader title="Notificações" />
+      <UnavailableNotice>As preferências de notificação ainda não podem ser alteradas: não há serviço de envio disponível. Os valores mostrados são os padrões.</UnavailableNotice>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="px-4 pt-4 pb-2 border-b border-border">
@@ -74,18 +68,18 @@ export default function SettingsNotifications() {
               <p className="font-semibold text-sm">Notificações push</p>
               <p className="text-xs text-muted-foreground">No aplicativo e no celular</p>
             </div>
-            <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} data-testid="toggle-push" />
+            <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} disabled aria-label="Notificações push (indisponível)" data-testid="toggle-push" />
           </div>
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="font-semibold text-sm">Notificações por email</p>
-              <p className="text-xs text-muted-foreground">Resumos e alertas por email</p>
+              <p className="font-semibold text-sm">Notificações por e-mail</p>
+              <p className="text-xs text-muted-foreground">Resumos e alertas por e-mail</p>
             </div>
-            <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} data-testid="toggle-email" />
+            <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} disabled aria-label="Notificações por e-mail (indisponível)" data-testid="toggle-email" />
           </div>
         </div>
 
-        {groups.map((group, gi) => (
+        {groups.map((group) => (
           <div key={group.title}>
             <div className="px-4 pt-5 pb-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{group.title}</p>
@@ -101,7 +95,8 @@ export default function SettingsNotifications() {
                     checked={prefs[item.key] ?? true}
                     onCheckedChange={() => toggle(item.key)}
                     data-testid={`toggle-${item.key}`}
-                    disabled={!pushEnabled && !emailEnabled}
+                    disabled
+                    aria-label={`${item.label} (indisponível)`}
                   />
                 </div>
               ))}

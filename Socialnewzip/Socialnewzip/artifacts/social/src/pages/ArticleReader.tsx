@@ -19,7 +19,7 @@ export default function ArticleReader() {
       <button type="button" onClick={() => window.history.back()} className="text-muted-foreground hover:text-foreground" aria-label="Voltar">
         <ArrowLeft className="h-5 w-5" />
       </button>
-      <span className="flex items-center gap-1.5 text-sm font-semibold text-info"><BookOpenText className="h-4 w-4" /> Artigo</span>
+      <span className="flex items-center gap-1.5 text-sm font-semibold text-primary"><BookOpenText className="h-4 w-4" /> Artigo</span>
     </div>
   );
 

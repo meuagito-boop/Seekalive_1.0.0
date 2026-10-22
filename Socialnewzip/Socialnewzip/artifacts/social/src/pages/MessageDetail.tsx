@@ -60,7 +60,7 @@ export default function MessageDetail() {
       <UnavailableState
         title="Conversa indisponível"
         description="Esta conversa não existe, não inclui sua conta ou a outra pessoa não está mais disponível."
-        action={<button type="button" onClick={() => setLocation("/messages")} className="text-sm font-semibold text-info hover:underline">Voltar às mensagens</button>}
+        action={<button type="button" onClick={() => setLocation("/messages")} className="text-sm font-semibold text-primary hover:underline">Voltar às mensagens</button>}
       />
     );
   }

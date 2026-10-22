@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { Star, Heart, Tag, Store, ChevronRight, Package, Zap, Eye } from "lucide-react";
 import { demoShopItems as mockProducts, demoStores as featuredStores } from "@/data/demoCatalog";
 import type { ShopItem } from "@/types/content";
-import { DemoBadge } from "@/components/content/StateBlocks";
 import { useSavedShopItems } from "@/hooks/use-saved-shop-items";
 
 const shopCategories = [
@@ -83,7 +82,7 @@ export default function Shop() {
           </div>
           <div>
             <p className="font-bold text-foreground">Ofertas da semana</p>
-            <p className="text-sm text-muted-foreground">Catálogo de demonstração — preços ilustrativos, compra ainda indisponível</p>
+            <p className="text-sm text-muted-foreground">Preços ilustrativos · compra ainda indisponível</p>
           </div>
         </div>
       </div>
@@ -103,7 +102,7 @@ export default function Shop() {
                   <button
                     key={c.key}
                     disabled={c.key === "lojas"}
-                    title={c.key === "lojas" ? "Perfis das lojas ainda não estão disponíveis no catálogo de demonstração." : undefined}
+                    title={c.key === "lojas" ? "Perfis das lojas ainda não estão disponíveis." : undefined}
                     onClick={() => setActiveCategory(c.key)}
                     className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed ${
                       active
@@ -146,7 +145,6 @@ export default function Shop() {
           <div className="flex items-center justify-between mb-4">
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
-              <DemoBadge />
             </p>
             <button disabled title="Ordenação ainda não disponível" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-sm text-muted-foreground opacity-50 cursor-not-allowed">
               <Package className="w-4 h-4" />
@@ -189,7 +187,7 @@ export default function Shop() {
             <button
               key={c.key}
               disabled={c.key === "lojas"}
-              title={c.key === "lojas" ? "Perfis das lojas ainda não estão disponíveis no catálogo de demonstração." : undefined}
+              title={c.key === "lojas" ? "Perfis das lojas ainda não estão disponíveis." : undefined}
               onClick={() => setActiveCategory(c.key)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 activeCategory === c.key
@@ -205,7 +203,7 @@ export default function Shop() {
         {/* Mobile offer banner */}
         <div className="mx-3 mb-3 p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-2">
           <Zap className="w-5 h-5 text-primary flex-shrink-0" />
-          <p className="text-xs text-foreground font-medium">Catálogo de demonstração — compra ainda indisponível</p>
+          <p className="text-xs text-foreground font-medium">Compra ainda indisponível</p>
         </div>
 
         <div className="px-3 pb-6 grid grid-cols-2 gap-3">

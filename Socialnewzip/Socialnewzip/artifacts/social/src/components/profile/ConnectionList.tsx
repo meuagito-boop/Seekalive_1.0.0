@@ -5,7 +5,7 @@ import { ArrowLeft, Search, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
-import { DemoBadge, UnavailableState } from "@/components/content/StateBlocks";
+import { UnavailableState } from "@/components/content/StateBlocks";
 
 export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
   const params = useParams<{ username: string }>();
@@ -23,16 +23,16 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
       <UnavailableState
         title="Perfil indisponível"
         description={`Não encontramos @${params.username}. A conta pode ter sido removida.`}
-        action={<Link href="/feed" className="text-sm font-semibold text-info hover:underline">Voltar ao feed</Link>}
+        action={<Link href="/feed" className="text-sm font-semibold text-primary hover:underline">Voltar ao feed</Link>}
       />
     );
   }
 
-  // Following list reflects the viewer's real follow state; other lists are illustrative samples.
-  const base = users.filter(u => u.id !== owner.id && !u.isBlocked && (kind === "following" && isMe ? u.isFollowing : true));
+  // Só "Seguindo" do próprio usuário tem estado real no frontend; demais listas ficam indisponíveis.
+  const available = kind === "following" && isMe;
+  const base = available ? users.filter(u => u.id !== owner.id && !u.isBlocked && u.isFollowing) : [];
   const q = query.trim().toLowerCase();
   const filtered = base.filter(u => u.displayName.toLowerCase().includes(q) || u.username.toLowerCase().includes(q));
-  const isSample = !(kind === "following" && isMe);
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
@@ -52,12 +52,14 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
         </div>
       </div>
 
-      {isSample && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2 text-[11px] text-muted-foreground">
-          <DemoBadge label="Lista de exemplo" />
-          <span>Esta lista mostra contas de demonstração, não as conexões reais deste perfil.</span>
-        </div>
-      )}
+      {!available ? (
+        <UnavailableState
+          title="Conexões indisponíveis"
+          description="Esta lista ainda não está disponível."
+          action={<Link href={`/profile/${owner.username}`} className="text-sm font-semibold text-primary hover:underline">Voltar ao perfil</Link>}
+        />
+      ) : (
+      <>
 
       <div className="px-4 py-3 border-b border-border">
         <div className="relative">
@@ -66,8 +68,8 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
             type="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder={kind === "followers" ? "Buscar seguidores" : "Buscar em quem segue"}
-            aria-label={kind === "followers" ? "Buscar seguidores" : "Buscar em quem segue"}
+            placeholder="Buscar em quem você segue"
+            aria-label="Buscar em quem você segue"
             data-testid="input-search"
             className="w-full h-9 pl-9 pr-4 bg-muted/50 rounded-full text-sm text-foreground placeholder:text-muted-foreground border border-transparent focus:border-primary focus:outline-none"
           />
@@ -78,7 +80,7 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
         <div className="flex flex-col items-center px-6 py-16 text-center text-muted-foreground">
           <Users className="w-10 h-10 mb-3 opacity-30" />
           <p className="text-sm">
-            {q ? "Nenhuma conta encontrada para essa busca." : kind === "followers" ? "Nenhum seguidor ainda." : "Ainda não segue nenhuma conta."}
+            {q ? "Nenhuma conta encontrada para essa busca." : "Você ainda não segue nenhuma conta."}
           </p>
         </div>
       ) : (
@@ -118,6 +120,8 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
             </motion.div>
           ))}
         </div>
+      )}
+      </>
       )}
     </div>
   );

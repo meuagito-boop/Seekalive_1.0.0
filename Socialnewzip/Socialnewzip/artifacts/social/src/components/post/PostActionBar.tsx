@@ -26,7 +26,7 @@ export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" |
   }
   const reposted = repostEntries.some((r) => r.postId === post.id && r.authorId === viewerId);
   const icon = size === "lg" ? "h-5 w-5" : "h-4 w-4";
-  const btn = "flex items-center gap-1.5 h-8 px-2 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info";
+  const btn = "flex items-center gap-1.5 h-8 px-2 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
   const title = post.format === "article" && post.article ? post.article.title : post.content.slice(0, 80) || "Publicação";
 
   return (
@@ -35,7 +35,7 @@ export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" |
         <Link
           href={postPath(post)}
           aria-label={`Comentar (${post.comments})`}
-          className={`${btn} text-muted-foreground hover:bg-info/10 hover:text-info`}
+          className={`${btn} text-muted-foreground hover:bg-primary/10 hover:text-primary`}
           data-testid={`button-comment-${post.id}`}
         >
           <MessageCircle className={icon} />

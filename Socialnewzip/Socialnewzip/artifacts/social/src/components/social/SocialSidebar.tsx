@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   Users, Heart, Bookmark, MessageSquare, FileText, History,
-  ChevronRight, UserPlus, User,
+  ChevronRight, UserPlus, Compass, ShoppingBag, Search,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppContext } from "@/context/AppContext";
@@ -75,6 +75,13 @@ export function SocialSidebar({ onNavigate }: SocialSidebarProps) {
         </Link>
       )}
 
+      {/* Explorar */}
+      <SectionLabel>Explorar</SectionLabel>
+      <NavItem icon={Users} label="Social" path="/feed" onNavigate={onNavigate} />
+      <NavItem icon={Search} label="Buscar no Social" path="/search" onNavigate={onNavigate} />
+      <NavItem icon={Compass} label="Seek" path="/seek" onNavigate={onNavigate} />
+      <NavItem icon={ShoppingBag} label="Shop" path="/shop" onNavigate={onNavigate} />
+
       {/* Rede */}
       <SectionLabel>Rede</SectionLabel>
       <NavItem icon={Users} label="Amigos" path="/circles" onNavigate={onNavigate} />
@@ -88,18 +95,6 @@ export function SocialSidebar({ onNavigate }: SocialSidebarProps) {
       <NavItem icon={MessageSquare} label="Comentários" path="/social/activity" onNavigate={onNavigate} />
       <NavItem icon={FileText} label="Publicações" path="/social/activity" onNavigate={onNavigate} />
 
-
-      {/* Profile link */}
-      <div className="mt-4 pt-4 border-t border-border px-3">
-        <Link
-          href={currentUser ? `/profile/${currentUser.username}` : "/profile"}
-          onClick={onNavigate}
-          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors no-underline"
-        >
-          <User className="w-3.5 h-3.5" />
-          <span>Meu perfil</span>
-        </Link>
-      </div>
     </nav>
   );
 }

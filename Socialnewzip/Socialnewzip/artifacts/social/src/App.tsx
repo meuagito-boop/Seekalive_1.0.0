@@ -42,6 +42,7 @@ import Circles from "@/pages/Circles";
 
 import Settings from "@/pages/Settings";
 import StyleGuide from "@/pages/StyleGuide";
+import NotFound from "@/pages/not-found";
 import SettingsAccount from "@/pages/settings/Account";
 import SettingsPrivacy from "@/pages/settings/Privacy";
 import SettingsBlocked from "@/pages/settings/Blocked";
@@ -138,7 +139,7 @@ function AuthRouter() {
 
             <Route path="/styleguide" component={StyleGuide} />
             <Route path="/"><Redirect to="/feed" /></Route>
-            <Route path="*"><Redirect to="/feed" /></Route>
+            <Route path="*" component={NotFound} />
           </Switch>
         </AppLayout>
       </Route>

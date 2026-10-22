@@ -27,7 +27,7 @@ export function AppShell({ children, fullWidth }: AppShellProps) {
   const showSearch = !!searchPlaceholder && module !== "seek";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-[100dvh] bg-background text-foreground">
       {/* Mobile header */}
       <Header />
 

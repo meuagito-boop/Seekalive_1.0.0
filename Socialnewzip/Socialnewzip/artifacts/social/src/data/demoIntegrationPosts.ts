@@ -14,13 +14,13 @@ export const demoIntegrationPosts: Post[] = [
     content: "Uma pausa no bairro e uma conversa sobre cafés. #cafes",
     article: {
       title: "Como escolher um café para a sua próxima pausa",
-      body: "Um café pode ser um ponto de encontro ou um lugar para ler com calma.\n\nAntes de escolher, costumo conferir os horários e as opções de atendimento no perfil do lugar. As experiências compartilhadas por outras pessoas também ajudam a decidir.\n\nEsta é uma publicação de demonstração: o lugar abaixo é uma referência separada. O texto é meu, e as informações do estabelecimento continuam no perfil original.",
+      body: "Um café pode ser um ponto de encontro ou um lugar para ler com calma.\n\nAntes de escolher, costumo conferir os horários e as opções de atendimento no perfil do lugar. As experiências compartilhadas por outras pessoas também ajudam a decidir.\n\nO lugar abaixo é uma referência separada. O texto é meu, e as informações do estabelecimento continuam no perfil original.",
     },
     reference: { type: "seek_entity", id: "biz3" }, hashtags: ["cafes"],
   },
   {
     ...base, id: "demo-shop-reference", authorId: "u2", format: "text",
-    content: "Comparando opções para a próxima caminhada. Este item vem do catálogo de demonstração do Shop. #descobertas",
+    content: "Comparando opções para a próxima caminhada no catálogo do Shop. #descobertas",
     reference: { type: "shop_item", id: "p1" }, hashtags: ["descobertas"],
   },
 ];

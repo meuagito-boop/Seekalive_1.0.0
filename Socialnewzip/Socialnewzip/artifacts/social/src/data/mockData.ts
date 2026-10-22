@@ -740,7 +740,7 @@ export const interests = [
 export const currentUser: User = {
   id: "me",
   username: "usuario_demo",
-  displayName: "Conta de demonstração",
+  displayName: "Minha conta",
   bio: "Explorando ideias e criando algo novo a cada dia.",
   avatarUrl: "https://i.pravatar.cc/150?img=68",
   coverUrl: "https://picsum.photos/800/200?random=100",

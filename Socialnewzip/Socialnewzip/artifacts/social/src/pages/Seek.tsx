@@ -7,7 +7,7 @@ import type { User } from "@/data/mockData";
 import { BusinessReviewsDialog } from "@/components/seek/BusinessReviewsDialog";
 import { demoSeekEvents as mockEvents, demoNearbyEvents as nearbyEvents } from "@/data/demoSeekEvents";
 import type { SeekEvent } from "@/types/content";
-import { DemoBadge } from "@/components/content/StateBlocks";
+import { filterSeekBusinesses, matchesSeekSearch } from "@/lib/seekFilters";
 
 type SeekBusiness = {
   id: string;
@@ -39,10 +39,10 @@ function toSeekBusiness(user: User): SeekBusiness | null {
     categoryKey: profile.categoryKey,
     category: profile.category,
     address: profile.address,
-    distanceKm: profile.distanceKm,
-    distance: profile.distanceKm === undefined
-      ? user.location ?? profile.address
-      : `${profile.distanceKm.toLocaleString("pt-BR")} km`,
+    distanceKm: Number.isFinite(profile.distanceKm) && profile.distanceKm! >= 0 ? profile.distanceKm : undefined,
+    distance: !Number.isFinite(profile.distanceKm) || profile.distanceKm! < 0
+      ? "Distância não informada"
+      : `${profile.distanceKm!.toLocaleString("pt-BR")} km · distância informada`,
     open: profile.isOpen,
     img: user.coverUrl || user.avatarUrl,
     tags: profile.tags,
@@ -59,7 +59,7 @@ const categories = [
   { label: "Compras",         icon: ShoppingBag, key: "compras" },
   { label: "Saúde e beleza",  icon: Heart,     key: "saude" },
   { label: "Lazer",           icon: Smile,     key: "lazer" },
-  { label: "Próximos de mim", icon: MapPin,    key: "proximos" },
+  { label: "Menor distância", icon: MapPin,    key: "proximos" },
   { label: "Abertos agora",   icon: Clock,     key: "abertos" },
 ];
 
@@ -186,12 +186,6 @@ function BusinessCard({
             <Eye className="w-3.5 h-3.5" />
             Ver perfil Social
           </Link>
-          <button
-            onClick={onToggleSave}
-            className="h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-semibold hover:border-primary/40 hover:text-foreground transition-colors"
-          >
-            {saved ? "Salvo" : "Salvar"}
-          </button>
         </div>
       </div>
     </div>
@@ -209,10 +203,9 @@ function EventCard({ e }: { e: SeekEvent }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        <span className="absolute bottom-2 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/90 text-white">
+        <span className="absolute bottom-2 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/90 text-primary-foreground">
           {e.price}
         </span>
-        <DemoBadge label="Exemplo" className="absolute top-2 left-2.5 bg-background/70" />
       </div>
       <div className="p-3">
         <p className="font-semibold text-sm text-foreground leading-tight mb-0.5">{e.name}</p>
@@ -266,10 +259,12 @@ export default function Seek() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [minimumRating, setMinimumRating] = useState(0);
+  const [maxDistance, setMaxDistance] = useState(0);
   const [savedBusinessIds, setSavedBusinessIds] = useState<string[]>(() => readSavedBusinesses("seekalive-saved-businesses"));
   const [reviewBusinessId, setReviewBusinessId] = useState<string | null>(null);
 
   const commercialProfiles = users
+    .filter((user) => !user.isBlocked)
     .map(toSeekBusiness)
     .filter((business): business is SeekBusiness => business !== null);
   const commercialAccounts = commercialProfiles.map((business) => {
@@ -282,30 +277,14 @@ export default function Seek() {
   const reviewBusiness = users.find(
     (user) => user.id === reviewBusinessId && user.accountType === "commercial",
   ) ?? null;
-  const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
-  const matchesSearch = (values: string[]) =>
-    !normalizedSearch || values.join(" ").toLocaleLowerCase("pt-BR").includes(normalizedSearch);
-
-  const filteredBusinesses = commercialAccounts.filter((business) => {
-    if (onlyOpen && business.open !== true) return false;
-    if (activeCategory && !["proximos", "abertos", "eventos"].includes(activeCategory) && business.categoryKey !== activeCategory) return false;
-    if (minimumRating > 0 && (business.rating ?? 0) < minimumRating) return false;
-    return matchesSearch([
-      business.name,
-      business.username,
-      business.bio,
-      business.category,
-      business.address,
-      ...business.tags,
-    ]);
-  }).sort((a, b) => {
-    if (sortNearest) return (a.distanceKm ?? Number.MAX_VALUE) - (b.distanceKm ?? Number.MAX_VALUE);
-    return (b.rating ?? 0) - (a.rating ?? 0);
+  const filteredBusinesses = filterSeekBusinesses(commercialAccounts, {
+    query: searchTerm, category: activeCategory, onlyOpen, minimumRating, maxDistance, nearest: sortNearest,
   });
 
   const filteredEvents = mockEvents.filter((event) => {
     if (activeCategory && !["proximos", "abertos", "eventos"].includes(activeCategory) && event.categoryKey !== activeCategory) return false;
-    return matchesSearch([event.name, event.venue, event.date, event.price]);
+    if (event.organizerId && !commercialAccounts.some((account) => account.id === event.organizerId)) return false;
+    return matchesSeekSearch([event.name, event.venue, event.date, event.price], searchTerm);
   });
 
   const trendingPlaces = [...commercialAccounts]
@@ -362,6 +341,46 @@ export default function Seek() {
     setActiveCategory(null);
     setOnlyOpen(false);
     setSortNearest(false);
+    setMinimumRating(0);
+    setMaxDistance(0);
+  }
+
+  function clearFilters() {
+    setMinimumRating(0);
+    setMaxDistance(0);
+    setOnlyOpen(false);
+    setActiveCategory(null);
+    setSortNearest(false);
+  }
+
+  function renderFilters(suffix: string) {
+    return (
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex min-w-36 flex-1 flex-col gap-1 text-sm font-medium" htmlFor={`seek-rating-${suffix}`}>
+          Nota mínima
+          <select id={`seek-rating-${suffix}`} value={minimumRating} onChange={(e) => setMinimumRating(Number(e.target.value))}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm">
+            <option value={0}>Qualquer nota</option><option value={4}>4,0 ou mais</option><option value={4.5}>4,5 ou mais</option>
+          </select>
+        </label>
+        <label className="flex min-w-36 flex-1 flex-col gap-1 text-sm font-medium" htmlFor={`seek-distance-${suffix}`}>
+          Distância informada
+          <select id={`seek-distance-${suffix}`} value={maxDistance} onChange={(e) => setMaxDistance(Number(e.target.value))}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm">
+            <option value={0}>Qualquer distância</option><option value={1}>Até 1 km</option><option value={5}>Até 5 km</option><option value={10}>Até 10 km</option><option value={25}>Até 25 km</option>
+          </select>
+        </label>
+        <label className="flex min-w-36 flex-1 flex-col gap-1 text-sm font-medium" htmlFor={`seek-order-${suffix}`}>
+          Ordenar por
+          <select id={`seek-order-${suffix}`} value={sortNearest ? "distance" : "rating"} onChange={(e) => setSortNearest(e.target.value === "distance")}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm">
+            <option value="rating">Melhores avaliações</option><option value="distance">Menor distância informada</option>
+          </select>
+        </label>
+        <button type="button" onClick={clearFilters} className="min-h-11 rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/10">Limpar filtros</button>
+        <p className="w-full text-xs text-muted-foreground">As distâncias são as informadas nos cadastros, não calculadas pela sua localização atual.</p>
+      </div>
+    );
   }
 
   function isCategoryActive(key: string) {
@@ -413,7 +432,7 @@ export default function Seek() {
             />
           ))}
         </div>
-        <div className="flex items-center border-b border-border px-3 gap-2">
+        <div className="flex flex-wrap items-center border-b border-border px-3 gap-2">
           <button
             onClick={() => selectTab("comercios")}
             className={`flex-1 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
@@ -446,7 +465,7 @@ export default function Seek() {
               aria-label="Abrir filtros"
               aria-expanded={showFilters}
               className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors shrink-0 ${
-                showFilters || minimumRating > 0
+                showFilters || minimumRating > 0 || maxDistance > 0
                   ? "bg-primary/10 text-primary border-primary/30"
                   : "text-muted-foreground border-border"
               }`}
@@ -457,29 +476,8 @@ export default function Seek() {
           )}
         </div>
         {showFilters && activeTab === "comercios" && (
-          <div className="mx-3 mt-3 rounded-xl border border-border bg-card p-3 flex items-center gap-3">
-            <label htmlFor="seek-min-rating-mobile" className="text-xs font-medium text-foreground">Nota mínima</label>
-            <select
-              id="seek-min-rating-mobile"
-              value={minimumRating}
-              onChange={(event) => setMinimumRating(Number(event.target.value))}
-              className="h-9 flex-1 rounded-lg border border-border bg-background px-2 text-xs text-foreground"
-            >
-              <option value={0}>Qualquer nota</option>
-              <option value={4}>4,0 ou mais</option>
-              <option value={4.5}>4,5 ou mais</option>
-            </select>
-            <button
-              onClick={() => {
-                setMinimumRating(0);
-                setOnlyOpen(false);
-                setActiveCategory(null);
-                setSortNearest(false);
-              }}
-              className="text-xs text-primary"
-            >
-              Limpar
-            </button>
+          <div className="mx-3 mt-3 rounded-xl border border-border bg-card p-3">
+            {renderFilters("mobile")}
           </div>
         )}
         <div className="px-3 py-2 text-xs text-muted-foreground">
@@ -523,7 +521,7 @@ export default function Seek() {
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs font-semibold text-foreground">Perto de você</p>
+              <p className="text-xs font-semibold text-foreground">Explorar comércios</p>
             </div>
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="px-3 py-2.5 text-center">
@@ -605,45 +603,24 @@ export default function Seek() {
                   Aberto agora
                 </button>
               )}
-              <button
+              {activeTab === "comercios" && <button
                 onClick={() => setShowFilters((value) => !value)}
                 aria-expanded={showFilters}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm transition-colors ${
-                  showFilters || minimumRating > 0
+                  showFilters || minimumRating > 0 || maxDistance > 0
                     ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
                 }`}
               >
                 <Filter className="w-4 h-4" />
                 Filtros
-              </button>
+              </button>}
             </div>
           </div>
 
-          {showFilters && (
-            <div className="mb-4 rounded-xl border border-border bg-card p-4 flex flex-wrap items-center gap-3">
-              <label htmlFor="seek-min-rating" className="text-sm font-medium text-foreground">Nota mínima</label>
-              <select
-                id="seek-min-rating"
-                value={minimumRating}
-                onChange={(event) => setMinimumRating(Number(event.target.value))}
-                className="h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground"
-              >
-                <option value={0}>Qualquer nota</option>
-                <option value={4}>4,0 ou mais</option>
-                <option value={4.5}>4,5 ou mais</option>
-              </select>
-              <button
-                onClick={() => {
-                  setMinimumRating(0);
-                  setOnlyOpen(false);
-                  setActiveCategory(null);
-                  setSortNearest(false);
-                }}
-                className="text-sm text-primary hover:underline"
-              >
-                Limpar filtros
-              </button>
+          {showFilters && activeTab === "comercios" && (
+            <div className="mb-4 rounded-xl border border-border bg-card p-4">
+              {renderFilters("desktop")}
             </div>
           )}
 
@@ -757,10 +734,7 @@ export default function Seek() {
                   <button
                     onClick={() => {
                       setSearchTerm("");
-                      setOnlyOpen(false);
-                      setMinimumRating(0);
-                      setActiveCategory(null);
-                      setSortNearest(false);
+                      clearFilters();
                     }}
                     className="text-primary text-xs mt-2 hover:underline"
                   >
@@ -775,6 +749,14 @@ export default function Seek() {
               {filteredEvents.map((e) => (
                 <EventCard key={e.id} e={e} />
               ))}
+              {!filteredEvents.length && (
+                <div role="status" className="col-span-2 rounded-xl border border-border bg-card px-5 py-12 text-center text-muted-foreground">
+                  <p className="font-semibold">Nenhum evento encontrado</p>
+                  <p className="mt-1 text-sm">Tente outra busca ou remova os filtros.</p>
+                  <button type="button" className="mt-3 min-h-11 rounded-lg px-3 text-sm font-semibold text-primary hover:bg-primary/10"
+                    onClick={() => { setSearchTerm(""); clearFilters(); }}>Limpar busca e filtros</button>
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -782,12 +764,12 @@ export default function Seek() {
         {/* Right: context panel */}
         <aside className="w-72 flex-shrink-0 sticky top-[108px] self-start max-h-[calc(100vh-112px)] overflow-y-auto">
 
-          <PanelCard title="Eventos próximos" icon={<Calendar className="w-4 h-4" />}>
+          <PanelCard title="Eventos para explorar" icon={<Calendar className="w-4 h-4" />}>
             {nearbyEvents.map((ev) => (
               <Link key={ev.id} href={`/seek/event/${ev.id}`} className="block px-4 py-2.5 hover:bg-muted/30 transition-colors border-b border-border last:border-0 no-underline">
                 <p className="text-xs font-semibold text-foreground">{ev.name}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{ev.date} · {ev.venue}</p>
-                <p className="text-[11px] text-primary mt-0.5">{ev.interested} interessados · exemplo</p>
+                <p className="text-[11px] text-primary mt-0.5">{ev.interested} interessados</p>
               </Link>
             ))}
           </PanelCard>

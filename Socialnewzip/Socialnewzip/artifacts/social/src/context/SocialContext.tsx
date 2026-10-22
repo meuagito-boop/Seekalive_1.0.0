@@ -412,6 +412,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "ADD_USER", user });
     },
     upsertSeekReview: (review) => {
+      const business = state.users.find((user) => user.id === review.businessAccountId && user.accountType === "commercial");
+      if (!currentUser || review.reviewerId !== currentUser.id || !business || business.id === currentUser.id)
+        throw new ContentServiceError("Esta conta não pode avaliar este comércio.", 403);
+      if (!Number.isInteger(review.rating) || review.rating < 1 || review.rating > 5 || review.comment.trim().length < 10)
+        throw new ContentServiceError("Escolha uma nota de 1 a 5 e escreva pelo menos 10 caracteres.", 422);
       const existing = state.reviews.find(
         (saved) =>
           saved.businessAccountId === review.businessAccountId &&
@@ -427,6 +432,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "UPSERT_SEEK_REVIEW", review: normalizedReview });
     },
     replyToSeekReview: (reviewId, businessAccountId, content) => {
+      if (!currentUser || currentUser.id !== businessAccountId || currentUser.accountType !== "commercial")
+        throw new ContentServiceError("Somente o comércio pode responder à avaliação.", 403);
+      if (!state.reviews.some((review) => review.id === reviewId && review.businessAccountId === businessAccountId))
+        throw new ContentServiceError("Avaliação não encontrada.", 404);
+      if (content.trim().length < 3) throw new ContentServiceError("Escreva uma resposta com pelo menos 3 caracteres.", 422);
       const nextReviews = state.reviews.map((review) =>
         review.id !== reviewId || review.businessAccountId !== businessAccountId
           ? review

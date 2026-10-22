@@ -1,17 +1,5 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, FlaskConical, RotateCcw, EyeOff } from "lucide-react";
-
-export function DemoBadge({ label = "Dados de demonstração", className = "" }: { label?: string; className?: string }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-info ${className}`}
-      title="Demonstração local: publicações e mídias novas existem só na sessão atual e são perdidas ao recarregar. Nenhum upload ou salvamento no servidor."
-    >
-      <FlaskConical className="h-3 w-3" aria-hidden />
-      {label}
-    </span>
-  );
-}
+import { AlertTriangle, RotateCcw, EyeOff } from "lucide-react";
 
 export function UnavailableState({
   title = "Conteúdo indisponível",
@@ -41,7 +29,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-info hover:bg-info/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info"
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <RotateCcw className="h-3 w-3" aria-hidden /> Tentar novamente
         </button>

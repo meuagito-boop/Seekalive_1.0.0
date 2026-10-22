@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { SettingsSubheader, UnavailableNotice } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
 
 function SettingRow({ label, desc, checked, onToggle, testId }: {
@@ -17,7 +18,7 @@ function SettingRow({ label, desc, checked, onToggle, testId }: {
         <p className="font-medium text-sm">{label}</p>
         {desc && <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>}
       </div>
-      <Switch checked={checked} onCheckedChange={onToggle} data-testid={testId} />
+      <Switch checked={checked} onCheckedChange={onToggle} disabled aria-label={`${label} (indisponível)`} data-testid={testId} />
     </div>
   );
 }
@@ -33,7 +34,10 @@ function SelectRow({ label, value, options, onChange, testId }: {
   return (
     <div className="relative">
       <button
-        className="w-full flex items-center justify-between px-4 py-4 border-b border-border hover:bg-muted/20 transition-colors"
+        type="button"
+        disabled
+        aria-label={`${label}: ${value} (indisponível)`}
+        className="w-full flex items-center justify-between px-4 py-4 border-b border-border disabled:cursor-not-allowed disabled:opacity-70"
         onClick={() => setOpen(v => !v)}
         data-testid={testId}
       >
@@ -65,13 +69,9 @@ export default function SettingsPrivacy() {
   const [readReceipts, setReadReceipts] = useState(true);
 
   return (
-    <div className="min-h-screen pb-16 md:pb-0">
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg flex items-center gap-3 px-4 h-14 border-b border-border">
-        <button onClick={() => window.history.back()} className="text-muted-foreground hover:text-foreground" data-testid="button-back">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="font-bold text-lg">Privacidade e segurança</h1>
-      </div>
+    <div className="min-h-[100dvh] pb-16 md:pb-0">
+      <SettingsSubheader title="Privacidade" />
+      <UnavailableNotice>Estas preferências ainda não podem ser alteradas: dependem de um serviço que ainda não está disponível. Os valores mostrados são os padrões.</UnavailableNotice>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="px-4 pt-5 pb-1">
@@ -79,7 +79,7 @@ export default function SettingsPrivacy() {
         </div>
         <SettingRow
           label="Perfil privado"
-          desc="Apenas seguidores aprovados podem ver suas publicações"
+          desc="Quando disponível: só seguidores aprovados verão suas publicações. Hoje não é aplicado."
           checked={privateProfile}
           onToggle={() => setPrivateProfile(v => !v)}
           testId="toggle-private-profile"
@@ -94,7 +94,7 @@ export default function SettingsPrivacy() {
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagens</p>
         </div>
-        <SettingRow label="Confirmações de leitura" desc="Mostrar quando você leu as mensagens" checked={readReceipts} onToggle={() => setReadReceipts(v => !v)} testId="toggle-read-receipts" />
+        <SettingRow label="Confirmações de leitura" desc="Quando disponível: mostrará quando você leu as mensagens. Hoje não é aplicado." checked={readReceipts} onToggle={() => setReadReceipts(v => !v)} testId="toggle-read-receipts" />
 
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bloqueios</p>

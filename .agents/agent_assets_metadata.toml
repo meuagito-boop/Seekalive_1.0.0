@@ -14,3 +14,31 @@ mtime_ms = 1792668741404
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/667afdff-45ac-413c-86d3-831896ebca8c/63bf846e-5669-4637-9a3a-b16db7e457f1"
 storage_version_token = "1792668811286130"
 content_type = "text/html"
+
+[[outputs]]
+id = "84efDvLJw82I6kBvgSx14"
+uri = "file://Socialnewzip/Socialnewzip/reports/auditoria-social-seek.html"
+type = "html"
+title = "Relatório de auditoria — Social e Seek"
+description = "Correções implementadas, resultados dos testes, evidências e dependências ainda não implementadas."
+logical_id = "3f4d4c24-add7-454e-b80b-4f25b184198b"
+content_hash = "sha256:184e685ffb49c2ba61f03ac49a58e054c136fe1c8f02b965d4602242fbeec497"
+size = 19042
+mtime_ms = 1792672921468
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/3f4d4c24-add7-454e-b80b-4f25b184198b/18133753-011b-426f-97ef-423a6426af94"
+storage_version_token = "1792672975768268"
+content_type = "text/html"
+
+[[outputs]]
+id = "iS54TH2FOpVTIpYBzXDDh"
+uri = "file://Socialnewzip/Socialnewzip/generated-artifacts/social-audit/compose-photo-mobile.jpg"
+type = "image"
+title = "Editor de publicação com foto"
+description = "Prévia verificada no navegador durante o teste de publicação."
+logical_id = "c4ccb7c3-8f5a-4a07-a6f5-efdf19793939"
+content_hash = "sha256:2328e4f7d5ffaf20512e85b439ea0472339f7a86b01278855d9d2875fe837b34"
+size = 20255
+mtime_ms = 1792672463852
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/c4ccb7c3-8f5a-4a07-a6f5-efdf19793939/96d93202-e583-43f6-9590-be5cde354d15"
+storage_version_token = "1792672976412870"
+content_type = "image/jpeg"

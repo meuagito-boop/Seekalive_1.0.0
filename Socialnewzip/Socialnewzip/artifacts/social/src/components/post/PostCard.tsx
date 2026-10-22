@@ -120,19 +120,19 @@ export function PostCard({ post, compact = false, repostedById }: PostCardProps)
           {isArticle ? (
             <Link
               href={href}
-              className="mt-2 block overflow-hidden rounded-2xl border border-border bg-card/70 no-underline transition-colors hover:border-info/40"
+              className="mt-2 block overflow-hidden rounded-2xl border border-border bg-card/70 no-underline transition-colors hover:border-primary/40"
               data-testid={`article-card-${post.id}`}
             >
               {post.mediaUrls?.[0] && getPostMediaType(post, 0) === "image" && (
                 <img src={post.mediaUrls[0]} alt="" className="h-44 w-full object-cover" />
               )}
               <div className="p-4">
-                <span className="mb-1.5 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-info">
+                <span className="mb-1.5 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-primary">
                   <BookOpenText className="h-3 w-3" aria-hidden /> Artigo · {readingMinutes(post.article!.body)} min de leitura
                 </span>
                 <h3 className="text-lg font-bold leading-snug text-foreground">{post.article!.title}</h3>
                 <p className="mt-1.5 line-clamp-3 text-sm text-muted-foreground">{articleExcerpt(post.article!.body)}</p>
-                <span className="mt-2 inline-block text-xs font-semibold text-info">Ler artigo</span>
+                <span className="mt-2 inline-block text-xs font-semibold text-primary">Ler artigo</span>
               </div>
             </Link>
           ) : (

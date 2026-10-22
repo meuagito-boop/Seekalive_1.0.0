@@ -4,30 +4,28 @@ import {
   User, Shield, Bell, Palette, Lock, Ban, LogOut,
   ChevronRight, Info
 } from "lucide-react";
-import { Header } from "@/components/layout/Header";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppContext } from "@/context/AppContext";
 
 const settingsGroups = [
   {
     title: "Conta",
     items: [
-      { icon: User, label: "Conta", desc: "E-mail, senha e nome de usuário", path: "/settings/account" },
-      { icon: Shield, label: "Privacidade e segurança", desc: "Perfil privado, quem pode te contatar", path: "/settings/privacy" },
+      { icon: User, label: "Conta", desc: "Nome de usuário; e-mail e senha indisponíveis", path: "/settings/account" },
+      { icon: Shield, label: "Privacidade", desc: "Perfil privado e contato · ainda indisponível", path: "/settings/privacy" },
     ],
   },
   {
     title: "Preferências",
     items: [
-      { icon: Bell, label: "Notificações", desc: "Controle o que você recebe", path: "/settings/notifications" },
-      { icon: Palette, label: "Aparência", desc: "Fonte e cor de destaque", path: "/settings/appearance" },
+      { icon: Bell, label: "Notificações", desc: "Preferências de envio · ainda indisponível", path: "/settings/notifications" },
+      { icon: Palette, label: "Aparência", desc: "Modo escuro e tamanho do texto", path: "/settings/appearance" },
     ],
   },
   {
-    title: "Segurança e privacidade",
+    title: "Segurança",
     items: [
-      { icon: Lock, label: "Segurança", desc: "Verificação em duas etapas e sessões ativas", path: "/settings/security" },
-      { icon: Ban, label: "Usuários bloqueados", desc: "Gerencie bloqueios", path: "/settings/blocked" },
+      { icon: Lock, label: "Segurança", desc: "Duas etapas e sessões · ainda indisponível", path: "/settings/security" },
+      { icon: Ban, label: "Usuários bloqueados", desc: "Contas que você bloqueou", path: "/settings/blocked" },
     ],
   },
   {
@@ -40,31 +38,12 @@ const settingsGroups = [
 
 export default function Settings() {
   const [, setLocation] = useLocation();
-  const { currentUser, logout } = useAppContext();
+  const { logout } = useAppContext();
 
   return (
-    <div className="min-h-screen pb-16 md:pb-0">
-      <Header title="Configurações" />
+    <div className="min-h-[100dvh] pb-16 md:pb-0">
+      <h1 className="px-4 pt-5 pb-1 sk-text-page-title">Configurações</h1>
 
-      {currentUser && (
-        <button
-          type="button"
-          className="w-full text-left flex items-center gap-3 px-4 py-4 border-b border-border hover:bg-muted/20 transition-colors"
-          onClick={() => setLocation(`/profile/${currentUser.username}`)}
-          data-testid="settings-profile-link"
-        >
-          <Avatar className="w-14 h-14">
-            <AvatarImage src={currentUser.avatarUrl} />
-            <AvatarFallback className="text-lg">{currentUser.displayName[0]}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-bold text-base">{currentUser.displayName}</p>
-            <p className="text-sm text-muted-foreground">@{currentUser.username}</p>
-            <p className="text-xs text-primary mt-0.5">Ver perfil</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-        </button>
-      )}
 
       {settingsGroups.map((group, gi) => (
         <motion.div
@@ -108,7 +87,7 @@ export default function Settings() {
       ))}
 
       <div className="px-4 pt-5 pb-2">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sessão</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acesso</p>
       </div>
       <div className="bg-card border-y border-border">
         <button
@@ -119,7 +98,7 @@ export default function Settings() {
           <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
             <LogOut className="w-4 h-4 text-destructive" />
           </div>
-          <span className="font-medium text-sm text-destructive">Sair</span>
+          <span className="font-medium text-sm text-destructive">Sair da conta</span>
         </button>
       </div>
 

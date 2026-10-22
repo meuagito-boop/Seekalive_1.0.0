@@ -2,3 +2,4 @@
 - [Visão e contas do Seek](seek-positioning.md) — Seek deve superar Yelp e Dianping; comércios são contas comerciais da própria rede Social.
 - [Galeria de mídias Social](social-media-gallery.md) — Mídia publicada alimenta a galeria da conta; priorizar o front-end antes de banco e persistência no servidor.
 - [Escopo dos módulos](product-scope.md) — Comunidades foram retiradas do produto; Círculos continuam como recurso distinto.
+- [Interface Social e Seek](social-interface-rules.md) — Laranja, navegação sem redundância e nenhum sucesso simulado ao retirar avisos de demonstração.

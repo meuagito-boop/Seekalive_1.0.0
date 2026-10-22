@@ -44,7 +44,7 @@ export default function Profile() {
       <UnavailableState
         title="Perfil indisponível"
         description={`Não encontramos @${username}. A conta pode ter sido removida.`}
-        action={<Link href="/feed" className="text-sm font-semibold text-info hover:underline">Voltar ao feed</Link>}
+        action={<Link href="/feed" className="text-sm font-semibold text-primary hover:underline">Voltar ao feed</Link>}
       />
     );
   }
@@ -326,7 +326,7 @@ export default function Profile() {
                 <p className="text-xs text-muted-foreground">
                   {c.replyToCommentId ? "Respondeu a um comentário em " : "Comentou em "}
                   {target && visibleToViewer(target)
-                    ? <Link href={postPath(target)} className="font-semibold text-info hover:underline">{target.article?.title ?? (target.content.slice(0, 60) || "publicação")}</Link>
+                    ? <Link href={postPath(target)} className="font-semibold text-primary hover:underline">{target.article?.title ?? (target.content.slice(0, 60) || "publicação")}</Link>
                     : <span>publicação indisponível</span>}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-sm">{c.content}</p>
@@ -345,7 +345,7 @@ export default function Profile() {
           userArticles.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
               <p className="text-sm">Nenhum artigo ainda.</p>
-              {isMe && <Link href="/article/create" className="text-sm font-semibold text-info hover:underline">Escrever artigo</Link>}
+              {isMe && <Link href="/article/create" className="text-sm font-semibold text-primary hover:underline">Escrever artigo</Link>}
             </div>
           ) : userArticles.map(post => <PostCard key={post.id} post={post} />)
         )}

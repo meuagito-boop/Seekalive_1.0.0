@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { Search, Menu } from "lucide-react";
+import { Search } from "lucide-react";
 import { Header } from "./Header";
 import { BottomNav } from "./BottomNav";
 import { SocialDesktopHeader } from "./SocialDesktopHeader";
 import { SocialSidebar } from "@/components/social/SocialSidebar";
-import { SocialDrawer } from "@/components/social/SocialDrawer";
 import { SocialContextPanel } from "@/components/social/SocialContextPanel";
 
 interface SocialLayoutProps {
@@ -13,7 +12,6 @@ interface SocialLayoutProps {
 }
 
 export function SocialLayout({ children }: SocialLayoutProps) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [, setLocation] = useLocation();
 
@@ -24,7 +22,7 @@ export function SocialLayout({ children }: SocialLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-[100dvh] bg-background text-foreground">
 
       {/* ── Mobile header (existing, md:hidden) ────────────────── */}
       <Header />
@@ -73,15 +71,8 @@ export function SocialLayout({ children }: SocialLayoutProps) {
 
       {/* ── Mobile layout ───────────────────────────────────────── */}
       <div className="md:hidden">
-        {/* Mobile search row with drawer toggle */}
+        {/* Mobile search row */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-background">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
-            aria-label="Abrir menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
           <form role="search" onSubmit={submitSearch} className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
@@ -103,9 +94,6 @@ export function SocialLayout({ children }: SocialLayoutProps) {
 
       {/* ── Bottom nav (mobile only, fixed) ─────────────────────── */}
       <BottomNav />
-
-      {/* ── Mobile drawer ───────────────────────────────────────── */}
-      <SocialDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }

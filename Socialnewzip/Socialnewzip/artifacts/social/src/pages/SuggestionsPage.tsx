@@ -2,8 +2,6 @@ import { motion } from "framer-motion";
 import { UserPlus, Hash, Store, ArrowLeft, Star } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Header } from "@/components/layout/Header";
-import { DemoBadge } from "@/components/content/StateBlocks";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { Link, useLocation } from "wouter";
@@ -25,10 +23,10 @@ export default function SuggestionsPage() {
   const [, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      <Header title="Sugestões" />
+    <div className="min-h-[100dvh] pb-20 md:pb-0">
+      <h1 className="px-4 pt-5 pb-2 sk-text-page-title">Sugestões</h1>
 
-      <div className="sticky top-14 md:top-0 z-20 bg-background border-b border-border">
+      <div className="sticky top-14 z-20 bg-background border-b border-border">
         <div className="flex items-center gap-2 px-4 h-12">
           <button
             type="button"
@@ -101,7 +99,6 @@ export default function SuggestionsPage() {
 
         {/* Tópicos */}
         <TabsContent value="topics">
-          <div className="px-4 pt-4"><DemoBadge label="Tópicos e contagens de exemplo" /></div>
           <div className="p-4 grid grid-cols-2 gap-3">
             {suggestTopics.map((topic, i) => {
               return (

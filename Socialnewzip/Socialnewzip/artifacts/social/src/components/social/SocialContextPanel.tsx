@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Star, Users, TrendingUp } from "lucide-react";
 import { useSocial } from "@/context/SocialContext";
-import { DemoBadge } from "@/components/content/StateBlocks";
 import { useAppContext } from "@/context/AppContext";
 import { demoSeekEvents } from "@/data/demoSeekEvents";
 
@@ -55,7 +54,6 @@ export function SocialContextPanel() {
 
       {/* Lugares em alta */}
       <PanelCard title="Lugares em alta" icon={<MapPin className="w-4 h-4" />}>
-        <div className="px-4 pt-2"><DemoBadge label="Exemplo" /></div>
         {places.map((place) => {
           const entries = reviews.filter(review => review.businessAccountId === place.id);
           const rating = entries.length ? entries.reduce((sum, review) => sum + review.rating, 0) / entries.length : undefined;
@@ -76,7 +74,6 @@ export function SocialContextPanel() {
 
       {/* Eventos próximos */}
       <PanelCard title="Eventos próximos" icon={<Calendar className="w-4 h-4" />}>
-        <div className="px-4 pt-2"><DemoBadge label="Exemplo" /></div>
         {demoSeekEvents.slice(0, 2).map((event) => (
           <Link key={event.id} href={`/seek/event/${event.id}`} className="block px-4 py-2.5 hover:bg-muted/30">
             <p className="text-xs font-semibold text-foreground">{event.name}</p>

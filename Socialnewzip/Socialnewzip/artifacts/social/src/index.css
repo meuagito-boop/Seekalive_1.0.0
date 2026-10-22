@@ -77,15 +77,15 @@
   --popover-border: 225 20% 13%;
 
   /* ── Brand — SeekAlive Orange ──────────────────────────────────── */
-  --primary: 24 95% 53%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 27 96% 53%;
+  --primary-foreground: 225 25% 8%;
 
   /* ── Secondary / Muted ─────────────────────────────────────────── */
   --secondary: 225 20% 13%;
   --secondary-foreground: 210 15% 96%;
 
   --muted: 225 20% 13%;
-  --muted-foreground: 225 12% 52%;
+  --muted-foreground: 225 12% 66%;
 
   /* ── Accent ────────────────────────────────────────────────────── */
   --accent: 225 20% 16%;
@@ -107,24 +107,24 @@
   /* ── Chrome ────────────────────────────────────────────────────── */
   --border: 225 20% 13%;
   --input: 225 20% 13%;
-  --ring: 24 95% 53%;
+  --ring: 27 96% 53%;
 
   /* ── Sidebar ───────────────────────────────────────────────────── */
   --sidebar: 225 20% 4%;
   --sidebar-foreground: 210 15% 96%;
   --sidebar-border: 225 20% 13%;
-  --sidebar-primary: 24 95% 53%;
-  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-primary: 27 96% 53%;
+  --sidebar-primary-foreground: 225 25% 8%;
   --sidebar-accent: 225 20% 13%;
   --sidebar-accent-foreground: 210 15% 96%;
-  --sidebar-ring: 24 95% 53%;
+  --sidebar-ring: 27 96% 53%;
 
   /* ── Semantic CSS vars (use directly in inline styles) ─────────── */
-  --brand-primary: hsl(24 95% 53%);
-  --brand-primary-hover: hsl(24 95% 46%);
-  --brand-primary-subtle: hsl(24 95% 53% / 0.12);
-  --brand-glow: 0 0 20px hsl(24 95% 53% / 0.3);
-  --brand-glow-lg: 0 0 32px hsl(24 95% 53% / 0.4);
+  --brand-primary: hsl(27 96% 53%);
+  --brand-primary-hover: hsl(27 96% 46%);
+  --brand-primary-subtle: hsl(27 96% 53% / 0.12);
+  --brand-glow: 0 0 20px hsl(27 96% 53% / 0.3);
+  --brand-glow-lg: 0 0 32px hsl(27 96% 53% / 0.4);
 
   --surface-app: hsl(225 20% 5%);
   --surface-card: hsl(225 20% 8%);
@@ -133,7 +133,7 @@
 
   --text-primary: hsl(210 15% 96%);
   --text-secondary: hsl(225 12% 68%);
-  --text-muted: hsl(225 12% 52%);
+  --text-muted: hsl(225 12% 66%);
 
   --state-success: hsl(142 71% 45%);
   --state-warning: hsl(38 92% 50%);
@@ -147,6 +147,26 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Foco centralizado: visível só para teclado, sempre na cor da marca */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

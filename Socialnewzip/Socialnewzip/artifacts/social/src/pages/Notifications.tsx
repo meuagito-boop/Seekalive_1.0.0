@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, Heart, MessageCircle, Repeat2, UserPlus, Users, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Header } from "@/components/layout/Header";
 import { formatTimeAgo } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import type { Notification } from "@/data/mockData";
@@ -12,7 +11,7 @@ const tabs = ["Todas", "Menções", "Amigos", "Reações"];
 function notifIcon(type: Notification["type"]) {
   switch (type) {
     case "like": return <Heart className="w-3.5 h-3.5 text-red-400" />;
-    case "comment": return <MessageCircle className="w-3.5 h-3.5 text-blue-400" />;
+    case "comment": return <MessageCircle className="w-3.5 h-3.5 text-primary" />;
     case "repost": return <Repeat2 className="w-3.5 h-3.5 text-green-400" />;
     case "follow": return <UserPlus className="w-3.5 h-3.5 text-primary" />;
     case "circle_request":
@@ -60,10 +59,10 @@ export default function Notifications() {
   const unread = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="min-h-screen pb-16 md:pb-0">
-      <Header title="Notificações" />
+    <div className="min-h-[100dvh] pb-16 md:pb-0">
+      <h1 className="px-4 pt-5 pb-2 sk-text-page-title">Notificações</h1>
 
-      <div className="sticky top-14 md:top-0 z-30 bg-background/80 backdrop-blur-lg border-b border-border">
+      <div className="sticky top-14 z-30 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="flex items-center justify-end px-4 py-2 min-h-[36px]">
           {unread > 0 && (
             <button

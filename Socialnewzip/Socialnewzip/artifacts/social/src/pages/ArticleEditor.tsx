@@ -8,7 +8,7 @@ import { useDraftMedia } from "@/hooks/use-draft-media";
 import { MediaDraftGrid, MediaPickerButtons } from "@/components/content/MediaDraftGrid";
 import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard";
 import { ArticleBody, readingMinutes } from "@/components/content/RichText";
-import { DemoBadge, ErrorState } from "@/components/content/StateBlocks";
+import { ErrorState } from "@/components/content/StateBlocks";
 import { readReferenceFromSearch } from "@/lib/contentLinks";
 import type { ContentReference } from "@/types/content";
 
@@ -57,7 +57,7 @@ export default function ArticleEditor() {
 
   async function submit() {
     setTouched(true);
-    if (!valid || submitting.current || !currentUser) return;
+    if (!valid || submitting.current || draft.preparing || !currentUser) return;
     submitting.current = true;
     setStatus("submitting");
     setSubmitError("");
@@ -82,7 +82,7 @@ export default function ArticleEditor() {
     }
   }
 
-  const tool = "rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info";
+  const tool = "rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
@@ -97,12 +97,12 @@ export default function ArticleEditor() {
           <div role="tablist" aria-label="Modo do editor" className="flex rounded-full border border-border p-0.5 text-xs">
             {(["write", "preview"] as const).map((m) => (
               <button key={m} role="tab" type="button" aria-selected={mode === m} onClick={() => setMode(m)}
-                className={`flex items-center gap-1 rounded-full px-3 py-1 font-semibold ${mode === m ? "bg-info/15 text-info" : "text-muted-foreground"}`}>
+                className={`flex items-center gap-1 rounded-full px-3 py-1 font-semibold ${mode === m ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}>
                 {m === "write" ? <><PenLine className="h-3 w-3" /> Escrever</> : <><Eye className="h-3 w-3" /> Prévia</>}
               </button>
             ))}
           </div>
-          <Button onClick={submit} disabled={status === "submitting"} className="h-8 rounded-full px-5 text-sm font-semibold" data-testid="button-publish-article">
+          <Button onClick={submit} disabled={!valid || draft.preparing || status === "submitting"} className="min-h-11 rounded-full px-5 text-sm font-semibold" data-testid="button-publish-article">
             {status === "submitting" && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
             Publicar
           </Button>
@@ -159,6 +159,7 @@ export default function ArticleEditor() {
         )}
 
         <MediaDraftGrid media={draft.media} onRemove={draft.remove} />
+        {draft.preparing && <p role="status" className="mt-2 text-sm text-muted-foreground">Preparando prévia da mídia…</p>}
         {draft.error && <p role="alert" className="mt-2 text-sm text-destructive">{draft.error}</p>}
 
         {reference && (
@@ -174,7 +175,7 @@ export default function ArticleEditor() {
       <footer className="sticky bottom-0 border-t border-border bg-background px-4 py-3">
         <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
-            <MediaPickerButtons count={draft.media.length} onAdd={(f, t) => void draft.add(f, t)} />
+            <MediaPickerButtons count={draft.media.length} disabled={draft.preparing || status === "submitting"} onAdd={(f, t) => void draft.add(f, t)} />
             <div className="flex gap-1" role="radiogroup" aria-label="Público">
               {audiences.map(({ value, label, icon: Icon }) => (
                 <button key={value} type="button" role="radio" aria-checked={audience === value} onClick={() => setAudience(value)}
@@ -184,7 +185,6 @@ export default function ArticleEditor() {
               ))}
             </div>
           </div>
-          <DemoBadge label="Demonstração · só nesta sessão" />
         </div>
       </footer>
     </div>

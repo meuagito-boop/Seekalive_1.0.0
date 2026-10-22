@@ -39,7 +39,7 @@ export function ShareContentDialog({ open, onOpenChange, reference, title, linkP
   }
 
   const option =
-    "group flex w-full items-start gap-3 rounded-xl border border-border bg-card/60 p-3 text-left transition-colors hover:border-info/50 hover:bg-info/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info";
+    "group flex w-full items-start gap-3 rounded-xl border border-border bg-card/60 p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,7 +59,7 @@ export function ShareContentDialog({ open, onOpenChange, reference, title, linkP
             </span>
           </button>
           <button type="button" className={option} onClick={() => go(articleCreatePath(reference))} data-testid="share-write-article">
-            <BookOpenText className="mt-0.5 h-5 w-5 shrink-0 text-info" aria-hidden />
+            <BookOpenText className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <span>
               <span className="block text-sm font-semibold">Escrever artigo</span>
               <span className="block text-xs text-muted-foreground">Análise ou relato longo, com título próprio.</span>

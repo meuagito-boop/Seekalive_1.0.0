@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { demoShopItems } from "@/data/demoCatalog";
 import { useSocial } from "@/context/SocialContext";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
-import { DemoBadge, UnavailableState } from "@/components/content/StateBlocks";
+import { UnavailableState } from "@/components/content/StateBlocks";
 import { useSavedShopItems } from "@/hooks/use-saved-shop-items";
 
 export default function ShopItemDetail() {
@@ -35,19 +35,18 @@ export default function ShopItemDetail() {
       <div className="grid gap-8 md:grid-cols-2">
         <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
           <img src={item.img} alt={item.name} className="aspect-square w-full object-cover" />
-          <DemoBadge className="absolute left-3 top-3 bg-background/70 backdrop-blur" label="Item de exemplo" />
         </div>
         <div>
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-info">Shop · {item.tag}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">Shop · {item.tag}</span>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">{item.name}</h1>
           <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
             <Store className="h-4 w-4" />
-            {seller ? <Link href={`/profile/${seller.username}`} className="font-semibold text-info hover:underline">{seller.displayName}</Link> : item.store}
+            {seller ? <Link href={`/profile/${seller.username}`} className="font-semibold text-primary hover:underline">{seller.displayName}</Link> : item.store}
           </p>
           {item.rating !== undefined && (
             <p className="mt-3 flex items-center gap-1 text-sm">
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> {item.rating}
-              {item.reviews !== undefined && <span className="text-muted-foreground">({item.reviews} avaliações de exemplo)</span>}
+              {item.reviews !== undefined && <span className="text-muted-foreground">({item.reviews} avaliações)</span>}
             </p>
           )}
           {item.price && (
@@ -56,7 +55,7 @@ export default function ShopItemDetail() {
               {item.oldPrice && <span className="text-sm text-muted-foreground line-through">{item.oldPrice}</span>}
             </div>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">Preço de demonstração — não é uma oferta real nem confirma disponibilidade.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Preço ilustrativo — não é uma oferta nem confirma disponibilidade.</p>
 
           <div className="mt-6 flex flex-wrap gap-2">
             <Button disabled className="rounded-full" title="Checkout ainda não disponível" data-testid="button-checkout-disabled">

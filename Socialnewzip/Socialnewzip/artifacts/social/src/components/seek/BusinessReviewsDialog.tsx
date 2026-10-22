@@ -80,7 +80,8 @@ export function BusinessReviewsDialog({
       return;
     }
 
-    upsertSeekReview({
+    try {
+      upsertSeekReview({
       id: myReview?.id ?? `review-${business.id}-${currentUser.id}`,
       businessAccountId: business.id,
       reviewerId: currentUser.id,
@@ -88,8 +89,11 @@ export function BusinessReviewsDialog({
       comment: trimmedComment,
       createdAt: myReview?.createdAt ?? new Date().toISOString(),
       businessReply: myReview?.businessReply,
-    });
-    setNotice("Sua avaliação foi salva.");
+      });
+      setNotice("Sua avaliação foi salva neste navegador.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Não foi possível salvar. Sua avaliação foi mantida no formulário.");
+    }
   }
 
   function submitReply(event: FormEvent<HTMLFormElement>, reviewId: string) {
@@ -102,9 +106,13 @@ export function BusinessReviewsDialog({
       return;
     }
 
-    replyToSeekReview(reviewId, business.id, text);
-    setReplyDrafts((drafts) => ({ ...drafts, [reviewId]: text }));
-    setNotice("Resposta do comércio salva.");
+    try {
+      replyToSeekReview(reviewId, business.id, text);
+      setReplyDrafts((drafts) => ({ ...drafts, [reviewId]: text }));
+      setNotice("Resposta do comércio salva neste navegador.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Não foi possível salvar. Sua resposta foi mantida.");
+    }
   }
 
   if (!business) return null;

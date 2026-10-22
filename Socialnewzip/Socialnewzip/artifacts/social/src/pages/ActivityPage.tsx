@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Header } from "@/components/layout/Header";
 import type { Post } from "@/data/mockData";
 import { Link, useLocation } from "wouter";
 import { useSocial } from "@/context/SocialContext";
@@ -56,10 +55,10 @@ export default function ActivityPage() {
   });
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      <Header title="Atividades" />
+    <div className="min-h-[100dvh] pb-20 md:pb-0">
+      <h1 className="px-4 pt-5 pb-2 sk-text-page-title">Atividades</h1>
 
-      <div className="sticky top-14 md:top-0 z-20 bg-background border-b border-border">
+      <div className="sticky top-14 z-20 bg-background border-b border-border">
         <div className="flex items-center gap-2 px-4 h-12">
           <button
             type="button"
@@ -140,7 +139,7 @@ export default function ActivityPage() {
         </TabsContent>
 
         <TabsContent value="comments">
-          {commentItems.length === 0 && <EmptyState icon={<MessageSquare />} label="Nenhum comentário seu nesta sessão" />}
+          {commentItems.length === 0 && <EmptyState icon={<MessageSquare />} label="Você ainda não comentou" />}
           {commentItems.map(({ post, comment }) => (
             <PostRow
               key={comment.id}

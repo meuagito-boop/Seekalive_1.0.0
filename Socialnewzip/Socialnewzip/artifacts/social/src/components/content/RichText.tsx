@@ -19,7 +19,7 @@ export function renderInline(text: string, inlineFormatting = false, keyPrefix =
           key={key}
           href={`/search?q=${encodeURIComponent("#" + tag.toLowerCase())}`}
           onClick={(event) => event.stopPropagation()}
-          className="font-medium text-info hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info rounded-sm"
+          className="font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
         >
           {part}
         </Link>
@@ -31,7 +31,7 @@ export function renderInline(text: string, inlineFormatting = false, keyPrefix =
           key={key}
           href={`/profile/${encodeURIComponent(part.slice(1))}`}
           onClick={(event) => event.stopPropagation()}
-          className="font-medium text-info hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info rounded-sm"
+          className="font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
         >
           {part}
         </Link>
@@ -65,7 +65,7 @@ export function ArticleBody({ body, className = "" }: { body: string; className?
         const lines = block.split("\n");
         if (lines.every((line) => /^\s*-\s+/.test(line))) {
           return (
-            <ul key={index} className="list-disc space-y-1.5 pl-6 marker:text-info">
+            <ul key={index} className="list-disc space-y-1.5 pl-6 marker:text-primary">
               {lines.map((line, li) => (
                 <li key={li}>{renderInline(line.replace(/^\s*-\s+/, ""), true, `b${index}-${li}`)}</li>
               ))}
@@ -81,7 +81,7 @@ export function ArticleBody({ body, className = "" }: { body: string; className?
         }
         if (block.startsWith("> ")) {
           return (
-            <blockquote key={index} className="border-l-2 border-info pl-4 italic text-muted-foreground">
+            <blockquote key={index} className="border-l-2 border-primary pl-4 italic text-muted-foreground">
               {renderInline(block.replace(/^>\s?/gm, ""), true, `q${index}`)}
             </blockquote>
           );

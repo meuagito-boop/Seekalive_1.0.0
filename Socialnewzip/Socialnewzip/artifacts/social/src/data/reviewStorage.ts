@@ -43,6 +43,6 @@ export function saveStoredSeekReviews(reviews: SeekReview[]) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
   } catch {
-    console.warn("Could not save Seek reviews in this browser.");
+    throw new Error("Não foi possível salvar a avaliação neste navegador. Verifique o espaço disponível e as permissões de armazenamento.");
   }
 }

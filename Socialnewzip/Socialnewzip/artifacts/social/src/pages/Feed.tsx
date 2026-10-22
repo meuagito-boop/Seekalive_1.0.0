@@ -5,9 +5,8 @@ import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, Play, BookOpenT
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PostCard } from "@/components/post/PostCard";
-import { SocialComposer } from "@/components/social/SocialComposer";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
-import { DemoBadge, EmptyState } from "@/components/content/StateBlocks";
+import { EmptyState } from "@/components/content/StateBlocks";
 import { formatCount, type Post } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
@@ -74,7 +73,7 @@ function VideoFeedItem({ post }: { post: Post }) {
         ) : poster ? (
           <img src={poster} alt="" className="h-full w-full object-cover opacity-80" />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-info/20 to-primary/20 p-8 text-center text-sm text-white/80">{post.content}</div>
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/25 to-primary/5 p-8 text-center text-sm text-white/80">{post.content}</div>
         )}
         {!isRealVideo && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -138,8 +137,6 @@ export default function Feed() {
 
   return (
     <div className="relative min-h-[100dvh]">
-      {activeTab !== 3 && <SocialComposer />}
-
       <div className="border-b border-border bg-background">
         <div role="tablist" aria-label="Seções do feed" className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {feedTabs.map((tab, i) => (
@@ -150,11 +147,6 @@ export default function Feed() {
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-[11px] text-muted-foreground">
-        <DemoBadge />
-        <span>Publicações novas ficam só nesta sessão e somem ao recarregar.</span>
       </div>
 
       <AnimatePresence mode="wait">

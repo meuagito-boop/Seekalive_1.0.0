@@ -60,7 +60,7 @@ function CommentForm({
           autoFocus={autoFocus}
           maxLength={2000}
           data-testid={replyTo ? `input-reply-${replyTo}` : "input-reply"}
-          className="min-w-0 w-full flex-1 rounded-full border border-border bg-card/60 px-4 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-info/60"
+          className="min-w-0 w-full flex-1 rounded-full border border-border bg-card/60 px-4 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/60"
         />
         <button
           type="submit"
@@ -119,7 +119,7 @@ function CommentItem({
               <Heart className={`h-3.5 w-3.5 ${comment.isLiked ? "fill-red-500" : ""}`} /> {Math.max(0, comment.likes)}
             </button>
             {depth < 3 && (
-              <button type="button" onClick={() => setReplying((v) => !v)} className="inline-flex items-center gap-1 hover:text-info">
+              <button type="button" onClick={() => setReplying((v) => !v)} className="inline-flex items-center gap-1 hover:text-primary">
                 <CornerDownRight className="h-3.5 w-3.5" /> Responder
               </button>
             )}

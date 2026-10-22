@@ -59,7 +59,7 @@ export function ReferencePreviewCard({
       type="button"
       onClick={onRemove}
       aria-label="Remover referência anexada"
-      className="absolute right-2 top-2 z-10 rounded-full bg-background/85 p-1.5 text-muted-foreground backdrop-blur hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info"
+      className="absolute right-2 top-2 z-10 rounded-full bg-background/85 p-1.5 text-muted-foreground backdrop-blur hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <X className="h-3.5 w-3.5" />
     </button>
@@ -110,7 +110,7 @@ export function ReferencePreviewCard({
         href={preview.targetPath}
         onClick={(event) => event.stopPropagation()}
         aria-label={`${actionLabel(preview)}: ${preview.title}`}
-        className="group flex gap-3 overflow-hidden rounded-2xl border border-info/25 bg-gradient-to-br from-info/[0.07] to-card p-3 no-underline transition-colors hover:border-info/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info"
+        className="group flex gap-3 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.07] to-card p-3 no-underline transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         data-testid={`reference-${preview.type}-${preview.id}`}
       >
         {preview.imageUrl ? (
@@ -125,7 +125,7 @@ export function ReferencePreviewCard({
           </div>
         )}
         <div className="min-w-0 flex-1 pr-6">
-          <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-info">
+          <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
             <TypeIcon className="h-3 w-3" aria-hidden />
             {meta.label}
             {preview.entityLabel && <span className="text-muted-foreground">· {preview.entityLabel}</span>}
@@ -153,7 +153,7 @@ export function ReferencePreviewCard({
             {preview.price && <span className="font-semibold text-primary">{preview.price}</span>}
             {preview.type === "shop_item" && preview.authorName && <span>Vendido por {preview.authorName}</span>}
           </div>
-          <span className="mt-1.5 inline-flex items-center gap-0.5 text-xs font-semibold text-info group-hover:underline">
+          <span className="mt-1.5 inline-flex items-center gap-0.5 text-xs font-semibold text-primary group-hover:underline">
             {actionLabel(preview)} <ArrowUpRight className="h-3 w-3" aria-hidden />
           </span>
         </div>

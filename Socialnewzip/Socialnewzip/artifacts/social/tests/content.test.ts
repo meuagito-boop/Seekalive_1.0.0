@@ -8,6 +8,9 @@ import { resolveReference } from "../src/services/referenceResolver";
 import { socialReducer, type SocialState } from "../src/context/SocialContext";
 import { mockUsers, mockNotifications, currentUser, formatCount, formatTimeAgo } from "../src/data/mockData";
 import type { PublishPostInput } from "../src/types/content";
+import { validateMediaFiles } from "../src/services/mediaService";
+import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters";
+import { saveStoredSeekReviews } from "../src/data/reviewStorage";
 
 const input: PublishPostInput = { content: "Minha opinião #café", authorId: "me", audience: "public" };
 const post = makeDemoPost(input);
@@ -22,8 +25,47 @@ test("datas e contagens usam português e toleram valores inválidos", () => {
 });
 test("conta de exemplo usa a identidade atual sem website fictício", () => {
   assert.equal(currentUser.username, "usuario_demo");
-  assert.equal(currentUser.displayName, "Conta de demonstração");
+  assert.equal(currentUser.displayName, "Minha conta");
   assert.equal(currentUser.website, undefined);
+});
+test("mídias rejeitam arquivos vazios, formatos inválidos, excesso e tamanhos acima do limite", () => {
+  const photo = new File(["foto"], "foto.jpg", { type: "image/jpeg" });
+  assert.doesNotThrow(() => validateMediaFiles([photo], "image"));
+  assert.throws(() => validateMediaFiles([new File([], "vazio.jpg", { type: "image/jpeg" })], "image"));
+  assert.throws(() => validateMediaFiles([new File(["svg"], "vetor.svg", { type: "image/svg+xml" })], "image"));
+  assert.throws(() => validateMediaFiles([photo], "video"));
+  assert.throws(() => validateMediaFiles(Array(9).fill(photo), "image"));
+  assert.throws(() => validateMediaFiles([{ type: "image/jpeg", size: 10 * 1024 * 1024 + 1 } as File], "image"));
+  assert.throws(() => validateMediaFiles([{ type: "video/mp4", size: 100 * 1024 * 1024 + 1 } as File], "video"));
+});
+test("falha de armazenamento de avaliação não simula sucesso", () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { localStorage: { setItem() { throw new Error("QuotaExceededError"); } } },
+  });
+  try {
+    assert.throws(() => saveStoredSeekReviews([]), /Não foi possível salvar a avaliação/);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "window", previous);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
+});
+test("Seek busca sem acentos e combina categoria, nota, status, distância e ordenação", () => {
+  assert.ok(matchesSeekSearch(["Café Central", "São Paulo"], " cafe  sao "));
+  assert.equal(matchesSeekSearch(["Café Central"], "bar"), false);
+  const businesses = [
+    { name: "Café Central", username: "cafe", bio: "", category: "Cafés", categoryKey: "cafes", address: "São Paulo", tags: [], open: true, rating: 4.5, distanceKm: 2 },
+    { name: "Bar", username: "bar", bio: "", category: "Bares", categoryKey: "bares", address: "São Paulo", tags: [], open: false, rating: 5, distanceKm: 1 },
+    { name: "Sem distância", username: "sem", bio: "", category: "Cafés", categoryKey: "cafes", address: "", tags: [], rating: 3 },
+  ];
+  const filters = { query: "", category: null, onlyOpen: false, minimumRating: 0, maxDistance: 0, nearest: false };
+  assert.deepEqual(filterSeekBusinesses(businesses, filters).map(b => b.username), ["bar", "cafe", "sem"]);
+  assert.deepEqual(filterSeekBusinesses(businesses, { ...filters, query: "cafe sao", onlyOpen: true, minimumRating: 4, maxDistance: 5, category: "cafes" }).map(b => b.username), ["cafe"]);
+  assert.equal(filterSeekBusinesses(businesses, { ...filters, maxDistance: 1 }).length, 1);
+  assert.equal(filterSeekBusinesses(businesses, { ...filters, minimumRating: 4.9, onlyOpen: true }).length, 0);
+  assert.deepEqual(filterSeekBusinesses(businesses, { ...filters, nearest: true }).map(b => b.username), ["bar", "cafe", "sem"]);
+  assert.equal(businesses[0].username, "cafe"); // Does not mutate the shared account list.
 });
 test("mensagens respeitam a conta participante e preservam remetente e conversa", () => {
   const conversation = { id: "conversa-local", participantIds: ["conta-criada", "u1"], unreadCount: 1, createdAt: new Date().toISOString() };
