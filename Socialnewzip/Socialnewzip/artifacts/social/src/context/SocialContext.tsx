@@ -462,7 +462,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       if (policies.includes("nobody"))
         throw new ContentServiceError("Esta pessoa não está recebendo mensagens diretas.", 403);
       if (policies.includes("circle") && recipients?.some(recipient =>
-        !areMutualFollowers(currentUser, recipient)))
+        !areMutualFollowers(currentUser ?? undefined, recipient)))
         throw new ContentServiceError("Esta pessoa recebe mensagens apenas do próprio Círculo.", 403);
       dispatch({ type: "SEND_MESSAGE", message });
     },

@@ -34,7 +34,9 @@ export default function Circles() {
         <UserCheck className="w-5 h-5 text-primary flex-shrink-0" />
         <div>
           <h1 className="font-bold text-base leading-tight">Meu Círculo</h1>
-          <p className="text-xs text-muted-foreground">{acceptedList.length} pessoas que se seguem mutuamente</p>
+          <p className="text-xs text-muted-foreground">
+            {acceptedList.length} {acceptedList.length === 1 ? "pessoa" : "pessoas"} que se seguem mutuamente
+          </p>
         </div>
       </div>
 
