@@ -23,8 +23,8 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 ### Fase 2 — Conta única, perfil e relacionamentos
 
 - Conta pessoal/comercial é a mesma identidade Social; extensão comercial vinculada um-a-um à conta.
-- Implementar perfil, privacidade, seguir, Círculo, bloqueio/silenciamento e salvos.
-- Aceite: toda consulta aplica ACL no servidor; perfil privado, bloqueios e requests são testados para ambos os lados; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle.
+- Implementar perfil, privacidade, seguir, Círculo derivado, bloqueio/silenciamento e salvos.
+- Aceite: toda consulta aplica ACL no servidor; Círculo só existe com dois seguimentos efetivos em sentidos opostos e desaparece quando qualquer lado deixa de seguir; perfil privado e pedidos de seguimento (se aprovados como política) são testados para ambos os lados; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle ou Círculo.
 
 ### Fase 3 — Social e mídia
 
@@ -67,6 +67,7 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 | Concorrência | Duas avaliações simultâneas, like/repost repetidos, edição com versão antiga, upload duplicado e outbox reprocessada |
 | Dados | Seed de municípios determinístico; usuários e conteúdos sintéticos apenas em ambiente local; nunca importar contas mock como usuários reais |
 | Frontend | Fluxos de perfil Social/comercial, abas de perfil, galeria, publicação/mídia, Seek e estados de erro sem regressão da navegação |
+| Frontend por conta | Likes, salvos, leituras, bloqueios, notificações e recomendações precisam ser isolados por ator; fixtures não podem entrar no build/estado de produção |
 | Operação | Health/readiness, logs sem PII/segredos, backup/restauração, job retry/failure queue e alertas |
 
 ## Decisões que permanecem abertas
@@ -81,4 +82,4 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 
 ## Estado inicial do contrato
 
-O gerador (`node docs/backend/generate-contracts.mjs`) escreve `openapi.json` e `endpoints.md`. O contrato registra 134 operações propostas; somente `GET /api/healthz` é uma rota implementada confirmada. Antes de gerar clientes ou conectar o frontend, revisar as decisões acima e validar schemas/ref/operationIds.
+O gerador (`node docs/backend/generate-contracts.mjs`) escreve `openapi.json` e `endpoints.md`. O contrato é uma proposta; somente `GET /api/healthz` é uma rota implementada confirmada. Antes de gerar clientes ou conectar o frontend, revisar as decisões acima e validar schemas/ref/operationIds.

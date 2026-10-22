@@ -159,14 +159,14 @@ content_type = "text/html"
 id = "Am4Zwj6Ca1sVC3jpLu95k"
 uri = "file://Socialnewzip/Socialnewzip/docs/backend/index.html"
 type = "html"
-title = "Seekalive — documentação do aplicativo e backend"
-description = "Documento HTML completo e portátil, com telas, arquitetura, regras, 134 operações propostas, esquema de dados e plano de implementação."
+title = "Documentação completa do Seekalive"
+description = "Versão HTML independente com orientação do backend, contratos, esquema proposto e auditoria do frontend."
 logical_id = "2c538bc4-9edf-4e12-90a0-4c95b328d464"
-content_hash = "sha256:dd7cb824abbc9334c9ca4395639d0a4923a3f7ea86e69a9cca565a1b35ca26b0"
-size = 136260
-mtime_ms = 1792688773149
-storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/2c538bc4-9edf-4e12-90a0-4c95b328d464/097a4db9-a9db-4acd-acfb-99ef4290ebca"
-storage_version_token = "1792688784621309"
+content_hash = "sha256:cfccf926cdcef1495f788ef8a2c64ed59bcc44095ab01ce88726d5e337706789"
+size = 155646
+mtime_ms = 1792699466821
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/2c538bc4-9edf-4e12-90a0-4c95b328d464/66513cb6-78ef-4058-a089-8a55d55f8631"
+storage_version_token = "1792699532395312"
 content_type = "text/html"
 
 [[outputs]]
@@ -182,3 +182,17 @@ mtime_ms = 1792688773661
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/502d9c10-62c6-4f76-9408-e82c81852aa6/7437034b-7407-4d00-8921-38959915c809"
 storage_version_token = "1792688785577047"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "h9yjdI3fkbCINpN6sN4cP"
+uri = "file://Socialnewzip/Socialnewzip/docs/backend/frontend-readiness-audit.md"
+type = "text"
+title = "Auditoria de prontidão do frontend"
+description = "Parecer completo por módulo, bloqueios de integração, regras de negócio e sequência recomendada antes do backend."
+logical_id = "83099658-5ee4-4e58-b292-4eff771b83e2"
+content_hash = "sha256:22be9a2003623944f9f47577a24785e077369c004471c1d3e15bb812c91d21d5"
+size = 15778
+mtime_ms = 1792699339305
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/83099658-5ee4-4e58-b292-4eff771b83e2/8d53d228-d76e-48ab-851e-0da798a9b3a3"
+storage_version_token = "1792699531473871"
+content_type = "text/markdown"

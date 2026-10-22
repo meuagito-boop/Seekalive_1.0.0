@@ -8,7 +8,7 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 |---|---|---|
 | `/`, `/login`, `/register` | `App.tsx`, `Login`, `Register`, `AppContext`; login demonstrativo | Sessão real, cadastro único, identidade, termos, username, retorno de autenticação |
 | `/forgot-password`, `/verify-email` | Sucesso local/código de demonstração | Fluxo real do provedor, rate limit, desafio com expiração e estados de erro |
-| `/onboarding/interests`, `/onboarding/suggestions` | Preferências/sugestões locais; conclusão no-op | Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida |
+| `/onboarding/interests`, `/onboarding/suggestions` | Preferências locais; sugestões são fixtures e as escolhas de seguir não são persistidas; conclusão no-op | Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida |
 | `/feed` | Feed local: para você, seguindo, artigos, vídeos | `GET social/feed`, paginação, audiência, bloqueios, contadores e cache por visitante |
 | `/compose`, `/article/create` | `contentService` demo + mídias blob | Upload, criação transacional, validação, idempotência e publicação com referência |
 | `/post/:postId`, `/article/:postId` | Leitura e interação locais | Leitura autorizada, comentários/respostas, curtidas, reposts, remoção e edição proposta |
@@ -16,7 +16,7 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/profile`, `/profile/:username` | Perfil pessoal/comercial com posts/mídias/artigos | DTO de conta + relações do visitante + conteúdo autorizado + galeria derivada |
 | `/profile/edit` | Atualiza conta local e SocialContext | PATCH de conta, extensão comercial, mídia, município, horários, recursos, versão |
 | `/profile/:username/followers`, `/profile/:username/following` | Listas locais | Listas paginadas e permissões para perfis privados |
-| `/profile/:username/circles`, `/circles` | Listas de amizades/convites; estado parcialmente separado | Uma fonte canônica de relações; respeitar username da rota e política de lista pública |
+| `/profile/:username/circles`, `/circles` | Lista local já usa a projeção `isInCircle`; a ação “Deixar de seguir” remove uma das arestas e encerra o Círculo derivado | Conectar uma listagem paginada de seguimentos recíprocos efetivos; não criar convite, aceite, recusa ou remoção de Círculo |
 | `/social/activity` | Histórico, salvos, curtidas, comentários e publicações | Consultas do ator autenticado; limpar histórico sem apagar conteúdo original |
 | `/social/suggestions` | Sugestões locais | Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis |
 | `/notifications` | Eventos e leitura locais | Destinatário no servidor, paginação, marcar lida, preferências e entrega |
@@ -25,20 +25,22 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/seek/event/:id` | Detalhe de demonstração; ingresso desabilitado | Evento real com organizador, interesse persistente, estado; ingressos são extensão |
 | `/shop`, `/shop/item/:id` | Catálogo ilustrativo, detalhe, favoritos; compra desabilitada | Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo |
 | `/settings`, `/settings/account` | Username local; ações sensíveis desabilitadas | Preferências, identidade, reautenticação, exportação/desativação/exclusão |
-| `/settings/privacy`, `/settings/blocked` | Controles principalmente desabilitados | Política efetiva, bloqueios/mutes e permissões de contato/relacionamento |
+| `/settings/privacy`, `/settings/blocked` | Preferências são locais; tela de bloqueados lê flag global de demo e o botão “Desbloquear” aparece desabilitado | Persistir preferências por conta; modelar bloqueios por ator-alvo e habilitar ações com autorização |
 | `/settings/notifications` | Defaults visuais desabilitados | Preferências reais e consentimento para push/e-mail |
 | `/settings/security` | Sessões/MFA/histórico indisponíveis | Sessões revogáveis, ações no provedor e auditoria de acesso redigida |
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 
-O estado “autenticado” do router é apenas UI. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.
+O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.
+
+Hoje a interface não usa o adaptador REST de conteúdo: `contentService` aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints `/api/v1` propostos.
 
 ## 2. Arquivos que precisam trocar de fonte
 
 | Arquivo | Alteração de integração, quando autorizada |
 |---|---|
 | `context/AppContext.tsx` | Consultar sessão, retirar login automático/mock, expiração e logout autoritativos |
-| `context/SocialContext.tsx` | Substituir fixtures/reducer como verdade por cache de API e mutações reconciliadas |
+| `context/SocialContext.tsx` | Isolar/remover fixtures de produção; substituir reducer como fonte de verdade por cache de API e mutações reconciliadas por conta |
 | `services/contentService.ts` | Migrar payload de mídia/autor; ativar REST somente após teste real; não fallback para demo em erro |
 | `services/restContracts.ts` | Completar operações, erros, paginação e validações; manter formatos existentes documentados |
 | `services/contentValidation.ts` | Compartilhar regras com servidor sem confundir validação de UI com segurança |
@@ -50,7 +52,7 @@ O estado “autenticado” do router é apenas UI. Todas as regras precisam exis
 | `services/seekLocationService.ts` | Manter seleção manual e GPS consentido; adaptar catálogo à API/cache; geocodificação só após configuração |
 | `hooks/use-saved-shop-items.ts`, salvos comerciais | API única de salvos tipados, compartilhada entre perfil e módulos |
 | `data/mockData.ts`, `demoCatalog.ts`, `demoSeek*.ts`, `demoIntegrationPosts.ts` | Fixtures exclusivamente de testes/preview; não seeds automáticos de produção |
-| `components/profile/CommercialProfilePage.tsx` | Dados da mesma conta comercial, avaliações e resposta; nenhuma identidade comercial paralela |
+| `components/profile/CommercialProfilePage.tsx` | Dados da mesma conta comercial, avaliações e resposta; galeria deve combinar mídias publicadas e mídia de perfil de forma explícita e sem duplicação |
 | `lib/api-spec/openapi.yaml` (raiz do projeto) | Evoluir contrato vigente após aprovação; preservar título `Api` exigido pelo código gerado |
 | `lib/api-client-react`, `lib/api-zod` | Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente |
 | `lib/db/src/schema` | Implementar Drizzle a partir do modelo revisado; criar migrações versionadas |
@@ -60,7 +62,7 @@ O estado “autenticado” do router é apenas UI. Todas as regras precisam exis
 
 O adaptador existente não envia CSRF nem `Idempotency-Key` e não trata `412`, `413`, `415`, `429` de forma específica. Acrescentar essas respostas à experiência de erro. Consultas devem suportar cancelamento, e um resultado antigo não deve sobrescrever a cidade/filtro novo.
 
-`AppContext`, `SocialContext` e página de Círculos hoje podem representar estados distintos. A API deve ser a fonte única; a mudança de username precisa atualizar todos os caches, links, sessão e busca. “Atualização otimista” exige rollback em erro, não apenas toast de sucesso.
+`AppContext` e `SocialContext` podem divergir: por exemplo, a troca de username em Configurações atualiza a conta ativa local, mas não chama `updateUser` no contexto Social. A API deve ser a fonte única; a mudança de username precisa atualizar todos os caches, links, sessão e busca. “Atualização otimista” exige rollback em erro, não apenas toast de sucesso. O Círculo deve ser sempre recalculado a partir de dois seguimentos aceitos em sentidos opostos.
 
 ## 3. Persistência atual e destino
 
@@ -75,6 +77,7 @@ O adaptador existente não envia CSRF nem `Idempotency-Key` e não trata `412`, 
 | sessionStorage | `seekalive-seek-demo-preview` | Somente desenvolvimento; nunca configura catálogo de produção |
 | Memória React | Posts, comentários, reposts, relações, notificações e mensagens | Tabelas e cache de API; fixtures não são dados migráveis automaticamente |
 | `blob:` | Fotos/vídeos de rascunho/publicação | Upload de arquivos reais e vínculos de mídia; URL blob não pode ser “migrada” pelo servidor |
+| Estado da página/Contexto React | Curtidas, salvos, reposts, notificações, mensagens e relações de demonstração | Converter em mutações/consultas identificadas por conta; não migrar valores globais como `isLiked` ou `isRead` como estado do usuário atual |
 
 Não transformar tudo em tabela: scroll, modal aberto, termo parcialmente digitado e seleção temporária são estados de UI. O servidor deve persistir escolhas de produto, conteúdo e relações, não cada renderização.
 

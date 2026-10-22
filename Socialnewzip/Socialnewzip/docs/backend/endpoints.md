@@ -1,6 +1,6 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **134 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **129 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
 > Salvo `GET /api/healthz`, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.
 
@@ -98,12 +98,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 | GET | `/v1/social/follow-requests` | Sessão autenticada | — | `PageFollow` | **PROPOSTA** |
 | POST | `/v1/social/follow-requests/{accountId}/accept` | Sessão autenticada | — | `Follow` | **PROPOSTA** |
 | POST | `/v1/social/follow-requests/{accountId}/decline` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| GET | `/v1/social/circles` | Sessão autenticada | — | `Circle` | **PROPOSTA** |
-| POST | `/v1/social/circles/requests` | Sessão autenticada | `CircleRequest` | `Circle` | **PROPOSTA** |
-| POST | `/v1/social/circles/requests/{accountId}/accept` | Sessão autenticada | — | `Circle` | **PROPOSTA** |
-| POST | `/v1/social/circles/requests/{accountId}/decline` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/social/circles/requests/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/social/circles/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
+| GET | `/v1/social/circles` | Sessão autenticada | — | `PageCircle` | **PROPOSTA** |
 | GET | `/v1/social/blocks` | Sessão autenticada | — | `PageAccount` | **PROPOSTA** |
 | PUT | `/v1/social/blocks/{accountId}` | Sessão autenticada | `Empty` | `Empty` | **PROPOSTA** |
 | DELETE | `/v1/social/blocks/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |

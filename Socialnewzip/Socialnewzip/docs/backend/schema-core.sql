@@ -52,8 +52,6 @@ CREATE INDEX sessions_expiry ON sessions(expires_at);
 CREATE TABLE account_settings (
   account_id uuid PRIMARY KEY REFERENCES accounts(id),
   private_profile boolean NOT NULL DEFAULT false,
-  circle_requests_from text NOT NULL DEFAULT 'everyone'
-    CHECK (circle_requests_from IN ('everyone', 'followers', 'nobody')),
   messages_from text NOT NULL DEFAULT 'everyone'
     CHECK (messages_from IN ('everyone', 'circles', 'nobody')),
   read_receipts boolean NOT NULL DEFAULT true,
@@ -242,20 +240,9 @@ CREATE TABLE follows (
   CHECK (follower_id <> followed_id)
 );
 CREATE INDEX follows_inbound ON follows(followed_id, status, follower_id);
-CREATE TABLE circle_relationships (
-  account_low_id uuid NOT NULL REFERENCES accounts(id),
-  account_high_id uuid NOT NULL REFERENCES accounts(id),
-  requested_by_id uuid NOT NULL REFERENCES accounts(id),
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted')),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  accepted_at timestamptz,
-  PRIMARY KEY (account_low_id, account_high_id),
-  CHECK (account_low_id < account_high_id),
-  CHECK (requested_by_id IN (account_low_id, account_high_id)),
-  CHECK ((status = 'pending' AND accepted_at IS NULL) OR
-    (status = 'accepted' AND accepted_at IS NOT NULL AND accepted_at >= created_at))
-);
-CREATE INDEX circle_relationships_high ON circle_relationships(account_high_id, status);
+-- Círculo não é persistido como relação própria: a associação existe somente
+-- quando há dois seguimentos aceitos, um em cada direção. Remover qualquer
+-- uma das duas linhas de follows remove a associação derivada.
 CREATE TABLE blocks (
   blocker_id uuid NOT NULL REFERENCES accounts(id),
   blocked_id uuid NOT NULL REFERENCES accounts(id),
@@ -277,16 +264,15 @@ CREATE TABLE business_reviews (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   business_account_id uuid NOT NULL REFERENCES business_profiles(account_id),
   reviewer_id uuid NOT NULL REFERENCES accounts(id),
-  rating smallint CHECK (rating BETWEEN 1 AND 5),
-  comment text NOT NULL CHECK (char_length(btrim(comment)) BETWEEN 10 AND 5000),
-  reply_content text CHECK (char_length(btrim(reply_content)) BETWEEN 3 AND 5000),
+  rating smallint NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment text NOT NULL CHECK (char_length(btrim(comment)) BETWEEN 10 AND 500),
+  reply_content text CHECK (char_length(btrim(reply_content)) BETWEEN 3 AND 500),
   replied_at timestamptz,
   status text NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'removed', 'deleted')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (business_account_id, reviewer_id),
   CHECK (business_account_id <> reviewer_id),
-  CHECK (rating IS NOT NULL OR btrim(comment) <> ''),
   CHECK ((reply_content IS NULL) = (replied_at IS NULL))
 );
 CREATE INDEX business_reviews_reviewer ON business_reviews(reviewer_id);
@@ -403,7 +389,7 @@ CREATE TABLE notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   recipient_id uuid NOT NULL REFERENCES accounts(id),
   actor_id uuid REFERENCES accounts(id),
-  kind text NOT NULL CHECK (kind IN ('follow', 'circle_request', 'circle_accepted', 'like', 'comment', 'repost', 'mention')),
+  kind text NOT NULL CHECK (kind IN ('follow', 'like', 'comment', 'repost', 'mention')),
   post_id uuid REFERENCES posts(id),
   comment_id uuid REFERENCES comments(id),
   read_at timestamptz,

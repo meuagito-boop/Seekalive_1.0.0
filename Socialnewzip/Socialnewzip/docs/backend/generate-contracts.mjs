@@ -18,7 +18,7 @@ const post = (tag, p, s, r, o, x) => add(tag, "post", p, s, r, o, x);
 const put = (tag, p, s, r, o, x) => add(tag, "put", p, s, r, o, x);
 const patch = (tag, p, s, r, o, x) => add(tag, "patch", p, s, r, o, x);
 const del = (tag, p, s, o, x) => add(tag, "delete", p, s, null, o, x);
-const P = "PagePost", A = "Account", C = "Comment", S = "Circle", N = "Notification";
+const P = "PagePost", A = "Account", C = "Comment", N = "Notification";
 
 g("health", "/healthz", "Verificar servidor (rota existente)", "Health", null, { status: "live", auth: "none" });
 g("auth", "/v1/auth/session", "Consultar sessão atual", "Session", null, { auth: "optional" });
@@ -84,12 +84,7 @@ del("relations", "/v1/social/accounts/{accountId}/follow", "Deixar de seguir/can
 g("relations", "/v1/social/follow-requests", "Listar pedidos recebidos próprios", "PageFollow");
 post("relations", "/v1/social/follow-requests/{accountId}/accept", "Aceitar pedido de seguimento recebido", null, "Follow");
 post("relations", "/v1/social/follow-requests/{accountId}/decline", "Recusar pedido de seguimento recebido", null, "Empty");
-g("relations", "/v1/social/circles", "Listar Círculo aceito e pedidos próprios", S, null, { query: ["status", "cursor", "limit"] });
-post("relations", "/v1/social/circles/requests", "Solicitar relação bilateral de Círculo", "CircleRequest", S);
-post("relations", "/v1/social/circles/requests/{accountId}/accept", "Aceitar pedido bilateral recebido", null, S);
-post("relations", "/v1/social/circles/requests/{accountId}/decline", "Recusar pedido bilateral recebido", null, "Empty");
-del("relations", "/v1/social/circles/requests/{accountId}", "Cancelar pedido enviado", "Empty");
-del("relations", "/v1/social/circles/{accountId}", "Encerrar relação aceita", "Empty");
+g("relations", "/v1/social/circles", "Listar contas seguidas mutuamente; Círculo é derivado, sem convite próprio", "PageCircle", null, { query: ["cursor", "limit"] });
 g("relations", "/v1/social/blocks", "Listar bloqueios próprios", "PageAccount");
 put("relations", "/v1/social/blocks/{accountId}", "Bloquear conta e revogar interações incompatíveis", "Empty", "Empty");
 del("relations", "/v1/social/blocks/{accountId}", "Desbloquear sem recriar relações", "Empty");
@@ -191,7 +186,7 @@ const schemas = {
     relationship: ref("RelationshipView"), stats: ref("AccountStats"), version: { type: "integer" },
   }, ["id", "username", "displayName", "accountType", "joinedAt", "relationship", "stats", "version"]),
   AccountStats: model({ posts: { type: "integer", minimum: 0 }, followers: { type: "integer", minimum: 0 }, following: { type: "integer", minimum: 0 }, circles: { type: "integer", minimum: 0 } }, ["posts", "followers", "following", "circles"]),
-  RelationshipView: model({ following: { type: "string", enum: ["none", "pending", "accepted"] }, inCircle: { type: "string", enum: ["none", "pending", "accepted"] }, blockedByMe: { type: "boolean" }, blockedByThem: { type: "boolean" }, mutedByMe: { type: "boolean" } }, ["following", "inCircle", "blockedByMe", "blockedByThem", "mutedByMe"]),
+  RelationshipView: model({ following: { type: "string", enum: ["none", "pending", "accepted"] }, inCircle: { type: "boolean", description: "Derivado de seguimentos aceitos nos dois sentidos; não é uma relação independente." }, blockedByMe: { type: "boolean" }, blockedByThem: { type: "boolean" }, mutedByMe: { type: "boolean" } }, ["following", "inCircle", "blockedByMe", "blockedByThem", "mutedByMe"]),
   AccountCreate: model({ username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", minLength: 2, maxLength: 80 }, bio: { type: "string", maxLength: 500 }, accountType: { type: "string", enum: ["personal", "commercial"] }, acceptedTermsVersion: { type: "string" }, businessProfile: ref("BusinessWrite") }, ["username", "displayName", "accountType", "acceptedTermsVersion"]),
   AccountPatch: model({ username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", minLength: 2, maxLength: 80 }, bio: { type: "string", maxLength: 500 }, avatarMediaId: uuid, coverMediaId: uuid, location: { type: ["string", "null"], maxLength: 160 }, website: { type: ["string", "null"], format: "uri" }, version: { type: "integer" } }, ["version"]),
   Profile: model({ account: ref("Account"), posts: page("Post"), articles: page("Post"), media: page("MediaAsset") }, ["account"]),
@@ -199,13 +194,13 @@ const schemas = {
     accountId: uuid, discoveryKind: { type: "string", enum: ["place", "provider"] }, categoryKey: string, category: string,
     cityId: { type: "string", pattern: "^[0-9]{7}$" }, cityName: string, cityState: { type: "string", minLength: 2, maxLength: 2 },
     serviceAreas: arr(string), openingHours: arr(ref("BusinessHour")), serviceOptions: model({
-      delivery: { type: "boolean" }, dineIn: { type: "boolean" }, tableService: { type: "boolean" },
-      reservations: { type: "boolean" }, appointments: { type: "boolean" }, takeout: { type: "boolean" },
+      delivery: { type: ["boolean", "null"] }, dineIn: { type: ["boolean", "null"] }, tableService: { type: ["boolean", "null"] },
+      reservations: { type: ["boolean", "null"] }, appointments: { type: ["boolean", "null"] }, takeout: { type: ["boolean", "null"] },
     }), tags: arr(string), rating: { type: ["number", "null"], minimum: 1, maximum: 5 }, reviewCount: { type: "integer", minimum: 0 }, version: { type: "integer" },
   }, ["accountId", "discoveryKind", "categoryKey", "category", "cityId", "cityName", "cityState", "serviceAreas", "openingHours", "serviceOptions", "tags", "reviewCount", "version"]),
   ServiceOptions: model({
-    delivery: { type: "boolean" }, dineIn: { type: "boolean" }, tableService: { type: "boolean" },
-    reservations: { type: "boolean" }, appointments: { type: "boolean" }, takeout: { type: "boolean" },
+    delivery: { type: ["boolean", "null"] }, dineIn: { type: ["boolean", "null"] }, tableService: { type: ["boolean", "null"] },
+    reservations: { type: ["boolean", "null"] }, appointments: { type: ["boolean", "null"] }, takeout: { type: ["boolean", "null"] },
   }, ["delivery", "dineIn", "tableService", "reservations", "appointments", "takeout"]),
   BusinessHour: model({ weekday: { type: "integer", minimum: 0, maximum: 6 }, opensAt: { type: ["string", "null"], pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, closesAt: { type: ["string", "null"], pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, closed: { type: "boolean" } }, ["weekday", "closed"]),
   BusinessWrite: model({ discoveryKind: { type: "string", enum: ["place", "provider"] }, categoryKey: string, category: string, cityId: { type: "string", pattern: "^[0-9]{7}$" }, serviceAreas: arr(string), address: { type: "string", maxLength: 250 }, openingHours: arr(ref("BusinessHour")), serviceOptions: ref("ServiceOptions"), tags: arr(string), photoMediaIds: arr(uuid), videoMediaIds: arr(uuid), version: { type: "integer" } }, ["discoveryKind", "categoryKey", "category", "cityId", "version"]),
@@ -222,8 +217,8 @@ const schemas = {
   CommentPatch: model({ content: { type: "string", minLength: 1, maxLength: 2000 }, version: { type: "integer" } }, ["content", "version"]),
   PageComment: page("Comment"),
   Follow: model({ status: { type: "string", enum: ["pending", "accepted"] }, updatedAt: { type: "string", format: "date-time" } }, ["status", "updatedAt"]),
-  Circle: model({ account: ref("Account"), status: { type: "string", enum: ["pending", "accepted"] }, initiatedByMe: { type: "boolean" } }, ["account", "status", "initiatedByMe"]),
-  CircleRequest: model({ accountId: uuid }, ["accountId"]),
+  Circle: model({ account: ref("Account"), isMutual: { type: "boolean", const: true } }, ["account", "isMutual"]),
+  PageCircle: page("Circle"),
   PageAccount: page("Account"),
   PageFollow: page("Follow"),
   Repost: model({ id: uuid, postId: uuid, authorId: uuid, createdAt: { type: "string", format: "date-time" } }, ["id", "postId", "authorId", "createdAt"]),
@@ -246,10 +241,10 @@ const schemas = {
   Category: model({ key: string, name: string, kind: { type: "string", enum: ["place", "provider", "event", "shop_item"] }, resultCount: { type: "integer", minimum: 0 } }, ["key", "name", "kind"]),
   Discovery: model({ id: uuid, kind: { type: "string", enum: ["place", "provider", "event"] }, name: string, category: string, description: string, href: string, city: ref("City"), rating: { type: ["number", "null"], minimum: 1, maximum: 5 }, reviewCount: { type: "integer", minimum: 0 }, isExample: { type: "boolean", const: false }, event: ref("Event") }, ["id", "kind", "name", "category", "href", "reviewCount", "isExample"]),
   PageDiscovery: page("Discovery"),
-  Review: model({ id: uuid, accountId: uuid, businessAccountId: uuid, rating: rating, comment: { type: "string", minLength: 10, maxLength: 5000 }, createdAt: { type: "string", format: "date-time" }, businessReply: { oneOf: [ref("ReviewReply"), { type: "null" }] } }, ["id", "accountId", "businessAccountId", "rating", "comment", "createdAt"]),
-  ReviewWrite: model({ rating, comment: { type: "string", minLength: 10, maxLength: 5000 } }, ["rating", "comment"]),
-  ReviewReply: model({ content: { type: "string", minLength: 3, maxLength: 5000 }, createdAt: { type: "string", format: "date-time" } }, ["content", "createdAt"]),
-  ReviewReplyWrite: model({ content: { type: "string", minLength: 3, maxLength: 5000 } }, ["content"]),
+  Review: model({ id: uuid, accountId: uuid, businessAccountId: uuid, rating: rating, comment: { type: "string", minLength: 10, maxLength: 500 }, createdAt: { type: "string", format: "date-time" }, businessReply: { oneOf: [ref("ReviewReply"), { type: "null" }] } }, ["id", "accountId", "businessAccountId", "rating", "comment", "createdAt"]),
+  ReviewWrite: model({ rating, comment: { type: "string", minLength: 10, maxLength: 500 } }, ["rating", "comment"]),
+  ReviewReply: model({ content: { type: "string", minLength: 3, maxLength: 500 }, createdAt: { type: "string", format: "date-time" } }, ["content", "createdAt"]),
+  ReviewReplyWrite: model({ content: { type: "string", minLength: 3, maxLength: 500 } }, ["content"]),
   PageReview: page("Review"),
   Event: model({ id: uuid, organizerId: uuid, name: { type: "string", minLength: 2, maxLength: 160 }, description: { type: "string", maxLength: 5000 }, categoryKey: string, cityId: { type: "string", pattern: "^[0-9]{7}$" }, venue: { type: "string", maxLength: 250 }, startsAt: { type: "string", format: "date-time" }, timeZone: string, endsAt: { type: ["string", "null"], format: "date-time" }, free: { type: "boolean" }, priceMinor: { type: ["integer", "null"], minimum: 0 }, currency: { type: "string", const: "BRL" }, status: { type: "string", enum: ["draft", "published", "cancelled", "archived"] }, media: arr(ref("MediaAsset")), interestedCount: { type: "integer", minimum: 0 }, version: { type: "integer" } }, ["id", "organizerId", "name", "categoryKey", "cityId", "venue", "startsAt", "timeZone", "free", "currency", "status", "interestedCount", "version"]),
   EventCreate: model({ name: { type: "string", minLength: 2, maxLength: 160 }, description: { type: "string", maxLength: 5000 }, categoryKey: string, cityId: { type: "string", pattern: "^[0-9]{7}$" }, venue: { type: "string", maxLength: 250 }, startsAt: { type: "string", format: "date-time" }, timeZone: string, endsAt: { type: ["string", "null"], format: "date-time" }, free: { type: "boolean" }, priceMinor: { type: ["integer", "null"], minimum: 0 }, currency: { type: "string", const: "BRL" }, mediaIds: { type: "array", maxItems: 8, items: uuid } }, ["name", "categoryKey", "cityId", "venue", "startsAt", "timeZone", "free", "currency"]),
@@ -272,7 +267,7 @@ const schemas = {
   MessageCreate: model({ content: { type: "string", minLength: 1, maxLength: 5000 }, clientMessageId: uuid }, ["content", "clientMessageId"]),
   PageMessage: page("Message"),
   ReadReceipt: model({ lastReadMessageId: uuid }, ["lastReadMessageId"]),
-  Notification: model({ id: uuid, type: { type: "string", enum: ["follow", "circle_request", "circle_accepted", "like", "comment", "repost", "mention"] }, actor: { oneOf: [ref("Account"), { type: "null" }] }, resourceType: string, resourceId: uuid, isRead: { type: "boolean" }, createdAt: { type: "string", format: "date-time" } }, ["id", "type", "isRead", "createdAt"]),
+  Notification: model({ id: uuid, type: { type: "string", enum: ["follow", "like", "comment", "repost", "mention"] }, actor: { oneOf: [ref("Account"), { type: "null" }] }, resourceType: string, resourceId: uuid, isRead: { type: "boolean" }, createdAt: { type: "string", format: "date-time" } }, ["id", "type", "isRead", "createdAt"]),
   PageNotification: page("Notification"),
   NotificationPreferences: model({ inApp: { type: "object", additionalProperties: { type: "boolean" } }, push: { type: "object", additionalProperties: { type: "boolean" } }, email: { type: "object", additionalProperties: { type: "boolean" } }, version: { type: "integer" } }, ["inApp", "push", "email", "version"]),
   PushSubscription: model({ endpoint: { type: "string", format: "uri" }, p256dh: { type: "string" }, auth: { type: "string" } }, ["endpoint", "p256dh", "auth"]),

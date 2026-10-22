@@ -10034,17 +10034,9 @@
         "tags": [
           "relations"
         ],
-        "summary": "Listar Círculo aceito e pedidos próprios",
+        "summary": "Listar contas seguidas mutuamente; Círculo é derivado, sem convite próprio",
         "description": "PROPOSED ONLY; not currently implemented.",
         "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "cursor",
             "in": "query",
@@ -10076,851 +10068,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Circle"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/social/circles/requests": {
-      "post": {
-        "operationId": "relations_post_v1_social_circles_requests_1",
-        "tags": [
-          "relations"
-        ],
-        "summary": "Solicitar relação bilateral de Círculo",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CircleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Circle"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/social/circles/requests/{accountId}/accept": {
-      "post": {
-        "operationId": "relations_post_v1_social_circles_requests_accountId_accept_1",
-        "tags": [
-          "relations"
-        ],
-        "summary": "Aceitar pedido bilateral recebido",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "parameters": [
-          {
-            "name": "accountId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Circle"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/social/circles/requests/{accountId}/decline": {
-      "post": {
-        "operationId": "relations_post_v1_social_circles_requests_accountId_decline_1",
-        "tags": [
-          "relations"
-        ],
-        "summary": "Recusar pedido bilateral recebido",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "parameters": [
-          {
-            "name": "accountId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/social/circles/requests/{accountId}": {
-      "delete": {
-        "operationId": "relations_delete_v1_social_circles_requests_accountId_1",
-        "tags": [
-          "relations"
-        ],
-        "summary": "Cancelar pedido enviado",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "parameters": [
-          {
-            "name": "accountId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/social/circles/{accountId}": {
-      "delete": {
-        "operationId": "relations_delete_v1_social_circles_accountId_1",
-        "tags": [
-          "relations"
-        ],
-        "summary": "Encerrar relação aceita",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "parameters": [
-          {
-            "name": "accountId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Empty"
+                  "$ref": "#/components/schemas/PageCircle"
                 }
               }
             }
@@ -22940,12 +22088,8 @@
             ]
           },
           "inCircle": {
-            "type": "string",
-            "enum": [
-              "none",
-              "pending",
-              "accepted"
-            ]
+            "type": "boolean",
+            "description": "Derivado de seguimentos aceitos nos dois sentidos; não é uma relação independente."
           },
           "blockedByMe": {
             "type": "boolean"
@@ -23175,22 +22319,40 @@
             "additionalProperties": false,
             "properties": {
               "delivery": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "dineIn": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "tableService": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "reservations": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "appointments": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "takeout": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               }
             },
             "required": []
@@ -23238,22 +22400,40 @@
         "additionalProperties": false,
         "properties": {
           "delivery": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "dineIn": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "tableService": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "reservations": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "appointments": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "takeout": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           }
         },
         "required": [
@@ -23787,34 +22967,35 @@
           "account": {
             "$ref": "#/components/schemas/Account"
           },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "accepted"
-            ]
-          },
-          "initiatedByMe": {
-            "type": "boolean"
+          "isMutual": {
+            "type": "boolean",
+            "const": true
           }
         },
         "required": [
           "account",
-          "status",
-          "initiatedByMe"
+          "isMutual"
         ]
       },
-      "CircleRequest": {
+      "PageCircle": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "accountId": {
-            "type": "string",
-            "format": "uuid"
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Circle"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
-          "accountId"
+          "items"
         ]
       },
       "PageAccount": {
@@ -24558,7 +23739,7 @@
           "comment": {
             "type": "string",
             "minLength": 10,
-            "maxLength": 5000
+            "maxLength": 500
           },
           "createdAt": {
             "type": "string",
@@ -24596,7 +23777,7 @@
           "comment": {
             "type": "string",
             "minLength": 10,
-            "maxLength": 5000
+            "maxLength": 500
           }
         },
         "required": [
@@ -24611,7 +23792,7 @@
           "content": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 5000
+            "maxLength": 500
           },
           "createdAt": {
             "type": "string",
@@ -24630,7 +23811,7 @@
           "content": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 5000
+            "maxLength": 500
           }
         },
         "required": [
@@ -25415,8 +24596,6 @@
             "type": "string",
             "enum": [
               "follow",
-              "circle_request",
-              "circle_accepted",
               "like",
               "comment",
               "repost",

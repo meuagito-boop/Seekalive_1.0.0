@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 const dir = dirname(fileURLToPath(import.meta.url));
 const files = [
   "README.md",
+  "frontend-readiness-audit.md",
   "architecture-and-security.md",
   "frontend-integration.md",
   "endpoints.md",
@@ -94,7 +95,7 @@ th,td{text-align:left;vertical-align:top;padding:9px 11px;border:1px solid var(-
 hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640px){header{position:static;padding:20px}main{padding:16px}}
 </style></head><body>
 <header><strong>SEEKALIVE · DOCUMENTAÇÃO TÉCNICA</strong><nav>
-<a href="#README">Visão geral</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
+<a href="#README">Visão geral</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
 </nav></header><main>${parts.join("\n")}</main></body></html>`;
 await writeFile(join(dir, "index.html"), html);
 console.log(`HTML autônomo gerado: ${html.length.toLocaleString("pt-BR")} caracteres, ${files.length} documentos.`);

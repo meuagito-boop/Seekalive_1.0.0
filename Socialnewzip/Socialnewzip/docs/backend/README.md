@@ -7,11 +7,12 @@
 ## Como utilizar este pacote
 
 1. Ler este documento e `architecture-and-security.md`: escopo, regras e decisões propostas.
-2. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
-3. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
-4. Revisar `data-dictionary.md` e `schema-core.sql`: modelo relacional proposto. **Não executar o SQL automaticamente.**
-5. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
-6. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
+2. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
+3. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
+4. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
+5. Revisar `data-dictionary.md` e `schema-core.sql`: modelo relacional proposto. **Não executar o SQL automaticamente.**
+6. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
+7. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
 O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é **separado** de `lib/api-spec/openapi.yaml`, que permanece intacto e descreve somente a API atual.
 
@@ -27,7 +28,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 
 **Regra estrutural:** uma conta é pessoal ou comercial. Uma conta comercial continua sendo uma conta Social; sua extensão comercial alimenta o Seek. Não criar um cadastro independente de estabelecimentos. Para o Shop real, a proposta é vincular cada vendedor a uma conta comercial existente — os vendedores fictícios atuais ainda não possuem esse vínculo consistente.
 
-**Não pertencem ao produto:** Shuffle e Comunidades. Círculos permanecem como relacionamento bilateral entre pessoas, não como grupos/comunidades com membros, administradores ou publicações próprias.
+**Não pertencem ao produto:** Shuffle e Comunidades. **Círculo é apenas uma projeção de seguimento mútuo:** A segue B e B segue A, ambos os seguimentos efetivos/aceitos. Não existe convite, aceite, recusa ou tabela de Círculo separada. Desfazer qualquer um dos seguimentos desfaz automaticamente o Círculo.
 
 **Identidade e navegação:** marca Seekalive; símbolo Elo; interface escura/laranja. Barra inferior preservada: menu lateral, Social, criação, Seek e Shop. A implementação do backend não autoriza redesenhar esses controles.
 
@@ -38,17 +39,17 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Servidor | Express/TypeScript em `artifacts/api-server`, com `GET /api/healthz` → `{"status":"ok"}` |
 | Banco | Biblioteca Drizzle + driver PostgreSQL preparada em `lib/db`; `src/schema/index.ts` está vazio. Isso não comprova existência de banco provisionado ou conectado |
 | Especificação | `lib/api-spec/openapi.yaml` só descreve saúde; clientes gerados e Zod não significam API Social pronta |
-| Login | Estado de demonstração. `AppContext` inicia autenticado e usa conta local/mock; credenciais do formulário não são autenticadas no servidor |
+| Login | Não há autenticação real. O cadastro cria uma conta local e ativa a sessão só neste navegador; a tela de login não autentica nem restaura essa conta |
 | Cadastro | Cria perfil no navegador. Não cria identidade de autenticação, não verifica e-mail e não guarda credenciais de autenticação reais |
 | Recuperação/verificação | Telas e transições locais, sem envio de e-mail, token de recuperação ou validação real do código |
 | Publicações/comentários | `contentService` seleciona `demoContentAdapter`; existe adaptador REST proposto, mas desativado |
 | Fotos/vídeos | `URL.createObjectURL`, memória e URLs `blob:`. Não são uploads e deixam de funcionar após recarga |
 | Contas/avaliações | Dados de exemplo e registros no `localStorage`; não são dados compartilhados entre dispositivos |
-| Relacionamentos/mensagens | Estado React; Círculos também têm listas locais de página que precisam ser unificadas |
+| Relacionamentos/mensagens | Estado React; Círculo é derivado de seguimentos recíprocos no frontend. Aprovação de seguidores em perfis privados não tem fluxo de interface |
 | Seek | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância |
-| Mocks Seek | Ativos por padrão no desenvolvimento: 8 locais, 4 prestadores, 6 eventos. São fictícios e não devem ser importados como catálogo de produção |
+| Dados demonstrativos | Parte do Seek é restrita a desenvolvimento, mas posts, contas mock, notificações, conversas e mensagens ainda são carregados no Social sem guarda de desenvolvimento; a busca e o painel lateral também têm tendências/eventos estáticos. Remover ou isolar isso antes da produção |
 | Shop | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real |
-| Configurações | Vários controles de privacidade, notificações, segurança e conta estão desabilitados, não apenas aguardando um endpoint existente |
+| Configurações | Preferências de privacidade/notificações são locais; recursos de segurança e ações sensíveis estão desabilitados. A tela de bloqueados também não executa desbloqueio |
 
 O frontend e a API têm processos separados. O Vite auditado não possui proxy `/api` configurado. Antes de ligar os adaptadores, configurar roteamento de mesma origem; caso contrário uma URL de API pode devolver HTML da SPA.
 
@@ -58,7 +59,7 @@ O frontend e a API têm processos separados. O Vite auditado não possui proxy `
 
 - O servidor identifica o autor pela sessão, nunca pelo `authorId`, `senderId`, `reviewerId`, `sellerId` ou `organizerId` enviado pelo navegador.
 - `username` único sem diferenciação de maiúsculas; preservar a regra atual de 3–20 caracteres `[a-z0-9_]`. Definir lista reservada, política de troca e redirecionamento de links antigos.
-- `isFollowing`, `isInCircle`, `circleStatus`, `isBlocked`, `isMuted`, `isLiked` e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil.
+- `isFollowing`, `isInCircle`, `isBlocked`, `isMuted`, `isLiked` e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil. `isInCircle` é verdadeiro somente quando os dois seguimentos estão efetivos; não há `circleStatus`.
 - Selos de verificação e papéis administrativos não são editáveis pela API de perfil.
 - A verificação de e-mail vem do provedor de identidade. Um código digitado no frontend nunca basta para declarar a conta verificada.
 
@@ -92,8 +93,9 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 - `business_profiles.account_id` é a mesma chave da conta comercial, com relação 1:1.
 - Categoria, especialidades e áreas de atendimento são dados declarados pelo responsável. Não significam verificação profissional.
 - Delivery, atendimento no local/mesa, retirada, reservas e agendamento são **capacidades declaradas**. Não são pedidos, entregas, mesas disponíveis ou horários reserváveis.
-- Avaliação: nota inteira 1–5, comentário atual com pelo menos 10 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.
-- Resposta comercial: somente dono da conta comercial; mínimo 3 e máximo 5.000 caracteres conforme os limites do esquema SQL proposto. Avaliação: mínimo 10 e máximo 5.000 caracteres. Esses limites são proposta técnica, não validação já executada no backend.
+- Avaliação: nota inteira obrigatória de 1–5, comentário de 10–500 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.
+- Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. Esses limites refletem a interface e ainda precisam ser validados no backend.
+- Serviço comercial: delivery, mesa, retirada, reserva e agendamento só aparecem publicamente quando marcados explicitamente como oferecidos (`true`). Não oferecido (`false`) e não informado (`null`/ausente) não podem aparecer como oferta.
 - O dono pode responder, não apagar crítica de cliente pela API comercial. Remoções são do autor ou de moderação autorizada.
 - Média e quantidade são calculadas das avaliações elegíveis. Ausência de avaliações não significa nota zero.
 
@@ -118,6 +120,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 ## 5. Links e versões
 
 - Rotas da interface e URLs relativas da API estão em `frontend-integration.md` e `endpoints.md`.
+- A análise e os bloqueios verificados no frontend estão em `frontend-readiness-audit.md`.
 - Links oficiais das integrações estão em `external-services-and-operations.md`.
 - URL pública definitiva do app/API: **não definida por esta auditoria**. Não inferir domínio de produção a partir do endereço de desenvolvimento.
 - Base proposta de mesma origem: `/api/v1`; saúde existente: `/api/healthz`.

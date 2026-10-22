@@ -129,7 +129,7 @@ Uploads sem vínculo podem expirar, proposta inicial 24 horas. Um ativo ainda us
 | Publicar | Sessão + ACL da referência + ownership de mídia + post + vínculos + outbox |
 | Repost/curtir/salvar | Unique de par; retry não duplica; contador derivado ou atualizado na mesma transação |
 | Comentário/resposta | Permissão do post + pai no mesmo post + conteúdo + evento de notificação |
-| Círculo | Par canônico de contas; ator solicitado/solicitante validado; transição pending→accepted uma vez |
+| Seguir/Círculo | Persistir somente arestas de seguir. Círculo é uma projeção de duas arestas aceitas em sentidos opostos; desfazer qualquer uma remove o resultado derivado. Não há transição própria de convite/aceite de Círculo |
 | Bloquear | Bloqueio e revogação das relações/interações incompatíveis em transação; desbloquear não recria relações automaticamente |
 | Avaliação | Sessão do avaliador + conta comercial distinta + unique negócio/avaliador; média coerente com moderação |
 | Resposta comercial | Apenas dono do negócio vinculado à avaliação; nenhum `businessAccountId` arbitrário |
@@ -154,7 +154,7 @@ Envelope:
 }
 ```
 
-Tipos propostos: `message.created`, `conversation.read`, `notification.created`, `notification.read`, `circle.updated`, `post.updated`, `post.deleted`, `media.ready`, `media.failed`, `event.updated`.
+Tipos propostos: `message.created`, `conversation.read`, `notification.created`, `notification.read`, `follow.updated` (a projeção de Círculo muda junto), `post.updated`, `post.deleted`, `media.ready`, `media.failed`, `event.updated`.
 
 Autorizar cada assinante e cada replay. Revogar assinaturas em logout/bloqueio/remoção de participante. Preferir IDs a corpo de mensagens em pushes e notificações de sistema. Entrega é **pelo menos uma vez**: frontend deduplica por eventId e consulta o recurso autorizado. Não prometer entrega exatamente uma vez.
 

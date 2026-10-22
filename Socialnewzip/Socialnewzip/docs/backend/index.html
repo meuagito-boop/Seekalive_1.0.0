@@ -16,13 +16,14 @@ th,td{text-align:left;vertical-align:top;padding:9px 11px;border:1px solid var(-
 hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640px){header{position:static;padding:20px}main{padding:16px}}
 </style></head><body>
 <header><strong>SEEKALIVE · DOCUMENTAÇÃO TÉCNICA</strong><nav>
-<a href="#README">Visão geral</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
+<a href="#README">Visão geral</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
 </nav></header><main><section id="README"><h1>Seekalive — documentação do aplicativo e especificação do backend</h1>
 <p><strong>Data da auditoria:</strong> 22/10/2026. <strong>Natureza:</strong> documentação técnica e proposta de implementação, não backend entregue.</p>
 <blockquote>Nenhum banco foi criado, nenhuma migração foi executada, nenhum provedor foi conectado e nenhuma credencial foi solicitada. Somente <code>GET /api/healthz</code> existe no servidor auditado. Todos os demais endpoints deste pacote são contratos propostos, mesmo quando já há um adaptador no front-end.</blockquote>
 <h2>Como utilizar este pacote</h2>
 <ol>
 <li>Ler este documento e <code>architecture-and-security.md</code>: escopo, regras e decisões propostas.</li>
+<li>Ler <code>frontend-readiness-audit.md</code>: resultado da revisão do estado atual e bloqueios antes da integração.</li>
 <li>Consultar <code>frontend-integration.md</code>: cada página e cada armazenamento temporário que precisam de integração.</li>
 <li>Usar <code>endpoints.md</code> e <code>openapi.json</code>: catálogo de métodos, permissões, corpos, respostas e erros.</li>
 <li>Revisar <code>data-dictionary.md</code> e <code>schema-core.sql</code>: modelo relacional proposto. <strong>Não executar o SQL automaticamente.</strong></li>
@@ -39,7 +40,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <tr><td>Shop</td><td>Descobrir produtos, ofertas e serviços</td><td>Item, vendedor comercial, catálogo e salvos</td></tr>
 </table></div>
 <p><strong>Regra estrutural:</strong> uma conta é pessoal ou comercial. Uma conta comercial continua sendo uma conta Social; sua extensão comercial alimenta o Seek. Não criar um cadastro independente de estabelecimentos. Para o Shop real, a proposta é vincular cada vendedor a uma conta comercial existente — os vendedores fictícios atuais ainda não possuem esse vínculo consistente.</p>
-<p><strong>Não pertencem ao produto:</strong> Shuffle e Comunidades. Círculos permanecem como relacionamento bilateral entre pessoas, não como grupos/comunidades com membros, administradores ou publicações próprias.</p>
+<p><strong>Não pertencem ao produto:</strong> Shuffle e Comunidades. <strong>Círculo é apenas uma projeção de seguimento mútuo:</strong> A segue B e B segue A, ambos os seguimentos efetivos/aceitos. Não existe convite, aceite, recusa ou tabela de Círculo separada. Desfazer qualquer um dos seguimentos desfaz automaticamente o Círculo.</p>
 <p><strong>Identidade e navegação:</strong> marca Seekalive; símbolo Elo; interface escura/laranja. Barra inferior preservada: menu lateral, Social, criação, Seek e Shop. A implementação do backend não autoriza redesenhar esses controles.</p>
 <h2>2. O que existe de verdade hoje</h2>
 <div class="table-wrap"><table>
@@ -47,17 +48,17 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <tr><td>Servidor</td><td>Express/TypeScript em <code>artifacts/api-server</code>, com <code>GET /api/healthz</code> → <code>{&quot;status&quot;:&quot;ok&quot;}</code></td></tr>
 <tr><td>Banco</td><td>Biblioteca Drizzle + driver PostgreSQL preparada em <code>lib/db</code>; <code>src/schema/index.ts</code> está vazio. Isso não comprova existência de banco provisionado ou conectado</td></tr>
 <tr><td>Especificação</td><td><code>lib/api-spec/openapi.yaml</code> só descreve saúde; clientes gerados e Zod não significam API Social pronta</td></tr>
-<tr><td>Login</td><td>Estado de demonstração. <code>AppContext</code> inicia autenticado e usa conta local/mock; credenciais do formulário não são autenticadas no servidor</td></tr>
+<tr><td>Login</td><td>Não há autenticação real. O cadastro cria uma conta local e ativa a sessão só neste navegador; a tela de login não autentica nem restaura essa conta</td></tr>
 <tr><td>Cadastro</td><td>Cria perfil no navegador. Não cria identidade de autenticação, não verifica e-mail e não guarda credenciais de autenticação reais</td></tr>
 <tr><td>Recuperação/verificação</td><td>Telas e transições locais, sem envio de e-mail, token de recuperação ou validação real do código</td></tr>
 <tr><td>Publicações/comentários</td><td><code>contentService</code> seleciona <code>demoContentAdapter</code>; existe adaptador REST proposto, mas desativado</td></tr>
 <tr><td>Fotos/vídeos</td><td><code>URL.createObjectURL</code>, memória e URLs <code>blob:</code>. Não são uploads e deixam de funcionar após recarga</td></tr>
 <tr><td>Contas/avaliações</td><td>Dados de exemplo e registros no <code>localStorage</code>; não são dados compartilhados entre dispositivos</td></tr>
-<tr><td>Relacionamentos/mensagens</td><td>Estado React; Círculos também têm listas locais de página que precisam ser unificadas</td></tr>
+<tr><td>Relacionamentos/mensagens</td><td>Estado React; Círculo é derivado de seguimentos recíprocos no frontend. Aprovação de seguidores em perfis privados não tem fluxo de interface</td></tr>
 <tr><td>Seek</td><td>Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância</td></tr>
-<tr><td>Mocks Seek</td><td>Ativos por padrão no desenvolvimento: 8 locais, 4 prestadores, 6 eventos. São fictícios e não devem ser importados como catálogo de produção</td></tr>
+<tr><td>Dados demonstrativos</td><td>Parte do Seek é restrita a desenvolvimento, mas posts, contas mock, notificações, conversas e mensagens ainda são carregados no Social sem guarda de desenvolvimento; a busca e o painel lateral também têm tendências/eventos estáticos. Remover ou isolar isso antes da produção</td></tr>
 <tr><td>Shop</td><td>Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real</td></tr>
-<tr><td>Configurações</td><td>Vários controles de privacidade, notificações, segurança e conta estão desabilitados, não apenas aguardando um endpoint existente</td></tr>
+<tr><td>Configurações</td><td>Preferências de privacidade/notificações são locais; recursos de segurança e ações sensíveis estão desabilitados. A tela de bloqueados também não executa desbloqueio</td></tr>
 </table></div>
 <p>O frontend e a API têm processos separados. O Vite auditado não possui proxy <code>/api</code> configurado. Antes de ligar os adaptadores, configurar roteamento de mesma origem; caso contrário uma URL de API pode devolver HTML da SPA.</p>
 <h2>3. Regras de negócio obrigatórias</h2>
@@ -65,7 +66,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <ul>
 <li>O servidor identifica o autor pela sessão, nunca pelo <code>authorId</code>, <code>senderId</code>, <code>reviewerId</code>, <code>sellerId</code> ou <code>organizerId</code> enviado pelo navegador.</li>
 <li><code>username</code> único sem diferenciação de maiúsculas; preservar a regra atual de 3–20 caracteres <code>[a-z0-9_]</code>. Definir lista reservada, política de troca e redirecionamento de links antigos.</li>
-<li><code>isFollowing</code>, <code>isInCircle</code>, <code>circleStatus</code>, <code>isBlocked</code>, <code>isMuted</code>, <code>isLiked</code> e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil.</li>
+<li><code>isFollowing</code>, <code>isInCircle</code>, <code>isBlocked</code>, <code>isMuted</code>, <code>isLiked</code> e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil. <code>isInCircle</code> é verdadeiro somente quando os dois seguimentos estão efetivos; não há <code>circleStatus</code>.</li>
 <li>Selos de verificação e papéis administrativos não são editáveis pela API de perfil.</li>
 <li>A verificação de e-mail vem do provedor de identidade. Um código digitado no frontend nunca basta para declarar a conta verificada.</li>
 </ul>
@@ -97,8 +98,9 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li><code>business_profiles.account_id</code> é a mesma chave da conta comercial, com relação 1:1.</li>
 <li>Categoria, especialidades e áreas de atendimento são dados declarados pelo responsável. Não significam verificação profissional.</li>
 <li>Delivery, atendimento no local/mesa, retirada, reservas e agendamento são <strong>capacidades declaradas</strong>. Não são pedidos, entregas, mesas disponíveis ou horários reserváveis.</li>
-<li>Avaliação: nota inteira 1–5, comentário atual com pelo menos 10 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.</li>
-<li>Resposta comercial: somente dono da conta comercial; mínimo 3 e máximo 5.000 caracteres conforme os limites do esquema SQL proposto. Avaliação: mínimo 10 e máximo 5.000 caracteres. Esses limites são proposta técnica, não validação já executada no backend.</li>
+<li>Avaliação: nota inteira obrigatória de 1–5, comentário de 10–500 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.</li>
+<li>Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. Esses limites refletem a interface e ainda precisam ser validados no backend.</li>
+<li>Serviço comercial: delivery, mesa, retirada, reserva e agendamento só aparecem publicamente quando marcados explicitamente como oferecidos (<code>true</code>). Não oferecido (<code>false</code>) e não informado (<code>null</code>/ausente) não podem aparecer como oferta.</li>
 <li>O dono pode responder, não apagar crítica de cliente pela API comercial. Remoções são do autor ou de moderação autorizada.</li>
 <li>Média e quantidade são calculadas das avaliações elegíveis. Ausência de avaliações não significa nota zero.</li>
 </ul>
@@ -119,11 +121,148 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>5. Links e versões</h2>
 <ul>
 <li>Rotas da interface e URLs relativas da API estão em <code>frontend-integration.md</code> e <code>endpoints.md</code>.</li>
+<li>A análise e os bloqueios verificados no frontend estão em <code>frontend-readiness-audit.md</code>.</li>
 <li>Links oficiais das integrações estão em <code>external-services-and-operations.md</code>.</li>
 <li>URL pública definitiva do app/API: <strong>não definida por esta auditoria</strong>. Não inferir domínio de produção a partir do endereço de desenvolvimento.</li>
 <li>Base proposta de mesma origem: <code>/api/v1</code>; saúde existente: <code>/api/healthz</code>.</li>
 <li>Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.</li>
 </ul></section>
+<section id="frontend-readiness-audit"><h1>Auditoria de prontidão do frontend — Seekalive</h1>
+<p><strong>Data:</strong> 22/10/2026  </p>
+<p><strong>Escopo:</strong> preparação do frontend para uma futura integração com backend. Esta auditoria é análise/documentação; não cria endpoints, banco, autenticação ou armazenamento remoto.</p>
+<h2>Parecer</h2>
+<p><strong>O frontend ainda não está pronto para receber o backend em produção.</strong> Há componentes úteis — rotas, validações de interface, regras locais, telas de estados vazios/indisponíveis, modelos de domínio e contratos REST propostos — mas a aplicação continua sendo um protótipo local. A interface não consome os endpoints <code>/api/v1</code> documentados, não tem autenticação real, não envia mídia e mistura alguns dados de demonstração ao estado usado pelo Social.</p>
+<p>O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqui. Conectar o servidor agora faria a interface aparentar sucesso com dados locais, perder conteúdo após recarga e aplicar permissões somente no navegador.</p>
+<h2>Como a análise foi feita</h2>
+<ul>
+<li>Inventário das rotas e dos módulos de produto em <code>artifacts/social/src</code> (159 arquivos de origem, sendo 158 TypeScript/TSX), incluindo pontos de entrada, contextos, serviços, persistência local, telas de conta, perfis, Social, Seek, Shop e configurações.</li>
+<li>Leitura focalizada das regras de negócio e fluxos de maior risco; busca estática por chamadas de rede, armazenamento, fixtures, controles desabilitados e contratos.</li>
+<li>Conferência do esqueleto API em <code>artifacts/api-server</code>, dos contratos OpenAPI/SQL propostos e dos testes disponíveis.</li>
+<li>A leitura não inclui dependências, bundles, arquivos gerados ou primitivas genéricas de UI como uma auditoria de segurança de cada byte. O resultado é uma revisão funcional/de integração do código próprio, não uma certificação de segurança ou revisão de produção.</li>
+</ul>
+<h2>Resultado por área</h2>
+<div class="table-wrap"><table>
+<tr><th>Área</th><th>Estado atual</th><th>Prontidão</th></tr>
+<tr><td>Rotas e navegação</td><td>Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente</td><td>Parcial</td></tr>
+<tr><td>Identidade e sessão</td><td>Cadastro cria conta local e ativa-a no navegador; login não autentica; recuperação e verificação não enviam e-mail</td><td>Bloqueador</td></tr>
+<tr><td>Contas e perfis</td><td>Dados guardados em <code>localStorage</code>; edição local. Contextos de conta e Social podem divergir</td><td>Bloqueador</td></tr>
+<tr><td>Publicações e comentários</td><td><code>SocialContext</code> com reducer; <code>contentService</code> usa <code>demoContentAdapter</code>; adaptador REST não está ativo</td><td>Bloqueador</td></tr>
+<tr><td>Fotos e vídeos</td><td>Prévia usa URL <code>blob:</code> do navegador; não há upload, ID de mídia ou persistência remota</td><td>Bloqueador</td></tr>
+<tr><td>Galeria</td><td>Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência</td><td>Parcial</td></tr>
+<tr><td>Relacionamentos e Círculo</td><td>O frontend calcula Círculo pelo seguimento recíproco; “deixar de seguir” remove a associação derivada</td><td>Regra alinhada; sem API</td></tr>
+<tr><td>Privacidade e bloqueio</td><td>Visibilidade é verificada no cliente. Preferências são locais; bloqueio não é modelado por relação ator-alvo e a ação “Desbloquear” está desabilitada</td><td>Bloqueador</td></tr>
+<tr><td>Mensagens e notificações</td><td>Estado local/demonstrativo. Não há API, entrega, sincronização entre aparelhos ou leitura por participante no servidor</td><td>Bloqueador</td></tr>
+<tr><td>Seek</td><td>Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros locais. Não há busca/avaliações/eventos reais no servidor</td><td>Parcial</td></tr>
+<tr><td>Avaliações</td><td>Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500</td><td>Parcial</td></tr>
+<tr><td>Shop</td><td>Catálogo ilustrativo e salvos no navegador; checkout é explicitamente indisponível</td><td>Parcial por escopo</td></tr>
+<tr><td>Configurações</td><td>Preferências de privacidade/notificações no navegador; recursos de segurança e ações sensíveis explicitamente indisponíveis</td><td>Parcial</td></tr>
+</table></div>
+<h2>Bloqueios e falhas concretas</h2>
+<h3>P0 — Autenticação e identidade inexistentes</h3>
+<ul>
+<li><code>pages/Register.tsx</code> valida e cria um perfil local, usa ID baseado no nome de usuário e grava dados de conta no navegador. A senha não é armazenada — isso é correto para o protótipo, mas significa que não existe credencial utilizável no backend.</li>
+<li><code>pages/Login.tsx</code> não envia usuário/e-mail e senha para um serviço; a tela apresenta o fluxo como não conectado. Após sair, a conta local não pode ser autenticada novamente pelo login.</li>
+<li><code>ForgotPassword.tsx</code> e <code>VerifyEmail.tsx</code> não enviam nem validam códigos reais.</li>
+<li><code>AppContext</code> considera ativa a conta carregada do <code>localStorage</code>; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.</li>
+<li>O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.</li>
+</ul>
+<p><strong>Antes de integrar:</strong> escolher e configurar o provedor de identidade; implementar criação de conta, sessão, logout, verificação e recuperação reais; parar de tratar dados de <code>localStorage</code> como identidade ou autorização.</p>
+<h3>P0 — Nenhum caminho frontend → API está ligado</h3>
+<ul>
+<li><code>artifacts/api-server/src</code> confirma apenas <code>GET /api/healthz</code>; não há handlers de identidade, conteúdo, mídia, Seek, avaliações, Shop, mensagens ou notificações.</li>
+<li>O frontend não usa os endpoints <code>/api/v1</code> propostos. <code>services/contentService.ts</code> exporta <code>demoContentAdapter</code>; <code>services/restContracts.ts</code> é apenas um contrato/adaptador parcial.</li>
+<li>A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.</li>
+<li>O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar o navegador. A implementação atual não oferece autenticação, autorização ou CSRF.</li>
+</ul>
+<p><strong>Antes de integrar:</strong> escolher um cliente/base URL, conectar cada módulo por etapas, configurar roteamento/CORS e CSRF, mapear erros/paginação e garantir que falha de rede nunca faça fallback silencioso para fixtures.</p>
+<h3>P1 — Dados demonstrativos podem aparecer como conteúdo de produto</h3>
+<ul>
+<li><code>SocialContext</code> inicializa posts, contas, notificações, conversas e mensagens de demonstração sem restringi-los ao modo de desenvolvimento.</li>
+<li><code>Search.tsx</code> contém tendências e contagens estáticas; <code>SocialContextPanel.tsx</code> mostra eventos demonstrativos. Parte da descoberta do Seek é marcada como exemplo, mas isso não protege os outros pontos.</li>
+<li>O catálogo de Shop é explicitamente ilustrativo e a compra está desabilitada; essa transparência deve ser preservada até a existência de dados e operações reais.</li>
+</ul>
+<p><strong>Antes de integrar:</strong> separar fontes de exemplo da fonte de produção, ou retirar as fixtures do estado da aplicação. Não semear dados fictícios em usuários ou tabelas reais.</p>
+<h3>P1 — Estado relativo ao usuário está guardado em objetos globais</h3>
+<ul>
+<li>Likes e bookmarks são alternados por ID de publicação e alteram flags da própria publicação; não recebem consistentemente o ator. Em troca de conta no mesmo navegador, o estado pode parecer pertencer a todas as contas.</li>
+<li>Notificações de exemplo são lidas em conjunto; a página marca todas como lidas automaticamente após três segundos. Isso não representa uma caixa de entrada por destinatário.</li>
+<li>Preferências de notificação e salvos do Shop usam chaves globais no navegador, sem isolamento por conta.</li>
+<li><code>onboarding/Suggestions.tsx</code> altera apenas um <code>Set</code> temporário de perfis mockados; o botão de concluir não persiste as relações de seguir escolhidas.</li>
+<li><code>settings/Account.tsx</code> atualiza o username no <code>AppContext</code>, mas não sincroniza essa alteração com <code>SocialContext</code>, podendo deixar o perfil/busca com o valor anterior.</li>
+</ul>
+<p><strong>Antes de integrar:</strong> cada reação, favorito, leitura, relação e preferência precisa ser associada ao usuário autenticado; respostas da API devem devolver projeções do visitante, não flags globais persistidas em posts/contas.</p>
+<h3>P1 — Privacidade e segurança só existem parcialmente no frontend</h3>
+<ul>
+<li><code>canReadPost</code> e filtros de tela são úteis para UX, mas não protegem dados. Feed, busca, perfil, comentário, notificações, mensagens, referência e arquivo precisam da mesma autorização no servidor.</li>
+<li>O botão “Seguir” muda a relação imediatamente. Não há inbox de solicitações nem aceite para perfis privados. A regra de Círculo, por sua vez, está alinhada: A segue B e B segue A; a remoção de qualquer seguimento elimina o Círculo derivado.</li>
+<li>O modelo de bloqueio usa <code>isBlocked</code> no objeto do usuário, em vez de uma relação por ator e alvo. A página de bloqueados lista essa flag e apresenta “Desbloquear” desabilitado apesar de existir um handler.</li>
+<li>As opções para receber mensagens e confirmações de leitura são preferências locais; precisam ser verificadas em cada envio/leitura no backend.</li>
+</ul>
+<p><strong>Decisão pendente:</strong> confirmar se perfil privado exige que cada novo seguimento seja aprovado. Se sim, falta implementar o estado de solicitação e sua interface; esse fluxo não deve ser confundido com Círculo.</p>
+<h3>P1 — Mídias não são uploads e a galeria tem duas fontes</h3>
+<ul>
+<li><code>mediaService.ts</code> e <code>use-draft-media.ts</code> criam URLs locais para prévia. URLs <code>blob:</code> deixam de existir após recarga e não são IDs que o backend possa anexar a um post.</li>
+<li>A publicação precisa enviar IDs de uploads prontos, pertencentes ao autor e validados pelo servidor; tipo MIME declarado pelo navegador não é prova do formato do arquivo.</li>
+<li>A galeria derivada das publicações respeita audiência, mas <code>CommercialProfilePage</code> também reúne <code>commercialProfile.photos/videos</code>. O contrato precisa definir se essas mídias são publicações importadas/vinculadas ou ativos de perfil separados. Não duplicar arquivo nem expor conteúdo privado via galeria.</li>
+</ul>
+<h3>P1 — O contrato documental tinha divergências de regra</h3>
+<p>Corrigido neste pacote:</p>
+<ul>
+<li>Círculo deixou de ter convites, estados pendentes e tabela própria; a listagem retorna apenas seguimentos recíprocos efetivos.</li>
+<li>Avaliação agora exige nota inteira de 1–5, comentário entre 10–500 caracteres e resposta entre 3–500, alinhados à UI.</li>
+<li>Opções de serviço comerciais distinguem oferecido (<code>true</code>), não oferecido (<code>false</code>) e não informado (<code>null</code>/ausente). Só <code>true</code> pode aparecer no perfil público.</li>
+</ul>
+<p>Ainda é necessário validar esses contratos com testes de integração quando a API existir.</p>
+<h3>P2 — Controles/telas que não completam a ação esperada</h3>
+<ul>
+<li>O botão “nova mensagem” em <code>Messages.tsx</code> não tem ação associada.</li>
+<li>Envio de imagem e emoji em mensagens está explicitamente desabilitado.</li>
+<li>Recuperação, verificação, histórico de visualização, ordenação/categoria de lojas, raio/distância e compra são ausentes ou indisponíveis. Isso não deve ser documentado como backend pronto.</li>
+<li><code>Seek</code> trabalha com pesquisa/filtros locais; o filtro de raio está desabilitado e “aberto agora” não é disponibilidade verificada em tempo real.</li>
+</ul>
+<h2>Regras de produto que o backend deve respeitar</h2>
+<ol>
+<li>Uma pessoa escolhe conta pessoal ou comercial no cadastro. Conta comercial é a mesma conta Social e é a fonte dos perfis que podem aparecer no Seek.</li>
+<li>Só contas comerciais elegíveis e públicas podem aparecer como comércio/prestador no Seek. Perfil pessoal não vira estabelecimento; endereço residencial de prestador não deve ser exposto como endereço comercial sem decisão explícita.</li>
+<li>Círculo é uma projeção: dois seguimentos aceitos em sentidos opostos. Não criar convites, pedidos, tabela, endpoint de entrada/saída ou notificação própria de Círculo. Deixar de seguir em qualquer direção remove a condição.</li>
+<li>Serviços de comércio aparecem apenas quando declarados como oferecidos. Não informado e não oferecido não podem ser mostrados como serviço disponível.</li>
+<li>Fotos e vídeos publicados alimentam automaticamente a galeria da mesma conta, sempre respeitando a audiência do post; não tornar privada uma mídia só porque está na galeria.</li>
+<li>Avaliação não pode ser feita pelo próprio comércio; uma conta pode avaliar o mesmo comércio uma vez; nota é obrigatória de 1 a 5; responsável comercial pode responder sem apagar crítica de cliente.</li>
+<li>O GPS é opt-in; a seleção manual de cidade continua disponível. Distância só deve ser exibida com origem de localização e coordenadas verificadas, sem estimativa inventada.</li>
+<li>Seek e Shop não podem afirmar reserva, agendamento confirmado, entrega, ingresso, compra ou pagamento que o produto ainda não implementa.</li>
+<li>Shuffle e Comunidades não fazem parte do escopo atual.</li>
+</ol>
+<h2>Mapa de módulos e fontes atuais</h2>
+<div class="table-wrap"><table>
+<tr><th>Módulo</th><th>Rotas/páginas</th><th>Fontes atuais</th></tr>
+<tr><td>Acesso e cadastro</td><td><code>/</code>, <code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/verify-email</code></td><td><code>AppContext</code>, <code>accountStorage</code>, validação local</td></tr>
+<tr><td>Onboarding</td><td><code>/onboarding/interests</code>, <code>/onboarding/suggestions</code></td><td>preferências locais e sugestões mock</td></tr>
+<tr><td>Social</td><td><code>/feed</code>, <code>/search</code>, <code>/post/:id</code>, <code>/article/:id</code>, <code>/compose</code>, <code>/article/create</code>, <code>/social/activity</code>, <code>/social/suggestions</code></td><td><code>SocialContext</code>, fixtures, reducer; <code>contentService</code> demo</td></tr>
+<tr><td>Perfis e relações</td><td><code>/profile</code>, <code>/profile/:username</code>, <code>/profile/edit</code>, seguidores/seguindo, <code>/circles</code></td><td>conta local, <code>SocialContext</code>, relações derivadas</td></tr>
+<tr><td>Seek</td><td><code>/seek</code>, <code>/seek/event/:id</code></td><td>dados locais, catálogo IBGE, preferências de busca; eventos de exemplo</td></tr>
+<tr><td>Shop</td><td><code>/shop</code>, <code>/shop/item/:id</code></td><td>catálogo de demonstração e salvos em localStorage</td></tr>
+<tr><td>Comunicação</td><td><code>/messages</code>, <code>/messages/:conversationId</code>, <code>/notifications</code></td><td>objetos em memória/contexto; sem entrega externa</td></tr>
+<tr><td>Configurações</td><td><code>/settings/*</code></td><td>preferências locais e controles ainda indisponíveis</td></tr>
+</table></div>
+<h2>Testes e verificações</h2>
+<p>Na auditoria:</p>
+<ul>
+<li><code>pnpm test:social</code>: <strong>34 testes aprovados</strong> para regras de conteúdo, validação, referências e erros do adaptador.</li>
+<li><code>pnpm --filter @workspace/social run typecheck</code>: aprovado.</li>
+<li><code>pnpm --filter @workspace/social run build</code>: aprovado anteriormente; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.</li>
+</ul>
+<p>Esses resultados comprovam compilação e um conjunto limitado de regras, não a prontidão do backend. Não há testes de navegador ponta a ponta, integração HTTP com sessão, banco, CSRF, uploads, troca entre contas, fluxo de seguir mútuo, telas de aprovação privada, notificações por destinatário ou persistência entre dispositivos.</p>
+<h2>Ordem recomendada para fechar a prontidão</h2>
+<ol>
+<li>Confirmar o comportamento de seguimento para contas privadas e manter Círculo apenas como estado derivado.</li>
+<li>Escolher autenticação e identidade; documentar sessão e como uma conta pessoal/comercial nasce.</li>
+<li>Remover/encapsular dados demo do estado de produção e separar estados viewer-specific por conta.</li>
+<li>Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.</li>
+<li>Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.</li>
+<li>Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.</li>
+<li>Criar testes de API e navegador que cubram autorização entre contas, privacidade, Círculo, publicação/galeria, avaliações, mensagens e ações de configuração.</li>
+</ol>
+<p><strong>Estado final desta auditoria:</strong> documentação atualizada; nenhum endpoint novo, banco ou serviço foi implementado.</p></section>
 <section id="architecture-and-security"><h1>Arquitetura, segurança e fluxos</h1>
 <h2>1. Arquitetura de referência</h2>
 <pre><code>Navegador / aplicativo web
@@ -231,7 +370,7 @@ GET /accounts/{id}/media
 <tr><td>Publicar</td><td>Sessão + ACL da referência + ownership de mídia + post + vínculos + outbox</td></tr>
 <tr><td>Repost/curtir/salvar</td><td>Unique de par; retry não duplica; contador derivado ou atualizado na mesma transação</td></tr>
 <tr><td>Comentário/resposta</td><td>Permissão do post + pai no mesmo post + conteúdo + evento de notificação</td></tr>
-<tr><td>Círculo</td><td>Par canônico de contas; ator solicitado/solicitante validado; transição pending→accepted uma vez</td></tr>
+<tr><td>Seguir/Círculo</td><td>Persistir somente arestas de seguir. Círculo é uma projeção de duas arestas aceitas em sentidos opostos; desfazer qualquer uma remove o resultado derivado. Não há transição própria de convite/aceite de Círculo</td></tr>
 <tr><td>Bloquear</td><td>Bloqueio e revogação das relações/interações incompatíveis em transação; desbloquear não recria relações automaticamente</td></tr>
 <tr><td>Avaliação</td><td>Sessão do avaliador + conta comercial distinta + unique negócio/avaliador; média coerente com moderação</td></tr>
 <tr><td>Resposta comercial</td><td>Apenas dono do negócio vinculado à avaliação; nenhum <code>businessAccountId</code> arbitrário</td></tr>
@@ -250,7 +389,7 @@ GET /accounts/{id}/media
   &quot;resourceId&quot;: &quot;00000000-0000-4000-8000-000000000002&quot;,
   &quot;version&quot;: 1
 }</code></pre>
-<p>Tipos propostos: <code>message.created</code>, <code>conversation.read</code>, <code>notification.created</code>, <code>notification.read</code>, <code>circle.updated</code>, <code>post.updated</code>, <code>post.deleted</code>, <code>media.ready</code>, <code>media.failed</code>, <code>event.updated</code>.</p>
+<p>Tipos propostos: <code>message.created</code>, <code>conversation.read</code>, <code>notification.created</code>, <code>notification.read</code>, <code>follow.updated</code> (a projeção de Círculo muda junto), <code>post.updated</code>, <code>post.deleted</code>, <code>media.ready</code>, <code>media.failed</code>, <code>event.updated</code>.</p>
 <p>Autorizar cada assinante e cada replay. Revogar assinaturas em logout/bloqueio/remoção de participante. Preferir IDs a corpo de mensagens em pushes e notificações de sistema. Entrega é <strong>pelo menos uma vez</strong>: frontend deduplica por eventId e consulta o recurso autorizado. Não prometer entrega exatamente uma vez.</p>
 <h2>7. Segurança e abuso</h2>
 <ul>
@@ -278,7 +417,7 @@ GET /accounts/{id}/media
 <tr><th>Rotas da interface</th><th>Código / comportamento atual</th><th>Integração necessária</th></tr>
 <tr><td><code>/</code>, <code>/login</code>, <code>/register</code></td><td><code>App.tsx</code>, <code>Login</code>, <code>Register</code>, <code>AppContext</code>; login demonstrativo</td><td>Sessão real, cadastro único, identidade, termos, username, retorno de autenticação</td></tr>
 <tr><td><code>/forgot-password</code>, <code>/verify-email</code></td><td>Sucesso local/código de demonstração</td><td>Fluxo real do provedor, rate limit, desafio com expiração e estados de erro</td></tr>
-<tr><td><code>/onboarding/interests</code>, <code>/onboarding/suggestions</code></td><td>Preferências/sugestões locais; conclusão no-op</td><td>Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida</td></tr>
+<tr><td><code>/onboarding/interests</code>, <code>/onboarding/suggestions</code></td><td>Preferências locais; sugestões são fixtures e as escolhas de seguir não são persistidas; conclusão no-op</td><td>Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida</td></tr>
 <tr><td><code>/feed</code></td><td>Feed local: para você, seguindo, artigos, vídeos</td><td><code>GET social/feed</code>, paginação, audiência, bloqueios, contadores e cache por visitante</td></tr>
 <tr><td><code>/compose</code>, <code>/article/create</code></td><td><code>contentService</code> demo + mídias blob</td><td>Upload, criação transacional, validação, idempotência e publicação com referência</td></tr>
 <tr><td><code>/post/:postId</code>, <code>/article/:postId</code></td><td>Leitura e interação locais</td><td>Leitura autorizada, comentários/respostas, curtidas, reposts, remoção e edição proposta</td></tr>
@@ -286,7 +425,7 @@ GET /accounts/{id}/media
 <tr><td><code>/profile</code>, <code>/profile/:username</code></td><td>Perfil pessoal/comercial com posts/mídias/artigos</td><td>DTO de conta + relações do visitante + conteúdo autorizado + galeria derivada</td></tr>
 <tr><td><code>/profile/edit</code></td><td>Atualiza conta local e SocialContext</td><td>PATCH de conta, extensão comercial, mídia, município, horários, recursos, versão</td></tr>
 <tr><td><code>/profile/:username/followers</code>, <code>/profile/:username/following</code></td><td>Listas locais</td><td>Listas paginadas e permissões para perfis privados</td></tr>
-<tr><td><code>/profile/:username/circles</code>, <code>/circles</code></td><td>Listas de amizades/convites; estado parcialmente separado</td><td>Uma fonte canônica de relações; respeitar username da rota e política de lista pública</td></tr>
+<tr><td><code>/profile/:username/circles</code>, <code>/circles</code></td><td>Lista local já usa a projeção <code>isInCircle</code>; a ação “Deixar de seguir” remove uma das arestas e encerra o Círculo derivado</td><td>Conectar uma listagem paginada de seguimentos recíprocos efetivos; não criar convite, aceite, recusa ou remoção de Círculo</td></tr>
 <tr><td><code>/social/activity</code></td><td>Histórico, salvos, curtidas, comentários e publicações</td><td>Consultas do ator autenticado; limpar histórico sem apagar conteúdo original</td></tr>
 <tr><td><code>/social/suggestions</code></td><td>Sugestões locais</td><td>Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis</td></tr>
 <tr><td><code>/notifications</code></td><td>Eventos e leitura locais</td><td>Destinatário no servidor, paginação, marcar lida, preferências e entrega</td></tr>
@@ -295,18 +434,19 @@ GET /accounts/{id}/media
 <tr><td><code>/seek/event/:id</code></td><td>Detalhe de demonstração; ingresso desabilitado</td><td>Evento real com organizador, interesse persistente, estado; ingressos são extensão</td></tr>
 <tr><td><code>/shop</code>, <code>/shop/item/:id</code></td><td>Catálogo ilustrativo, detalhe, favoritos; compra desabilitada</td><td>Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo</td></tr>
 <tr><td><code>/settings</code>, <code>/settings/account</code></td><td>Username local; ações sensíveis desabilitadas</td><td>Preferências, identidade, reautenticação, exportação/desativação/exclusão</td></tr>
-<tr><td><code>/settings/privacy</code>, <code>/settings/blocked</code></td><td>Controles principalmente desabilitados</td><td>Política efetiva, bloqueios/mutes e permissões de contato/relacionamento</td></tr>
+<tr><td><code>/settings/privacy</code>, <code>/settings/blocked</code></td><td>Preferências são locais; tela de bloqueados lê flag global de demo e o botão “Desbloquear” aparece desabilitado</td><td>Persistir preferências por conta; modelar bloqueios por ator-alvo e habilitar ações com autorização</td></tr>
 <tr><td><code>/settings/notifications</code></td><td>Defaults visuais desabilitados</td><td>Preferências reais e consentimento para push/e-mail</td></tr>
 <tr><td><code>/settings/security</code></td><td>Sessões/MFA/histórico indisponíveis</td><td>Sessões revogáveis, ações no provedor e auditoria de acesso redigida</td></tr>
 <tr><td><code>/settings/appearance</code></td><td>Escuro; tamanho 16/18/20 local</td><td>Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render</td></tr>
 <tr><td><code>/styleguide</code>, página inexistente</td><td>Apoio visual e fallback</td><td>Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API</td></tr>
 </table></div>
-<p>O estado “autenticado” do router é apenas UI. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.</p>
+<p>O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.</p>
+<p>Hoje a interface não usa o adaptador REST de conteúdo: <code>contentService</code> aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints <code>/api/v1</code> propostos.</p>
 <h2>2. Arquivos que precisam trocar de fonte</h2>
 <div class="table-wrap"><table>
 <tr><th>Arquivo</th><th>Alteração de integração, quando autorizada</th></tr>
 <tr><td><code>context/AppContext.tsx</code></td><td>Consultar sessão, retirar login automático/mock, expiração e logout autoritativos</td></tr>
-<tr><td><code>context/SocialContext.tsx</code></td><td>Substituir fixtures/reducer como verdade por cache de API e mutações reconciliadas</td></tr>
+<tr><td><code>context/SocialContext.tsx</code></td><td>Isolar/remover fixtures de produção; substituir reducer como fonte de verdade por cache de API e mutações reconciliadas por conta</td></tr>
 <tr><td><code>services/contentService.ts</code></td><td>Migrar payload de mídia/autor; ativar REST somente após teste real; não fallback para demo em erro</td></tr>
 <tr><td><code>services/restContracts.ts</code></td><td>Completar operações, erros, paginação e validações; manter formatos existentes documentados</td></tr>
 <tr><td><code>services/contentValidation.ts</code></td><td>Compartilhar regras com servidor sem confundir validação de UI com segurança</td></tr>
@@ -318,7 +458,7 @@ GET /accounts/{id}/media
 <tr><td><code>services/seekLocationService.ts</code></td><td>Manter seleção manual e GPS consentido; adaptar catálogo à API/cache; geocodificação só após configuração</td></tr>
 <tr><td><code>hooks/use-saved-shop-items.ts</code>, salvos comerciais</td><td>API única de salvos tipados, compartilhada entre perfil e módulos</td></tr>
 <tr><td><code>data/mockData.ts</code>, <code>demoCatalog.ts</code>, <code>demoSeek*.ts</code>, <code>demoIntegrationPosts.ts</code></td><td>Fixtures exclusivamente de testes/preview; não seeds automáticos de produção</td></tr>
-<tr><td><code>components/profile/CommercialProfilePage.tsx</code></td><td>Dados da mesma conta comercial, avaliações e resposta; nenhuma identidade comercial paralela</td></tr>
+<tr><td><code>components/profile/CommercialProfilePage.tsx</code></td><td>Dados da mesma conta comercial, avaliações e resposta; galeria deve combinar mídias publicadas e mídia de perfil de forma explícita e sem duplicação</td></tr>
 <tr><td><code>lib/api-spec/openapi.yaml</code> (raiz do projeto)</td><td>Evoluir contrato vigente após aprovação; preservar título <code>Api</code> exigido pelo código gerado</td></tr>
 <tr><td><code>lib/api-client-react</code>, <code>lib/api-zod</code></td><td>Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente</td></tr>
 <tr><td><code>lib/db/src/schema</code></td><td>Implementar Drizzle a partir do modelo revisado; criar migrações versionadas</td></tr>
@@ -326,7 +466,7 @@ GET /accounts/{id}/media
 </table></div>
 <h3>Atenção aos contratos atuais</h3>
 <p>O adaptador existente não envia CSRF nem <code>Idempotency-Key</code> e não trata <code>412</code>, <code>413</code>, <code>415</code>, <code>429</code> de forma específica. Acrescentar essas respostas à experiência de erro. Consultas devem suportar cancelamento, e um resultado antigo não deve sobrescrever a cidade/filtro novo.</p>
-<p><code>AppContext</code>, <code>SocialContext</code> e página de Círculos hoje podem representar estados distintos. A API deve ser a fonte única; a mudança de username precisa atualizar todos os caches, links, sessão e busca. “Atualização otimista” exige rollback em erro, não apenas toast de sucesso.</p>
+<p><code>AppContext</code> e <code>SocialContext</code> podem divergir: por exemplo, a troca de username em Configurações atualiza a conta ativa local, mas não chama <code>updateUser</code> no contexto Social. A API deve ser a fonte única; a mudança de username precisa atualizar todos os caches, links, sessão e busca. “Atualização otimista” exige rollback em erro, não apenas toast de sucesso. O Círculo deve ser sempre recalculado a partir de dois seguimentos aceitos em sentidos opostos.</p>
 <h2>3. Persistência atual e destino</h2>
 <div class="table-wrap"><table>
 <tr><th>Origem atual</th><th>Chave / conteúdo</th><th>Destino</th></tr>
@@ -339,6 +479,7 @@ GET /accounts/{id}/media
 <tr><td>sessionStorage</td><td><code>seekalive-seek-demo-preview</code></td><td>Somente desenvolvimento; nunca configura catálogo de produção</td></tr>
 <tr><td>Memória React</td><td>Posts, comentários, reposts, relações, notificações e mensagens</td><td>Tabelas e cache de API; fixtures não são dados migráveis automaticamente</td></tr>
 <tr><td><code>blob:</code></td><td>Fotos/vídeos de rascunho/publicação</td><td>Upload de arquivos reais e vínculos de mídia; URL blob não pode ser “migrada” pelo servidor</td></tr>
+<tr><td>Estado da página/Contexto React</td><td>Curtidas, salvos, reposts, notificações, mensagens e relações de demonstração</td><td>Converter em mutações/consultas identificadas por conta; não migrar valores globais como <code>isLiked</code> ou <code>isRead</code> como estado do usuário atual</td></tr>
 </table></div>
 <p>Não transformar tudo em tabela: scroll, modal aberto, termo parcialmente digitado e seleção temporária são estados de UI. O servidor deve persistir escolhas de produto, conteúdo e relações, não cada renderização.</p>
 <h2>4. Exemplos de integração</h2>
@@ -385,7 +526,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td>Exportação/exclusão</td><td>Próprio titular reautenticado</td><td>Worker autorizado, com trilha e estados</td></tr>
 </table></div></section>
 <section id="endpoints"><h1>Endpoints e contrato OpenAPI</h1>
-<p>Gerado por <code>node docs/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>134 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
+<p>Gerado por <code>node docs/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>129 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
 <blockquote>Salvo <code>GET /api/healthz</code>, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.</blockquote>
 <h2>Respostas, paginação e autenticação</h2>
 <ul>
@@ -476,12 +617,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td>GET</td><td><code>/v1/social/follow-requests</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageFollow</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/accept</code></td><td>Sessão autenticada</td><td>—</td><td><code>Follow</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/decline</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/social/circles</code></td><td>Sessão autenticada</td><td>—</td><td><code>Circle</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/social/circles/requests</code></td><td>Sessão autenticada</td><td><code>CircleRequest</code></td><td><code>Circle</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/social/circles/requests/{accountId}/accept</code></td><td>Sessão autenticada</td><td>—</td><td><code>Circle</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/social/circles/requests/{accountId}/decline</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>DELETE</td><td><code>/v1/social/circles/requests/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>DELETE</td><td><code>/v1/social/circles/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/circles</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageCircle</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>GET</td><td><code>/v1/social/blocks</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>PUT</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>DELETE</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
@@ -582,11 +718,12 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <section id="data-dictionary"><h1>Seekalive core data dictionary</h1>
 <p><strong>PROPOSED, NOT APPLIED. Documentation only.</strong> <code>schema-core.sql</code> is a proposed PostgreSQL design, not a migration, generated ORM schema, or claim of implemented backend behavior. The existing database library defines no application tables. No database connection, SQL execution, migration, application change, or package installation is part of this work.</p>
 <h2>Sources and boundaries</h2>
-<p>Reviewed frontend contracts in <code>artifacts/social/src/data/mockData.ts</code>, <code>src/types/content.ts</code>, <code>src/services/contentValidation.ts</code>, <code>src/services/referenceResolver.ts</code>, <code>src/pages/settings/Privacy.tsx</code>, and <code>src/pages/Circles.tsx</code>; incorporated the review validation audit (comment minimum 10 characters, business reply minimum 3, rating 1–5).</p>
+<p>Reviewed frontend contracts in the account, profile, social, Seek, Shop, messaging and settings flows. The current commercial-review UI requires a 1–5 rating, a 10–500 character comment and a 3–500 character business reply. This document remains a proposal, not an implemented backend contract.</p>
 <ul>
 <li>One <code>accounts</code> identity is personal <strong>or</strong> commercial. A commercial profile extends that identity; it is not a separate login/account.</li>
-<li>Circles means mutual friends: incoming requests, sent requests, accepted friends, decline/cancel/remove. It does <strong>not</strong> mean Communities, groups, group roles, or memberships in a named circle. Current Circles interactions are local demo state.</li>
-<li>Current privacy settings are explicitly disabled/unavailable. <code>canReadPost</code> currently checks public, author, or circle membership; it is not complete production authorization. Proposed private-profile and communication policies below require server implementation.</li>
+<li>Círculo exists only when two accounts follow one another and both follow edges are effective/accepted. It is derived from <code>follows</code>, not an independent request, invitation, membership, or table. One-way following is not Círculo; removing either edge removes the derived membership.</li>
+<li>Shuffle and Comunidades are out of product scope. There are no community/group entities, roles, memberships, invitations, or group posts.</li>
+<li>Privacy controls in the UI currently save browser-local preferences. <code>canReadPost</code> checks a partial client-side rule; it is not production authorization. The UI does not implement a private-profile follow-request inbox/acceptance flow.</li>
 <li>Current email/password account screens are browser demos, not real authentication. Proposed authentication is an OIDC adapter with provider-owned credentials and recovery. There are no password hashes, password-reset tokens, or browser-managed production sessions in this model.</li>
 <li>Event interest, product discovery, business hours, and advertised service options do not imply checkout, payments, delivery dispatch, reservations, or appointment booking.</li>
 </ul>
@@ -603,12 +740,12 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td><code>categoryKey</code>, <code>category</code>, <code>discoveryKind</code></td><td>Category key/label join and <code>discovery_kind</code>; application checks category domain.</td></tr>
 <tr><td><code>openingHours</code>, <code>isOpen</code>, <code>distanceKm</code></td><td>Hours and exceptions rendered in business timezone; distance is optional, computed only from approved data. No fabricated distance or stored device location.</td></tr>
 <tr><td><code>stats</code>, <code>likes</code>, <code>comments</code>, <code>reposts</code>, <code>interested</code>, <code>unreadCount</code></td><td>Aggregates over eligible rows; do not trust client counters. <code>shares</code> has no durable tracking model in core; do not invent a count.</td></tr>
-<tr><td><code>isFollowing</code>, <code>isInCircle</code>, <code>circleStatus</code>, <code>isBlocked</code>, <code>isMuted</code>, <code>isLiked</code>, <code>isReposted</code>, <code>isBookmarked</code></td><td>Viewer-specific joins, never global booleans on target accounts/content.</td></tr>
+<tr><td><code>isFollowing</code>, <code>isInCircle</code>, <code>isBlocked</code>, <code>isMuted</code>, <code>isLiked</code>, <code>isReposted</code>, <code>isBookmarked</code></td><td>Viewer-specific projections, never global booleans on target accounts/content. <code>isInCircle</code> is derived from effective follows in both directions; no <code>circleStatus</code> exists.</td></tr>
 <tr><td>Post <code>format</code>, legacy <code>type: text/video</code>, <code>article</code></td><td>Canonical <code>format</code> is text/media/article. Legacy <code>type</code> derives from attached asset kinds; <code>article_title</code>/<code>article_body</code> nest into <code>article</code>.</td></tr>
 <tr><td><code>mediaTypes</code></td><td>Derive from <code>media_assets.kind</code> in <code>post_media.position</code> order, not an independently mutable array.</td></tr>
 <tr><td><code>reference: {type,id}</code></td><td>Keep public types <code>seek_entity</code> / <code>shop_item</code> / <code>social_post</code>. For <code>seek_entity</code>, an <code>event:</code>-prefixed ID → <code>seek_event_id</code> after stripping exactly one prefix and validating the remaining UUID; otherwise → <code>business_account_id</code>. <code>shop_item</code> → <code>shop_item_id</code>; <code>social_post</code> → <code>referenced_post_id</code>. Serialize event targets back as <code>seek_entity</code> with <code>event:</code> + UUID. Store only the UUID in the FK, never the prefix. Reject empty/malformed prefixed IDs; do not fall back to business lookup. One optional reference per post.</td></tr>
 <tr><td><code>replyToCommentId</code>, <code>parentPostId</code></td><td><code>parent_comment_id</code>, <code>parent_post_id</code>; reposts are independent relationship records, not copied content.</td></tr>
-<tr><td><code>SeekReview.rating</code>, preview <code>rating</code>, <code>ratingCount</code></td><td>Proposed individual review rating is <strong>nullable</strong>, 1–5 when set, permitting comment-only reviews. Current <code>SeekReview</code> requires a rating and needs an explicit future DTO change. Compute average/count over published, non-null ratings; no ratings → null average and zero rating count, not invented 0 stars. Review count may differ from rating count.</td></tr>
+<tr><td><code>SeekReview.rating</code>, preview <code>rating</code>, <code>ratingCount</code></td><td>Individual review rating is required and is an integer from 1–5, matching the current UI. Compute average/count over published, eligible reviews; no reviews → null average and zero count, not invented 0 stars.</td></tr>
 <tr><td><code>businessReply</code></td><td><code>reply_content</code>, <code>replied_at</code>; only the reviewed business identity can reply.</td></tr>
 <tr><td><code>ShopItem.price</code>, <code>oldPrice</code>, event <code>price</code></td><td>Current formatted strings are display DTOs only. Real <code>price_minor</code>, <code>old_price_minor</code> are integer minor units; BRL uses cents, paired with ISO currency. No float money or parsing localized labels at persistence boundaries. Free events use 0; unknown price must be resolved before publication, not silently 0.</td></tr>
 <tr><td>Shop <code>store</code>, optional <code>sellerId</code>, event optional <code>organizerId</code></td><td>Required commercial seller/organizer FKs; store label joins account display name. Demo objects lacking seller/organizer need real data before persistence. Shop ratings/review counts have no product-review source in core; omit rather than repurpose business ratings.</td></tr>
@@ -625,10 +762,10 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td><code>accounts</code> — canonical identity</td><td><code>id</code>, <code>username</code>, <code>display_name</code>, <code>account_type</code>, <code>bio</code>, <code>location_label</code>, <code>website_url</code>, <code>avatar_asset_id</code>, <code>cover_asset_id</code>, <code>is_verified</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code>, <code>deleted_at</code></td><td>PK id; unique lower(username), unique (id, account_type); type personal/commercial, active/suspended/deleted status; asset FKs added after assets exist.</td><td>Public-safe profile projection; self edits allowed fields; verification/status only trusted administrative operations. Never expose identity/session data through profile serialization.</td></tr>
 <tr><td><code>auth_identities</code> — OIDC links</td><td><code>id</code>, <code>account_id</code>, <code>provider</code>, <code>subject</code>, <code>verified_email</code>, <code>created_at</code></td><td>Unique provider+subject; unique id+account for session binding; account index. Provider is canonical issuer/adapter identifier; subject is case-sensitive. Email need not be globally unique and is not a login-linking key.</td><td>Auth service only; explicit reauthentication to link/unlink; never auto-link accounts by matching email.</td></tr>
 <tr><td><code>sessions</code> — server sessions</td><td><code>id</code>, <code>account_id</code>, <code>auth_identity_id</code>, <code>token_hash</code>, <code>created_at</code>, <code>expires_at</code>, <code>revoked_at</code></td><td>Unique 32-byte digest; account and expiry indexes; composite identity/account FK; expiry after creation.</td><td>Auth service only; owner may list sanitized active sessions and revoke. Store only hash of a cryptographically random opaque token.</td></tr>
-<tr><td><code>account_settings</code> — privacy/locale</td><td><code>account_id</code>, <code>private_profile</code>, <code>circle_requests_from</code>, <code>messages_from</code>, <code>read_receipts</code>, <code>locale</code>, <code>timezone</code>, <code>updated_at</code></td><td>Account PK/FK; request enum everyone/followers/nobody, message enum everyone/circles/nobody.</td><td>Self only; server consults settings for every relevant action. Validate locale and IANA zone.</td></tr>
+<tr><td><code>account_settings</code> — privacy/locale</td><td><code>account_id</code>, <code>private_profile</code>, <code>messages_from</code>, <code>read_receipts</code>, <code>locale</code>, <code>timezone</code>, <code>updated_at</code></td><td>Account PK/FK; message enum everyone/circles/nobody.</td><td>Self only; server consults settings for every relevant action. Validate locale and IANA zone. Private-profile follow approval remains a UI/product decision; do not create a separate Círculo-request setting.</td></tr>
 <tr><td><code>categories</code> — controlled taxonomy</td><td><code>key</code>, <code>label</code>, <code>domain</code>, <code>active</code></td><td>Text PK; domain business/event/shop.</td><td>Public read; curated admin write. Server validates the target table's category domain.</td></tr>
 <tr><td><code>cities</code> — Brazilian municipalities</td><td><code>ibge_id</code>, <code>name</code>, <code>state_code</code>, <code>timezone</code></td><td>Seven-digit text PK; two-uppercase-letter state shape; lower(name)+state index.</td><td>Public read; authoritative controlled imports only, no fabricated municipality seeds.</td></tr>
-<tr><td><code>business_profiles</code> — commercial extension</td><td><code>account_id</code>, constant <code>account_type</code>, <code>category_key</code>, <code>city_id</code>, <code>discovery_kind</code>, <code>address</code>, <code>timezone</code>, <code>price_level</code>, <code>amenities</code>, <code>tags</code>, <code>service_options</code>, <code>updated_at</code></td><td>Account PK/FK; composite (account_id, account_type) FK with commercial-only CHECK; city/category/kind discovery index; price level 1–4; JSON object options.</td><td>Public-safe read; owner writes. Allowlist service-option booleans: delivery, dineIn, tableService, reservations, appointments, takeout. These advertise capabilities, not transaction workflows.</td></tr>
+<tr><td><code>business_profiles</code> — commercial extension</td><td><code>account_id</code>, constant <code>account_type</code>, <code>category_key</code>, <code>city_id</code>, <code>discovery_kind</code>, <code>address</code>, <code>timezone</code>, <code>price_level</code>, <code>amenities</code>, <code>tags</code>, <code>service_options</code>, <code>updated_at</code></td><td>Account PK/FK; composite (account_id, account_type) FK with commercial-only CHECK; city/category/kind discovery index; price level 1–4; JSON object options. Each service option is true/false/unknown; only <code>true</code> may be shown publicly.</td><td>Public-safe read; owner writes. Allowlist delivery, dineIn, tableService, reservations, appointments, takeout. These advertise capabilities, not transaction workflows.</td></tr>
 <tr><td><code>business_hours</code> — weekly local intervals</td><td><code>id</code>, <code>business_account_id</code>, <code>weekday</code>, <code>opens_at</code>, <code>closes_at</code></td><td>Unique business+weekday+opening; 0–6 day; closing after opening. Unique index supports owner/day lookup.</td><td>Owner write; public read. Server prevents overlapping intervals. Overnight intervals split across weekdays; use <code>24:00</code> for end of day.</td></tr>
 <tr><td><code>business_hour_exceptions</code> — date overrides</td><td><code>id</code>, <code>business_account_id</code>, <code>local_date</code>, <code>is_closed</code>, <code>opens_at</code>, <code>closes_at</code></td><td>Unique business+date; closed has no times, open has both ordered times.</td><td>Owner write; public read. Overrides weekly hours entirely. Core supports one open interval per exception date; multiple exceptional shifts require extension.</td></tr>
 <tr><td><code>business_service_areas</code> — city coverage</td><td><code>business_account_id</code>, <code>city_id</code></td><td>Composite PK, reverse city index; both FKs.</td><td>Owner write; public discovery read. Coverage is city-level, not a geofence or delivery guarantee.</td></tr>
@@ -647,15 +784,14 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td><code>comment_likes</code> — one reaction</td><td><code>comment_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Composite PK, account reverse index.</td><td>Session actor adds/removes own like only on readable, eligible comment/post.</td></tr>
 <tr><td><code>post_likes</code> — one reaction</td><td><code>post_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Composite PK, account reverse index.</td><td>Session actor own mutations; current target access required.</td></tr>
 <tr><td><code>reposts</code> — non-copying boost</td><td><code>id</code>, <code>post_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Unique post+account; account/time index.</td><td>Own mutation; proposed policy permits repost of published public posts from public profiles only; recheck source visibility on rendering.</td></tr>
-<tr><td><code>follows</code> — directed relationship</td><td><code>follower_id</code>, <code>followed_id</code>, <code>status</code>, <code>created_at</code></td><td>Pair PK; no self-follow; inbound followed+status+follower index; pending/accepted.</td><td>Requester creates/cancels; target accepts/removes pending requests. Public profiles may be accepted immediately by server; private profiles require approval.</td></tr>
-<tr><td><code>circle_relationships</code> — unordered mutual friendship</td><td><code>account_low_id</code>, <code>account_high_id</code>, <code>requested_by_id</code>, <code>status</code>, <code>created_at</code>, <code>accepted_at</code></td><td>Ordered UUID pair PK prevents reverse duplicates/self pairs; requester must be endpoint; accepted requires timestamp; high-endpoint/status index complements low-endpoint PK.</td><td>Endpoints only see pending relationship details. Only recipient accepts/declines; requester cancels; either removes accepted friendship. Never a Communities table.</td></tr>
+<tr><td><code>follows</code> — directed relationship</td><td><code>follower_id</code>, <code>followed_id</code>, <code>status</code>, <code>created_at</code></td><td>Pair PK; no self-follow; inbound followed+status+follower index; pending/accepted.</td><td>Public-profile follows may be accepted immediately; private-profile follows need target approval if that behavior is approved and implemented. Círculo is a read-time projection where both opposite rows are accepted; never store a second membership row. Current frontend immediately toggles follow and has no request inbox.</td></tr>
 <tr><td><code>blocks</code> — directed denial</td><td><code>blocker_id</code>, <code>blocked_id</code>, <code>created_at</code></td><td>Pair PK; reverse index; self-block forbidden.</td><td>Blocker manages; do not expose another user's block list. Either direction denies interaction/visibility under policy.</td></tr>
 <tr><td><code>mutes</code> — viewer filtering</td><td><code>muter_id</code>, <code>muted_id</code>, <code>created_at</code></td><td>Pair PK; reverse muted index; self-mute forbidden.</td><td>Muter only; suppress feed/notification delivery without treating mute as access denial.</td></tr>
 </table></div>
 <h3>Seek, Shop and saves</h3>
 <div class="table-wrap"><table>
 <tr><th>Table / intent</th><th>Columns</th><th>Keys / indexes / invariants</th><th>Required access</th></tr>
-<tr><td><code>business_reviews</code> — one review per reviewer/business</td><td><code>id</code>, <code>business_account_id</code>, <code>reviewer_id</code>, <code>rating</code>, <code>comment</code>, <code>reply_content</code>, <code>replied_at</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Unique business+reviewer; cannot review own identity; nullable 1–5 rating, required trimmed comment 10–5,000 chars; optional reply 3–5,000 chars with paired timestamp; reviewer and business/time indexes.</td><td>Reviewer edits own rating/comment, business edits only own reply, moderators status; published rows readable with applicable visibility. Current UI still requires rating; nullable storage is a proposed explicit extension. No second review after soft-delete without restoring/updating existing unique row.</td></tr>
+<tr><td><code>business_reviews</code> — one review per reviewer/business</td><td><code>id</code>, <code>business_account_id</code>, <code>reviewer_id</code>, <code>rating</code>, <code>comment</code>, <code>reply_content</code>, <code>replied_at</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Unique business+reviewer; cannot review own identity; required integer rating 1–5; trimmed comment 10–500 chars; optional reply 3–500 chars with paired timestamp; reviewer and business/time indexes.</td><td>Reviewer edits own rating/comment, business edits only own reply, moderators status; published rows readable with applicable visibility. No second review after soft-delete without restoring/updating existing unique row.</td></tr>
 <tr><td><code>seek_events</code> — discovery event</td><td><code>id</code>, <code>organizer_account_id</code>, <code>city_id</code>, <code>category_key</code>, <code>name</code>, <code>description</code>, <code>venue</code>, <code>starts_at</code>, <code>ends_at</code>, <code>timezone</code>, <code>price_minor</code>, <code>currency</code>, <code>cover_asset_id</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Required business organizer FK, city/category/asset FKs; ordered times, nonnegative price; city/status/start and organizer indexes.</td><td>Organizer writes; public reads published/eligible events, organizer sees drafts; server validates timezone and status transitions. Interest does not reserve a ticket.</td></tr>
 <tr><td><code>event_interests</code> — intent to attend</td><td><code>event_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Composite PK; reverse account index.</td><td>Actor own add/remove; eligible event required; counts public, interested-user lists require privacy review.</td></tr>
 <tr><td><code>shop_items</code> — product listing, not order</td><td><code>id</code>, <code>seller_account_id</code>, <code>category_key</code>, <code>name</code>, <code>description</code>, <code>tag</code>, <code>price_minor</code>, <code>old_price_minor</code>, <code>currency</code>, <code>cover_asset_id</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Required business seller; nonnegative integer money; old price absent or &gt;= price; seller/status and category/status indexes.</td><td>Seller writes; public eligible listing reads; no stock, purchase, shipping or payment promises.</td></tr>
@@ -684,9 +820,9 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h3>Required authorization transactions</h3>
 <ol>
 <li>Obtain actor from the authenticated session; check account active status and resource status. Service/database credentials never reach the browser. There are no implemented RLS policies or GRANTs in this proposal; SQL integrity is <strong>not</strong> app privacy.</li>
-<li>Proposed post policy: author may read own eligible content; <code>private</code> means author only; <code>circles</code> means accepted mutual relationship; <code>public</code> is visible subject to blocks and, for a private profile, accepted-follow approval. Private-profile gating and circle audience checks intersect for non-author viewers. This is a proposed stricter policy, not the current demo's claim. Deleted/removed content is restricted to explicitly authorized owner/moderation workflows.</li>
-<li>Resolve blocks in <strong>both</strong> directions. A block operation locks both accounts in canonical UUID order, creates block, removes follows in both directions and any friendship/request, and cancels queued deliveries where appropriate. Relationship creation/acceptance, communication and settings changes must use the same lock protocol or serializable transactions with retries to avoid races. Unblocking does not resurrect relationships.</li>
-<li>Mutual friend state has one ordered pair. Incoming/outgoing derives from <code>requested_by_id</code>, not duplicate rows. Decline/cancel/remove delete the relationship (minimal audit separately). Only the non-requester accepts a pending row; lock/check recipient policy and blocks. A mutual friend is not automatically a follower; do not silently conflate these states.</li>
+<li>Proposed post policy: author may read own eligible content; <code>private</code> means author only; <code>circles</code> means both effective follow edges exist; <code>public</code> is visible subject to blocks and, for a private profile, approved follow access. Private-profile gating and Círculo audience checks intersect for non-author viewers. Deleted/removed content is restricted to explicitly authorized owner/moderation workflows.</li>
+<li>Resolve blocks in <strong>both</strong> directions. A block operation locks both accounts in canonical UUID order, creates the block and removes follows in both directions, which also removes derived Círculo membership; cancel queued deliveries where appropriate. Relationship creation/acceptance, communication and settings changes must use the same lock protocol or serializable transactions with retries to avoid races. Unblocking does not resurrect follows.</li>
+<li>Círculo is computed from reciprocal effective follows. A request, approval, rejection, cancellation, or removal API for Círculo itself is forbidden by this rule. Follow-request transitions may still exist for private profiles, but need their own confirmed policy and UI; they are not Círculo actions.</li>
 <li>Publication transaction checks nonempty short text or attached media for non-articles, at least one asset for media format, at most eight matching ready owned assets, valid URLs/purposes, article requirements, target readability, mentions and hashtag normalization. Persist post, attachments, tokens, reference and outbox together. SQL caps slots and article lengths but does not prove an attachment exists or is ready/owned.</li>
 <li>Validate both raw and trimmed lengths consistently with frontend validation. SQL <code>char_length</code> measures Unicode characters whereas JS length uses UTF-16 code units; implement a documented canonical counting rule in the future API/DTO validator, test emoji boundaries, and do not claim perfect parity today. Normalize hashtags using the frontend's pt-BR lowercasing plus a deliberate Unicode normalization rule.</li>
 <li>Authorize comments, replies, likes, interests, reviews, reposts and saves against current target access. Parent/referenced post graphs must not become cyclic; SQL prohibits self-links but not multi-row cycles. Keep parent IDs immutable through the API; check ancestor chains if moves are introduced.</li>
@@ -792,8 +928,8 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <h3>Fase 2 — Conta única, perfil e relacionamentos</h3>
 <ul>
 <li>Conta pessoal/comercial é a mesma identidade Social; extensão comercial vinculada um-a-um à conta.</li>
-<li>Implementar perfil, privacidade, seguir, Círculo, bloqueio/silenciamento e salvos.</li>
-<li>Aceite: toda consulta aplica ACL no servidor; perfil privado, bloqueios e requests são testados para ambos os lados; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle.</li>
+<li>Implementar perfil, privacidade, seguir, Círculo derivado, bloqueio/silenciamento e salvos.</li>
+<li>Aceite: toda consulta aplica ACL no servidor; Círculo só existe com dois seguimentos efetivos em sentidos opostos e desaparece quando qualquer lado deixa de seguir; perfil privado e pedidos de seguimento (se aprovados como política) são testados para ambos os lados; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle ou Círculo.</li>
 </ul>
 <h3>Fase 3 — Social e mídia</h3>
 <ul>
@@ -835,6 +971,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <tr><td>Concorrência</td><td>Duas avaliações simultâneas, like/repost repetidos, edição com versão antiga, upload duplicado e outbox reprocessada</td></tr>
 <tr><td>Dados</td><td>Seed de municípios determinístico; usuários e conteúdos sintéticos apenas em ambiente local; nunca importar contas mock como usuários reais</td></tr>
 <tr><td>Frontend</td><td>Fluxos de perfil Social/comercial, abas de perfil, galeria, publicação/mídia, Seek e estados de erro sem regressão da navegação</td></tr>
+<tr><td>Frontend por conta</td><td>Likes, salvos, leituras, bloqueios, notificações e recomendações precisam ser isolados por ator; fixtures não podem entrar no build/estado de produção</td></tr>
 <tr><td>Operação</td><td>Health/readiness, logs sem PII/segredos, backup/restauração, job retry/failure queue e alertas</td></tr>
 </table></div>
 <h2>Decisões que permanecem abertas</h2>
@@ -848,4 +985,4 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <li>Regras de moderação, retenção/legal hold e prazos de exclusão.</li>
 </ul>
 <h2>Estado inicial do contrato</h2>
-<p>O gerador (<code>node docs/backend/generate-contracts.mjs</code>) escreve <code>openapi.json</code> e <code>endpoints.md</code>. O contrato registra 134 operações propostas; somente <code>GET /api/healthz</code> é uma rota implementada confirmada. Antes de gerar clientes ou conectar o frontend, revisar as decisões acima e validar schemas/ref/operationIds.</p></section></main></body></html>
+<p>O gerador (<code>node docs/backend/generate-contracts.mjs</code>) escreve <code>openapi.json</code> e <code>endpoints.md</code>. O contrato é uma proposta; somente <code>GET /api/healthz</code> é uma rota implementada confirmada. Antes de gerar clientes ou conectar o frontend, revisar as decisões acima e validar schemas/ref/operationIds.</p></section></main></body></html>
