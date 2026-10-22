@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useState } from "react";
+import { Link, useSearch } from "wouter";
+import { useAppContext } from "@/context/AppContext";
+import { canReadPost } from "@/services/contentValidation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search as SearchIcon, TrendingUp, Users, Hash } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,14 +22,23 @@ const trending = [
 
 export default function Search() {
   const { posts, users, toggleFollow } = useSocial();
-  const [query, setQuery] = useState("");
+  const search = useSearch();
+  const urlQuery = new URLSearchParams(search).get("q") ?? "";
+  const [query, setQuery] = useState(urlQuery);
+  const { currentUser } = useAppContext();
+  const viewerId = currentUser?.id ?? "me";
+  useEffect(() => { setQuery(urlQuery); }, [urlQuery]);
   const [activeTab, setActiveTab] = useState(0);
 
   const isSearching = query.trim().length > 0;
 
-  const filteredPosts = posts.filter(p =>
-    p.content.toLowerCase().includes(query.toLowerCase())
-  );
+  const q = query.trim().toLowerCase();
+  const filteredPosts = posts.filter(p => {
+    const author = users.find(u => u.id === p.authorId);
+    if (!canReadPost(p, viewerId, author?.isInCircle ?? false)) return false;
+    const haystack = [p.content, p.article?.title ?? "", p.article?.body ?? "", ...(p.hashtags ?? []).map(t => `#${t}`), ...(p.mentions ?? []).map(m => `@${m}`)].join(" ").toLowerCase();
+    return haystack.includes(q);
+  });
   const filteredUsers = users.filter(u =>
     u.displayName.toLowerCase().includes(query.toLowerCase()) ||
     u.username.toLowerCase().includes(query.toLowerCase())
@@ -50,7 +61,7 @@ export default function Search() {
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar no Orbit"
+              placeholder="Buscar no SeekAlive"
               data-testid="input-search"
               className="w-full h-10 pl-9 pr-4 bg-muted/50 rounded-full text-sm text-foreground placeholder:text-muted-foreground border border-transparent focus:border-primary focus:outline-none transition-colors"
             />

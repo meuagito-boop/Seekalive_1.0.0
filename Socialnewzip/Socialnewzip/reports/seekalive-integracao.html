@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SeekAlive — relatório de integração do front-end</title>
+<style>
+body{margin:0;background:#0c1018;color:#e9edf5;font:16px/1.65 system-ui,sans-serif}main{max-width:1060px;margin:auto;padding:40px 24px 80px}h1,h2,h3{line-height:1.25}h1{font-size:36px}h2{margin-top:40px;color:#8dc7ff}code{color:#acd5ff;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #303a4d;padding:12px;text-align:left;vertical-align:top}th{background:#1b2535}a{color:#8dc7ff}.notice{background:#172639;border-left:4px solid #65b5ff;padding:16px 20px;border-radius:8px}.muted{color:#aeb8c9}li{margin:7px 0}.scroll{overflow:auto}.ok{color:#8ce0ac}
+</style>
+<main>
+<p class="muted">SeekAlive · 22 de outubro de 2026 · evolução do projeto existente</p>
+<h1>Social, Seek e Shop interligados</h1>
+<p>Relatório técnico e roteiro de uso do front-end, conforme o prompt de engenharia enviado. <strong>O projeto existente foi evoluído, não recriado do zero.</strong> React, TypeScript, Wouter, Tailwind, componentes Radix e TanStack Query foram preservados; nenhuma dependência de runtime do front-end foi adicionada.</p>
+<div class="notice"><strong>Escopo atual: somente front-end.</strong> Não foi criado banco de dados, upload no servidor, API transacional, checkout ou pagamento. Novos posts, artigos, comentários, reposts e arquivos locais existem somente na sessão atual e somem ao recarregar. Dados de exemplo estão identificados na interface. Favoritos e preferências que usam armazenamento do navegador não equivalem a salvamento no servidor.</div>
+
+<h2>1. Auditoria e mapeamento</h2>
+<p>Foram inspecionados os scripts dos workspaces, rotas, modelos, tokens, composição, feed, perfis, Seek, Shop, estado, API e testes. Antes desta mudança não havia script de lint ou suíte de testes para os fluxos Social.</p>
+<div class="scroll"><table>
+<tr><th>Área auditada</th><th>Estado anterior</th><th>Evolução / arquivos principais</th><th>Fonte atual</th></tr>
+<tr><td>Feed e interações</td><td>Feed lia arrays de exemplo; detalhe possuía contadores isolados e respostas não relacionadas</td><td>Estado compartilhado, autoria, artigos, referências, comentários e distribuição de reposts. <code>SocialContext.tsx, Feed.tsx, PostCard.tsx, PostActionBar.tsx, PostDetail.tsx</code></td><td>Adaptador explícito de demonstração + estado da sessão</td></tr>
+<tr><td>Composição e mídia</td><td>Texto, múltiplos arquivos e URLs temporárias do navegador</td><td>Validação, confirmação pelo adaptador, trava contra duplo envio, público, menções/tags e referência removível. <code>Compose.tsx, use-draft-media.ts, mediaService.ts</code></td><td>Local; não há upload real</td></tr>
+<tr><td>Artigos</td><td>Ausentes</td><td>Editor com título/corpo, formatação básica segura, prévia, leitor, referências e mesmas interações. <code>ArticleEditor.tsx, ArticleReader.tsx, RichText.tsx</code></td><td>Formato da mesma publicação Social, não um blog separado</td></tr>
+<tr><td>Seek</td><td>Contas comerciais do Social, filtros, avaliações e eventos de exemplo</td><td>Preservado; compartilhar perfil/evento, detalhe original de evento e identificação de exemplos. <code>Seek.tsx, CommercialProfilePage.tsx, SeekEventDetail.tsx</code></td><td>Contas comerciais compartilhadas + eventos demonstrativos. Sem mapa visual</td></tr>
+<tr><td>Shop</td><td>Produtos de exemplo, botões sem destino e catálogo dentro da página</td><td>Catálogo isolado, detalhes navegáveis, salvar no navegador, compartilhamento e compra explicitamente indisponível. <code>Shop.tsx, ShopItemDetail.tsx, demoCatalog.ts</code></td><td>Catálogo demonstrativo; preços não são ofertas reais</td></tr>
+<tr><td>Perfis e busca</td><td>Abas existentes e consulta estática</td><td>Artigos, reposts, mídia própria e respostas reais da sessão; busca lê query, conteúdo longo e público permitido. <code>Profile.tsx, Search.tsx</code></td><td>Estado Social compartilhado</td></tr>
+<tr><td>Referências</td><td>Ausentes</td><td>IDs estáveis, resolvedor, prévia reutilizável, cache por estado/visualizador, loading/erro/retry/indisponível. <code>types/content.ts, referenceResolver.ts, ReferencePreviewCard.tsx</code></td><td>Adaptador local substituível por REST</td></tr>
+<tr><td>API</td><td>Somente saúde do servidor</td><td>Backend preservado e inalterado; contratos de integração separados no front-end</td><td><code>GET /api/healthz</code></td></tr>
+</table></div>
+
+<h2>2. Modelos, autoria e consistência</h2>
+<ul>
+<li>Uma publicação tem formato <code>text</code>, <code>media</code> ou <code>article</code>. O modelo anterior continua compatível.</li>
+<li>Referências usam <code>{ type, id }</code>: <code>seek_entity</code>, <code>shop_item</code> ou <code>social_post</code>. Não são cópias da entidade ou da mídia.</li>
+<li>O usuário que escreve é o autor da nova publicação. A prévia conserva a identidade do conteúdo original e abre seu destino original.</li>
+<li>Repost é um registro separado de distribuição apontando para o ID do post original. Não duplica a publicação. Curtidas, comentários e total de reposts pertencem ao original e são agregados entre as telas. Desfazer remove o registro do visualizador atual.</li>
+<li>Comentários possuem <code>postId</code>; respostas possuem <code>replyToCommentId</code> que deve existir na mesma publicação. Conversas de um artigo e de seu conteúdo referenciado permanecem separadas.</li>
+<li>Mídias do perfil vêm das próprias publicações, inclusive artigos com mídia. Repostar ou referenciar uma foto de outro autor não a copia para a galeria pessoal.</li>
+<li>Contas comerciais continuam sendo as mesmas contas do Social. O detalhe comercial canônico é <code>/profile/:username</code>, não uma identidade comercial duplicada.</li>
+<li>Eventos usam IDs de referência com prefixo <code>event:</code>, por exemplo <code>seek_entity / event:e1</code>, para não colidir com IDs de contas.</li>
+</ul>
+
+<h2>3. Rotas e percursos testáveis</h2>
+<div class="scroll"><table>
+<tr><th>Conceito do prompt</th><th>Rota preservada/adicionada</th></tr>
+<tr><td>Feed Social</td><td><code>/feed</code></td></tr>
+<tr><td>Compositor</td><td><code>/compose?refType=seek_entity&amp;refId=biz3</code></td></tr>
+<tr><td>Editor / leitor de artigo</td><td><code>/article/create</code> / <code>/article/:postId</code></td></tr>
+<tr><td>Detalhe de post</td><td><code>/post/:postId</code></td></tr>
+<tr><td>Perfil Social / entidade comercial Seek</td><td><code>/profile/:username</code>; por exemplo <code>/profile/cafecentralsp</code></td></tr>
+<tr><td>Seek e evento</td><td><code>/seek</code> / <code>/seek/event/:id</code></td></tr>
+<tr><td>Shop e item</td><td><code>/shop</code> / <code>/shop/item/:id</code></td></tr>
+<tr><td>Busca de hashtag</td><td><code>/search?q=%23cafes</code></td></tr>
+<tr><td>Mensagens / notificações</td><td><code>/messages</code>, <code>/messages/:conversationId</code>, <code>/notifications</code> preservadas</td></tr>
+</table></div>
+<ol>
+<li><strong>Seek → Social:</strong> abra Café Central no Seek, toque em Compartilhar perfil e escolha Criar post comum ou Escrever artigo. A referência vem anexada. Escreva seu texto, publique e toque em Ver perfil na prévia para voltar ao original.</li>
+<li><strong>Shop → Social:</strong> abra um produto, toque em Compartilhar e escreva post ou artigo. A prévia leva ao item original. Compra permanece indisponível, sem sucesso ou carrinho fictício.</li>
+<li><strong>Artigo sobre publicação:</strong> em um post, Compartilhar → Escrever artigo. Dê título e corpo próprios, veja a prévia e publique. O leitor conserva os dois autores e aponta para a conversa original.</li>
+<li><strong>Interações:</strong> curta/descurta, comente e responda a um comentário; navegue por links internos entre feed, perfil e leitor sem recarregar. O mesmo estado é usado por todas as telas.</li>
+<li><strong>Repost:</strong> reposte uma publicação pública, confira a indicação no perfil e desfaça. Não use repost para compartilhar um comércio ou produto.</li>
+<li><strong>Mídia:</strong> anexe foto/vídeo em post ou artigo. Após publicar, vá ao próprio perfil → Mídias. Fotos até 10 MB, vídeos até 100 MB, no máximo oito arquivos por publicação.</li>
+<li><strong>Estados:</strong> tente publicar artigo vazio, abra um ID de post inexistente ou um compositor com referência inexistente; confira as mensagens específicas sem conteúdo substituto inventado.</li>
+</ol>
+
+<h2>4. Arquivos criados e alterados</h2>
+<p>Todos os caminhos abaixo são relativos a <code>artifacts/social/src/</code>, salvo indicação.</p>
+<ul>
+<li><strong>Modelos e fontes de exemplo:</strong> <code>types/content.ts</code>, <code>data/demoCatalog.ts</code>, <code>data/demoSeekEvents.ts</code>, <code>data/demoIntegrationPosts.ts</code>. Modelo existente ampliado em <code>data/mockData.ts</code>.</li>
+<li><strong>Serviços:</strong> <code>services/contentValidation.ts</code>, <code>contentService.ts</code>, <code>referenceResolver.ts</code>, <code>restContracts.ts</code>, <code>mediaService.ts</code>.</li>
+<li><strong>UI reutilizável:</strong> <code>components/content/ReferencePreviewCard.tsx</code>, <code>ShareContentDialog.tsx</code>, <code>CommentThread.tsx</code>, <code>RichText.tsx</code>, <code>StateBlocks.tsx</code>, <code>MediaDraftGrid.tsx</code> e <code>components/post/PostActionBar.tsx</code>.</li>
+<li><strong>Novas páginas:</strong> <code>pages/ArticleEditor.tsx</code>, <code>ArticleReader.tsx</code>, <code>SeekEventDetail.tsx</code>, <code>ShopItemDetail.tsx</code>.</li>
+<li><strong>Hooks e navegação:</strong> <code>hooks/use-draft-media.ts</code>, <code>use-readable-post.ts</code>, <code>use-saved-shop-items.ts</code>, <code>lib/contentLinks.ts</code>; rotas ampliadas em <code>App.tsx</code>.</li>
+<li><strong>Páginas e estado existentes evoluídos:</strong> <code>context/SocialContext.tsx</code>, <code>pages/Compose.tsx</code>, <code>Feed.tsx</code>, <code>PostDetail.tsx</code>, <code>Profile.tsx</code>, <code>Search.tsx</code>, <code>Seek.tsx</code>, <code>Shop.tsx</code>, <code>components/post/PostCard.tsx</code>, <code>components/profile/CommercialProfilePage.tsx</code>.</li>
+<li><strong>Testes:</strong> <code>artifacts/social/tests/content.test.ts</code>, <code>scripts/test-social.mjs</code> e script <code>test:social</code> no package.json da raiz do workspace.</li>
+</ul>
+
+<h2>5. Endpoints reais e contratos propostos</h2>
+<p><strong>Único endpoint real encontrado: GET /api/healthz.</strong> Ele verifica saúde, não salva conteúdo. O front-end Social não faz chamadas de persistência real. O servidor não foi alterado.</p>
+<p>Os adaptadores REST abaixo são contratos tipados e inativos, não endpoints publicados:</p>
+<ul>
+<li><code>GET /api/v1/social/feed?cursor=&amp;limit=&amp;tab=</code>, <code>GET /api/v1/social/posts/:id</code>.</li>
+<li><code>POST /api/v1/social/posts</code>, <code>DELETE /api/v1/social/posts/:id</code>.</li>
+<li><code>POST /api/v1/social/articles</code>, <code>GET /api/v1/social/articles/:id</code>. O artigo usa o mesmo modelo normalizado de Post. Edição de artigo não foi adicionada porque o produto não possuía esse fluxo.</li>
+<li><code>PUT | DELETE /api/v1/social/posts/:id/like</code>.</li>
+<li><code>GET | POST /api/v1/social/posts/:id/comments</code>, <code>DELETE /api/v1/social/comments/:id</code>.</li>
+<li><code>POST | DELETE /api/v1/social/posts/:id/repost</code>.</li>
+<li><code>GET /api/v1/references/:type/:id</code>, busca de usuários e tags em <code>/api/v1/social/users/search</code> e <code>/api/v1/social/tags/search</code>.</li>
+<li>Detalhes de entidades Seek e itens Shop aguardam os futuros endpoints de seus módulos; hoje vêm dos adaptadores demonstrativos.</li>
+<li>Upload real aguarda iniciar/confirmar arquivo e retornar mediaId autorizado, conforme os contratos sugeridos no prompt. Nenhum upload real foi implementado ou afirmado.</li>
+</ul>
+<p><code>apiRequest</code> diferencia falha de rede, 401, 403, 404, 409, 422 e 5xx. Respostas de publicação, comentário, lista e prévia são validadas com Zod. O backend futuro deve mapear seus contratos para os modelos normalizados do front-end e impor autorização; verificações locais não são uma barreira de segurança.</p>
+
+<h2>6. Onde estão os mocks e como substituí-los</h2>
+<ul>
+<li><code>demoContentAdapter</code> em <code>services/contentService.ts</code>: valida e retorna objetos novos para o estado da sessão. A constante <code>contentService</code> o seleciona explicitamente.</li>
+<li><code>demoCatalog.ts</code>, <code>demoSeekEvents.ts</code>, <code>demoIntegrationPosts.ts</code> e <code>mockData.ts</code>: fixtures de catálogo, eventos, publicações, contas e dados sociais. Não são informações comerciais reais.</li>
+<li><code>referenceResolver.ts</code> consulta o snapshot Social autorizado e catálogos demonstrativos. Substituir a resolução pelo endpoint real preservando a interface e as respostas indisponíveis.</li>
+<li><code>mediaService.ts</code> prepara URLs locais. Substituir por upload autorizado e mapeamento de mediaIds, mantendo feedback, limites e política de acesso.</li>
+<li>Para um backend completo, implementar busca inicial, paginação, mutações e invalidação no TanStack Query. Não basta apenas trocar a função de criação enquanto curtidas/reposts continuarem locais. Aplicar o mesmo contrato a todas as mutações e reverter otimistas em falha.</li>
+</ul>
+
+<h2>7. Validação</h2>
+<ul>
+<li class="ok"><code>pnpm run typecheck</code>: passou em todos os workspaces.</li>
+<li class="ok"><code>PORT=5000 BASE_PATH=/ pnpm run build</code>: passou para Social, sandbox e API. Typecheck e build do Social também passaram após as correções finais. Avisos não bloqueantes: bundle Social acima de 500 KB e resolução de sourcemaps de componentes UI.</li>
+<li class="ok"><code>pnpm run test:social</code>: 11 testes passaram — validação, mídia/artigo, autoria, Unicode, contagens, repost/desfazer, respostas/parentesco, exclusão, privacidade, destinos/deduplicação e erros REST.</li>
+<li><code>git diff --check</code>: passou. Lint: não há script ou configuração disponível; não foi apresentado como executado.</li>
+<li id="browser-result">Navegador: o percurso integrado validou Seek → artigo com referência e mídia → feed/perfil → novo post com referência Social. Validou também comentários, resposta aninhada, curtidas/descurtidas, repost/desfazer e separação das conversas. O teste inicial reprovou por overflow horizontal no formulário móvel; a largura mínima do campo foi corrigida e reconferida no preview de 402 × 874, sem corte do botão e sem erros de console. Não houve repetição da suíte completa após esse ajuste CSS. O PNG de teste branco gerou um tile na galeria, mas não permitiu identificar visualmente o conteúdo da imagem. Desktop de 1440 × 1000 foi verificado sem overflow.</li>
+</ul>
+
+<h2>8. Limitações e dependências</h2>
+<ul>
+<li>Sem persistência entre recargas, sessões ou dispositivos; sem sincronização multiusuário ou upload. Não são bugs ocultos: a interface sinaliza demonstração.</li>
+<li>A autenticação atual é uma simulação local preservada. Backend futuro deve validar sessão, autoria, moderação e público em todas as operações e no acesso aos arquivos.</li>
+<li>Catálogo, avaliações iniciais e eventos são exemplos. Disponibilidade, preço e checkout não são confirmados por servidor.</li>
+<li>Ordenação do catálogo e perfis próprios de lojas não existem: os controles correspondentes estão explicitamente indisponíveis, em vez de aparentarem uma ação funcional.</li>
+<li>Não há paginação remota existente. O feed usa o estado local; o contrato de cursor está separado para integração futura sem afirmar que já há paginação de servidor.</li>
+<li>Editor aceita um subconjunto controlado de Markdown, não HTML arbitrário nem editor rico pesado.</li>
+<li>Menções/tags são detectadas e navegáveis; autocomplete remoto aguarda endpoints, com cancelamento de requisições antigas disponível nos contratos.</li>
+<li>Novos IDs de posts publicados não existem após recarregar: um link copiado para eles não é permanente. Entidades/itens demonstrativos e fixtures de exemplo continuam acessíveis pelos IDs sem simular persistência das criações.</li>
+</ul>
+<h2>9. Confirmação de escopo</h2>
+<p>As três áreas continuam distintas, conectadas por referências e navegação. O Social mantém identidade e conversas; o Seek conserva descoberta em listas/cartões sem mapa; o Shop apresenta itens e vínculos sem simular transações. Foram reaproveitados o app, o roteador, a biblioteca de UI, os tokens, os perfis comerciais e os fluxos existentes. <strong>Não houve recriação do projeto, migração de stack ou criação de banco de dados.</strong></p>
+</main>
+</html>

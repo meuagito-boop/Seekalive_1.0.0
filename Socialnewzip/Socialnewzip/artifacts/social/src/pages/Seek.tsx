@@ -5,6 +5,9 @@ import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
 import type { User } from "@/data/mockData";
 import { BusinessReviewsDialog } from "@/components/seek/BusinessReviewsDialog";
+import { demoSeekEvents as mockEvents, demoNearbyEvents as nearbyEvents } from "@/data/demoSeekEvents";
+import type { SeekEvent } from "@/types/content";
+import { DemoBadge } from "@/components/content/StateBlocks";
 
 type SeekBusiness = {
   id: string;
@@ -60,54 +63,6 @@ const categories = [
   { label: "Abertos agora",   icon: Clock,     key: "abertos" },
 ];
 
-const mockEvents = [
-  {
-    id: "e1",
-    name: "Show de Jazz ao Vivo",
-    categoryKey: "bares",
-    date: "Sáb, 21 Jun · 21h",
-    venue: "Bar do Zé",
-    interested: 142,
-    img: "https://picsum.photos/seed/jazz1/400/220",
-    price: "R$ 30",
-  },
-  {
-    id: "e2",
-    name: "Festival Gastronômico",
-    categoryKey: "restaurantes",
-    date: "Dom, 22 Jun · 11h",
-    venue: "Praça Central",
-    interested: 380,
-    img: "https://picsum.photos/seed/gastro2/400/220",
-    price: "Gratuito",
-  },
-  {
-    id: "e3",
-    name: "Feira de Artesanato",
-    categoryKey: "compras",
-    date: "Sáb, 21 Jun · 9h",
-    venue: "Parque Municipal",
-    interested: 215,
-    img: "https://picsum.photos/seed/fair3/400/220",
-    price: "Gratuito",
-  },
-  {
-    id: "e4",
-    name: "Noite de Karaokê",
-    categoryKey: "lazer",
-    date: "Sex, 20 Jun · 20h",
-    venue: "Pub Irlanda",
-    interested: 89,
-    img: "https://picsum.photos/seed/karaoke4/400/220",
-    price: "R$ 15",
-  },
-];
-
-const nearbyEvents = [
-  { id: "e1", name: "Show de Jazz ao Vivo", date: "Sáb, 21 Jun", venue: "Bar do Zé", interested: 142 },
-  { id: "e2", name: "Festival Gastronômico", date: "Dom, 22 Jun", venue: "Praça Central", interested: 380 },
-  { id: "e3", name: "Feira de Artesanato", date: "Sáb, 21 Jun", venue: "Parque Municipal", interested: 215 },
-];
 
 function readSavedBusinesses(storageKey: string): string[] {
   if (typeof window === "undefined") return [];
@@ -243,7 +198,7 @@ function BusinessCard({
   );
 }
 
-function EventCard({ e }: { e: (typeof mockEvents)[0] }) {
+function EventCard({ e }: { e: SeekEvent }) {
   const [saved, setSaved] = useState(false);
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors group">
@@ -257,6 +212,7 @@ function EventCard({ e }: { e: (typeof mockEvents)[0] }) {
         <span className="absolute bottom-2 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/90 text-white">
           {e.price}
         </span>
+        <DemoBadge label="Exemplo" className="absolute top-2 left-2.5 bg-background/70" />
       </div>
       <div className="p-3">
         <p className="font-semibold text-sm text-foreground leading-tight mb-0.5">{e.name}</p>
@@ -271,11 +227,12 @@ function EventCard({ e }: { e: (typeof mockEvents)[0] }) {
           <span className="text-[11px] text-primary font-medium">{e.interested} interessados</span>
         </div>
         <div className="flex gap-2">
-          <button className="flex-1 h-7 rounded-full bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+          <Link href={`/seek/event/${e.id}`} className="flex-1 h-7 rounded-full bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors flex items-center justify-center no-underline">
             Ver evento
-          </button>
+          </Link>
           <button
             onClick={() => setSaved((s) => !s)}
+            aria-label={saved ? `Remover ${e.name} dos salvos` : `Salvar ${e.name}`}
             className="h-7 px-3 rounded-full border border-border text-xs text-muted-foreground font-semibold hover:border-primary/40 hover:text-foreground transition-colors"
           >
             <Bookmark className={`w-3.5 h-3.5 ${saved ? "fill-primary text-primary" : ""}`} />
@@ -827,11 +784,11 @@ export default function Seek() {
 
           <PanelCard title="Eventos próximos" icon={<Calendar className="w-4 h-4" />}>
             {nearbyEvents.map((ev) => (
-              <div key={ev.id} className="px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer border-b border-border last:border-0">
+              <Link key={ev.id} href={`/seek/event/${ev.id}`} className="block px-4 py-2.5 hover:bg-muted/30 transition-colors border-b border-border last:border-0 no-underline">
                 <p className="text-xs font-semibold text-foreground">{ev.name}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{ev.date} · {ev.venue}</p>
-                <p className="text-[11px] text-primary mt-0.5">{ev.interested} interessados</p>
-              </div>
+                <p className="text-[11px] text-primary mt-0.5">{ev.interested} interessados · exemplo</p>
+              </Link>
             ))}
           </PanelCard>
 

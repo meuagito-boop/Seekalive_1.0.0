@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "hqVm_w-K8bPu_lYfRVJ-J"
+uri = "file://Socialnewzip/Socialnewzip/reports/seekalive-integracao.html"
+type = "html"
+title = "SeekAlive — relatório da integração Social, Seek e Shop"
+description = "Auditoria, mudanças, arquivos, rotas, roteiro de testes, contratos REST propostos e limitações da versão de demonstração."
+logical_id = "667afdff-45ac-413c-86d3-831896ebca8c"
+content_hash = "sha256:00c2d2689d0b920a6867a124304a4b8cc1cb8c2127838fa4b7da2bd691bba126"
+size = 17177
+mtime_ms = 1792668741404
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/667afdff-45ac-413c-86d3-831896ebca8c/63bf846e-5669-4637-9a3a-b16db7e457f1"
+storage_version_token = "1792668811286130"
+content_type = "text/html"

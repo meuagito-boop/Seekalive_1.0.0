@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 import { Link } from "wouter";
 import {
   ArrowLeft,
@@ -20,9 +21,10 @@ import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import type { User } from "@/data/mockData";
 import { getProfileMedia } from "@/lib/postMedia";
+import { canReadPost } from "@/services/contentValidation";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
-const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços", "Mídias"] as const;
+const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços", "Mídias", "Artigos"] as const;
 type ProfileTab = (typeof profileTabs)[number];
 type MediaTab = "Fotos" | "Vídeos";
 const serviceOptions = [
@@ -126,7 +128,7 @@ export function CommercialProfilePage({
   isMe: boolean;
 }) {
   const { currentUser } = useAppContext();
-  const { posts, reviews, getUserById, toggleFollow } = useSocial();
+  const { posts, reviews, repostEntries, getUserById, toggleFollow } = useSocial();
   const commercial = user.commercialProfile;
   const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
@@ -134,7 +136,7 @@ export function CommercialProfilePage({
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [savedIds, setSavedIds] = useState<string[]>(readSavedIds);
   const [reviewsOpen, setReviewsOpen] = useState(false);
-  const [shareNotice, setShareNotice] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
 
   const businessReviews = reviews
     .filter((review) => review.businessAccountId === user.id)
@@ -156,7 +158,19 @@ export function CommercialProfilePage({
     ...postMedia.filter((media) => media.type === "video").map((media) => media.url),
   ])];
   const isSaved = savedIds.includes(user.id);
-  const userPosts = posts.filter((post) => post.authorId === user.id);
+  const visiblePosts = posts.filter(post => {
+    const author = getUserById(post.authorId);
+    return !!author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false);
+  });
+  const userPosts = visiblePosts.filter((post) => post.authorId === user.id);
+  const userArticles = userPosts.filter((post) => post.format === "article");
+  const timeline = [
+    ...userPosts.map(post => ({ key: post.id, post, at: post.createdAt, repostedById: undefined as string | undefined })),
+    ...repostEntries.filter(entry => entry.authorId === user.id).flatMap(entry => {
+      const post = visiblePosts.find(item => item.id === entry.postId);
+      return post ? [{ key: entry.id, post, at: entry.createdAt, repostedById: entry.authorId }] : [];
+    }),
+  ].sort((a, b) => b.at.localeCompare(a.at));
 
   useEffect(() => {
     setSelectedPhoto(0);
@@ -176,22 +190,6 @@ export function CommercialProfilePage({
         ? current.filter((id) => id !== user.id)
         : [...current, user.id],
     );
-  }
-
-  async function shareProfile() {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: user.displayName, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareNotice("Link copiado");
-        window.setTimeout(() => setShareNotice(""), 2200);
-      }
-    } catch {
-      setShareNotice("Não foi possível compartilhar agora");
-      window.setTimeout(() => setShareNotice(""), 2200);
-    }
   }
 
   function jumpToPhotos() {
@@ -224,7 +222,7 @@ export function CommercialProfilePage({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={shareProfile}
+            onClick={() => setShareOpen(true)}
             aria-label="Compartilhar perfil"
             className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
@@ -350,14 +348,13 @@ export function CommercialProfilePage({
               {isSaved ? "Salvo" : "Salvar"}
             </button>
           </div>
-          {shareNotice && <p role="status" className="mt-2 text-xs text-primary">{shareNotice}</p>}
         </section>
 
         <nav
           aria-label="Seções do perfil"
           className="sticky top-14 z-30 overflow-x-auto border-b border-border bg-background/95 backdrop-blur [scrollbar-width:none]"
         >
-          <div role="tablist" aria-label="Seções do perfil comercial" className="flex h-12 w-full min-w-[480px] md:min-w-full">
+          <div role="tablist" aria-label="Seções do perfil comercial" className="flex h-12 w-full min-w-[560px] md:min-w-full">
             {profileTabs.map((tab) => (
               <button
                 key={tab}
@@ -606,10 +603,21 @@ export function CommercialProfilePage({
             </section>
           )}
 
+          {activeTab === "Artigos" && (
+            <section className="mx-auto max-w-2xl">
+              <h2 className="mb-4 text-xl font-bold">Artigos de {user.displayName}</h2>
+              {userArticles.length ? userArticles.map((post) => <PostCard key={post.id} post={post} />) : (
+                <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center text-sm text-muted-foreground">
+                  Nenhum artigo publicado por este perfil. Artigos de outras pessoas sobre este lugar aparecem nos perfis delas.
+                </div>
+              )}
+            </section>
+          )}
+
           {activeTab === "Publicações" && (
             <section className="mx-auto max-w-2xl">
               <h2 className="mb-4 text-xl font-bold">Publicações de {user.displayName}</h2>
-              {userPosts.length ? userPosts.map((post) => <PostCard key={post.id} post={post} />) : (
+              {timeline.length ? timeline.map(item => <PostCard key={item.key} post={item.post} repostedById={item.repostedById} />) : (
                 <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center text-sm text-muted-foreground">
                   Este perfil comercial ainda não publicou conteúdo na rede Social.
                 </div>
@@ -618,6 +626,14 @@ export function CommercialProfilePage({
           )}
         </div>
       </main>
+
+      <ShareContentDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        reference={{ type: "seek_entity", id: user.id }}
+        title={user.displayName}
+        linkPath={`/profile/${user.username}`}
+      />
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-2 backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-xl gap-2">

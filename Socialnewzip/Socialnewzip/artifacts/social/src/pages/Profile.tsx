@@ -10,8 +10,11 @@ import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { CommercialProfilePage } from "@/components/profile/CommercialProfilePage";
 import { getProfileMedia } from "@/lib/postMedia";
+import { canReadPost } from "@/services/contentValidation";
+import { postPath } from "@/lib/contentLinks";
+import { UnavailableState } from "@/components/content/StateBlocks";
 
-const tabs = ["Posts", "Respostas", "Mídias", "Curtidas"];
+const tabs = ["Posts", "Respostas", "Mídias", "Curtidas", "Artigos"];
 
 export default function Profile() {
   const params = useParams<{ username: string }>();
@@ -19,7 +22,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
 
-  const { users, posts, getUserById, toggleFollow, requestCircle, cancelCircle } = useSocial();
+  const { users, posts, repostEntries, postComments, toggleFollow, requestCircle, cancelCircle } = useSocial();
   const { currentUser: signedInUser } = useAppContext();
   const viewer = signedInUser ?? mockCurrentUser;
 
@@ -27,15 +30,40 @@ export default function Profile() {
   const username = params.username;
   const isMe = username === viewer.username || !username;
 
-  const user = isMe
-    ? viewer
-    : (users.find(u => u.username === username) ?? users[0] ?? viewer);
+  const found = isMe ? viewer : users.find(u => u.username === username);
+  if (!found) {
+    return (
+      <UnavailableState
+        title="Perfil indisponível"
+        description={`Não encontramos @${username}. A conta pode ter sido removida.`}
+        action={<Link href="/feed" className="text-sm font-semibold text-info hover:underline">Voltar ao feed</Link>}
+      />
+    );
+  }
+  const user = found;
 
   const following = user.isFollowing ?? false;
   const circleStatus = user.circleStatus ?? null;
 
   // Posts filtered to this user
-  const userPosts = posts.filter(p => p.authorId === user.id);
+  const visibleToViewer = (p: (typeof posts)[number]) => {
+    const author = users.find(u => u.id === p.authorId) ?? (p.authorId === viewer.id ? viewer : undefined);
+    return !!author && !author.isBlocked && canReadPost(p, viewer.id, author.isInCircle ?? false);
+  };
+  // Authored posts plus repost distribution records (original author preserved).
+  const timeline = [
+    ...posts.filter(p => p.authorId === user.id && visibleToViewer(p)).map(p => ({ key: p.id, post: p, at: p.createdAt, repostedById: undefined as string | undefined })),
+    ...repostEntries.filter(r => r.authorId === user.id).flatMap(r => {
+      const p = posts.find(x => x.id === r.postId);
+      return p && visibleToViewer(p) ? [{ key: r.id, post: p, at: r.createdAt, repostedById: r.authorId }] : [];
+    }),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+  const userArticles = posts.filter(p => p.authorId === user.id && p.format === "article" && visibleToViewer(p));
+  const userComments = postComments.filter(c => {
+    const target = posts.find(post => post.id === c.postId);
+    return c.authorId === user.id && !!target && visibleToViewer(target);
+  }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const likedPosts = isMe ? posts.filter(p => p.isLiked && visibleToViewer(p)) : [];
   const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false);
 
   function handleFollow() {
@@ -234,11 +262,11 @@ export default function Profile() {
       {/* Content */}
       <div>
         {activeTab === 0 && (
-          userPosts.length === 0 ? (
+          timeline.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <p className="text-sm font-medium">Nenhum post ainda</p>
             </div>
-          ) : userPosts.map(post => <PostCard key={post.id} post={post} />)
+          ) : timeline.map(item => <PostCard key={item.key} post={item.post} repostedById={item.repostedById} />)
         )}
         {activeTab === 2 && (
           userMedia.length === 0 ? (
@@ -259,10 +287,38 @@ export default function Profile() {
             </div>
           )
         )}
-        {activeTab !== 0 && activeTab !== 2 && (
-          <div className="flex flex-col items-center py-16 text-muted-foreground">
-            <p className="text-sm">Nenhum conteúdo ainda.</p>
-          </div>
+        {activeTab === 1 && (
+          userComments.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">Nenhuma resposta ainda.</p></div>
+          ) : userComments.map(c => {
+            const target = posts.find(p => p.id === c.postId);
+            return (
+              <div key={c.id} className="border-b border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {c.replyToCommentId ? "Respondeu a um comentário em " : "Comentou em "}
+                  {target && visibleToViewer(target)
+                    ? <Link href={postPath(target)} className="font-semibold text-info hover:underline">{target.article?.title ?? (target.content.slice(0, 60) || "publicação")}</Link>
+                    : <span>publicação indisponível</span>}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{c.content}</p>
+              </div>
+            );
+          })
+        )}
+        {activeTab === 3 && (
+          !isMe ? (
+            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">As curtidas de @{user.username} são privadas.</p></div>
+          ) : likedPosts.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">Você ainda não curtiu publicações.</p></div>
+          ) : likedPosts.map(post => <PostCard key={post.id} post={post} />)
+        )}
+        {activeTab === 4 && (
+          userArticles.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+              <p className="text-sm">Nenhum artigo ainda.</p>
+              {isMe && <Link href="/article/create" className="text-sm font-semibold text-info hover:underline">Escrever artigo</Link>}
+            </div>
+          ) : userArticles.map(post => <PostCard key={post.id} post={post} />)
         )}
       </div>
     </div>

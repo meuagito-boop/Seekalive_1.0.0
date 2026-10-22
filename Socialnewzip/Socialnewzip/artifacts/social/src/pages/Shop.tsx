@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Star, ShoppingCart, Heart, Tag, Store, ChevronRight, Package, Zap } from "lucide-react";
+import { Link } from "wouter";
+import { Star, Heart, Tag, Store, ChevronRight, Package, Zap, Eye } from "lucide-react";
+import { demoShopItems as mockProducts, demoStores as featuredStores } from "@/data/demoCatalog";
+import type { ShopItem } from "@/types/content";
+import { DemoBadge } from "@/components/content/StateBlocks";
+import { useSavedShopItems } from "@/hooks/use-saved-shop-items";
 
 const shopCategories = [
   { label: "Todos",        key: "all" },
@@ -9,43 +14,29 @@ const shopCategories = [
   { label: "Lojas",        key: "lojas" },
 ];
 
-const mockProducts = [
-  { id: "p1", name: "Tênis Runner Pro",         store: "SportZone",       price: "R$ 299,90", oldPrice: "R$ 399,90", rating: 4.8, reviews: 312, tag: "ofertas",  img: "https://picsum.photos/seed/shoe1/300/300" },
-  { id: "p2", name: "Fone Bluetooth Ultra",      store: "TechMania",       price: "R$ 189,00", oldPrice: null,        rating: 4.6, reviews: 145, tag: "produtos", img: "https://picsum.photos/seed/fone2/300/300" },
-  { id: "p3", name: "Mochila Urbana 30L",        store: "Mundo Bags",      price: "R$ 149,90", oldPrice: "R$ 220,00", rating: 4.7, reviews: 98,  tag: "ofertas",  img: "https://picsum.photos/seed/bag3/300/300" },
-  { id: "p4", name: "Plano Nutrição Premium",    store: "Vida Saudável",   price: "R$ 79,90/mês", oldPrice: null,    rating: 4.9, reviews: 214, tag: "servicos", img: "https://picsum.photos/seed/nut4/300/300" },
-  { id: "p5", name: "Cafeteira Italiana",        store: "Casa & Gosto",    price: "R$ 129,00", oldPrice: "R$ 180,00", rating: 4.5, reviews: 67,  tag: "ofertas",  img: "https://picsum.photos/seed/cafe5/300/300" },
-  { id: "p6", name: "Corte + Barba Express",     store: "Barbearia Kings", price: "R$ 65,00",  oldPrice: null,        rating: 4.9, reviews: 530, tag: "servicos", img: "https://picsum.photos/seed/barb6/300/300" },
-  { id: "p7", name: "Smartwatch Fit X4",         store: "TechMania",       price: "R$ 349,00", oldPrice: "R$ 499,00", rating: 4.7, reviews: 402, tag: "ofertas",  img: "https://picsum.photos/seed/watch7/300/300" },
-  { id: "p8", name: "Livro: Hábitos Atômicos",   store: "Livraria Cultura", price: "R$ 49,90", oldPrice: null,       rating: 4.9, reviews: 1204,tag: "produtos", img: "https://picsum.photos/seed/book8/300/300" },
-];
 
-const featuredStores = [
-  { id: "s1", name: "TechMania",       category: "Eletrônicos",  img: "https://picsum.photos/seed/store1/48/48", followers: "12k" },
-  { id: "s2", name: "SportZone",       category: "Esportes",     img: "https://picsum.photos/seed/store2/48/48", followers: "8,4k" },
-  { id: "s3", name: "Casa & Gosto",    category: "Casa",         img: "https://picsum.photos/seed/store3/48/48", followers: "5,1k" },
-  { id: "s4", name: "Vida Saudável",   category: "Saúde",        img: "https://picsum.photos/seed/store4/48/48", followers: "9,7k" },
-];
-
-function ProductCard({ p }: { p: (typeof mockProducts)[0] }) {
-  const [liked, setLiked] = useState(false);
+function ProductCard({ p, liked, onToggle }: { p: ShopItem; liked: boolean; onToggle: () => void }) {
   const hasDiscount = !!p.oldPrice;
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors group">
       <div className="relative aspect-square overflow-hidden">
-        <img
-          src={p.img}
-          alt={p.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        <Link href={`/shop/item/${p.id}`} aria-label={`Ver ${p.name}`}>
+          <img
+            src={p.img}
+            alt={p.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </Link>
         {hasDiscount && (
           <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
             <Tag className="w-2.5 h-2.5" /> Oferta
           </span>
         )}
         <button
-          onClick={() => setLiked((l) => !l)}
+          onClick={onToggle}
+          aria-label={liked ? `Remover ${p.name} dos salvos` : `Salvar ${p.name}`}
+          aria-pressed={liked}
           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60 transition-colors"
         >
           <Heart className={`w-4 h-4 ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />
@@ -53,7 +44,7 @@ function ProductCard({ p }: { p: (typeof mockProducts)[0] }) {
       </div>
       <div className="p-3">
         <p className="text-[11px] text-muted-foreground mb-0.5">{p.store}</p>
-        <p className="font-semibold text-sm text-foreground leading-tight mb-1 line-clamp-2">{p.name}</p>
+        <Link href={`/shop/item/${p.id}`} className="block font-semibold text-sm text-foreground leading-tight mb-1 line-clamp-2 hover:underline">{p.name}</Link>
         <div className="flex items-center gap-1 mb-2">
           <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
           <span className="text-xs font-medium text-foreground">{p.rating}</span>
@@ -65,10 +56,10 @@ function ProductCard({ p }: { p: (typeof mockProducts)[0] }) {
             <span className="text-xs text-muted-foreground line-through">{p.oldPrice}</span>
           )}
         </div>
-        <button className="w-full h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5">
-          <ShoppingCart className="w-3.5 h-3.5" />
-          Adicionar
-        </button>
+        <Link href={`/shop/item/${p.id}`} className="w-full h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 no-underline">
+          <Eye className="w-3.5 h-3.5" />
+          Ver produto
+        </Link>
       </div>
     </div>
   );
@@ -76,6 +67,7 @@ function ProductCard({ p }: { p: (typeof mockProducts)[0] }) {
 
 export default function Shop() {
   const [activeCategory, setActiveCategory] = useState("all");
+  const { isSaved, toggle } = useSavedShopItems();
 
   const filtered = activeCategory === "all"
     ? mockProducts
@@ -91,7 +83,7 @@ export default function Shop() {
           </div>
           <div>
             <p className="font-bold text-foreground">Ofertas da semana</p>
-            <p className="text-sm text-muted-foreground">Descontos de até 40% em produtos selecionados</p>
+            <p className="text-sm text-muted-foreground">Catálogo de demonstração — preços ilustrativos, compra ainda indisponível</p>
           </div>
         </div>
       </div>
@@ -110,14 +102,16 @@ export default function Shop() {
                 return (
                   <button
                     key={c.key}
+                    disabled={c.key === "lojas"}
+                    title={c.key === "lojas" ? "Perfis das lojas ainda não estão disponíveis no catálogo de demonstração." : undefined}
                     onClick={() => setActiveCategory(c.key)}
-                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors text-left ${
+                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed ${
                       active
                         ? "text-primary font-semibold bg-primary/8"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                     }`}
                   >
-                    {c.label}
+                    {c.label}{c.key === "lojas" ? " · Em breve" : ""}
                     {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
                   </button>
                 );
@@ -134,12 +128,13 @@ export default function Shop() {
             {featuredStores.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer border-b border-border last:border-0"
+                className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border last:border-0"
               >
                 <img src={s.img} alt={s.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-foreground truncate">{s.name}</p>
                   <p className="text-[11px] text-muted-foreground">{s.category} · {s.followers} seguidores</p>
+                  <p className="text-[11px] text-muted-foreground">Perfil da loja indisponível</p>
                 </div>
               </div>
             ))}
@@ -149,17 +144,18 @@ export default function Shop() {
         {/* Center: products */}
         <main className="flex-1 min-w-0 pb-8">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
               {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
+              <DemoBadge />
             </p>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors">
+            <button disabled title="Ordenação ainda não disponível" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-sm text-muted-foreground opacity-50 cursor-not-allowed">
               <Package className="w-4 h-4" />
               Ordenar
             </button>
           </div>
           <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((p) => (
-              <ProductCard key={p.id} p={p} />
+              <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
             ))}
           </div>
         </main>
@@ -172,14 +168,14 @@ export default function Shop() {
               <p className="text-sm font-semibold text-foreground">Ofertas relâmpago</p>
             </div>
             {mockProducts.filter((p) => p.oldPrice).slice(0, 4).map((p) => (
-              <div key={p.id} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer border-b border-border last:border-0">
+              <Link key={p.id} href={`/shop/item/${p.id}`} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors border-b border-border last:border-0 no-underline">
                 <img src={p.img} alt={p.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-foreground truncate">{p.name}</p>
                   <p className="text-[11px] text-primary font-medium">{p.price}</p>
                   {p.oldPrice && <p className="text-[10px] text-muted-foreground line-through">{p.oldPrice}</p>}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </aside>
@@ -192,14 +188,16 @@ export default function Shop() {
           {shopCategories.map((c) => (
             <button
               key={c.key}
+              disabled={c.key === "lojas"}
+              title={c.key === "lojas" ? "Perfis das lojas ainda não estão disponíveis no catálogo de demonstração." : undefined}
               onClick={() => setActiveCategory(c.key)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 activeCategory === c.key
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-card text-muted-foreground border-border"
               }`}
             >
-              {c.label}
+              {c.label}{c.key === "lojas" ? " · Em breve" : ""}
             </button>
           ))}
         </div>
@@ -207,12 +205,12 @@ export default function Shop() {
         {/* Mobile offer banner */}
         <div className="mx-3 mb-3 p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-2">
           <Zap className="w-5 h-5 text-primary flex-shrink-0" />
-          <p className="text-xs text-foreground font-medium">Ofertas da semana — até 40% de desconto</p>
+          <p className="text-xs text-foreground font-medium">Catálogo de demonstração — compra ainda indisponível</p>
         </div>
 
         <div className="px-3 pb-6 grid grid-cols-2 gap-3">
           {filtered.map((p) => (
-            <ProductCard key={p.id} p={p} />
+            <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
           ))}
         </div>
       </div>

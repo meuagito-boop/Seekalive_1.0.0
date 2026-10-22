@@ -1,3 +1,5 @@
+import type { ContentReference, PostFormat } from "@/types/content";
+
 export interface User {
   id: string;
   username: string;
@@ -78,6 +80,11 @@ export interface Post {
   type: "text" | "video";
   communityId?: string;
   parentPostId?: string;
+  format?: PostFormat;
+  article?: { title: string; body: string };
+  reference?: ContentReference;
+  mentions?: string[];
+  hashtags?: string[];
 }
 
 export interface Community {

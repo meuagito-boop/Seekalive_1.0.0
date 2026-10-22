@@ -5,21 +5,31 @@ import {
 } from "@/data/mockData";
 import { getStoredAccounts, saveSocialAccount } from "@/data/accountStorage";
 import { getStoredSeekReviews, saveStoredSeekReviews } from "@/data/reviewStorage";
+import { useAppContext } from "@/context/AppContext";
+import type { PublishPostInput, SocialComment, SocialRepost } from "@/types/content";
+import { contentService, ContentServiceError } from "@/services/contentService";
+import { canReadPost, assertCommentParent } from "@/services/contentValidation";
+import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
 
 // ── State shape ──────────────────────────────────────────────────────
-interface SocialState {
+export interface SocialState {
   posts: Post[];
   users: User[];
   notifications: Notification[];
   conversations: Conversation[];
   messages: Message[];
   reviews: SeekReview[];
+  postComments: SocialComment[];
+  repostEntries: SocialRepost[];
 }
 
 // ── Actions ──────────────────────────────────────────────────────────
 type Action =
   | { type: "TOGGLE_LIKE"; postId: string }
-  | { type: "TOGGLE_REPOST"; postId: string }
+  | { type: "TOGGLE_REPOST"; postId: string; actorId: string }
+  | { type: "ADD_COMMENT"; comment: SocialComment }
+  | { type: "TOGGLE_COMMENT_LIKE"; commentId: string }
+  | { type: "DELETE_POST"; postId: string }
   | { type: "TOGGLE_BOOKMARK"; postId: string }
   | { type: "INCREMENT_COMMENTS"; postId: string }
   | { type: "TOGGLE_FOLLOW"; userId: string }
@@ -38,7 +48,7 @@ type Action =
   | { type: "SEND_MESSAGE"; convId: string; content: string };
 
 // ── Reducer ──────────────────────────────────────────────────────────
-function reducer(state: SocialState, action: Action): SocialState {
+export function socialReducer(state: SocialState, action: Action): SocialState {
   switch (action.type) {
 
     case "TOGGLE_LIKE":
@@ -48,21 +58,46 @@ function reducer(state: SocialState, action: Action): SocialState {
           p.id !== action.postId ? p : {
             ...p,
             isLiked: !p.isLiked,
-            likes: p.isLiked ? p.likes - 1 : p.likes + 1,
+            likes: p.isLiked ? Math.max(0, p.likes - 1) : p.likes + 1,
           }
         ),
       };
 
-    case "TOGGLE_REPOST":
+    case "TOGGLE_REPOST": {
+      const existing = state.repostEntries.find(entry => entry.postId === action.postId && entry.authorId === action.actorId);
       return {
         ...state,
+        repostEntries: existing
+          ? state.repostEntries.filter(entry => entry.id !== existing.id)
+          : [{ id: `repost_${action.actorId}_${action.postId}`, postId: action.postId, authorId: action.actorId, createdAt: new Date().toISOString() }, ...state.repostEntries],
         posts: state.posts.map(p =>
           p.id !== action.postId ? p : {
             ...p,
-            isReposted: !p.isReposted,
-            reposts: p.isReposted ? p.reposts - 1 : p.reposts + 1,
+            isReposted: !existing,
+            reposts: existing ? Math.max(0, p.reposts - 1) : p.reposts + 1,
           }
         ),
+      };
+    }
+    case "ADD_COMMENT":
+      if (state.postComments.some(comment => comment.id === action.comment.id)) return state;
+      return {
+        ...state,
+        postComments: [...state.postComments, action.comment],
+        posts: state.posts.map(post => post.id === action.comment.postId ? { ...post, comments: post.comments + 1 } : post),
+      };
+    case "TOGGLE_COMMENT_LIKE":
+      return {
+        ...state,
+        postComments: state.postComments.map(comment => comment.id === action.commentId
+          ? { ...comment, isLiked: !comment.isLiked, likes: comment.isLiked ? Math.max(0, comment.likes - 1) : comment.likes + 1 } : comment),
+      };
+    case "DELETE_POST":
+      return {
+        ...state,
+        posts: state.posts.filter(post => post.id !== action.postId),
+        postComments: state.postComments.filter(comment => comment.postId !== action.postId),
+        repostEntries: state.repostEntries.filter(entry => entry.postId !== action.postId),
       };
 
     case "TOGGLE_BOOKMARK":
@@ -247,12 +282,14 @@ function reducer(state: SocialState, action: Action): SocialState {
 
 // ── Initial state ─────────────────────────────────────────────────────
 const initialState: SocialState = {
-  posts: mockPosts.map(p => ({ ...p, isBookmarked: false })),
+  posts: [...demoIntegrationPosts, ...mockPosts].map(p => ({ ...p, isBookmarked: false, isReposted: false })),
   users: [...mockUsers],
   notifications: [...mockNotifications],
   conversations: [...mockConversations],
   messages: [...mockMessages],
   reviews: [...mockSeekReviews],
+  postComments: [],
+  repostEntries: [],
 };
 
 function createInitialState(): SocialState {
@@ -276,7 +313,11 @@ interface SocialContextType extends SocialState {
   unreadMessages: number;
   // Action helpers
   toggleLike: (postId: string) => void;
-  toggleRepost: (postId: string) => void;
+  toggleRepost: (postId: string, actorId?: string) => void;
+  publishPost: (input: PublishPostInput) => Promise<Post>;
+  addComment: (postId: string, content: string, authorId: string, replyToCommentId?: string) => Promise<SocialComment>;
+  toggleCommentLike: (commentId: string) => void;
+  deletePost: (postId: string, authorId: string) => Promise<void>;
   toggleBookmark: (postId: string) => void;
   toggleFollow: (userId: string) => void;
   addUser: (user: User) => void;
@@ -304,7 +345,20 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 // ── Provider ──────────────────────────────────────────────────────────
 export function SocialProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
+  const { currentUser } = useAppContext();
+  function assertSession(authorId: string) {
+    if (!currentUser) throw new ContentServiceError("Entre na sua conta para continuar.", 401);
+    if (authorId !== currentUser.id) throw new ContentServiceError("Você não tem permissão para publicar em nome de outra conta.", 403);
+  }
+  function assertReadable(postId: string) {
+    const post = state.posts.find(item => item.id === postId);
+    if (!post) throw new ContentServiceError("Conteúdo indisponível.", 404);
+    const author = state.users.find(user => user.id === post.authorId);
+    if (!canReadPost(post, currentUser?.id, author?.isInCircle ?? false))
+      throw new ContentServiceError("Você não tem acesso a esta publicação.", 403);
+    return post;
+  }
 
   const ctx: SocialContextType = {
     ...state,
@@ -312,6 +366,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
 
     getPostById: (id) => state.posts.find(p => p.id === id),
     getUserById: (id) => {
+      if (id === currentUser?.id) return currentUser;
       if (id === "me") {
         // return currentUser — import avoids circular dep by using mockData directly
         return {
@@ -335,7 +390,39 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     unreadMessages: state.conversations.reduce((acc, c) => acc + c.unreadCount, 0),
 
     toggleLike: (postId) => dispatch({ type: "TOGGLE_LIKE", postId }),
-    toggleRepost: (postId) => dispatch({ type: "TOGGLE_REPOST", postId }),
+    toggleRepost: (postId, actorId = currentUser?.id ?? "") => {
+      assertSession(actorId);
+      const post = assertReadable(postId);
+      if (post.audience !== "public") throw new ContentServiceError("Somente publicações públicas podem ser repostadas.", 403);
+      dispatch({ type: "TOGGLE_REPOST", postId, actorId });
+    },
+    publishPost: async (input) => {
+      assertSession(input.authorId);
+      const post = await contentService.createPost(input);
+      dispatch({ type: "ADD_POST", post });
+      return post;
+    },
+    addComment: async (postId, content, authorId, replyToCommentId) => {
+      assertSession(authorId);
+      assertReadable(postId);
+      assertCommentParent(state.postComments, postId, replyToCommentId);
+      const comment = await contentService.createComment(postId, content, authorId, replyToCommentId);
+      dispatch({ type: "ADD_COMMENT", comment });
+      return comment;
+    },
+    toggleCommentLike: (commentId) => {
+      if (!currentUser) throw new ContentServiceError("Entre na sua conta para curtir.", 401);
+      const comment = state.postComments.find(item => item.id === commentId);
+      if (!comment) throw new ContentServiceError("Comentário indisponível.", 404);
+      assertReadable(comment.postId);
+      dispatch({ type: "TOGGLE_COMMENT_LIKE", commentId });
+    },
+    deletePost: async (postId, authorId) => {
+      assertSession(authorId);
+      const post = assertReadable(postId);
+      if (post.authorId !== authorId) throw new ContentServiceError("Somente o autor pode excluir a publicação.", 403);
+      dispatch({ type: "DELETE_POST", postId });
+    },
     toggleBookmark: (postId) => dispatch({ type: "TOGGLE_BOOKMARK", postId }),
     toggleFollow: (userId) => dispatch({ type: "TOGGLE_FOLLOW", userId }),
     addUser: (user) => {

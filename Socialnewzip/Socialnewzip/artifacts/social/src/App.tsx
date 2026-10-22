@@ -26,6 +26,10 @@ import Messages from "@/pages/Messages";
 import MessageDetail from "@/pages/MessageDetail";
 import PostDetail from "@/pages/PostDetail";
 import Compose from "@/pages/Compose";
+import ArticleEditor from "@/pages/ArticleEditor";
+import ArticleReader from "@/pages/ArticleReader";
+import SeekEventDetail from "@/pages/SeekEventDetail";
+import ShopItemDetail from "@/pages/ShopItemDetail";
 import ActivityPage from "@/pages/ActivityPage";
 import SuggestionsPage from "@/pages/SuggestionsPage";
 
@@ -71,6 +75,7 @@ function AuthRouter() {
       <Route path="/onboarding/interests" component={OnboardingInterests} />
       <Route path="/onboarding/suggestions" component={OnboardingSuggestions} />
       <Route path="/compose" component={Compose} />
+      <Route path="/article/create" component={ArticleEditor} />
       <Route path="/messages/:conversationId" component={MessageDetail} />
 
       {/* Social module — 3-column layout */}
@@ -78,6 +83,17 @@ function AuthRouter() {
         <SocialLayout>
           <Feed />
         </SocialLayout>
+      </Route>
+
+      <Route path="/seek/event/:id">
+        <AppShell fullWidth>
+          <SeekEventDetail />
+        </AppShell>
+      </Route>
+      <Route path="/shop/item/:id">
+        <AppShell fullWidth>
+          <ShopItemDetail />
+        </AppShell>
       </Route>
 
       {/* Seek module — local discovery */}
@@ -102,6 +118,7 @@ function AuthRouter() {
             <Route path="/notifications" component={Notifications} />
             <Route path="/messages" component={Messages} />
             <Route path="/post/:postId" component={PostDetail} />
+            <Route path="/article/:postId" component={ArticleReader} />
 
             <Route path="/profile/edit" component={ProfileEdit} />
             <Route path="/profile/:username/followers" component={Followers} />

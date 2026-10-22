@@ -1,436 +1,207 @@
-import { useState, useRef, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Heart, MessageCircle, Repeat2, Share2,
-  Volume2, VolumeX, Music2, UserPlus, Check, Bookmark,
-  LayoutGrid,
-} from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, LayoutGrid, Play, BookOpenText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PostCard } from "@/components/post/PostCard";
 import { SocialComposer } from "@/components/social/SocialComposer";
-import { mockPosts, mockUsers, getUserById, formatCount } from "@/data/mockData";
+import { ShareContentDialog } from "@/components/content/ShareContentDialog";
+import { DemoBadge, EmptyState } from "@/components/content/StateBlocks";
+import { formatCount, type Post } from "@/data/mockData";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
+import { canReadPost } from "@/services/contentValidation";
+import { getPostMediaType } from "@/lib/postMedia";
+import { useToast } from "@/hooks/use-toast";
 
-const feedTabs = ["Para você", "Seguindo", "Comunidades", "Vídeos"];
+const feedTabs = ["Para você", "Seguindo", "Artigos", "Comunidades", "Vídeos"] as const;
 
-// ── mock video data ──────────────────────────────────────────────────
-const videoPosts = mockPosts.map((p, i) => ({
-  ...p,
-  type: "video" as const,
-  mediaUrls: [`https://picsum.photos/seed/vid${i}/450/800`],
-  musicTitle: ["original sound · alex_dev", "prod. by lucas_beats", "chill lo-fi mix", "ambient track v2", "orbit original"][i % 5],
-  likeCount: p.likes,
-}));
+type FeedItem = { key: string; post: Post; repostedById?: string; at: string };
 
-// ── mock community posts ─────────────────────────────────────────────
-const communityPostMetas = [
-  { communityName: "Fotografia Urbana SP", communityId: "c1" },
-  { communityName: "Tech Talks Brasil", communityId: "c2" },
-  { communityName: "Rolê Gastronômico", communityId: "c3" },
-  { communityName: "Fotografia Urbana SP", communityId: "c1" },
-];
-const communityPosts = mockPosts.slice(0, 4).map((p, i) => ({
-  ...p,
-  id: `cp${i}`,
-  ...communityPostMetas[i],
-}));
+// Community labels for sample posts — demonstration only, membership is not real.
+const demoCommunityLabels = ["Fotografia Urbana SP", "Tech Talks Brasil", "Rolê Gastronômico", "Fotografia Urbana SP"];
 
-// ── spinning disc ────────────────────────────────────────────────────
-function SpinningDisc({ avatarUrl }: { avatarUrl: string }) {
-  return (
-    <div className="relative w-9 h-9">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-        className="w-9 h-9 rounded-full border-2 border-white/30 overflow-hidden"
-        style={{ backgroundImage: `url(${avatarUrl})`, backgroundSize: "cover" }}
-      />
-      <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-white/60 pointer-events-none" />
-      <div className="absolute inset-[35%] rounded-full bg-zinc-900" />
-    </div>
-  );
+function useVisibleFeed() {
+  const { posts, users, repostEntries, getUserById } = useSocial();
+  const { currentUser } = useAppContext();
+  const viewerId = currentUser?.id;
+
+  return useMemo(() => {
+    const visible = posts.filter((p) => {
+      const author = getUserById(p.authorId);
+      return !!author && !author.isBlocked && canReadPost(p, viewerId, author.isInCircle ?? false);
+    });
+    const byId = new Map(visible.map((p) => [p.id, p]));
+    const items: FeedItem[] = [
+      ...visible.map((post) => ({ key: post.id, post, at: post.createdAt })),
+      ...repostEntries.flatMap((r) => {
+        const post = byId.get(r.postId);
+        return post ? [{ key: r.id, post, repostedById: r.authorId, at: r.createdAt }] : [];
+      }),
+    ].sort((a, b) => b.at.localeCompare(a.at));
+    return { visible, items };
+    // getUserById is recreated each render; posts/users drive it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts, users, repostEntries, currentUser, viewerId]);
 }
 
-// ── action button ────────────────────────────────────────────────────
-function ActionBtn({
-  icon, label, active, activeClass, onClick, testId,
-}: {
-  icon: React.ReactNode;
-  label?: string;
-  active?: boolean;
-  activeClass?: string;
-  onClick?: () => void;
-  testId?: string;
-}) {
-  return (
-    <motion.button
-      whileTap={{ scale: 1.3 }}
-      onClick={onClick}
-      data-testid={testId}
-      className="flex flex-col items-center gap-0.5 select-none"
-    >
-      <div className={`w-10 h-10 rounded-full bg-white/10 flex items-center justify-center transition-colors ${active ? activeClass : "hover:bg-white/20"}`}>
-        {icon}
-      </div>
-      {label !== undefined && (
-        <span className="text-white/80 text-[10px] font-semibold leading-none">{label}</span>
-      )}
-    </motion.button>
-  );
-}
+function VideoFeedItem({ post }: { post: Post }) {
+  const { getUserById, toggleLike, toggleRepost, toggleFollow, repostEntries } = useSocial();
+  const { currentUser } = useAppContext();
+  const { toast } = useToast();
+  const [shareOpen, setShareOpen] = useState(false);
+  const author = getUserById(post.authorId);
+  if (!author) return null;
+  const viewerId = currentUser?.id ?? "me";
+  const reposted = repostEntries.some((r) => r.postId === post.id && r.authorId === viewerId);
+  const videoIndex = (post.mediaUrls ?? []).findIndex((_, i) => getPostMediaType(post, i) === "video");
+  const isRealVideo = videoIndex >= 0;
+  const poster = isRealVideo ? undefined : post.mediaUrls?.[0];
 
-// ── single video card — layout matches PostCard container ────────────
-function VideoFeedItem({
-  post,
-  isActive,
-  globalMuted,
-  onToggleMute,
-}: {
-  post: typeof videoPosts[0];
-  isActive: boolean;
-  globalMuted: boolean;
-  onToggleMute: () => void;
-}) {
-  const author = getUserById(post.authorId) ?? mockUsers[0];
-  const [liked, setLiked] = useState(post.isLiked ?? false);
-  const [likes, setLikes] = useState(post.likeCount);
-  const [reposted, setReposted] = useState(post.isReposted ?? false);
-  const [reposts, setReposts] = useState(post.reposts);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [followed, setFollowed] = useState(author.isFollowing ?? false);
-  const [captionExpanded, setCaptionExpanded] = useState(false);
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    if (!isActive) { setProgress(0); return; }
-    const total = 12000 + Math.random() * 8000;
-    const start = Date.now();
-    let raf: number;
-    function tick() {
-      const elapsed = Date.now() - start;
-      const pct = Math.min(elapsed / total, 1);
-      setProgress(pct);
-      if (pct < 1) raf = requestAnimationFrame(tick);
-      else setProgress(0);
+  function repost() {
+    try { toggleRepost(post.id, viewerId); } catch (e) {
+      toast({ title: "Repost indisponível", description: e instanceof Error ? e.message : "", variant: "destructive" });
     }
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [isActive]);
+  }
 
-  function toggleLike() {
-    setLiked(v => !v);
-    setLikes(v => liked ? v - 1 : v + 1);
-  }
-  function toggleRepost() {
-    setReposted(v => !v);
-    setReposts(v => reposted ? v - 1 : v + 1);
-  }
+  const action = "flex flex-col items-center gap-0.5 select-none text-white";
+  const bubble = "flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20";
 
   return (
-    /* Container igual ao PostCard — sem cabeçalho de avatar (já aparece acima como post) */
-    <div
-      className="border-b border-border"
-      data-testid={`video-card-${post.id}`}
-    >
-      {/* Vídeo largo: largura total do container, altura fixa, ações sobrepostas dentro */}
+    <div className="border-b border-border" data-testid={`video-card-${post.id}`}>
       <div className="relative w-full overflow-hidden bg-black" style={{ height: "min(72vw, 480px)" }}>
-        <img
-          src={post.mediaUrls?.[0]}
-          alt=""
-          className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? "scale-100" : "scale-105"}`}
-        />
-
-        {/* Gradientes */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-black/20 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/40 pointer-events-none" />
-
-        {/* Mudo — topo esquerdo */}
-        <div className="absolute top-3 left-3 z-20">
-          <button
-            onClick={onToggleMute}
-            data-testid="button-mute"
-            className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/15"
-          >
-            {globalMuted
-              ? <VolumeX className="w-3.5 h-3.5 text-white" />
-              : <Volume2 className="w-3.5 h-3.5 text-white" />
-            }
-          </button>
-        </div>
-
-        {/* Ações — dentro do vídeo, coluna na direita */}
+        {isRealVideo ? (
+          <video src={post.mediaUrls![videoIndex]} controls playsInline className="h-full w-full object-contain" aria-label={`Vídeo de ${author.displayName}`} />
+        ) : poster ? (
+          <img src={poster} alt="" className="h-full w-full object-cover opacity-80" />
+        ) : (
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-info/20 to-primary/20 p-8 text-center text-sm text-white/80">{post.content}</div>
+        )}
+        {!isRealVideo && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white/90">
+              <Play className="h-3.5 w-3.5" /> Prévia ilustrativa — sem vídeo real
+            </span>
+          </div>
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
         <div className="absolute right-3 bottom-6 z-20 flex flex-col items-center gap-3">
-
-          {/* Avatar do autor — acima do curtir, leva ao perfil */}
           <div className="relative mb-1">
-            <Link href={`/profile/${author.username}`} data-testid="button-author-avatar">
-              <Avatar className="w-11 h-11 border-2 border-white shadow-lg hover:opacity-90 transition-opacity">
-                <AvatarImage src={author.avatarUrl} />
-                <AvatarFallback className="text-xs">{author.displayName[0]}</AvatarFallback>
-              </Avatar>
+            <Link href={`/profile/${author.username}`} aria-label={`Perfil de ${author.displayName}`}>
+              <Avatar className="h-11 w-11 border-2 border-white shadow-lg"><AvatarImage src={author.avatarUrl} alt="" /><AvatarFallback>{author.displayName[0]}</AvatarFallback></Avatar>
             </Link>
-            {/* Botão seguir sobre o avatar */}
-            <button
-              onClick={() => setFollowed(v => !v)}
-              data-testid="button-follow-video"
-              className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-md border border-black/20 transition-colors ${
-                followed ? "bg-zinc-600" : "bg-primary"
-              }`}
-            >
-              {followed
-                ? <Check className="w-2.5 h-2.5 text-white" />
-                : <UserPlus className="w-2.5 h-2.5 text-white" />
-              }
-            </button>
-          </div>
-
-          {/* Curtir */}
-          <ActionBtn
-            icon={<Heart className={`w-5 h-5 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />}
-            label={formatCount(likes)}
-            active={liked}
-            activeClass="bg-red-500/25"
-            onClick={toggleLike}
-            testId="button-like-video"
-          />
-
-          {/* Comentar */}
-          <ActionBtn
-            icon={<MessageCircle className="w-5 h-5 text-white" />}
-            label={formatCount(post.comments)}
-            testId="button-comment-video"
-          />
-
-          {/* Repostar */}
-          <ActionBtn
-            icon={<Repeat2 className={`w-5 h-5 transition-colors ${reposted ? "text-green-400" : "text-white"}`} />}
-            label={formatCount(reposts)}
-            active={reposted}
-            activeClass="bg-green-500/25"
-            onClick={toggleRepost}
-            testId="button-repost-video"
-          />
-
-          {/* Salvar */}
-          <ActionBtn
-            icon={<Bookmark className={`w-5 h-5 transition-colors ${bookmarked ? "fill-yellow-400 text-yellow-400" : "text-white"}`} />}
-            active={bookmarked}
-            activeClass="bg-yellow-500/25"
-            onClick={() => setBookmarked(v => !v)}
-            testId="button-bookmark-video"
-          />
-
-          {/* Compartilhar */}
-          <ActionBtn
-            icon={<Share2 className="w-5 h-5 text-white" />}
-            testId="button-share-video"
-          />
-
-          {/* Disco de áudio giratório */}
-          <SpinningDisc avatarUrl={author.avatarUrl} />
-        </div>
-
-        {/* Legenda + música — base esquerda do vídeo, respeitando coluna de ações */}
-        <div className="absolute bottom-0 left-0 right-16 z-20 px-3 pb-3 pt-10 bg-gradient-to-t from-black/70 to-transparent">
-          <button
-            className="block text-left w-full"
-            onClick={() => setCaptionExpanded(v => !v)}
-            data-testid="button-expand-caption"
-          >
-            <p className={`text-white/90 text-xs leading-relaxed drop-shadow ${captionExpanded ? "" : "line-clamp-2"}`}>
-              {post.content}
-            </p>
-            {post.content.length > 80 && (
-              <span className="text-white/50 text-[10px] mt-0.5 block">
-                {captionExpanded ? "ver menos" : "ver mais"}
-              </span>
+            {author.id !== viewerId && (
+              <button type="button" onClick={() => toggleFollow(author.id)} aria-label={author.isFollowing ? "Deixar de seguir" : "Seguir"}
+                className={`absolute -bottom-2 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full ${author.isFollowing ? "bg-zinc-600" : "bg-primary"}`}>
+                {author.isFollowing ? <Check className="h-2.5 w-2.5 text-white" /> : <UserPlus className="h-2.5 w-2.5 text-white" />}
+              </button>
             )}
-          </button>
-          <div className="flex items-center gap-1.5 mt-1.5 overflow-hidden">
-            <Music2 className="w-3 h-3 text-white/60 shrink-0" />
-            <div className="overflow-hidden flex-1">
-              <motion.p
-                animate={{ x: [0, -100, 0] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                className="text-white/60 text-xs whitespace-nowrap"
-              >
-                {post.musicTitle}
-              </motion.p>
-            </div>
           </div>
+          <motion.button whileTap={{ scale: 1.2 }} type="button" onClick={() => toggleLike(post.id)} aria-pressed={!!post.isLiked} aria-label="Curtir" className={action}>
+            <span className={bubble}><Heart className={`h-5 w-5 ${post.isLiked ? "fill-red-500 text-red-500" : ""}`} /></span>
+            <span className="text-[10px] font-semibold">{formatCount(post.likes)}</span>
+          </motion.button>
+          <Link href={`/post/${post.id}`} aria-label="Comentários" className={action}>
+            <span className={bubble}><MessageCircle className="h-5 w-5" /></span>
+            <span className="text-[10px] font-semibold">{formatCount(post.comments)}</span>
+          </Link>
+          <motion.button whileTap={{ scale: 1.2 }} type="button" onClick={repost} disabled={post.audience !== "public"} aria-pressed={reposted} aria-label="Repostar" className={`${action} disabled:opacity-40`}>
+            <span className={bubble}><Repeat2 className={`h-5 w-5 ${reposted ? "text-green-400" : ""}`} /></span>
+            <span className="text-[10px] font-semibold">{formatCount(post.reposts)}</span>
+          </motion.button>
+          <button type="button" onClick={() => setShareOpen(true)} aria-label="Compartilhar" className={action}>
+            <span className={bubble}><Share2 className="h-5 w-5" /></span>
+          </button>
         </div>
-
-        {/* Barra de progresso */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-30">
-          <motion.div
-            className="h-full bg-primary"
-            style={{ width: `${progress * 100}%` }}
-            transition={{ duration: 0 }}
-          />
+        <div className="absolute bottom-0 left-0 right-16 z-10 px-3 pb-3">
+          <p className="text-xs font-semibold text-white">{author.displayName}</p>
+          <p className="line-clamp-2 text-xs text-white/85">{post.content}</p>
         </div>
       </div>
+      <ShareContentDialog open={shareOpen} onOpenChange={setShareOpen} reference={{ type: "social_post", id: post.id }}
+        title={post.content.slice(0, 80)} linkPath={`/post/${post.id}`}
+        repost={post.audience === "public" ? { active: reposted, onToggle: repost } : undefined} />
     </div>
   );
 }
 
-// ── video feed — idêntico ao container dos outros feeds ──────────────
-function SocialVideoFeed() {
-  const [muted, setMuted] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const idx = itemRefs.current.findIndex(el => el === entry.target);
-            if (idx !== -1) setActiveIndex(idx);
-          }
-        }
-      },
-      { threshold: 0.4 }
-    );
-    itemRefs.current.forEach(el => el && observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div data-testid="video-feed">
-      {videoPosts.map((post, i) => (
-        <div
-          key={post.id}
-          ref={el => { itemRefs.current[i] = el; }}
-        >
-          <VideoFeedItem
-            post={post}
-            isActive={activeIndex === i}
-            globalMuted={muted}
-            onToggleMute={() => setMuted(v => !v)}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── main feed page ───────────────────────────────────────────────────
 export default function Feed() {
   const [activeTab, setActiveTab] = useState(0);
+  const { getUserById } = useSocial();
+  const { items, visible } = useVisibleFeed();
 
-  const followingPosts = mockPosts.filter(p => {
-    const author = getUserById(p.authorId);
-    return author?.isFollowing;
-  });
+  const followingItems = items.filter((i) => getUserById(i.post.authorId)?.isFollowing || (i.repostedById && getUserById(i.repostedById)?.isFollowing));
+  const articles = visible.filter((p) => p.format === "article");
+  const communityPosts = visible.filter((p) => p.format !== "article").slice(0, 4);
+  const videoPosts = visible.filter((p) => p.format !== "article" && (p.type === "video" || (p.mediaUrls?.length ?? 0) > 0));
+
+  const list = (feed: FeedItem[]) => feed.map((i) => <PostCard key={i.key} post={i.post} repostedById={i.repostedById} />);
+  const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.15 } };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-[100dvh]">
+      {activeTab !== 4 && <SocialComposer />}
 
-      {/* Composer — only for non-video tabs */}
-      {activeTab !== 3 && <SocialComposer />}
-
-      {/* Tab header — normal flow (not sticky, avoids overlap with content) */}
-      <div className="bg-background border-b border-border">
-        <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+      <div className="border-b border-border bg-background">
+        <div role="tablist" aria-label="Seções do feed" className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {feedTabs.map((tab, i) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(i)}
-              data-testid={`tab-feed-${tab}`}
-              className={`flex-shrink-0 flex-1 min-w-[80px] py-3 text-sm font-medium transition-all border-b-2 ${
-                activeTab === i
-                  ? "border-primary text-primary font-bold"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
+            <button key={tab} role="tab" aria-selected={activeTab === i} onClick={() => setActiveTab(i)} data-testid={`tab-feed-${tab}`}
+              className={`min-w-[80px] flex-1 flex-shrink-0 border-b-2 py-3 text-sm font-medium transition-all ${
+                activeTab === i ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
               {tab}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Tab content */}
+      <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-[11px] text-muted-foreground">
+        <DemoBadge />
+        <span>Publicações novas ficam só nesta sessão e somem ao recarregar.</span>
+      </div>
+
       <AnimatePresence mode="wait">
         {activeTab === 0 && (
-          <motion.div
-            key="for-you"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {mockPosts.map(post => (
-              <PostCard key={post.id} post={post} />
-            ))}
+          <motion.div key="for-you" {...fade}>
+            {items.length ? list(items) : <EmptyState title="Nada por aqui ainda" description="Publique algo ou siga pessoas." />}
           </motion.div>
         )}
-
         {activeTab === 1 && (
-          <motion.div
-            key="following"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {followingPosts.length === 0 ? (
-              <div className="flex flex-col items-center py-20 text-muted-foreground">
-                <p className="font-medium text-base">Nenhum post ainda</p>
-                <p className="text-sm mt-2 opacity-70">Siga pessoas para ver seus posts aqui.</p>
-                <Link href="/search">
-                  <Button className="mt-6 rounded-full">Descobrir pessoas</Button>
-                </Link>
-              </div>
-            ) : (
-              followingPosts.map(post => <PostCard key={post.id} post={post} />)
+          <motion.div key="following" {...fade}>
+            {followingItems.length === 0 ? (
+              <EmptyState title="Nenhum post ainda" description="Siga pessoas para ver seus posts e reposts aqui."
+                action={<Button asChild className="rounded-full"><Link href="/search">Descobrir pessoas</Link></Button>} />
+            ) : list(followingItems)}
+          </motion.div>
+        )}
+        {activeTab === 2 && (
+          <motion.div key="articles" {...fade}>
+            {articles.length ? articles.map((p) => <PostCard key={p.id} post={p} />) : (
+              <EmptyState title="Nenhum artigo ainda" description="Artigos são publicações longas, com título e comentários próprios."
+                action={<Button asChild className="rounded-full"><Link href="/article/create"><BookOpenText className="mr-2 h-4 w-4" />Escrever artigo</Link></Button>} />
             )}
           </motion.div>
         )}
-
-        {activeTab === 2 && (
-          <motion.div
-            key="communities"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {communityPosts.map(post => (
+        {activeTab === 3 && (
+          <motion.div key="communities" {...fade}>
+            {communityPosts.map((post, i) => (
               <div key={post.id}>
-                <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                  <div className="w-5 h-5 rounded-md bg-primary/15 flex items-center justify-center">
-                    <LayoutGrid className="w-3 h-3 text-primary" />
-                  </div>
-                  <Link
-                    href="/communities"
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    {post.communityName}
-                  </Link>
+                <div className="flex items-center gap-2 px-4 pb-1 pt-3">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/15"><LayoutGrid className="h-3 w-3 text-primary" /></div>
+                  <Link href="/communities" className="text-xs font-semibold text-primary hover:underline">{demoCommunityLabels[i % demoCommunityLabels.length]}</Link>
+                  <DemoBadge label="Rótulo de exemplo" />
                 </div>
                 <PostCard post={post} />
               </div>
             ))}
             <div className="flex justify-center py-6">
-              <Link href="/communities">
-                <Button variant="outline" size="sm" className="rounded-full">
-                  Ver todas as comunidades
-                </Button>
-              </Link>
+              <Button asChild variant="outline" size="sm" className="rounded-full"><Link href="/communities">Ver todas as comunidades</Link></Button>
             </div>
           </motion.div>
         )}
-
-        {activeTab === 3 && (
-          <motion.div
-            key="videos"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <SocialVideoFeed />
+        {activeTab === 4 && (
+          <motion.div key="videos" {...fade} data-testid="video-feed">
+            {videoPosts.length ? videoPosts.map((p) => <VideoFeedItem key={p.id} post={p} />) : <EmptyState title="Nenhum vídeo ainda" />}
           </motion.div>
         )}
       </AnimatePresence>
