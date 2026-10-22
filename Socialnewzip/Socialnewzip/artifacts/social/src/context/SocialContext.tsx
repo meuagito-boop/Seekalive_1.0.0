@@ -36,6 +36,7 @@ type Action =
   | { type: "INCREMENT_COMMENTS"; postId: string }
   | { type: "TOGGLE_FOLLOW"; userId: string }
   | { type: "ADD_USER"; user: User }
+  | { type: "UPDATE_USER"; user: User }
   | { type: "UPSERT_SEEK_REVIEW"; review: SeekReview }
   | { type: "REPLY_TO_SEEK_REVIEW"; reviewId: string; businessAccountId: string; content: string }
   | { type: "REQUEST_CIRCLE"; userId: string }
@@ -143,6 +144,12 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
         users: state.users.some((user) => user.id === action.user.id)
           ? state.users.map((user) => user.id === action.user.id ? action.user : user)
           : [...state.users, action.user],
+      };
+
+    case "UPDATE_USER":
+      return {
+        ...state,
+        users: state.users.map((user) => user.id === action.user.id ? action.user : user),
       };
 
     case "UPSERT_SEEK_REVIEW": {
@@ -318,6 +325,7 @@ interface SocialContextType extends SocialState {
   toggleBookmark: (postId: string) => void;
   toggleFollow: (userId: string) => void;
   addUser: (user: User) => void;
+  updateUser: (user: User) => void;
   requestCircle: (userId: string) => void;
   acceptCircle: (userId: string) => void;
   cancelCircle: (userId: string) => void;
@@ -411,6 +419,10 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     addUser: (user) => {
       saveSocialAccount(user);
       dispatch({ type: "ADD_USER", user });
+    },
+    updateUser: (user) => {
+      saveSocialAccount(user);
+      dispatch({ type: "UPDATE_USER", user });
     },
     upsertSeekReview: (review) => {
       const business = state.users.find((user) => user.id === review.businessAccountId && user.accountType === "commercial");

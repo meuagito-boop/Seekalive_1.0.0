@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle2, Mail } from "lucide-react";
+import { ArrowLeft, Info, Mail } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ export default function ForgotPassword() {
   });
 
   function onSubmit(_values: FormValues) {
+    // This prototype has no identity provider or email delivery service.
     setSent(true);
   }
 
@@ -45,7 +46,7 @@ export default function ForgotPassword() {
             <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <h1 className="text-3xl font-bold mb-2">Esqueceu a senha?</h1>
               <p className="text-muted-foreground mb-8 text-sm">
-                Insira seu email e enviaremos um link para redefinir sua senha.
+                Informe seu e-mail. A redefinição será ativada quando o serviço de contas estiver conectado.
               </p>
 
               <Form {...form}>
@@ -72,7 +73,7 @@ export default function ForgotPassword() {
                     )}
                   />
                   <Button type="submit" className="w-full h-12 rounded-xl font-semibold" data-testid="button-send-reset">
-                    Enviar link de redefinição
+                    Continuar
                   </Button>
                 </form>
               </Form>
@@ -85,18 +86,18 @@ export default function ForgotPassword() {
               className="text-center"
             >
               <div className="flex justify-center mb-6">
-                <CheckCircle2 className="w-16 h-16 text-green-500" />
+               <Info className="w-16 h-16 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold mb-3">Email enviado!</h1>
+              <h1 className="text-2xl font-bold mb-3">Redefinição ainda indisponível</h1>
               <p className="text-muted-foreground text-sm mb-8">
-                Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
+                Nenhum e-mail foi enviado. Esse fluxo depende da integração de autenticação e envio de e-mail.
               </p>
               <Button
                 className="w-full h-12 rounded-xl font-semibold"
                 onClick={() => setSent(false)}
                 data-testid="button-resend"
               >
-                Reenviar email
+                Voltar
               </Button>
             </motion.div>
           )}

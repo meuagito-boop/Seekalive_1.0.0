@@ -12,10 +12,50 @@ const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 export default function SettingsAccount() {
   const { currentUser, updateAccount } = useAppContext();
-  const { users } = useSocial();
+  const { users, updateUser } = useSocial();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState(currentUser?.displayName ?? "");
+  const [age, setAge] = useState(currentUser?.age?.toString() ?? "");
+  const [address, setAddress] = useState(currentUser?.address ?? "");
+  const [postalCode, setPostalCode] = useState(currentUser?.postalCode ?? "");
+  const [city, setCity] = useState(currentUser?.city ?? "");
+  const [state, setState] = useState(currentUser?.state ?? "");
+  const [country, setCountry] = useState(currentUser?.country ?? "");
+
+  function submitProfile(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!currentUser) return;
+    if (displayName.trim().length < 2 || !Number.isInteger(Number(age)) || Number(age) < 1 || Number(age) > 120) {
+      setProfileError("Informe um nome e uma idade válida entre 1 e 120 anos.");
+      return;
+    }
+    if (currentUser.accountType === "commercial" &&
+      [address, postalCode, city, state, country].some(value => value.trim().length < 2)) {
+      setProfileError("Preencha endereço, CEP, cidade, estado e país.");
+      return;
+    }
+    const updated = {
+      ...currentUser,
+      displayName: displayName.trim(),
+      age: Number(age),
+      address: currentUser.accountType === "commercial" ? address.trim() : currentUser.address,
+      postalCode: currentUser.accountType === "commercial" ? postalCode.trim() : currentUser.postalCode,
+      city: currentUser.accountType === "commercial" ? city.trim() : currentUser.city,
+      state: currentUser.accountType === "commercial" ? state.trim() : currentUser.state,
+      country: currentUser.accountType === "commercial" ? country.trim() : currentUser.country,
+      location: currentUser.accountType === "commercial" ? `${city.trim()}, ${state.trim()}, ${country.trim()}` : currentUser.location,
+      commercialProfile: currentUser.accountType === "commercial" && currentUser.commercialProfile
+        ? { ...currentUser.commercialProfile, address: `${address.trim()}, ${city.trim()}, ${state.trim()} ${postalCode.trim()}, ${country.trim()}`, cityName: city.trim(), cityState: state.trim() }
+        : currentUser.commercialProfile,
+    };
+    setProfileError(null);
+    updateAccount(updated);
+    updateUser(updated);
+    toast({ title: "Perfil atualizado", description: "Os dados foram salvos neste navegador." });
+  }
 
   function submitUsername(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,6 +86,27 @@ export default function SettingsAccount() {
       <SettingsSubheader title="Conta" />
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8">
+        <SectionTitle>{currentUser?.accountType === "commercial" ? "Dados comerciais" : "Dados pessoais"}</SectionTitle>
+        <form onSubmit={submitProfile} className="px-4 pt-2 space-y-3">
+          <Input value={displayName} onChange={event => setDisplayName(event.target.value)} aria-label={currentUser?.accountType === "commercial" ? "Nome comercial" : "Nome completo"} placeholder={currentUser?.accountType === "commercial" ? "Nome da empresa ou prestador" : "Nome completo"} className="h-12 bg-card border-border rounded-xl" />
+          <Input value={age} onChange={event => setAge(event.target.value)} type="number" min={1} max={120} aria-label="Idade" placeholder="Idade" className="h-12 bg-card border-border rounded-xl" />
+          {currentUser?.accountType === "commercial" && (
+            <>
+              <Input value={address} onChange={event => setAddress(event.target.value)} aria-label="Endereço" placeholder="Endereço" className="h-12 bg-card border-border rounded-xl" />
+              <div className="grid grid-cols-2 gap-3">
+                <Input value={postalCode} onChange={event => setPostalCode(event.target.value)} aria-label="CEP" placeholder="CEP" className="h-12 bg-card border-border rounded-xl" />
+                <Input value={city} onChange={event => setCity(event.target.value)} aria-label="Cidade" placeholder="Cidade" className="h-12 bg-card border-border rounded-xl" />
+                <Input value={state} onChange={event => setState(event.target.value)} aria-label="Estado" placeholder="Estado" className="h-12 bg-card border-border rounded-xl" />
+                <Input value={country} onChange={event => setCountry(event.target.value)} aria-label="País" placeholder="País" className="h-12 bg-card border-border rounded-xl" />
+              </div>
+            </>
+          )}
+          <Input value={currentUser?.email ?? ""} readOnly type="email" aria-label="E-mail de cadastro" placeholder="E-mail de cadastro" className="h-12 bg-card border-border rounded-xl opacity-70" />
+          <p className="text-xs text-muted-foreground">E-mail e senha só poderão ser alterados após conectar o serviço de autenticação. Senhas não são salvas localmente.</p>
+          {profileError && <p role="alert" className="text-xs text-destructive">{profileError}</p>}
+          <Button type="submit" className="rounded-xl h-10 px-6" data-testid="button-save-profile">Salvar dados do perfil</Button>
+        </form>
+
         <SectionTitle>Nome de usuário</SectionTitle>
         <form onSubmit={submitUsername} className="px-4 pt-2 space-y-3" noValidate>
           <p className="text-xs text-muted-foreground">

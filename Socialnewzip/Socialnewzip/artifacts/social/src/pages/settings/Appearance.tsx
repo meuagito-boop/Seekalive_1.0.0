@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { SettingsSubheader, SectionTitle } from "./SettingsSubheader";
+import { getAppearancePreferences, saveAppearancePreferences } from "@/data/appPreferences";
 
 const fontSizes = [
   { label: "Padrão", px: 16 },
@@ -15,13 +16,16 @@ function currentRootSize(): number {
 }
 
 export default function SettingsAppearance() {
-  const [size, setSize] = useState<number>(currentRootSize);
+  const [size, setSize] = useState<number>(() => getAppearancePreferences().fontSize || currentRootSize());
+
+  useEffect(() => {
+    if (size === 16) document.documentElement.style.removeProperty("font-size");
+    else document.documentElement.style.fontSize = `${size}px`;
+  }, [size]);
 
   function applySize(px: number) {
     setSize(px);
-    // Tamanho base do documento: toda a interface usa rem e acompanha a mudança.
-    if (px === 16) document.documentElement.style.removeProperty("font-size");
-    else document.documentElement.style.fontSize = `${px}px`;
+    saveAppearancePreferences({ fontSize: px as 16 | 18 | 20 });
   }
 
   return (
@@ -43,7 +47,7 @@ export default function SettingsAppearance() {
 
         <SectionTitle>Tamanho do texto</SectionTitle>
         <p className="px-4 text-xs text-muted-foreground mb-3">
-          Aumenta textos e controles em todo o aplicativo neste navegador. A escolha vale até você recarregar ou fechar a página e não é salva na sua conta.
+          Aumenta textos e controles em todo o aplicativo. A escolha fica salva neste navegador.
         </p>
         <div role="radiogroup" aria-label="Tamanho do texto" className="mx-4 flex gap-2">
           {fontSizes.map((f) => {

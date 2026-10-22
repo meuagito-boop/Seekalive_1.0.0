@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { SettingsSubheader, UnavailableNotice } from "./SettingsSubheader";
+import { SettingsSubheader } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
+import { getNotificationPreferences, saveNotificationPreferences } from "@/data/appPreferences";
 
 interface ToggleItem {
   label: string;
@@ -46,20 +47,28 @@ const groups: { title: string; items: ToggleItem[] }[] = [
 ];
 
 export default function SettingsNotifications() {
-  const [prefs, setPrefs] = useState<Record<string, boolean>>(
-    Object.fromEntries(groups.flatMap(g => g.items.map(i => [i.key, true])))
-  );
-  const [emailEnabled, setEmailEnabled] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(true);
+  const [prefs, setPrefs] = useState(getNotificationPreferences);
 
   function toggle(key: string) {
-    setPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+    setPrefs(prev => {
+      const next = { ...prev, categories: { ...prev.categories, [key]: !prev.categories[key] } };
+      saveNotificationPreferences(next);
+      return next;
+    });
+  }
+
+  function toggleChannel(channel: "pushEnabled" | "emailEnabled") {
+    setPrefs(prev => {
+      const next = { ...prev, [channel]: !prev[channel] };
+      saveNotificationPreferences(next);
+      return next;
+    });
   }
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
       <SettingsSubheader title="Notificações" />
-      <UnavailableNotice>As preferências de notificação ainda não podem ser alteradas: não há serviço de envio disponível. Os valores mostrados são os padrões.</UnavailableNotice>
+      <p className="px-4 pt-3 text-xs leading-5 text-muted-foreground">As preferências ficam salvas neste navegador. Envio por e-mail e push só funcionará quando os serviços forem conectados.</p>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="px-4 pt-4 pb-2 border-b border-border">
@@ -68,14 +77,14 @@ export default function SettingsNotifications() {
               <p className="font-semibold text-sm">Notificações push</p>
               <p className="text-xs text-muted-foreground">No aplicativo e no celular</p>
             </div>
-            <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} disabled aria-label="Notificações push (indisponível)" data-testid="toggle-push" />
+            <Switch checked={prefs.pushEnabled} onCheckedChange={() => toggleChannel("pushEnabled")} aria-label="Notificações push" data-testid="toggle-push" />
           </div>
           <div className="flex items-center justify-between py-2">
             <div>
               <p className="font-semibold text-sm">Notificações por e-mail</p>
               <p className="text-xs text-muted-foreground">Resumos e alertas por e-mail</p>
             </div>
-            <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} disabled aria-label="Notificações por e-mail (indisponível)" data-testid="toggle-email" />
+            <Switch checked={prefs.emailEnabled} onCheckedChange={() => toggleChannel("emailEnabled")} aria-label="Notificações por e-mail" data-testid="toggle-email" />
           </div>
         </div>
 
@@ -92,11 +101,10 @@ export default function SettingsNotifications() {
                     {item.desc && <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>}
                   </div>
                   <Switch
-                    checked={prefs[item.key] ?? true}
+                    checked={prefs.categories[item.key] ?? true}
                     onCheckedChange={() => toggle(item.key)}
                     data-testid={`toggle-${item.key}`}
-                    disabled
-                    aria-label={`${item.label} (indisponível)`}
+                    aria-label={item.label}
                   />
                 </div>
               ))}

@@ -1,26 +1,15 @@
 import { BrandMark } from "@/components/brand/BrandMark";
-import { useRef, useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Circle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAppContext } from "@/context/AppContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function VerifyEmail() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [verified, setVerified] = useState(false);
-  const [resendTimer, setResendTimer] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [, setLocation] = useLocation();
-  const { login } = useAppContext();
-
-  useEffect(() => {
-    if (resendTimer > 0) {
-      const t = setTimeout(() => setResendTimer(v => v - 1), 1000);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [resendTimer]);
+  const { toast } = useToast();
 
   function handleChange(index: number, value: string) {
     if (!/^\d*$/.test(value)) return;
@@ -38,18 +27,14 @@ export default function VerifyEmail() {
 
   function handleVerify() {
     if (code.every(c => c !== "")) {
-      setVerified(true);
-      setTimeout(() => {
-        login();
-        setLocation("/onboarding/interests");
-      }, 1200);
+      toast({ title: "Verificação não configurada", description: "Nenhum código foi enviado. A verificação será conectada junto com o serviço de autenticação." });
     }
   }
 
   function handleResend() {
-    setResendTimer(60);
     setCode(["", "", "", "", "", ""]);
     inputRefs.current[0]?.focus();
+    toast({ title: "Reenvio indisponível", description: "O envio de e-mails ainda não está conectado." });
   }
 
   const isFull = code.every(c => c !== "");
@@ -79,7 +64,7 @@ export default function VerifyEmail() {
             </div>
             <h1 className="text-3xl font-bold mb-2">Verificar email</h1>
             <p className="text-muted-foreground mb-8 text-sm">
-              Enviamos um código de 6 dígitos para o seu email.
+              A confirmação por e-mail será ativada quando o serviço de contas for conectado. Nenhum código foi enviado.
             </p>
 
             <div className="flex gap-2 justify-center mb-8">
@@ -109,17 +94,9 @@ export default function VerifyEmail() {
             </Button>
 
             <div className="mt-6 text-sm text-muted-foreground">
-              {resendTimer > 0 ? (
-                <span>Reenviar em {resendTimer}s</span>
-              ) : (
-                <button
-                  className="text-primary hover:underline"
-                  onClick={handleResend}
-                  data-testid="button-resend"
-                >
-                  Reenviar código
-                </button>
-              )}
+              <button className="text-primary hover:underline" onClick={handleResend} data-testid="button-resend">
+                Tentar enviar novamente
+              </button>
             </div>
           </>
         )}

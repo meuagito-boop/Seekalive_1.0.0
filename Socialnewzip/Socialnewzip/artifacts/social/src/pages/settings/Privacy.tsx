@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
-import { SettingsSubheader, UnavailableNotice } from "./SettingsSubheader";
+import { SettingsSubheader } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
+import { getPrivacyPreferences, savePrivacyPreferences } from "@/data/appPreferences";
 
 function SettingRow({ label, desc, checked, onToggle, testId }: {
   label: string;
@@ -18,7 +19,7 @@ function SettingRow({ label, desc, checked, onToggle, testId }: {
         <p className="font-medium text-sm">{label}</p>
         {desc && <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>}
       </div>
-      <Switch checked={checked} onCheckedChange={onToggle} disabled aria-label={`${label} (indisponível)`} data-testid={testId} />
+      <Switch checked={checked} onCheckedChange={onToggle} aria-label={label} data-testid={testId} />
     </div>
   );
 }
@@ -35,8 +36,7 @@ function SelectRow({ label, value, options, onChange, testId }: {
     <div className="relative">
       <button
         type="button"
-        disabled
-        aria-label={`${label}: ${value} (indisponível)`}
+        aria-label={`${label}: ${value}`}
         className="w-full flex items-center justify-between px-4 py-4 border-b border-border disabled:cursor-not-allowed disabled:opacity-70"
         onClick={() => setOpen(v => !v)}
         data-testid={testId}
@@ -63,15 +63,31 @@ function SelectRow({ label, value, options, onChange, testId }: {
 
 export default function SettingsPrivacy() {
   const [, setLocation] = useLocation();
-  const [privateProfile, setPrivateProfile] = useState(false);
-  const [circleRequests, setCircleRequests] = useState("Todos");
-  const [messages, setMessages] = useState("Todos");
-  const [readReceipts, setReadReceipts] = useState(true);
+  const [prefs, setPrefs] = useState(getPrivacyPreferences);
+
+  function update<K extends keyof typeof prefs>(key: K, value: (typeof prefs)[K]) {
+    setPrefs(previous => {
+      const next = { ...previous, [key]: value };
+      savePrivacyPreferences(next);
+      return next;
+    });
+  }
+
+  const requestOptions = [
+    { value: "everyone", label: "Todos" },
+    { value: "followers", label: "Só seguidores" },
+    { value: "nobody", label: "Ninguém" },
+  ];
+  const messageOptions = [
+    { value: "everyone", label: "Todos" },
+    { value: "circle", label: "Só pessoas do Círculo" },
+    { value: "nobody", label: "Ninguém" },
+  ];
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
       <SettingsSubheader title="Privacidade" />
-      <UnavailableNotice>Estas preferências ainda não podem ser alteradas: dependem de um serviço que ainda não está disponível. Os valores mostrados são os padrões.</UnavailableNotice>
+      <p className="px-4 pt-3 text-xs text-muted-foreground">As escolhas ficam salvas neste navegador. A aplicação em todas as telas será conectada ao serviço de contas posteriormente.</p>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="px-4 pt-5 pb-1">
@@ -79,22 +95,22 @@ export default function SettingsPrivacy() {
         </div>
         <SettingRow
           label="Perfil privado"
-          desc="Quando disponível: só seguidores aprovados verão suas publicações. Hoje não é aplicado."
-          checked={privateProfile}
-          onToggle={() => setPrivateProfile(v => !v)}
+          desc="Ative para que o conteúdo do perfil fique restrito a seguidores aprovados."
+          checked={prefs.profilePrivate}
+          onToggle={() => update("profilePrivate", !prefs.profilePrivate)}
           testId="toggle-private-profile"
         />
 
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quem pode interagir</p>
         </div>
-        <SelectRow label="Enviar solicitações de amizade" value={circleRequests} options={["Todos", "Só seguidores", "Ninguém"]} onChange={setCircleRequests} testId="select-circle-requests" />
-        <SelectRow label="Enviar mensagens diretas" value={messages} options={["Todos", "Só amigos", "Ninguém"]} onChange={setMessages} testId="select-messages" />
+        <SelectRow label="Enviar solicitações de Círculo" value={requestOptions.find(option => option.value === prefs.circleRequests)?.label ?? "Todos"} options={requestOptions.map(option => option.label)} onChange={label => update("circleRequests", requestOptions.find(option => option.label === label)?.value as typeof prefs.circleRequests)} testId="select-circle-requests" />
+        <SelectRow label="Enviar mensagens diretas" value={messageOptions.find(option => option.value === prefs.messages)?.label ?? "Todos"} options={messageOptions.map(option => option.label)} onChange={label => update("messages", messageOptions.find(option => option.label === label)?.value as typeof prefs.messages)} testId="select-messages" />
 
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagens</p>
         </div>
-        <SettingRow label="Confirmações de leitura" desc="Quando disponível: mostrará quando você leu as mensagens. Hoje não é aplicado." checked={readReceipts} onToggle={() => setReadReceipts(v => !v)} testId="toggle-read-receipts" />
+        <SettingRow label="Confirmações de leitura" desc="Permite que outras pessoas vejam quando você leu mensagens." checked={prefs.readReceipts} onToggle={() => update("readReceipts", !prefs.readReceipts)} testId="toggle-read-receipts" />
 
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bloqueios</p>

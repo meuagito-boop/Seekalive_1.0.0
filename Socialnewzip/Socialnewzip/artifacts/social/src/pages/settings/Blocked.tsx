@@ -2,11 +2,20 @@ import { motion } from "framer-motion";
 import { Ban } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSocial } from "@/context/SocialContext";
-import { SettingsSubheader, UnavailableNotice } from "./SettingsSubheader";
+import { SettingsSubheader } from "./SettingsSubheader";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsBlocked() {
-  const { users } = useSocial();
+  const { users, updateUser } = useSocial();
+  const { toast } = useToast();
   const blocked = users.filter((u) => u.isBlocked);
+
+  function unblock(userId: string) {
+    const user = users.find(item => item.id === userId);
+    if (!user) return;
+    updateUser({ ...user, isBlocked: false });
+    toast({ title: "Bloqueio removido", description: "A alteração foi salva neste navegador." });
+  }
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
@@ -20,7 +29,6 @@ export default function SettingsBlocked() {
         </div>
       ) : (
         <div>
-          <UnavailableNotice>Desbloquear por esta tela ainda não está disponível.</UnavailableNotice>
           <p className="px-4 py-3 text-sm text-muted-foreground">
             {blocked.length} usuário{blocked.length !== 1 ? "s" : ""} bloqueado{blocked.length !== 1 ? "s" : ""}
           </p>
@@ -43,7 +51,7 @@ export default function SettingsBlocked() {
               </div>
               <button
                 type="button"
-                disabled
+                onClick={() => unblock(user.id)}
                 data-testid={`button-unblock-${user.id}`}
                 className="shrink-0 px-4 py-1.5 rounded-full border border-border text-xs font-semibold text-muted-foreground opacity-60 cursor-not-allowed"
               >

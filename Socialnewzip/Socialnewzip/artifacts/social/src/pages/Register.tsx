@@ -24,16 +24,38 @@ const commercialCategories = [
 ];
 
 const schema = z.object({
-  displayName: z.string().min(2, "Nome deve ter ao menos 2 caracteres"),
   accountType: z.enum(["personal", "commercial"]),
+  firstName: z.string(),
+  lastName: z.string(),
+  businessName: z.string(),
+  age: z.string().trim().regex(/^\d{1,3}$/, "Informe uma idade válida")
+    .refine(value => Number(value) >= 1 && Number(value) <= 120, "A idade deve estar entre 1 e 120 anos"),
   businessCategory: z.string(),
-  businessLocation: z.string(),
-  username: z.string().min(3, "Username deve ter ao menos 3 caracteres").regex(/^[a-z0-9_]+$/, "Apenas letras minúsculas, números e _"),
-  email: z.string().email("Email inválido"),
+  discoveryKind: z.enum(["place", "provider"]),
+  address: z.string(),
+  postalCode: z.string(),
+  city: z.string(),
+  state: z.string(),
+  country: z.string(),
+  username: z.string().trim()
+    .min(3, "O nome de usuário deve ter ao menos 3 caracteres")
+    .max(20, "O nome de usuário deve ter no máximo 20 caracteres")
+    .regex(/^[a-z0-9_]+$/, "Use letras minúsculas, números e _"),
+  email: z.string().trim().email("E-mail inválido").max(254, "O e-mail é muito longo"),
   password: z.string().min(8, "Senha deve ter ao menos 8 caracteres"),
   confirmPassword: z.string(),
   terms: z.boolean().refine(v => v, "Aceite os termos para continuar"),
 }).superRefine((data, ctx) => {
+  if (data.accountType === "personal") {
+    if (data.firstName.trim().length < 2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe seu nome", path: ["firstName"] });
+    }
+    if (data.lastName.trim().length < 2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe seu sobrenome", path: ["lastName"] });
+    }
+  } else if (data.businessName.trim().length < 2) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe o nome da empresa ou do prestador", path: ["businessName"] });
+  }
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -44,16 +66,23 @@ const schema = z.object({
   if (data.accountType === "commercial" && !data.businessCategory) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Selecione a categoria do comércio",
+      message: "Selecione a categoria do perfil comercial",
       path: ["businessCategory"],
     });
   }
-  if (data.accountType === "commercial" && data.businessLocation.trim().length < 3) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Informe a cidade ou o bairro do comércio",
-      path: ["businessLocation"],
-    });
+  if (data.accountType === "commercial") {
+    const requiredBusinessFields = [
+      ["address", "Informe o endereço", 3],
+      ["postalCode", "Informe o CEP", 5],
+      ["city", "Informe a cidade", 2],
+      ["state", "Informe o estado", 2],
+      ["country", "Informe o país", 2],
+    ] as const;
+    for (const [field, message, min] of requiredBusinessFields) {
+      if (data[field].trim().length < min) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: [field] });
+      }
+    }
   }
 });
 
@@ -68,10 +97,18 @@ export default function Register() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      displayName: "",
       accountType: "personal",
+      firstName: "",
+      lastName: "",
+      businessName: "",
+      age: "",
       businessCategory: "",
-      businessLocation: "",
+      discoveryKind: "place",
+      address: "",
+      postalCode: "",
+      city: "",
+      state: "",
+      country: "Brasil",
       username: "",
       email: "",
       password: "",
@@ -81,29 +118,58 @@ export default function Register() {
   });
 
   function onSubmit(values: FormValues) {
-    if (users.some((user) => user.username === values.username)) {
+    const username = values.username.trim().replace(/^@/, "").toLowerCase();
+    const email = values.email.trim().toLowerCase();
+    if (users.some((user) => user.username.toLowerCase() === username)) {
       form.setError("username", { type: "manual", message: "Esse username já está em uso" });
+      return;
+    }
+    if (users.some((user) => user.email?.toLowerCase() === email)) {
+      form.setError("email", { type: "manual", message: "Esse e-mail já está cadastrado neste navegador" });
       return;
     }
 
     const selectedCategory = commercialCategories.find((category) => category.value === values.businessCategory);
+    const displayName = values.accountType === "commercial"
+      ? values.businessName.trim()
+      : `${values.firstName.trim()} ${values.lastName.trim()}`;
+    const location = values.accountType === "commercial"
+      ? `${values.city.trim()}, ${values.state.trim()}, ${values.country.trim()}`
+      : undefined;
+    const businessAddress = values.accountType === "commercial"
+      ? `${values.address.trim()}, ${values.city.trim()}, ${values.state.trim()} ${values.postalCode.trim()}, ${values.country.trim()}`
+      : undefined;
     const user: User = {
-      id: `user_${values.username}`,
-      username: values.username,
-      displayName: values.displayName,
+      id: `user_${username}`,
+      username,
+      displayName,
+      firstName: values.accountType === "personal" ? values.firstName.trim() : undefined,
+      lastName: values.accountType === "personal" ? values.lastName.trim() : undefined,
+      age: Number(values.age),
+      email,
       bio: values.accountType === "commercial"
-        ? `${selectedCategory?.label ?? "Comércio"} local no ${values.businessLocation}.`
+        ? `${selectedCategory?.label ?? "Comércio"} em ${location}.`
         : "Novo por aqui.",
-      avatarUrl: `https://i.pravatar.cc/150?u=${encodeURIComponent(values.username)}`,
-      coverUrl: `https://picsum.photos/seed/${encodeURIComponent(values.username)}/800/300`,
-      location: values.accountType === "commercial" ? values.businessLocation : undefined,
+      avatarUrl: "",
+      coverUrl: "",
+      location,
+      address: businessAddress,
+      postalCode: values.accountType === "commercial" ? values.postalCode.trim() : undefined,
+      city: values.accountType === "commercial" ? values.city.trim() : undefined,
+      state: values.accountType === "commercial" ? values.state.trim() : undefined,
+      country: values.accountType === "commercial" ? values.country.trim() : undefined,
       joinedAt: new Date().toISOString(),
       accountType: values.accountType,
+      interests: [],
+      onboardingCompleted: false,
       commercialProfile: values.accountType === "commercial" && selectedCategory
         ? {
+            discoveryKind: values.discoveryKind,
             categoryKey: selectedCategory.value,
             category: selectedCategory.label,
-            address: values.businessLocation,
+            address: businessAddress ?? "",
+            cityName: values.city.trim(),
+            cityState: values.state.trim(),
             tags: [],
           }
         : undefined,
@@ -115,52 +181,43 @@ export default function Register() {
     setLocation("/onboarding/interests");
   }
 
-  const username = form.watch("username");
-  const isUsernameAvailable = username.length > 2 && !users.some((user) => user.username === username);
+  const username = form.watch("username").replace(/^@/, "").toLowerCase();
+  const accountType = form.watch("accountType");
+  const isUsernameAvailable = username.length > 2 && !users.some((user) => user.username.toLowerCase() === username);
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="relative flex min-h-[100dvh] items-start justify-center overflow-hidden bg-background px-4 py-8 sm:items-center sm:py-12">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-40 top-10 h-96 w-96 rounded-full bg-primary/[0.055] blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-px w-full bg-gradient-to-l from-transparent via-primary/20 to-transparent" />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-sm"
+        className="relative w-full max-w-lg rounded-[1.75rem] border border-border bg-card/85 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm sm:p-9"
       >
         <div className="flex items-center gap-2 mb-8">
           <BrandMark className="h-8 w-8" />
           <span className="text-2xl font-bold tracking-tight">Seekalive</span>
         </div>
 
-        <h1 className="text-3xl font-bold mb-2">Criar conta</h1>
-        <p className="text-muted-foreground mb-8 text-sm">Junte-se ao universo.</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Seu próximo capítulo começa aqui</p>
+        <h1 className="mb-2 text-3xl font-bold tracking-tight">Criar conta</h1>
+        <p className="mb-8 text-sm leading-6 text-muted-foreground">Um perfil para compartilhar sua vida e, se quiser, apresentar seu negócio no Seek.</p>
+        <p role="note" className="mb-6 rounded-xl border border-border bg-background/70 px-4 py-3 text-xs leading-5 text-muted-foreground">
+          Nesta etapa, os dados do perfil ficam salvos apenas neste navegador. A senha nunca é armazenada pelo Seekalive.
+        </p>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="displayName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Nome de exibição"
-                      data-testid="input-display-name"
-                      className="h-12 bg-card border-border rounded-xl"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="accountType"
               render={({ field }) => (
                 <FormItem>
-                  <p className="text-sm font-semibold">Tipo de conta</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <p className="mb-2 text-sm font-semibold">Escolha seu tipo de conta</p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="group" aria-label="Tipo de conta">
                     {[
                       { value: "personal", title: "Pessoal", hint: "Para compartilhar e acompanhar pessoas" },
                       { value: "commercial", title: "Comercial", hint: "Seu perfil Social também aparece no Seek" },
@@ -169,6 +226,7 @@ export default function Register() {
                         key={option.value}
                         type="button"
                         aria-pressed={field.value === option.value}
+                        aria-label={`${option.title}: ${option.hint}`}
                         onClick={() => field.onChange(option.value)}
                         className={`rounded-xl border p-3 text-left transition-colors ${
                           field.value === option.value
@@ -186,7 +244,62 @@ export default function Register() {
               )}
             />
 
-            {form.watch("accountType") === "commercial" && (
+            {accountType === "personal" ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input {...field} aria-label="Nome" autoComplete="given-name" placeholder="Nome" data-testid="input-first-name" className="h-12 bg-card border-border rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input {...field} aria-label="Sobrenome" autoComplete="family-name" placeholder="Sobrenome" data-testid="input-last-name" className="h-12 bg-card border-border rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ) : (
+              <FormField
+                control={form.control}
+                name="businessName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input {...field} aria-label="Nome da empresa ou do prestador de serviço" autoComplete="organization" placeholder="Nome da empresa ou do prestador de serviço" data-testid="input-business-name" className="h-12 bg-card border-border rounded-xl" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
+              name="age"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input {...field} type="number" min={1} max={120} inputMode="numeric" aria-label={accountType === "commercial" ? "Idade do responsável" : "Idade"} placeholder={accountType === "commercial" ? "Idade do responsável" : "Idade"} data-testid="input-age" className="h-12 bg-card border-border rounded-xl" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {accountType === "commercial" && (
               <>
                 <FormField
                   control={form.control}
@@ -196,10 +309,11 @@ export default function Register() {
                       <FormControl>
                         <select
                           {...field}
+                          aria-label="Categoria do perfil comercial"
                           data-testid="select-business-category"
                           className="h-12 w-full rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus:border-primary/50"
                         >
-                          <option value="">Categoria do comércio</option>
+                           <option value="">Categoria do perfil comercial</option>
                           {commercialCategories.map((category) => (
                             <option key={category.value} value={category.value}>{category.label}</option>
                           ))}
@@ -211,21 +325,71 @@ export default function Register() {
                 />
                 <FormField
                   control={form.control}
-                  name="businessLocation"
+                  name="discoveryKind"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Cidade ou bairro"
-                          data-testid="input-business-location"
-                          className="h-12 bg-card border-border rounded-xl"
-                        />
+                        <select {...field} aria-label="Tipo de perfil no Seek" data-testid="select-discovery-kind" className="h-12 w-full rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus:border-primary/50">
+                          <option value="place">Empresa ou estabelecimento</option>
+                          <option value="provider">Prestador de serviço</option>
+                        </select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl><Input {...field} aria-label="Endereço" autoComplete="street-address" placeholder="Endereço" data-testid="input-business-address" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="postalCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl><Input {...field} aria-label="CEP" autoComplete="postal-code" placeholder="CEP" data-testid="input-postal-code" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl><Input {...field} aria-label="Cidade" autoComplete="address-level2" placeholder="Cidade" data-testid="input-city" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl><Input {...field} aria-label="Estado" autoComplete="address-level1" placeholder="Estado" data-testid="input-state" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl><Input {...field} aria-label="País" autoComplete="country-name" placeholder="País" data-testid="input-country" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </>
             )}
 
@@ -239,7 +403,8 @@ export default function Register() {
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
                       <Input
                         {...field}
-                        placeholder="username"
+                        aria-label="Nome de usuário"
+                        placeholder="nome de usuário"
                         data-testid="input-username"
                         className="h-12 bg-card border-border rounded-xl pl-8 pr-10"
                       />
@@ -264,7 +429,9 @@ export default function Register() {
                     <Input
                       {...field}
                       type="email"
-                      placeholder="Email"
+                      aria-label="E-mail"
+                      autoComplete="email"
+                      placeholder="E-mail"
                       data-testid="input-email"
                       className="h-12 bg-card border-border rounded-xl"
                     />
@@ -284,12 +451,16 @@ export default function Register() {
                       <Input
                         {...field}
                         type={showPassword ? "text" : "password"}
+                        aria-label="Senha"
+                        autoComplete="new-password"
                         placeholder="Senha"
                         data-testid="input-password"
                         className="h-12 bg-card border-border rounded-xl pr-12"
                       />
                       <button
                         type="button"
+                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        aria-pressed={showPassword}
                         onClick={() => setShowPassword(v => !v)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
                         data-testid="button-toggle-password"
@@ -312,6 +483,8 @@ export default function Register() {
                     <Input
                       {...field}
                       type="password"
+                      aria-label="Confirmar senha"
+                      autoComplete="new-password"
                       placeholder="Confirmar senha"
                       data-testid="input-confirm-password"
                       className="h-12 bg-card border-border rounded-xl"
@@ -329,12 +502,16 @@ export default function Register() {
                 <FormItem>
                   <FormControl>
                     <label className="flex items-center gap-3 cursor-pointer" data-testid="checkbox-terms">
-                      <div
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${field.value ? "bg-primary border-primary" : "border-border"}`}
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={field.value}
+                        aria-label="Aceito os Termos de Serviço e a Política de Privacidade"
+                        className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${field.value ? "bg-primary border-primary" : "border-border"}`}
                         onClick={() => field.onChange(!field.value)}
                       >
                         {field.value && <Check className="w-3 h-3 text-primary-foreground" />}
-                      </div>
+                      </button>
                       <span className="text-sm text-muted-foreground">
                         Aceito os{" "}
                         <span className="text-primary hover:underline cursor-pointer">Termos de Serviço</span>

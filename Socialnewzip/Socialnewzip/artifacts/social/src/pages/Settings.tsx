@@ -10,14 +10,14 @@ const settingsGroups = [
   {
     title: "Conta",
     items: [
-      { icon: User, label: "Conta", desc: "Nome de usuário; e-mail e senha indisponíveis", path: "/settings/account" },
-      { icon: Shield, label: "Privacidade", desc: "Perfil privado e contato · ainda indisponível", path: "/settings/privacy" },
+      { icon: User, label: "Conta", desc: "Dados do perfil e nome de usuário", path: "/settings/account" },
+      { icon: Shield, label: "Privacidade", desc: "Visibilidade, mensagens e Círculo", path: "/settings/privacy" },
     ],
   },
   {
     title: "Preferências",
     items: [
-      { icon: Bell, label: "Notificações", desc: "Preferências de envio · ainda indisponível", path: "/settings/notifications" },
+      { icon: Bell, label: "Notificações", desc: "Preferências locais por tipo e canal", path: "/settings/notifications" },
       { icon: Palette, label: "Aparência", desc: "Modo escuro e tamanho do texto", path: "/settings/appearance" },
     ],
   },

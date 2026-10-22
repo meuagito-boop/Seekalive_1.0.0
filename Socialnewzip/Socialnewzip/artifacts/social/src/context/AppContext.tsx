@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { User, currentUser as mockCurrentUser } from "../data/mockData";
-import { getStoredActiveAccount, setStoredActiveAccount } from "../data/accountStorage";
+import { User } from "../data/mockData";
+import { getStoredActiveAccount, saveSocialAccount, setStoredActiveAccount } from "../data/accountStorage";
 
 interface AppContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
-  login: () => void;
   registerAccount: (user: User) => void;
   updateAccount: (user: User) => void;
   logout: () => void;
@@ -15,14 +14,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [currentUser, setCurrentUser] = useState<User | null>(() => getStoredActiveAccount() ?? mockCurrentUser);
-
-  const login = () => {
-    setIsAuthenticated(true);
-    setCurrentUser(mockCurrentUser);
-    setStoredActiveAccount(mockCurrentUser);
-  };
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getStoredActiveAccount());
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getStoredActiveAccount()));
 
   const registerAccount = (user: User) => {
     setIsAuthenticated(true);
@@ -33,6 +26,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateAccount = (user: User) => {
     setCurrentUser(user);
     setStoredActiveAccount(user);
+    saveSocialAccount(user);
   };
 
   const logout = () => {
@@ -46,7 +40,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ currentUser, isAuthenticated, login, registerAccount, updateAccount, logout, completeOnboarding }}>
+    <AppContext.Provider value={{ currentUser, isAuthenticated, registerAccount, updateAccount, logout, completeOnboarding }}>
       {children}
     </AppContext.Provider>
   );

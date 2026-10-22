@@ -21,11 +21,15 @@ export default function OnboardingSuggestions() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+    <div className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-background px-5 py-10 sm:px-8">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute left-[-12rem] top-[-10rem] h-[28rem] w-[28rem] rounded-full bg-primary/[0.06] blur-3xl" />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative w-full max-w-xl rounded-[1.75rem] border border-border bg-card/75 p-6 shadow-2xl shadow-black/15 backdrop-blur-sm sm:p-9"
       >
         <div className="flex items-center gap-2 mb-10">
           <BrandMark />
@@ -33,16 +37,16 @@ export default function OnboardingSuggestions() {
         </div>
 
         <div className="mb-2">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">Passo 2 de 2</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Passo 2 de 2 · Perfis sugeridos</p>
           <div className="flex gap-2 mb-6">
             <div className="h-1 flex-1 rounded-full bg-primary" />
             <div className="h-1 flex-1 rounded-full bg-primary" />
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold mb-2">Quem seguir?</h1>
-        <p className="text-muted-foreground mb-8 text-sm">
-          Sugestões baseadas nos seus interesses.
+        <h1 className="mb-2 text-3xl font-bold tracking-tight">Encontre sua gente</h1>
+        <p className="mb-8 text-sm leading-6 text-muted-foreground">
+          Algumas pessoas para começar. Você sempre pode descobrir mais depois.
         </p>
 
         <div className="space-y-3 mb-8">
@@ -58,7 +62,7 @@ export default function OnboardingSuggestions() {
               >
                 <Avatar className="w-11 h-11 shrink-0">
                   <AvatarImage src={user.avatarUrl} />
-                  <AvatarFallback>{user.displayName[0]}</AvatarFallback>
+                  <AvatarFallback aria-label={`Foto de ${user.displayName}`}>{user.displayName[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm truncate">{user.displayName}</p>
@@ -66,7 +70,10 @@ export default function OnboardingSuggestions() {
                   <p className="text-muted-foreground text-xs truncate mt-0.5">{user.bio.slice(0, 60)}...</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => toggle(user.id)}
+                  aria-pressed={isFollowed}
+                  aria-label={`${isFollowed ? "Deixar de seguir" : "Seguir"} ${user.displayName}`}
                   data-testid={`button-follow-${user.id}`}
                   className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                     isFollowed
@@ -87,7 +94,7 @@ export default function OnboardingSuggestions() {
           onClick={() => setLocation("/feed")}
           data-testid="button-finish-onboarding"
         >
-          {followed.size > 0 ? `Seguir ${followed.size} e entrar` : "Entrar no Seekalive"}
+          {followed.size > 0 ? `Seguir ${followed.size} e concluir` : "Concluir e entrar"}
         </Button>
 
         <button
