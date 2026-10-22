@@ -7,12 +7,13 @@
 ## Como utilizar este pacote
 
 1. Ler este documento e `architecture-and-security.md`: escopo, regras e decisões propostas.
-2. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
-3. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
-4. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
-5. Revisar `data-dictionary.md` e `schema-core.sql`: modelo relacional proposto. **Não executar o SQL automaticamente.**
-6. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
-7. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
+2. Ler `analysis-of-reference-documents.md`: comparação dos PDFs com o produto atual e decisões que ainda precisam de aprovação.
+3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
+4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
+5. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
+6. Revisar `data-dictionary.md` e `schema-core.sql`: modelo relacional proposto. **Não executar o SQL automaticamente.**
+7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
+8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
 O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é **separado** de `lib/api-spec/openapi.yaml`, que permanece intacto e descreve somente a API atual.
 

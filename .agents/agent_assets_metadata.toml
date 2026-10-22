@@ -196,3 +196,31 @@ mtime_ms = 1792699339305
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/83099658-5ee4-4e58-b292-4eff771b83e2/8d53d228-d76e-48ab-851e-0da798a9b3a3"
 storage_version_token = "1792699531473871"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "Gia-3RThqyI0BvI018d_v"
+uri = "file://seekalive/app/docs/backend/analysis-of-reference-documents.md"
+type = "text"
+title = "Análise dos PDFs de escopo e arquitetura"
+description = "Comparação não normativa com o app e documentação atuais; separa recomendações, conflitos e decisões a confirmar."
+logical_id = "7e68cbe0-2674-4703-bb8e-517c8984ff2a"
+content_hash = "sha256:62dca50d615ecab2446332e65d3eaa08b796bcad77525bd4d188bf05c360348d"
+size = 10336
+mtime_ms = 1792702309733
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/7e68cbe0-2674-4703-bb8e-517c8984ff2a/d746c5eb-990b-413c-adf9-d8cebba46b79"
+storage_version_token = "1792702414806626"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "2IsF34gGVMpT8nIf9_Xh0"
+uri = "file://seekalive/app/docs/backend/index.html"
+type = "html"
+title = "Documentação backend atualizada"
+description = "HTML independente com a auditoria de prontidão e a nova análise dos documentos de referência."
+logical_id = "13321547-beab-4979-a7c7-1bfcea7c2fa6"
+content_hash = "sha256:13a3b7e96831d6f1c549bab84c0a1a38be9b3873514dafb2711cb36464b6df28"
+size = 167237
+mtime_ms = 1792702366633
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/13321547-beab-4979-a7c7-1bfcea7c2fa6/9ed1abbc-c92e-4385-b15e-89e52e307452"
+storage_version_token = "1792702415613401"
+content_type = "text/html"

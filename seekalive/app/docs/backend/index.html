@@ -16,13 +16,14 @@ th,td{text-align:left;vertical-align:top;padding:9px 11px;border:1px solid var(-
 hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640px){header{position:static;padding:20px}main{padding:16px}}
 </style></head><body>
 <header><strong>SEEKALIVE · DOCUMENTAÇÃO TÉCNICA</strong><nav>
-<a href="#README">Visão geral</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
+<a href="#README">Visão geral</a><a href="#analysis-of-reference-documents">Análise dos PDFs</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
 </nav></header><main><section id="README"><h1>Seekalive — documentação do aplicativo e especificação do backend</h1>
 <p><strong>Data da auditoria:</strong> 22/10/2026. <strong>Natureza:</strong> documentação técnica e proposta de implementação, não backend entregue.</p>
 <blockquote>Nenhum banco foi criado, nenhuma migração foi executada, nenhum provedor foi conectado e nenhuma credencial foi solicitada. Somente <code>GET /api/healthz</code> existe no servidor auditado. Todos os demais endpoints deste pacote são contratos propostos, mesmo quando já há um adaptador no front-end.</blockquote>
 <h2>Como utilizar este pacote</h2>
 <ol>
 <li>Ler este documento e <code>architecture-and-security.md</code>: escopo, regras e decisões propostas.</li>
+<li>Ler <code>analysis-of-reference-documents.md</code>: comparação dos PDFs com o produto atual e decisões que ainda precisam de aprovação.</li>
 <li>Ler <code>frontend-readiness-audit.md</code>: resultado da revisão do estado atual e bloqueios antes da integração.</li>
 <li>Consultar <code>frontend-integration.md</code>: cada página e cada armazenamento temporário que precisam de integração.</li>
 <li>Usar <code>endpoints.md</code> e <code>openapi.json</code>: catálogo de métodos, permissões, corpos, respostas e erros.</li>
@@ -127,6 +128,81 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Base proposta de mesma origem: <code>/api/v1</code>; saúde existente: <code>/api/healthz</code>.</li>
 <li>Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.</li>
 </ul></section>
+<section id="analysis-of-reference-documents"><h1>Análise dos documentos de referência do Seekalive</h1>
+<p><strong>Documentos analisados</strong></p>
+<ul>
+<li><code>SeekAlive_Escopo_Funcional_MVP_v1.1_1792701858945.pdf</code> — Escopo Funcional do MVP, versão 1.1, datado de 18/10/2026.</li>
+<li><code>SeekAlive_Stack_Tecnologica_Arquitetura_v1_1_1792701858974.pdf</code> — Stack Tecnológica e Arquitetura, versão 1.1, datado de 18/10/2026.</li>
+</ul>
+<p><strong>Status desta análise:</strong> comparativa e não normativa. Não substitui o escopo existente, não aprova mudanças de produto e não altera código, endpoints ou banco.</p>
+<h2>Conclusão</h2>
+<p><strong>Sim, há conteúdo útil para agregar.</strong> Os documentos reforçam princípios de arquitetura, segurança, operação e critérios de aceite que devem orientar a futura implementação. A documentação backend atual já cobre boa parte desses princípios: autorização no servidor, sessões, proteção contra CSRF/IDOR, validação de uploads, processamento assíncrono, auditoria, retenção e contratos de API.</p>
+<p>O PDF funcional também contém requisitos concretos de produto, mas alguns contradizem o aplicativo e as decisões registradas. O próprio documento separa regras obrigatórias de parâmetros “propostos” e “sujeitos à validação”; sua seção de aprovação ainda está sem responsáveis, data ou confirmação. Portanto, os pontos conflitantes abaixo precisam de validação do produto antes de substituir regras atuais ou mudar telas, contratos e SQL.</p>
+<h2>O que os documentos acrescentam</h2>
+<h3>Princípios arquiteturais</h3>
+<p>O documento técnico recomenda um <strong>monólito modular</strong>, com limites claros entre apresentação, casos de uso, regras de domínio, persistência, integrações e tarefas em segundo plano. Recomenda evitar microserviços e camadas artificiais até existir uma necessidade concreta. Isso é compatível com a orientação atual de manter a API em Express/TypeScript e separar rotas, políticas, serviços, repositórios e DTOs.</p>
+<p>Também vale reforçar na revisão de cada módulo:</p>
+<ul>
+<li>requisito e regra de negócio documentados antes da implementação;</li>
+<li>testes de domínio, integração e fluxo completo da interface;</li>
+<li>falhas, permissões e exclusões cobertas nos critérios de aceite;</li>
+<li>alterações de contrato e decisões arquiteturais registradas;</li>
+<li>métricas e evidências para afirmar desempenho, disponibilidade ou conclusão.</li>
+</ul>
+<h3>Segurança, moderação e operação</h3>
+<p>São diretrizes úteis para manter como requisitos de engenharia:</p>
+<ul>
+<li>autorização no servidor em cada objeto e operação, não apenas ocultação na interface;</li>
+<li>proteção dos arquivos enviados, validação real do conteúdo, remoção de metadados sensíveis e ciclo de vida de uploads;</li>
+<li>papéis administrativos separados, auditoria de ações sensíveis e revisão de decisões de moderação;</li>
+<li>backups acompanhados de testes de restauração, observabilidade e tratamento explícito de tarefas que falham;</li>
+<li>privacidade, retenção e exclusão documentadas antes de operar dados reais.</li>
+</ul>
+<p>Boa parte já consta em <code>architecture-and-security.md</code>, <code>data-dictionary.md</code> e <code>external-services-and-operations.md</code>. A contribuição mais importante é usar esses princípios como <strong>critérios verificáveis de aceite</strong>, e não apenas como arquitetura futura.</p>
+<h3>Requisitos operacionais que devem continuar como metas propostas</h3>
+<p>O PDF propõe WCAG 2.2 AA, pesquisa/feed em até 2 segundos no percentil 95, disponibilidade mensal de 99,5%, backup diário e prazos de moderação. São referências úteis para planejar testes e capacidade, mas não devem virar promessas ou metas de produção sem:</p>
+<ol>
+<li>aprovação do responsável pelo produto/operação;</li>
+<li>condições de medição definidas (rede, dispositivo, volume, região e exclusões);</li>
+<li>infraestrutura, alertas, equipe e orçamento capazes de sustentá-las.</li>
+</ol>
+<h2>Conflitos e decisões que precisam de confirmação</h2>
+<div class="table-wrap"><table>
+<tr><th>Tema</th><th>PDF funcional</th><th>Estado atual do produto/documentação</th><th>Tratamento recomendado</th></tr>
+<tr><td>Escopo do Shop</td><td>Shop transacional e até o catálogo de compra ficam fora do MVP</td><td>O app e a documentação incluem um Shop demonstrativo navegável, sem checkout</td><td>Confirmar se o Shop somente para descoberta continua na primeira entrega ou se deve ficar fora dela. Não adicionar compra, pagamento ou pedidos</td></tr>
+<tr><td>Perfis privados</td><td>O MVP declara que não haverá contas privadas nem aprovação para seguir</td><td>O frontend possui privacidade, audiência para Círculo e bloqueio; a especificação atual prevê solicitações de seguimento</td><td>Definir se perfis e posts serão sempre públicos. Círculo continua sendo uma regra separada de seguimento mútuo; não criar pedidos de Círculo</td></tr>
+<tr><td>Idade mínima</td><td>Acesso exclusivo para maiores de 18 anos, com data de nascimento e verificação a validar juridicamente</td><td>O cadastro atual coleta idade/localmente; não há política de bloqueio por idade implementada</td><td>Aprovar a restrição e a forma de verificação com revisão jurídica antes de alterar cadastro ou persistência</td></tr>
+<tr><td>Depoimentos</td><td>Nova aba de depoimentos em perfis pessoais; publicação somente com seguimento mútuo, moderada pelo destinatário</td><td>Não há esse fluxo no frontend nem no contrato atual</td><td>Tratar como funcionalidade adicional; decidir se entra no MVP, regras de denúncia e limites antes de criar tela/API</td></tr>
+<tr><td>Texto e comentários</td><td>Publicação e comentário com limite inicial de 240 caracteres</td><td>O frontend aceita até 280 para texto e até 2.000 para comentário</td><td>Aprovar limites únicos e então alinhar interface, validação, OpenAPI e banco</td></tr>
+<tr><td>Mídias em publicações</td><td>Até quatro imagens ou um vídeo, duração proposta de 60 segundos</td><td>O frontend e a especificação atual permitem até oito mídias; tamanho máximo de vídeo é 100 MB, sem limite de duração confirmado</td><td>Validar a combinação permitida e a duração. Preservar os limites de tamanho somente após teste de custo, processamento e segurança</td></tr>
+<tr><td>Avaliações</td><td>Até 1.000 caracteres e três fotos; resposta comercial de até 1.000</td><td>A interface/contrato atual limita comentário a 500 caracteres e resposta a 500; fotos na avaliação ainda não estão consolidadas</td><td>Decidir limite e se fotos entram no fluxo. Depois atualizar formulário, permissões, esquema e testes em conjunto</td></tr>
+<tr><td>Conta comercial e endereço</td><td>Endereço fixo de referência obrigatório, inclusive para autônomos; CNPJ não obrigatório</td><td>O modelo atual diferencia dados de negócio e cidade, mas a privacidade do endereço residencial precisa ser protegida</td><td>Manter a dispensa de CNPJ. Definir endereço público, área aproximada e tratamento de profissionais que atendem no endereço do cliente</td></tr>
+<tr><td>Categorias e serviços</td><td>Até três categorias, cinco subcategorias por categoria e até 15 serviços; listas administradas</td><td>O frontend tem opções locais; limites e gestão administrativa não estão implementados</td><td>Aprovar taxonomia e limites antes de torná-los restrições de banco ou API</td></tr>
+<tr><td>Horários</td><td>Múltiplos intervalos por dia, virada de meia-noite, exceções por data/feriados e fuso horário do negócio</td><td>O tipo atual suporta um intervalo por dia e não modela exceções de calendário</td><td>Agregar como requisito somente se o escopo for aprovado; é necessário revisar formulário, tipos, cálculo “aberto agora” e filtros</td></tr>
+<tr><td>Busca local</td><td>Raio inicial de 5 km, opções de 1/3/5/10 km, ordenação e popularidade por sinais mensuráveis</td><td>A busca atual é local e por cidade; raio/distância real não está ligado</td><td>Adotar primeiro localização/cidade e resultados verdadeiros. Tratar raio, coordenadas e popularidade como propostas que dependem de geocodificação, consentimento e dados confiáveis</td></tr>
+<tr><td>Mensagens</td><td>Somente texto; regras para solicitações de conversas, recusa silenciosa e início por conta comercial</td><td>A UI atual não conclui o início de uma nova conversa nem tem inbox de solicitações; mídia de mensagem está desabilitada</td><td>Decidir se esses fluxos são obrigatórios no MVP e detalhar autorização antes de criar endpoints</td></tr>
+<tr><td>Eventos</td><td>Criados por conta comercial, com estados, cancelamento, sem recorrência ou venda de ingresso</td><td>A documentação já vincula eventos a uma conta comercial existente; regras de cancelamento/notificações podem ser detalhadas</td><td>Preservar evento informativo. Não adicionar ingresso, recorrência ou pagamento ao MVP sem aprovação</td></tr>
+</table></div>
+<h2>Avaliação da stack recomendada</h2>
+<p>O PDF técnico lista React/Vite, TanStack Query, Zustand, NestJS, CockroachDB, Prisma, Valkey, RabbitMQ, Cloudflare R2, OIDC e Argon2id. Ele também declara que são <strong>recomendações</strong>, não imposições, e exige justificativa para substituições.</p>
+<p>O repositório atual já usa React/TypeScript/Vite no frontend e tem esqueleto Express/TypeScript, driver PostgreSQL e Drizzle. O schema Drizzle está vazio e a API de produto não está implementada. Por isso:</p>
+<ul>
+<li><strong>não migrar agora</strong> Express para NestJS, PostgreSQL/Drizzle para CockroachDB/Prisma, ou React Context para Zustand apenas para coincidir com a lista;</li>
+<li>manter como princípio a arquitetura modular e a separação das responsabilidades;</li>
+<li>comparar tecnologias somente diante de uma necessidade concreta, considerando suporte no ambiente atual, geografia, transações, operação, custo, backup, migração e manutenção;</li>
+<li>filas, cache e workers devem entrar quando os requisitos e medições justificarem, não apenas por estarem na arquitetura recomendada;</li>
+<li>escolher autenticação e armazenamento de mídia separadamente, com revisão de segurança e integração, antes de conectar telas.</li>
+</ul>
+<h2>Próxima revisão recomendada</h2>
+<p>Antes de atualizar o contrato funcional principal, confirmar:</p>
+<ol>
+<li>se o PDF funcional está aprovado como fonte oficial, apesar dos campos de aprovação em branco;</li>
+<li>escopo do Shop e regra de privacidade dos perfis;</li>
+<li>idade mínima, depoimentos e limites de texto/mídia/avaliação;</li>
+<li>campos comerciais públicos, taxonomia e complexidade dos horários;</li>
+<li>regras de mensagens, eventos, localização e metas operacionais.</li>
+</ol>
+<p>Depois dessas decisões, atualizar em uma única revisão coerente a documentação do produto, frontend, OpenAPI, dicionário de dados, SQL proposto e testes. <strong>Até lá, este relatório não muda os contratos existentes e nenhuma tecnologia ou funcionalidade deve ser migrada automaticamente a partir dos PDFs.</strong></p></section>
 <section id="frontend-readiness-audit"><h1>Auditoria de prontidão do frontend — Seekalive</h1>
 <p><strong>Data:</strong> 22/10/2026  </p>
 <p><strong>Escopo:</strong> preparação do frontend para uma futura integração com backend. Esta auditoria é análise/documentação; não cria endpoints, banco, autenticação ou armazenamento remoto.</p>
