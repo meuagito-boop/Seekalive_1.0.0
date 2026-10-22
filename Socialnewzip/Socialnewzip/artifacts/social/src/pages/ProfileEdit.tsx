@@ -1,4 +1,7 @@
 import { useLocation } from "wouter";
+import { useState } from "react";
+import { CommercialDiscoveryCity } from "@/components/seek/CommercialDiscoveryCity";
+import type { DiscoveryLocation } from "@/lib/seekDiscovery";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -55,6 +58,11 @@ export default function ProfileEdit() {
   const { currentUser: signedInUser, updateAccount } = useAppContext();
   const { addUser } = useSocial();
   const currentUser = signedInUser ?? mockCurrentUser;
+  const profile = currentUser.commercialProfile;
+  const [discoveryCity, setDiscoveryCity] = useState<DiscoveryLocation | null>(() =>
+    profile?.cityId && profile.cityName && profile.cityState
+      ? { id: profile.cityId, city: profile.cityName, state: profile.cityState, source: "manual", label: `${profile.cityName}, ${profile.cityState}` }
+      : null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -97,6 +105,9 @@ export default function ProfileEdit() {
       commercialProfile: currentUser.commercialProfile
         ? {
             ...currentUser.commercialProfile,
+            cityId: discoveryCity?.id,
+            cityName: discoveryCity?.city,
+            cityState: discoveryCity?.state,
             address: businessAddress?.trim() || currentUser.commercialProfile.address,
             openingHours: openingHours?.trim() || undefined,
             priceLevel: priceLevel
@@ -235,6 +246,7 @@ export default function ProfileEdit() {
                   <h2 className="font-bold">Informações do comércio</h2>
                   <p className="mt-1 text-xs text-muted-foreground">Esses dados aparecem no perfil comercial do Seek.</p>
                 </div>
+                <CommercialDiscoveryCity value={discoveryCity} onChange={setDiscoveryCity} />
                 <FormField
                   control={form.control}
                   name="businessAddress"

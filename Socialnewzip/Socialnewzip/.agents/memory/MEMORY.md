@@ -4,3 +4,4 @@
 - [Escopo dos módulos](product-scope.md) — Comunidades foram retiradas do produto; Círculos continuam como recurso distinto.
 - [Interface Social e Seek](social-interface-rules.md) — Laranja, navegação sem redundância e nenhum sucesso simulado ao retirar avisos de demonstração.
 - [Identidade visual Seekalive](seekalive-brand.md) — Elo aprovado para o aplicativo; grafia correta é Seekalive, somente com S inicial maiúsculo.
+- [Localização do Seek](seek-location.md) — Catálogo IBGE versionado; GPS explícito e sem persistência; não simular distâncias nem catálogo real com exemplos.

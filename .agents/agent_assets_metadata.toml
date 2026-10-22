@@ -140,3 +140,17 @@ mtime_ms = 1792675900091
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/4cfc8950-0161-4c1a-a5bc-b97a847395d7/0e43ff35-5231-4bdf-a33d-dd01277007af"
 storage_version_token = "1792675934787526"
 content_type = "image/png"
+
+[[outputs]]
+id = "sjQI7YtFdYnPpw7arrhQA"
+uri = "file://Socialnewzip/Socialnewzip/reports/seek-evolution.html"
+type = "html"
+title = "Seekalive — relatório da evolução do Seek"
+description = "Auditoria, mudanças por arquivo, integrações reais, 33 testes automatizados, 18 verificações no navegador e limitações de eventos e localização geográfica."
+logical_id = "a1cd7b18-6ce9-4354-945e-3cc439e44189"
+content_hash = "sha256:142fcea79afba13532322401396750104dc4eb5fca0a277ef195a60a3d4c4839"
+size = 16223
+mtime_ms = 1792679927279
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/a1cd7b18-6ce9-4354-945e-3cc439e44189/e922fc81-0813-4de8-af99-40a9297c3b08"
+storage_version_token = "1792679975091936"
+content_type = "text/html"

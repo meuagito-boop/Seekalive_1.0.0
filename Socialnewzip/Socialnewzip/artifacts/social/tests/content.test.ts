@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import "./seekDiscovery.test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

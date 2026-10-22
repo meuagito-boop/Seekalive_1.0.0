@@ -50,6 +50,11 @@ export interface ShopItem {
   sellerId?: string;
 }
 export interface SeekEvent {
+  cityId?: string;
+  cityName?: string;
+  cityState?: string;
+  startsAt?: string;
+  description?: string;
   id: string;
   name: string;
   categoryKey: string;

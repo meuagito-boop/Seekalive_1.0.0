@@ -28,6 +28,11 @@ export interface User {
 }
 
 export interface CommercialProfile {
+  discoveryKind?: "place" | "provider";
+  cityId?: string;
+  cityName?: string;
+  cityState?: string;
+  serviceAreas?: string[];
   categoryKey: string;
   category: string;
   address: string;

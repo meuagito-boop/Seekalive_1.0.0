@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seekalive — evolução funcional do Seek</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#101217;color:#eee;font:16px/1.65 Arial,sans-serif}main{max-width:1080px;margin:auto;padding:42px 24px}h1,h2,h3{line-height:1.25}h1{font-size:34px}h2{color:#ff9b42;margin-top:38px}h3{font-size:18px}p,li{color:#c8cdd6}strong{color:#fff}a{color:#ffae66}code{font-size:13px;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid #343942;padding:12px;text-align:left;vertical-align:top}th{color:#fff;background:#1c2028}.note{border:1px solid #74512d;border-left:4px solid #ff7a00;border-radius:10px;background:#241d16;padding:18px}.checks{display:flex;gap:14px;flex-wrap:wrap}.checks div{border:1px solid #343942;border-radius:12px;padding:17px 22px;background:#171b22}.checks strong{display:block;font-size:27px;color:#ff9b42}.muted{font-size:13px;color:#a5adba}.table-scroll{overflow-x:auto}footer{border-top:1px solid #343942;margin-top:35px;padding-top:18px;font-size:13px;color:#a5adba}
+</style>
+</head>
+<body><main>
+<p class="muted">SEEKALIVE · RELATÓRIO DE ENGENHARIA · 22/10/2026</p>
+<h1>Evolução funcional do módulo Seek</h1>
+<p>Adaptação do aplicativo existente, sem novo projeto, sem troca de stack, sem banco de dados e sem mudanças na navegação global. A marca correta continua sendo <strong>Seekalive</strong>, com o símbolo Elo.</p>
+<div class="note"><strong>Estado da entrega:</strong> descoberta, localização manual, busca, filtros, cartões e navegação estão ligados ao estado real do front-end. Isso não representa um catálogo público conectado a um servidor. Eventos reais, geocodificação reversa e consulta geoespacial continuam sem fonte/infraestrutura e não são simulados.</div>
+
+<h2>1. Auditoria inicial</h2>
+<ul>
+<li>Monorepositório com pnpm, React/TypeScript, Vite 7, Wouter e Tailwind; componentes Radix já existentes. Nenhuma dependência adicionada.</li>
+<li>A tela anterior concentrava versões separadas de celular/desktop em <code>src/pages/Seek.tsx</code>, com pesquisa local, categorias, filtros e cartões de contas comerciais.</li>
+<li>Contas e avaliações vêm de <code>SocialContext</code>; contas comerciais são as mesmas da rede Social. Cadastros/avaliações do navegador continuam usando os mecanismos existentes.</li>
+<li>Eventos vinham exclusivamente de <code>demoSeekEvents.ts</code>, com datas, contagens e imagens de demonstração. Não existia uma fonte de eventos reais.</li>
+<li>Não havia seleção de cidade, GPS contextual, geocodificação, coordenadas nos cadastros ou busca geoespacial. A API existente oferece somente saúde do serviço.</li>
+<li>Distâncias antigas eram valores declarados, não calculados. Horários não têm estrutura confiável para afirmar “aberto agora”.</li>
+<li>A conta de demonstração faz parte do comportamento pré-existente do front-end; não foi substituído o sistema de autenticação nem criado um backend.</li>
+</ul>
+
+<h2>2. O que foi implementado</h2>
+<h3>Localização controlada pela pessoa</h3>
+<ul>
+<li>Localização de exploração visível no topo, com seletor dedicado, sem cidade fixa disfarçada de posição real.</li>
+<li>Pesquisa manual de municípios, identificação por cidade/UF/Brasil, seleção explícita, cidades recentes e cancelamento sem alterar a escolha anterior.</li>
+<li>Catálogo oficial contendo <strong>5.571 municípios</strong>, obtido do IBGE em 22/10/2026, reduzido a identificador, nome e UF. Aproximadamente 168 KB, servido pelo próprio aplicativo e carregado sob demanda.</li>
+<li>A consulta pública do IBGE respondeu inicialmente e apresentou timeouts posteriores. A cópia oficial versionada evita essa dependência em cada busca. Não há fallback inventado nem chamada de GPS para terceiros.</li>
+<li>Debounce, cancelamento, cache em memória, timeout, tratamento de falha e nova tentativa. O catálogo já carregado permanece disponível sem conexão.</li>
+<li>GPS somente após tocar no botão e confirmar a explicação; estados de permissão negada, indisponibilidade, timeout e posição inválida. No navegador, a orientação de desbloqueio é pelas permissões do site, sem prometer acesso nativo às configurações.</li>
+<li>Sem geocodificação reversa, a posição obtida é identificada como aproximada e a limitação é exibida. Não se deduz uma cidade arbitrária nem se apresentam resultados como próximos.</li>
+<li>Coordenadas ficam somente em memória; apenas a preferência manual de município é mantida no armazenamento de sessão da aba. Não há monitoramento em segundo plano.</li>
+</ul>
+<h3>Busca, filtros e resultados</h3>
+<ul>
+<li>Busca unificada nas contas comerciais, prestadores e eventos disponíveis; correspondência por palavras em nome, categoria, descrição, região e tags, com tratamento de acentos e caixa. Não é anunciada busca semântica.</li>
+<li>Abas Explorar, Lugares, Serviços e Eventos; prestadores são contas comerciais da categoria Serviços ou com tipo profissional declarado, não um cadastro separado.</li>
+<li>Cidade estruturada do perfil comercial ligada ao seletor do editor. Dados legados de região são tratados apenas como declaração de município, sem geocodificação de endereço.</li>
+<li>Filtros funcionais de categoria, nota mínima, situação declarada, gratuidade e período de eventos com data estruturada. Ordenação por relevância simples, nota, nome ou data.</li>
+<li>Datas de eventos precisam ser válidas e conter fuso explícito para filtros de período; rótulos legados ambíguos não são interpretados como datas reais.</li>
+<li>Filtros incompatíveis são limpos ao trocar o tipo de resultado, e os critérios ativos ficam visíveis. Referir outra cidade na consulta não altera silenciosamente a preferência global.</li>
+<li>Raio indisponível e identificado como tal. Não é calculada distância com valores antigos ou posições presumidas.</li>
+</ul>
+<h3>Cartões e carrosséis</h3>
+<ul>
+<li>Componentes compartilhados entre celular e desktop, carrosséis por tipo, categorias acessíveis e seletor com todas as categorias presentes.</li>
+<li>Gesto horizontal, navegação por teclado, setas no desktop, indicação de continuidade e “Ver todos” para listagem completa.</li>
+<li>Cartões abrem os perfis Social e as rotas de evento existentes. Busca, filtros, preferência de cidade e posição de rolagem são preservados na volta conforme o ciclo de navegação.</li>
+<li>Salvar contas comerciais reutiliza os salvos existentes; eventos de exemplo ficam limitados à sessão. Falhas de gravação nos novos controles são informadas.</li>
+<li>Notas são calculadas das avaliações disponíveis, sem inventar zero ou contagem. Perfis sem avaliações são apresentados como tal.</li>
+<li>Imagens aleatórias de demonstração não são usadas como fotografias reais. Ausência ou falha de imagem apresenta um símbolo neutro.</li>
+<li>Perfis bloqueados ou privados não são expostos na descoberta. Não é atribuído selo de verificação a prestadores.</li>
+<li>Exemplos ficam desligados por padrão, identificados e restritos ao desenvolvimento. Detalhes de eventos demonstrativos também deixam isso explícito e não ficam disponíveis em produção.</li>
+<li>Nenhum mapa visual, cabeçalho duplicado, alteração de logo, remoção de Social ou mudança na barra inferior.</li>
+</ul>
+
+<h2>3. Arquivos e motivos</h2>
+<p class="muted">Caminhos relativos a <code>Socialnewzip/Socialnewzip</code>.</p>
+<div class="table-scroll"><table><thead><tr><th>Arquivo/módulo</th><th>Responsabilidade</th></tr></thead><tbody>
+<tr><td><code>artifacts/social/src/pages/Seek.tsx</code></td><td>Tela integrada e responsiva, abas, resultados, filtros ativos e diálogos existentes.</td></tr>
+<tr><td><code>src/components/seek/DiscoveryCard.tsx</code></td><td>Cartão compartilhado, perfil/detalhe, salvar, avaliações e falha de imagem.</td></tr>
+<tr><td><code>src/components/seek/DiscoveryCarousel.tsx</code></td><td>Rolagem, navegação acessível e listagem completa.</td></tr>
+<tr><td><code>src/components/seek/DiscoveryCategories.tsx</code></td><td>Categorias existentes e seletor completo.</td></tr>
+<tr><td><code>src/components/seek/DiscoveryFiltersPanel.tsx</code></td><td>Critérios reais, limpeza e limite geográfico explícito.</td></tr>
+<tr><td><code>src/components/seek/DiscoveryLocationDialog.tsx</code></td><td>Municípios, busca, estados, seleção manual e GPS contextual.</td></tr>
+<tr><td><code>src/components/seek/CommercialDiscoveryCity.tsx</code></td><td>Seleção manual de cidade do negócio sem confundir GPS e localização comercial.</td></tr>
+<tr><td><code>src/hooks/useSeekDiscovery.ts</code></td><td>Integração com SocialContext, estado de exploração, filtros, salvos, offline e contexto de retorno.</td></tr>
+<tr><td><code>src/lib/seekDiscovery.ts</code></td><td>Tipos, origem dos itens, validação, privacidade, busca, filtros e ordenação.</td></tr>
+<tr><td><code>src/services/seekLocationService.ts</code></td><td>Catálogo oficial, cancelamento, cache, permissões, GPS e preferências manuais.</td></tr>
+<tr><td><code>artifacts/social/public/data/ibge-cities-20261022.json</code></td><td>Fonte oficial compacta, com URL de origem e data de obtenção, sem dados pessoais.</td></tr>
+<tr><td><code>src/pages/ProfileEdit.tsx</code></td><td>Dependência necessária: comerciante escolhe o município usado nos resultados do Seek.</td></tr>
+<tr><td><code>src/pages/SeekEventDetail.tsx</code></td><td>Identificação de exemplos, remoção de imagem aleatória e bloqueio de exemplo em produção.</td></tr>
+<tr><td><code>src/data/mockData.ts</code> e <code>src/types/content.ts</code></td><td>Campos opcionais compatíveis para cidade, tipo de profissional, áreas e datas de evento. Sem migração ou banco.</td></tr>
+<tr><td><code>artifacts/social/tests/seekDiscovery.test.ts</code> e <code>tests/content.test.ts</code></td><td>Regras de descoberta, localização, permissões e regressões existentes.</td></tr>
+<tr><td><code>scripts/audit-seek-browser.mjs</code></td><td>Verificação reproduzível em Chromium com perfil descartável e dados somente de teste.</td></tr>
+</tbody></table></div>
+<p class="muted">Os caminhos abreviados como <code>src/…</code> nesta tabela pertencem a <code>artifacts/social/</code>. As notas de memória registram somente regras e decisões duráveis.</p>
+
+<h2>4. Validação executada</h2>
+<div class="checks"><div><strong>33</strong>testes automatizados aprovados</div><div><strong>18</strong>verificações no navegador aprovadas</div><div><strong>0</strong>exceções JavaScript no roteiro</div></div>
+<ul>
+<li><code>pnpm run test:social</code>: 33 testes passaram, incluindo as 12 verificações novas de descoberta/localização e regressões do Social.</li>
+<li><code>PORT=5000 BASE_PATH=/ pnpm --filter @workspace/social run typecheck</code>: sem erros.</li>
+<li><code>PORT=5000 BASE_PATH=/ pnpm --filter @workspace/social run build</code>: concluído. Persistem avisos de sourcemaps de componentes existentes e de tamanho do pacote; não impediram a compilação.</li>
+<li><code>git diff --check</code>: sem problemas.</li>
+<li>Não existe comando de lint no pacote do aplicativo; não foi inventado ou declarado como executado.</li>
+<li>Roteiro de navegador: seleção real pelo catálogo oficial, erro/retry por bloqueio de rede, cancelamento, busca de pedreiro, volta do perfil, listagem completa, nota sem resultados, salvos, explicação antes do GPS, negação, posição aproximada, ausência de coordenadas públicas/persistidas, uso offline do catálogo carregado, larguras 320/402/1440, escolha da cidade no editor e atualização do mesmo perfil Social no Seek.</li>
+<li>As contas do roteiro são fixtures em um perfil isolado do Chromium, não novos registros reais do usuário. Autorização e coordenadas de GPS foram controladas pela automação para verificar comportamento, não representam a localização física do usuário.</li>
+</ul>
+
+<h2>5. O que tem integração real — e o que não tem</h2>
+<div class="table-scroll"><table><thead><tr><th>Recurso</th><th>Fonte/estado real</th></tr></thead><tbody>
+<tr><td>Comércios e prestadores</td><td>Mesmas contas comerciais do Social no estado do navegador. Não há sincronização com servidor ou verificação pública dos profissionais.</td></tr>
+<tr><td>Avaliações</td><td>Sistema existente do Social no navegador; notas derivadas dessas avaliações, sem adicionar notas fictícias.</td></tr>
+<tr><td>Cidades</td><td>Catálogo oficial real do IBGE incluído na versão; sem serviço pago, chave ou solicitação externa em cada busca.</td></tr>
+<tr><td>GPS</td><td>API real do navegador por ação explícita; sem geocodificação reversa. Testes de permissão/posição foram controlados.</td></tr>
+<tr><td>Região do comércio</td><td>Município estruturado escolhido no editor; legado pode conter somente declaração textual, não endereço validado.</td></tr>
+<tr><td>Raio/distância</td><td>Não integrado. Controle desabilitado; faltam coordenadas e consulta geográfica no servidor.</td></tr>
+<tr><td>Eventos</td><td>Busca, cartões, filtros e detalhes adaptados, mas a fonte existente contém apenas exemplos de desenvolvimento. Não há catálogo de eventos reais nem publicação/ingressos.</td></tr>
+<tr><td>Prestadores</td><td>Busca funcional para contas comerciais de serviços pelos campos existentes. Especialidade, áreas detalhadas e disponibilidade ainda não possuem um cadastro profissional completo.</td></tr>
+<tr><td>Conteúdo Social sobre lugares</td><td>Referências existentes no Social preservadas; não foi criado um novo feed de descobertas nem módulo Comunidades.</td></tr>
+<tr><td>Persistência</td><td>Preferências da nova exploração são da aba/sessão; contas, avaliações e salvos reutilizam os mecanismos de navegador existentes. Nenhum banco ou backend de catálogo foi criado.</td></tr>
+</tbody></table></div>
+
+<h2>6. Pendências e configurações externas</h2>
+<ul>
+<li><strong>Eventos reais:</strong> falta uma origem de eventos publicada por contas comerciais, com data/fuso/cidade/imagens válidos. Até lá, produção não recebe eventos fictícios.</li>
+<li><strong>Geocodificação e distância:</strong> falta configurar um provedor autorizado e coordenadas nos cadastros, além de uma consulta geográfica no backend. A execução não adicionou provedor, custo, chave ou coleta contínua.</li>
+<li><strong>Cadastro profissional:</strong> especialidades estruturadas, áreas atendidas e disponibilidade declarada podem evoluir no editor comercial, mantendo a conta única do Social.</li>
+<li><strong>Municípios:</strong> a fonte desta versão é nacional/Brasil. Bairros, cidades de outros países e centros geográficos não foram inventados. Atualizações do catálogo devem gerar uma nova versão a partir do IBGE.</li>
+<li><strong>Servidor e dados compartilhados:</strong> seguem fora da fase atual, conforme a decisão do usuário de trabalhar primeiro no front-end.</li>
+<li><strong>Segredos/variáveis novas:</strong> nenhum. Permanecem os comandos e variáveis de execução existentes. O arquivo público de municípios deve acompanhar a publicação do front-end.</li>
+</ul>
+<p class="note">Não se declara concluída uma integração de catálogo público, eventos reais, geocodificação ou raio: essas partes não têm infraestrutura no projeto. A entrega desta etapa é funcional no front-end existente e explicita esses limites em vez de simulá-los.</p>
+<h2>Fonte geográfica</h2>
+<p><a href="https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&amp;orderBy=nome">IBGE — API de localidades / municípios, formato nivelado</a>. Dados obtidos em 22/10/2026; metadados de origem preservados no catálogo incluído.</p>
+<footer>Seekalive · Social, Seek e Shop preservados · sem novo banco, mapas visuais ou alterações nos destinos da navegação.</footer>
+</main></body></html>
