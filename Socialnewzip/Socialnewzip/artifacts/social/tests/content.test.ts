@@ -85,6 +85,24 @@ test("notificações contêm apenas recursos mantidos no aplicativo", () => {
   const allowed = new Set(["follow", "circle_request", "circle_accepted", "like", "comment", "repost", "mention"]);
   assert.ok(mockNotifications.every(notification => allowed.has(notification.type)));
 });
+test("marca Elo usa Seekalive e o mesmo símbolo no app e favicon", () => {
+  const root = join(process.cwd(), "artifacts/social");
+  const html = readFileSync(join(root, "index.html"), "utf8");
+  assert.match(html, /<title>Seekalive<\/title>/);
+  assert.match(html, /apple-touch-icon/);
+  for (const file of ["components/layout/Header.tsx", "components/layout/SocialDesktopHeader.tsx", "components/social/SocialDrawer.tsx", "pages/Login.tsx", "pages/Register.tsx", "pages/Splash.tsx"]) {
+    const source = readFileSync(join(root, "src", file), "utf8");
+    assert.match(source, /<BrandMark/);
+    assert.match(source, /Seekalive/);
+    assert.doesNotMatch(source, /SeekAlive/);
+  }
+  const mark = readFileSync(join(root, "src/components/brand/BrandMark.tsx"), "utf8");
+  const favicon = readFileSync(join(root, "public/favicon.svg"), "utf8");
+  const paths = (source: string) => [...source.matchAll(/<path d="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(paths(mark).length, 2);
+  assert.deepEqual(paths(mark), paths(favicon));
+});
+
 test("mover menu não remove Social nem troca os destinos da barra inferior", () => {
   const root = join(process.cwd(), "artifacts/social/src");
   const bottom = readFileSync(join(root, "components/layout/BottomNav.tsx"), "utf8");

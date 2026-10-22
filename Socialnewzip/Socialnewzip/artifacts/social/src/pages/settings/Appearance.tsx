@@ -38,7 +38,7 @@ export default function SettingsAppearance() {
           <span className="ml-auto text-xs text-muted-foreground">Sempre ativo</span>
         </div>
         <p className="px-4 mt-2 text-xs text-muted-foreground">
-          O SeekAlive usa apenas o tema escuro, com o laranja da marca como cor de destaque. Não há outras cores ou temas para escolher.
+          O Seekalive usa apenas o tema escuro, com o laranja da marca como cor de destaque. Não há outras cores ou temas para escolher.
         </p>
 
         <SectionTitle>Tamanho do texto</SectionTitle>

@@ -31,7 +31,7 @@ const settingsGroups = [
   {
     title: "Sobre",
     items: [
-      { icon: Info, label: "Sobre o SeekAlive", desc: "Versão 1.0.0 · termos e política de privacidade ainda não publicados", path: "", unavailable: true },
+      { icon: Info, label: "Sobre o Seekalive", desc: "Versão 1.0.0 · termos e política de privacidade ainda não publicados", path: "", unavailable: true },
     ],
   },
 ];
@@ -102,7 +102,7 @@ export default function Settings() {
         </button>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground py-8">SeekAlive v1.0.0</p>
+      <p className="text-center text-xs text-muted-foreground py-8">Seekalive v1.0.0</p>
     </div>
   );
 }

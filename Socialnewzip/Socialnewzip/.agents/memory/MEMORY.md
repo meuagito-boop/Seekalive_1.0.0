@@ -3,4 +3,4 @@
 - [Galeria de mídias Social](social-media-gallery.md) — Mídia publicada alimenta a galeria da conta; priorizar o front-end antes de banco e persistência no servidor.
 - [Escopo dos módulos](product-scope.md) — Comunidades foram retiradas do produto; Círculos continuam como recurso distinto.
 - [Interface Social e Seek](social-interface-rules.md) — Laranja, navegação sem redundância e nenhum sucesso simulado ao retirar avisos de demonstração.
-- [Identidade visual SeekAlive](seekalive-brand.md) — Direção escolhida: Elo, um S conectado em laranja para representar o aplicativo inteiro.
+- [Identidade visual Seekalive](seekalive-brand.md) — Elo aprovado para o aplicativo; grafia correta é Seekalive, somente com S inicial maiúsculo.

@@ -51,7 +51,7 @@ export default function SeekEventDetail() {
           <Button onClick={() => setShareOpen(true)} className="rounded-full" data-testid="button-share-event">
             <Share2 className="mr-2 h-4 w-4" /> Compartilhar
           </Button>
-          <Button variant="outline" disabled className="rounded-full" title="Ingressos ainda não estão disponíveis no SeekAlive">
+          <Button variant="outline" disabled className="rounded-full" title="Ingressos ainda não estão disponíveis no Seekalive">
             <Ticket className="mr-2 h-4 w-4" /> Ingressos indisponíveis
           </Button>
         </div>

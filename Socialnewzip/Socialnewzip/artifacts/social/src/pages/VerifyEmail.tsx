@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/brand/BrandMark";
 import { useRef, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -61,8 +62,8 @@ export default function VerifyEmail() {
         className="w-full max-w-sm text-center"
       >
         <div className="flex items-center justify-center gap-2 mb-10">
-          <Circle className="w-8 h-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold tracking-tight">SeekAlive</span>
+          <BrandMark className="h-8 w-8" />
+          <span className="text-2xl font-bold tracking-tight">Seekalive</span>
         </div>
 
         {verified ? (

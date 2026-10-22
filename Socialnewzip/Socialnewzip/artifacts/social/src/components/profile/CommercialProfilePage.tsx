@@ -547,7 +547,7 @@ export function CommercialProfilePage({
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-bold">Avaliações de clientes</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Opiniões publicadas por contas do SeekAlive.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Opiniões publicadas por contas do Seekalive.</p>
                 </div>
                 <Button onClick={() => setReviewsOpen(true)} className="rounded-full">
                   <Star className="mr-2 h-4 w-4" />

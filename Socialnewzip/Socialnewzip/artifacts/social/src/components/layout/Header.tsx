@@ -1,5 +1,6 @@
 import { Bell, Mail, ShoppingCart, Settings } from "lucide-react";
 import { Link } from "wouter";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 // Props aceitas por compatibilidade; páginas dentro do AppShell não devem renderizar Header de novo.
 export function Header(_props: { title?: string; backTo?: string } = {}) {
@@ -7,10 +8,8 @@ export function Header(_props: { title?: string; backTo?: string } = {}) {
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-lg border-b border-border h-14 flex items-center justify-between px-4 md:hidden">
       {/* Logo + App Name */}
       <Link href="/feed" className="flex items-center gap-2 no-underline">
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-          <span className="text-primary-foreground font-black text-xs leading-none">S</span>
-        </div>
-        <span className="font-bold text-base tracking-tight text-foreground">SeekAlive</span>
+        <BrandMark />
+        <span className="font-bold text-base tracking-tight text-foreground">Seekalive</span>
       </Link>
 
       {/* Right icons */}

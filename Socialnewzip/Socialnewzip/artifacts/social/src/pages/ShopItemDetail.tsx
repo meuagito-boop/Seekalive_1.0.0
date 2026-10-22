@@ -69,7 +69,7 @@ export default function ShopItemDetail() {
             </Button>
           </div>
           <p className="mt-3 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-            Carrinho, pagamento e entrega ainda não existem no SeekAlive. Nenhuma compra é registrada.
+            Carrinho, pagamento e entrega ainda não existem no Seekalive. Nenhuma compra é registrada.
           </p>
         </div>
       </div>

@@ -1,14 +1,14 @@
+import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/context/AppContext";
-import { Circle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export default function Splash() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="flex flex-col items-center max-w-md w-full text-center space-y-8">
-        <Circle className="w-24 h-24 text-primary fill-primary" />
-        <h1 className="text-5xl font-bold tracking-tighter">SeekAlive</h1>
+        <BrandMark className="h-24 w-24" />
+        <h1 className="text-5xl font-bold tracking-tighter">Seekalive</h1>
         <p className="text-xl text-muted-foreground">Join the conversation. Share your world.</p>
         
         <div className="w-full space-y-4 pt-8">

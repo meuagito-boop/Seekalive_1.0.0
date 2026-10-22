@@ -76,7 +76,7 @@
   --popover-foreground: 210 15% 96%;
   --popover-border: 225 20% 13%;
 
-  /* ── Brand — SeekAlive Orange ──────────────────────────────────── */
+  /* ── Brand — Seekalive Orange ──────────────────────────────────── */
   --primary: 27 96% 53%;
   --primary-foreground: 225 25% 8%;
 
@@ -170,7 +170,7 @@
   }
 }
 
-/* ── SeekAlive Typography Scale ───────────────────────────────────── */
+/* ── Seekalive Typography Scale ───────────────────────────────────── */
 @layer utilities {
   .sk-text-display {
     font-size: 2rem;

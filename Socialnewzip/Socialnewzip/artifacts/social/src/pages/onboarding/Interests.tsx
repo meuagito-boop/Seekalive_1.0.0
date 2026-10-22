@@ -1,7 +1,8 @@
+import { BrandMark } from "@/components/brand/BrandMark";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Circle, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { interests } from "@/data/mockData";
 
@@ -28,8 +29,8 @@ export default function OnboardingInterests() {
         className="w-full max-w-md"
       >
         <div className="flex items-center gap-2 mb-10">
-          <Circle className="w-7 h-7 fill-primary text-primary" />
-          <span className="text-xl font-bold tracking-tight">SeekAlive</span>
+          <BrandMark />
+          <span className="text-xl font-bold tracking-tight">Seekalive</span>
         </div>
 
         <div className="mb-2">

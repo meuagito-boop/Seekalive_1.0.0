@@ -1,7 +1,8 @@
+import { BrandMark } from "@/components/brand/BrandMark";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Circle, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { mockUsers } from "@/data/mockData";
@@ -27,8 +28,8 @@ export default function OnboardingSuggestions() {
         className="w-full max-w-md"
       >
         <div className="flex items-center gap-2 mb-10">
-          <Circle className="w-7 h-7 fill-primary text-primary" />
-          <span className="text-xl font-bold tracking-tight">SeekAlive</span>
+          <BrandMark />
+          <span className="text-xl font-bold tracking-tight">Seekalive</span>
         </div>
 
         <div className="mb-2">
@@ -86,7 +87,7 @@ export default function OnboardingSuggestions() {
           onClick={() => setLocation("/feed")}
           data-testid="button-finish-onboarding"
         >
-          {followed.size > 0 ? `Seguir ${followed.size} e entrar` : "Entrar no SeekAlive"}
+          {followed.size > 0 ? `Seguir ${followed.size} e entrar` : "Entrar no Seekalive"}
         </Button>
 
         <button

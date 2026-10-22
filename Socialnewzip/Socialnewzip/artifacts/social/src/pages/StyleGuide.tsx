@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/brand/BrandMark";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,19 +41,17 @@ export default function StyleGuide() {
     <div className="min-h-screen bg-background pb-24">
       {/* Page header */}
       <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-lg border-b border-border px-5 py-4 flex items-center gap-3">
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-[0_0_12px_hsl(24_95%_53%_/_0.35)]">
-          <span className="text-white font-black text-xs">S</span>
-        </div>
+        <BrandMark />
         <div>
           <h1 className="sk-text-section-title text-foreground leading-none">Design System</h1>
-          <p className="sk-text-caption text-muted-foreground mt-0.5">SeekAlive · Visual Reference</p>
+          <p className="sk-text-caption text-muted-foreground mt-0.5">Seekalive · Visual Reference</p>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-5 pt-8">
 
         {/* ── Colors ──────────────────────────────────────────────── */}
-        <Section title="Cores" description="Paleta de cores do SeekAlive">
+        <Section title="Cores" description="Paleta de cores do Seekalive">
           <div className="grid grid-cols-3 gap-3 mb-4">
             <ColorSwatch label="Brand Primary" style={{ background: "hsl(24 95% 53%)" }} />
             <ColorSwatch label="Brand Hover" style={{ background: "hsl(24 95% 46%)" }} />
@@ -72,11 +71,11 @@ export default function StyleGuide() {
         </Section>
 
         {/* ── Typography ──────────────────────────────────────────── */}
-        <Section title="Tipografia" description="Escala tipográfica do SeekAlive">
+        <Section title="Tipografia" description="Escala tipográfica do Seekalive">
           <div className="space-y-4 sk-card p-5">
             <div>
               <p className="sk-text-meta text-muted-foreground mb-1">DISPLAY — 2rem / 800</p>
-              <p className="sk-text-display text-foreground">SeekAlive</p>
+              <p className="sk-text-display text-foreground">Seekalive</p>
             </div>
             <div>
               <p className="sk-text-meta text-muted-foreground mb-1">PAGE TITLE — 1.5rem / 700</p>
@@ -88,7 +87,7 @@ export default function StyleGuide() {
             </div>
             <div>
               <p className="sk-text-meta text-muted-foreground mb-1">BODY — 0.9375rem / 400</p>
-              <p className="sk-text-body text-foreground">Explore o que há de melhor na sua cidade com o SeekAlive.</p>
+              <p className="sk-text-body text-foreground">Explore o que há de melhor na sua cidade com o Seekalive.</p>
             </div>
             <div>
               <p className="sk-text-meta text-muted-foreground mb-1">BODY SM — 0.875rem / 400</p>

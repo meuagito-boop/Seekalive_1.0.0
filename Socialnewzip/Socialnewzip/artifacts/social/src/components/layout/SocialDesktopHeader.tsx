@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/brand/BrandMark";
 import { Link, useLocation } from "wouter";
 import { Bell, Mail, ShoppingCart, Settings, PenSquare } from "lucide-react";
 import { useSocial } from "@/context/SocialContext";
@@ -24,10 +25,8 @@ export function SocialDesktopHeader() {
     <header className="hidden md:flex sticky top-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-border items-center px-6">
       {/* Logo + name */}
       <Link href="/feed" className="flex items-center gap-2 no-underline flex-shrink-0 mr-8">
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-[0_0_10px_hsl(24_95%_53%_/_0.3)]">
-          <span className="text-primary-foreground font-black text-xs leading-none">S</span>
-        </div>
-        <span className="font-bold text-base tracking-tight text-foreground">SeekAlive</span>
+        <BrandMark />
+        <span className="font-bold text-base tracking-tight text-foreground">Seekalive</span>
       </Link>
 
       {/* Center module nav */}

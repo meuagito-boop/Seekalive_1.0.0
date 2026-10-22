@@ -19,7 +19,7 @@ const trending = [
   { tag: "#ReactJS", category: "Tecnologia", count: 12500 },
   { tag: "#DarkMode", category: "Design", count: 8200 },
   { tag: "#AItools", category: "Tecnologia", count: 34100 },
-  { tag: "#SeekAlive", category: "Social", count: 5600 },
+  { tag: "#Seekalive", category: "Social", count: 5600 },
   { tag: "#OpenSource", category: "Dev", count: 9800 },
   { tag: "#TypeScript", category: "Tecnologia", count: 15200 },
 ];
@@ -61,7 +61,7 @@ export default function Search() {
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar no SeekAlive"
+              placeholder="Buscar no Seekalive"
               data-testid="input-search"
               className="w-full h-10 pl-9 pr-4 bg-muted/50 rounded-full text-sm text-foreground placeholder:text-muted-foreground border border-transparent focus:border-primary focus:outline-none transition-colors"
             />

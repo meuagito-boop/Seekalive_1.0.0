@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { X } from "lucide-react";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { SocialSidebar } from "./SocialSidebar";
 
@@ -34,10 +35,8 @@ export function SocialDrawer({ open, onClose, returnFocus }: SocialDrawerProps) 
       >
         <div className="flex items-center justify-between px-4 h-14 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center" aria-hidden="true">
-              <span className="text-primary-foreground font-black text-[10px] leading-none">S</span>
-            </div>
-            <SheetTitle className="font-bold text-sm text-foreground">SeekAlive</SheetTitle>
+            <BrandMark className="h-6 w-6" />
+            <SheetTitle className="font-bold text-sm text-foreground">Seekalive</SheetTitle>
           </div>
           <SheetDescription className="sr-only">Menu de navegação do Social</SheetDescription>
           <SheetClose

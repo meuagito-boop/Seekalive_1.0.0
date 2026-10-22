@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Circle, Check } from "lucide-react";
+import { Eye, EyeOff, Check } from "lucide-react";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -126,8 +127,8 @@ export default function Register() {
         className="w-full max-w-sm"
       >
         <div className="flex items-center gap-2 mb-8">
-          <Circle className="w-8 h-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold tracking-tight">SeekAlive</span>
+          <BrandMark className="h-8 w-8" />
+          <span className="text-2xl font-bold tracking-tight">Seekalive</span>
         </div>
 
         <h1 className="text-3xl font-bold mb-2">Criar conta</h1>
