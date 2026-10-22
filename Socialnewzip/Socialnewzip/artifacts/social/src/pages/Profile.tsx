@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/post/PostCard";
@@ -30,7 +30,7 @@ export default function Profile() {
   const [showMenu, setShowMenu] = useState(false);
   const { toast } = useToast();
 
-  const { users, posts, repostEntries, postComments, toggleFollow, requestCircle, acceptCircle, cancelCircle } = useSocial();
+  const { users, posts, repostEntries, postComments, toggleFollow } = useSocial();
   const { currentUser: signedInUser } = useAppContext();
   const viewer = signedInUser ?? mockCurrentUser;
 
@@ -51,8 +51,8 @@ export default function Profile() {
   const user = found;
 
   const following = user.isFollowing ?? false;
-  const circleStatus = user.circleStatus ?? null;
-  const hasIncomingCircleRequest = circleStatus === "pending" && user.circleRequestDirection === "incoming";
+  const inCircle = user.isInCircle ?? false;
+  const circleCount = isMe ? users.filter(candidate => candidate.isInCircle).length : user.stats.circles;
 
   // Posts filtered to this user
   const visibleToViewer = (p: (typeof posts)[number]) => {
@@ -80,31 +80,7 @@ export default function Profile() {
     toggleFollow(user.id);
   }
 
-  function handleCircle() {
-    if (isMe) return;
-    if (circleStatus === "accepted") return;
-    try {
-      if (hasIncomingCircleRequest) {
-        acceptCircle(user.id);
-        toast({ title: "Adicionado ao seu Círculo" });
-        return;
-      }
-      if (circleStatus === "pending") {
-        cancelCircle(user.id);
-        return;
-      }
-      requestCircle(user.id);
-      toast({ title: "Solicitação enviada" });
-    } catch (error) {
-      toast({
-        title: "Não foi possível enviar a solicitação",
-        description: error instanceof Error ? error.message : "Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    }
-  }
-
-  if (!isMe && user.isPrivate && !user.isInCircle && circleStatus !== "accepted") {
+  if (!isMe && user.isPrivate && !inCircle) {
     return (
       <div className="min-h-[70vh] px-5 py-16">
         <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center">
@@ -114,9 +90,9 @@ export default function Profile() {
           </Avatar>
           <h1 className="text-xl font-bold">{user.displayName}</h1>
           <p className="mt-1 text-sm text-muted-foreground">@{user.username}</p>
-          <p className="mt-4 text-sm text-muted-foreground">Este perfil é privado. Publicações e informações aparecem para pessoas do Círculo.</p>
-          <Button onClick={handleCircle} className="mt-5 rounded-full" disabled={circleStatus === "pending" && !hasIncomingCircleRequest}>
-            {hasIncomingCircleRequest ? "Aceitar solicitação" : circleStatus === "pending" ? "Solicitação enviada" : "Pedir para entrar no Círculo"}
+          <p className="mt-4 text-sm text-muted-foreground">Este perfil é privado. Para ver suas publicações, vocês precisam se seguir mutuamente.</p>
+          <Button onClick={handleFollow} className="mt-5 rounded-full" variant={following ? "outline" : "default"}>
+            {following ? "Seguindo" : "Seguir"}
           </Button>
         </div>
       </div>
@@ -168,30 +144,11 @@ export default function Profile() {
                 </Button>
               ) : (
                 <>
-                  {/* Círculo */}
-                  <button
-                    type="button"
-                    onClick={handleCircle}
-                    disabled={circleStatus === "accepted"}
-                    title={circleStatus === "accepted" ? "Gerencie seu Círculo na página Meu Círculo" : undefined}
-                    data-testid="button-circle"
-                    className={`flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-semibold border transition-all ${
-                      circleStatus === "accepted"
-                        ? "bg-muted border-border text-muted-foreground"
-                        : circleStatus === "pending"
-                        ? "bg-primary/10 border-primary/50 text-primary"
-                        : "border-border text-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    {circleStatus === "accepted"
-                      ? <><Check className="w-3 h-3" /> No Círculo</>
-                      : circleStatus === "pending"
-                      ? hasIncomingCircleRequest
-                        ? <><Check className="w-3 h-3" /> Aceitar solicitação</>
-                        : <><Users className="w-3 h-3" /> Cancelar solicitação</>
-                      : <><UserPlus className="w-3 h-3" /> Adicionar ao Círculo</>
-                    }
-                  </button>
+                  {inCircle && (
+                    <span className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-muted px-4 text-sm font-semibold text-muted-foreground" data-testid="badge-mutual-circle">
+                      <Check className="h-3 w-3" /> No Círculo
+                    </span>
+                  )}
 
                   {/* Follow button */}
                   <motion.div whileTap={{ scale: 0.95 }}>
@@ -301,7 +258,7 @@ export default function Profile() {
               <span className="text-muted-foreground ml-1">Seguidores</span>
             </Link>
             <Link href={`/profile/${user.username}/circles`} className="hover:underline" data-testid="link-circles">
-              <span className="font-bold">{formatCount(user.stats.circles)}</span>
+              <span className="font-bold">{formatCount(circleCount)}</span>
               <span className="text-muted-foreground ml-1">Círculo</span>
             </Link>
           </div>

@@ -102,7 +102,7 @@ export default function SettingsPrivacy() {
         </div>
         <SettingRow
           label="Perfil privado"
-          desc="Somente você e pessoas do seu Círculo poderão ver o perfil e suas publicações."
+          desc="Somente você e pessoas que se seguem mutuamente com você (seu Círculo) poderão ver o perfil e suas publicações."
           checked={prefs.profilePrivate}
           onToggle={() => update("profilePrivate", !prefs.profilePrivate)}
           testId="toggle-private-profile"

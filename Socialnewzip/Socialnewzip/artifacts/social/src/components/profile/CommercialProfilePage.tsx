@@ -25,7 +25,7 @@ import { canReadPost } from "@/services/contentValidation";
 import { formatWeeklyHours, weeklyHoursRows } from "@/lib/businessHours";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
-const profileTabs = ["Publicações", "Informações", "Avaliações", "Serviços", "Mídias", "Artigos"] as const;
+const profileTabs = ["Publicações", "Informações", "Avaliações", "Mídias", "Artigos"] as const;
 type ProfileTab = (typeof profileTabs)[number];
 type MediaTab = "Fotos" | "Vídeos";
 const serviceOptions = [
@@ -409,6 +409,24 @@ export function CommercialProfilePage({
                   </section>
                 )}
 
+                <section>
+                  <h2 className="mb-3 text-lg font-bold">Serviços e formas de atendimento</h2>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Confira como este comércio atende seus clientes.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {offeredServices.length > 0 ? offeredServices.map(service => (
+                      <article key={service.key} className="rounded-2xl border border-border p-4">
+                        <h3 className="font-semibold">{service.label}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
+                      </article>
+                    )) : (
+                      <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground sm:col-span-2">
+                        Este perfil ainda não informou serviços oferecidos.
+                      </p>
+                    )}
+                  </div>
+                </section>
               </div>
 
               <aside className="space-y-5">
@@ -437,33 +455,6 @@ export function CommercialProfilePage({
                     <InfoLine icon={<Globe className="h-4 w-4" />} title="Site" value={user.website ?? "Não informado"} href={user.website} />
                     <InfoLine title="Faixa de preço" value={priceLabel(commercial.priceLevel) || "Não informada"} />
                   </div>
-                </section>
-                <section className="rounded-2xl border border-border p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <h2 className="font-bold">Avaliações</h2>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {businessReviews.length ? `${businessReviews.length} avaliações publicadas` : "Ainda sem avaliações"}
-                      </p>
-                    </div>
-                    {rating !== null && <p className="text-2xl font-black">{rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>}
-                  </div>
-                  {businessReviews.slice(0, 2).map((review) => (
-                    <ReviewEntry
-                      key={review.id}
-                      review={review}
-                      viewer={currentUser}
-                      business={user}
-                      getUserById={getUserById}
-                    />
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("Avaliações")}
-                    className="mt-3 text-sm font-semibold text-primary hover:underline"
-                  >
-                    Ver avaliações
-                  </button>
                 </section>
               </aside>
             </div>
@@ -526,29 +517,6 @@ export function CommercialProfilePage({
                   </p>
                 </div>
               )}
-            </section>
-          )}
-
-          {activeTab === "Serviços" && (
-            <section className="max-w-3xl">
-              <div className="mb-5">
-                <h2 className="text-xl font-bold">Serviços e formas de atendimento</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Confira como este comércio atende seus clientes.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {offeredServices.length > 0 ? offeredServices.map(service => (
-                  <article key={service.key} className="rounded-2xl border border-border p-4">
-                    <h3 className="font-semibold">{service.label}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
-                  </article>
-                )) : (
-                  <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground sm:col-span-2">
-                    Este perfil ainda não informou serviços oferecidos.
-                  </p>
-                )}
-              </div>
             </section>
           )}
 

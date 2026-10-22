@@ -160,7 +160,6 @@ export const mockUsers: User[] = [
     stats: { posts: 89, followers: 34002, following: 210, circles: 18 },
     followingIds: ["me"],
     isFollowing: true,
-    isInCircle: true,
   },
   {
     id: "u3",
@@ -241,7 +240,6 @@ export const mockUsers: User[] = [
     stats: { posts: 445, followers: 22800, following: 310, circles: 28 },
     followingIds: ["me"],
     isFollowing: true,
-    isInCircle: true,
   },
   {
     id: "biz1",
