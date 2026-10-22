@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, Users, Plus, ShoppingBag, FileText, Image, Video } from "lucide-react";
+import { MapPin, Menu, Users, Plus, ShoppingBag, FileText, Image, Video } from "lucide-react";
 import { SocialDrawer } from "@/components/social/SocialDrawer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -19,9 +19,6 @@ export function BottomNav() {
   return (
     <>
       <nav aria-label="Navegação principal" className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background/95 backdrop-blur-lg border-t border-border flex items-center justify-around z-40">
-        <Link href="/seek" aria-label="Seek" aria-current={searchActive ? "page" : undefined} className={`${itemClass} ${tone(searchActive)}`}>
-          <Search className="w-6 h-6" strokeWidth={searchActive ? 2.5 : 2} />
-        </Link>
         <button ref={menuRef} type="button" aria-label="Abrir menu" aria-haspopup="dialog" aria-expanded={drawerOpen}
           onClick={() => setDrawerOpen(true)} className={`${itemClass} ${tone(drawerOpen)}`}>
           <Menu className="w-6 h-6" strokeWidth={2} />
@@ -32,6 +29,9 @@ export function BottomNav() {
         <button type="button" aria-label="Criar" aria-haspopup="dialog" aria-expanded={addMenuOpen} onClick={() => setAddMenuOpen(true)} className={`${itemClass} ${tone(addMenuOpen)}`}>
           <Plus className="w-6 h-6" strokeWidth={2} />
         </button>
+        <Link href="/seek" aria-label="Seek" aria-current={searchActive ? "page" : undefined} className={`${itemClass} ${tone(searchActive)}`}>
+          <MapPin className="w-6 h-6" strokeWidth={searchActive ? 2.5 : 2} />
+        </Link>
         <Link href="/shop" aria-label="Abrir Shop" aria-current={shopActive ? "page" : undefined} className={`${itemClass} ${tone(shopActive)}`}>
           <ShoppingBag className="w-6 h-6" strokeWidth={shopActive ? 2.5 : 2} />
         </Link>
