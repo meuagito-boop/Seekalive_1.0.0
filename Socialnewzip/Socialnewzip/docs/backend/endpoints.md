@@ -42,7 +42,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 | POST | `/v1/accounts` | Sessão autenticada | `AccountCreate` | `Account` | **PROPOSTA** |
 | PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `Account` | **PROPOSTA** |
 | DELETE | `/v1/accounts/me` | Sessão autenticada | — | `Accepted` | **PROPOSTA**; assíncrona |
-| GET | `/v1/accounts/availability` | Sessão autenticada | — | `Availability` | **PROPOSTA** |
+| GET | `/v1/accounts/availability` | Público | — | `Availability` | **PROPOSTA** |
 | GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **PROPOSTA** |
 | GET | `/v1/profiles/{username}` | Público/sessão; ACL no servidor | — | `Profile` | **PROPOSTA** |
 | PUT | `/v1/accounts/me/preferences` | Sessão autenticada | `Preferences` | `Preferences` | **PROPOSTA** |
@@ -78,7 +78,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 | DELETE | `/v1/social/posts/{postId}/repost` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | PUT | `/v1/social/comments/{commentId}/like` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | DELETE | `/v1/social/comments/{commentId}/like` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/social/posts/{postId}/share-intents` | Sessão autenticada | — | `Accepted` | **PROPOSTA**; assíncrona |
+| POST | `/v1/social/posts/{postId}/share-intents` | Sessão autenticada | — | `ShareIntent` | **PROPOSTA** |
 | GET | `/v1/social/users/search` | Público/sessão; ACL no servidor | — | `PageAccount` | **PROPOSTA** |
 | GET | `/v1/social/tags/search` | Público/sessão; ACL no servidor | — | `PageTag` | **PROPOSTA** |
 | GET | `/v1/social/search` | Público/sessão; ACL no servidor | — | `SearchResults` | **PROPOSTA** |
@@ -147,7 +147,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 | DELETE | `/v1/seek/events/{eventId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | PUT | `/v1/seek/events/{eventId}/interest` | Sessão autenticada | — | `EventInterest` | **PROPOSTA** |
 | DELETE | `/v1/seek/events/{eventId}/interest` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/geo/reverse` | Público | `GeoReverseRequest` | `GeoResolution` | **PROPOSTA** |
+| POST | `/v1/geo/reverse` | Sessão autenticada | `GeoReverseRequest` | `GeoResolution` | **PROPOSTA** |
 
 ## Shop
 

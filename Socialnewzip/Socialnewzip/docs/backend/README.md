@@ -93,7 +93,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 - Categoria, especialidades e áreas de atendimento são dados declarados pelo responsável. Não significam verificação profissional.
 - Delivery, atendimento no local/mesa, retirada, reservas e agendamento são **capacidades declaradas**. Não são pedidos, entregas, mesas disponíveis ou horários reserváveis.
 - Avaliação: nota inteira 1–5, comentário atual com pelo menos 10 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.
-- Resposta comercial: somente dono da conta comercial; mínimo atual de 3 caracteres. Limites máximos propostos: avaliação 4.000 e resposta 2.000, a validar com produto.
+- Resposta comercial: somente dono da conta comercial; mínimo 3 e máximo 5.000 caracteres conforme os limites do esquema SQL proposto. Avaliação: mínimo 10 e máximo 5.000 caracteres. Esses limites são proposta técnica, não validação já executada no backend.
 - O dono pode responder, não apagar crítica de cliente pela API comercial. Remoções são do autor ou de moderação autorizada.
 - Média e quantidade são calculadas das avaliações elegíveis. Ausência de avaliações não significa nota zero.
 

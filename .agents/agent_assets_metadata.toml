@@ -154,3 +154,31 @@ mtime_ms = 1792679927279
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/a1cd7b18-6ce9-4354-945e-3cc439e44189/e922fc81-0813-4de8-af99-40a9297c3b08"
 storage_version_token = "1792679975091936"
 content_type = "text/html"
+
+[[outputs]]
+id = "Am4Zwj6Ca1sVC3jpLu95k"
+uri = "file://Socialnewzip/Socialnewzip/docs/backend/index.html"
+type = "html"
+title = "Seekalive — documentação do aplicativo e backend"
+description = "Documento HTML completo e portátil, com telas, arquitetura, regras, 134 operações propostas, esquema de dados e plano de implementação."
+logical_id = "2c538bc4-9edf-4e12-90a0-4c95b328d464"
+content_hash = "sha256:dd7cb824abbc9334c9ca4395639d0a4923a3f7ea86e69a9cca565a1b35ca26b0"
+size = 136260
+mtime_ms = 1792688773149
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/2c538bc4-9edf-4e12-90a0-4c95b328d464/097a4db9-a9db-4acd-acfb-99ef4290ebca"
+storage_version_token = "1792688784621309"
+content_type = "text/html"
+
+[[outputs]]
+id = "HepXKsIlYfqiWjhuB3-lJ"
+uri = "file://Socialnewzip/Socialnewzip/docs/backend/Seekalive-backend-documentation.zip"
+type = "unspecified"
+title = "Pacote técnico completo — Seekalive"
+description = "ZIP com documentação editável, OpenAPI, SQL proposto, geradores e catálogo oficial de 5.571 municípios do IBGE."
+logical_id = "502d9c10-62c6-4f76-9408-e82c81852aa6"
+content_hash = "sha256:e161512996a08baa30471facd8a4d06e5c46119f92726c230b8ef48641e65196"
+size = 171971
+mtime_ms = 1792688773661
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/502d9c10-62c6-4f76-9408-e82c81852aa6/7437034b-7407-4d00-8921-38959915c809"
+storage_version_token = "1792688785577047"
+content_type = "application/octet-stream"

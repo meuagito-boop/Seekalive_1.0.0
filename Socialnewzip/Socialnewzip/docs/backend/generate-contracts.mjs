@@ -23,8 +23,8 @@ const P = "PagePost", A = "Account", C = "Comment", S = "Circle", N = "Notificat
 g("health", "/healthz", "Verificar servidor (rota existente)", "Health", null, { status: "live", auth: "none" });
 g("auth", "/v1/auth/session", "Consultar sessão atual", "Session", null, { auth: "optional" });
 g("auth", "/v1/auth/csrf", "Obter token CSRF da sessão", "Csrf", null, { auth: "optional" });
-g("auth", "/v1/auth/authorize", "Iniciar fluxo OIDC com state e PKCE", null, null, { auth: "none", redirect: true });
-g("auth", "/v1/auth/callback", "Validar callback OIDC e criar sessão", null, null, { auth: "none", redirect: true, query: ["code", "state"] });
+g("auth", "/v1/auth/authorize", "Iniciar fluxo OIDC com state e PKCE", null, null, { auth: "none", redirect: true, query: ["state"], requiredQuery: ["state"] });
+g("auth", "/v1/auth/callback", "Validar callback OIDC e criar sessão", null, null, { auth: "none", redirect: true, query: ["code", "state"], requiredQuery: ["code", "state"] });
 post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Empty", { status: "proposed" });
 g("auth", "/v1/auth/sessions", "Listar sessões próprias", "PageSession", null);
 del("auth", "/v1/auth/sessions/{sessionId}", "Revogar sessão própria", "Empty");
@@ -36,7 +36,7 @@ g("accounts", "/v1/accounts/me", "Consultar conta e projeções do visitante", A
 post("accounts", "/v1/accounts", "Criar perfil da conta já autenticada", "AccountCreate", A);
 patch("accounts", "/v1/accounts/me", "Editar perfil; não aceita papéis administrativos", "AccountPatch", A);
 del("accounts", "/v1/accounts/me", "Solicitar exclusão segura", "Accepted", { accepted: true });
-g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability");
+g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability", null, { query: ["username"], requiredQuery: ["username"], auth: "none" });
 g("accounts", "/v1/accounts/{accountId}", "Consultar perfil por identificador respeitando privacidade", A, null, { auth: "optional" });
 g("accounts", "/v1/profiles/{username}", "Resolver perfil por username respeitando privacidade", "Profile", null, { auth: "optional" });
 put("accounts", "/v1/accounts/me/preferences", "Substituir preferências próprias", "Preferences", "Preferences");
@@ -68,7 +68,7 @@ post("social", "/v1/social/posts/{postId}/repost", "Repostar publicação públi
 del("social", "/v1/social/posts/{postId}/repost", "Remover repost próprio", "Empty");
 put("social", "/v1/social/comments/{commentId}/like", "Curtir comentário legível", null, "Empty");
 del("social", "/v1/social/comments/{commentId}/like", "Descurtir comentário", "Empty");
-post("social", "/v1/social/posts/{postId}/share-intents", "Registrar intenção de compartilhar (não prova entrega externa)", null, "Accepted", { accepted: true });
+post("social", "/v1/social/posts/{postId}/share-intents", "Registrar intenção de compartilhar (não prova entrega externa)", null, "ShareIntent");
 g("social", "/v1/social/users/search", "Buscar apenas contas descobertas e legíveis", "PageAccount", null, { query: ["q", "limit", "cursor"], auth: "optional" });
 g("social", "/v1/social/tags/search", "Buscar hashtags públicas", "PageTag", null, { query: ["q", "limit", "cursor"], auth: "optional" });
 g("social", "/v1/social/search", "Busca unificada autorizada", "SearchResults", null, { query: ["q", "type", "limit", "cursor"], auth: "optional" });
@@ -125,7 +125,7 @@ post("seek", "/v1/seek/events/{eventId}/cancel", "Cancelar evento próprio e com
 del("seek", "/v1/seek/events/{eventId}", "Arquivar evento próprio", "Empty");
 put("seek", "/v1/seek/events/{eventId}/interest", "Registrar interesse em evento publicado", null, "EventInterest");
 del("seek", "/v1/seek/events/{eventId}/interest", "Remover interesse próprio", "Empty");
-post("seek", "/v1/geo/reverse", "Resolver cidade aproximada após ação GPS explícita", "GeoReverseRequest", "GeoResolution", { auth: "none" });
+post("seek", "/v1/geo/reverse", "Resolver cidade aproximada após ação GPS explícita", "GeoReverseRequest", "GeoResolution");
 
 g("shop", "/v1/shop/items", "Buscar itens ativos e vendedores comerciais", "PageShopItem", null, { query: ["q", "category", "sellerId", "sort", "cursor", "limit"], auth: "optional" });
 g("shop", "/v1/shop/items/{itemId}", "Consultar item ativo", "ShopItem", null, { auth: "optional" });
@@ -179,6 +179,9 @@ const schemas = {
   Accepted: model({ jobId: uuid, status: { type: "string", enum: ["queued", "processing"] } }, ["jobId", "status"]),
   Health: model({ status: { type: "string", const: "ok" } }, ["status"]),
   Readiness: model({ status: { type: "string", enum: ["ready", "degraded"] }, checks: { type: "object", additionalProperties: { type: "string" } } }, ["status", "checks"]),
+  Csrf: model({ csrfToken: string, expiresAt: { type: "string", format: "date-time" } }, ["csrfToken", "expiresAt"]),
+  Session: model({ id: uuid, createdAt: { type: "string", format: "date-time" }, lastSeenAt: { type: "string", format: "date-time" }, isCurrent: { type: "boolean" } }, ["id", "createdAt", "lastSeenAt", "isCurrent"]),
+  PageSession: page("Session"),
   Account: model({
     id: uuid, username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", maxLength: 80 },
     bio: { type: "string", maxLength: 500 }, avatarUrl: { type: ["string", "null"] }, coverUrl: { type: ["string", "null"] },
@@ -200,8 +203,12 @@ const schemas = {
       reservations: { type: "boolean" }, appointments: { type: "boolean" }, takeout: { type: "boolean" },
     }), tags: arr(string), rating: { type: ["number", "null"], minimum: 1, maximum: 5 }, reviewCount: { type: "integer", minimum: 0 }, version: { type: "integer" },
   }, ["accountId", "discoveryKind", "categoryKey", "category", "cityId", "cityName", "cityState", "serviceAreas", "openingHours", "serviceOptions", "tags", "reviewCount", "version"]),
+  ServiceOptions: model({
+    delivery: { type: "boolean" }, dineIn: { type: "boolean" }, tableService: { type: "boolean" },
+    reservations: { type: "boolean" }, appointments: { type: "boolean" }, takeout: { type: "boolean" },
+  }, ["delivery", "dineIn", "tableService", "reservations", "appointments", "takeout"]),
   BusinessHour: model({ weekday: { type: "integer", minimum: 0, maximum: 6 }, opensAt: { type: ["string", "null"], pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, closesAt: { type: ["string", "null"], pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, closed: { type: "boolean" } }, ["weekday", "closed"]),
-  BusinessWrite: model({ discoveryKind: { type: "string", enum: ["place", "provider"] }, categoryKey: string, category: string, cityId: { type: "string", pattern: "^[0-9]{7}$" }, serviceAreas: arr(string), address: { type: "string", maxLength: 250 }, openingHours: arr(ref("BusinessHour")), serviceOptions: ref("BusinessProfile"), tags: arr(string), photoMediaIds: arr(uuid), videoMediaIds: arr(uuid), version: { type: "integer" } }, ["discoveryKind", "categoryKey", "category", "cityId", "version"]),
+  BusinessWrite: model({ discoveryKind: { type: "string", enum: ["place", "provider"] }, categoryKey: string, category: string, cityId: { type: "string", pattern: "^[0-9]{7}$" }, serviceAreas: arr(string), address: { type: "string", maxLength: 250 }, openingHours: arr(ref("BusinessHour")), serviceOptions: ref("ServiceOptions"), tags: arr(string), photoMediaIds: arr(uuid), videoMediaIds: arr(uuid), version: { type: "integer" } }, ["discoveryKind", "categoryKey", "category", "cityId", "version"]),
   Post: model({ id: uuid, authorId: uuid, content: { type: "string", maxLength: 280 }, audience, format: { type: "string", enum: ["text", "media", "article"] }, type: { type: "string", enum: ["text", "video"] }, article: ref("Article"), media: arr(ref("MediaAsset")), reference: ref("ContentReference"), createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" }, version: { type: "integer" }, stats: ref("PostStats"), viewer: ref("PostViewer") }, ["id", "authorId", "content", "audience", "format", "type", "createdAt", "version", "stats", "viewer"]),
   Article: model({ title: { type: "string", minLength: 1, maxLength: 160 }, body: { type: "string", minLength: 1, maxLength: 50000 } }, ["title", "body"]),
   PostStats: model({ likes: { type: "integer", minimum: 0 }, comments: { type: "integer", minimum: 0 }, reposts: { type: "integer", minimum: 0 }, shares: { type: "integer", minimum: 0 } }, ["likes", "comments", "reposts", "shares"]),
@@ -219,6 +226,9 @@ const schemas = {
   CircleRequest: model({ accountId: uuid }, ["accountId"]),
   PageAccount: page("Account"),
   PageFollow: page("Follow"),
+  Repost: model({ id: uuid, postId: uuid, authorId: uuid, createdAt: { type: "string", format: "date-time" } }, ["id", "postId", "authorId", "createdAt"]),
+  Trend: model({ tag: string, publicPostCount: { type: "integer", minimum: 0 } }, ["tag", "publicPostCount"]),
+  PageTrend: page("Trend"),
   PageTag: page("Tag"),
   Tag: model({ tag: string, count: { type: "integer", minimum: 0 } }, ["tag", "count"]),
   SearchResults: model({ posts: page("Post"), accounts: page("Account"), tags: page("Tag"), nextCursor: { type: ["string", "null"] } }, ["posts", "accounts", "tags"]),
@@ -230,6 +240,7 @@ const schemas = {
   UploadCreate: model({ mimeType: { type: "string", enum: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "video/mp4", "video/webm", "video/quicktime", "video/ogg"] }, byteSize: { type: "integer", minimum: 1 }, purpose: { type: "string", enum: ["post", "avatar", "cover", "business", "event", "shop"] }, checksumSha256: { type: "string" } }, ["mimeType", "byteSize", "purpose", "checksumSha256"]),
   Upload: model({ media: ref("MediaAsset"), uploadUrl: { type: "string", format: "uri" }, method: { type: "string", enum: ["PUT", "POST"] }, headers: { type: "object", additionalProperties: { type: "string" } }, expiresAt: { type: "string", format: "date-time" } }, ["media", "uploadUrl", "method", "expiresAt"]),
   PageCity: page("City"),
+  PageEvent: page("Event"),
   City: model({ id: { type: "string", pattern: "^[0-9]{7}$" }, name: string, state: { type: "string", minLength: 2, maxLength: 2 }, stateName: { type: ["string", "null"] } }, ["id", "name", "state"]),
   PageCategory: page("Category"),
   Category: model({ key: string, name: string, kind: { type: "string", enum: ["place", "provider", "event", "shop_item"] }, resultCount: { type: "integer", minimum: 0 } }, ["key", "name", "kind"]),
@@ -246,6 +257,7 @@ const schemas = {
   EventInterest: model({ eventId: uuid, interested: { type: "boolean" }, interestedCount: { type: "integer", minimum: 0 } }, ["eventId", "interested", "interestedCount"]),
   GeoReverseRequest: model({ latitude: { type: "number", minimum: -90, maximum: 90 }, longitude: { type: "number", minimum: -180, maximum: 180 }, consent: { type: "boolean", const: true } }, ["latitude", "longitude", "consent"]),
   GeoResolution: model({ city: ref("City"), precision: { type: "string", const: "approximate" }, persisted: { type: "boolean", const: false } }, ["city", "precision", "persisted"]),
+  ShareIntent: model({ id: uuid, createdAt: { type: "string", format: "date-time" } }, ["id", "createdAt"]),
   ShopItem: model({ id: uuid, sellerId: uuid, name: { type: "string", minLength: 2, maxLength: 160 }, description: { type: "string", maxLength: 5000 }, kind: { type: "string", enum: ["product", "service"] }, priceMinor: { type: ["integer", "null"], minimum: 0 }, compareAtPriceMinor: { type: ["integer", "null"], minimum: 0 }, currency: { type: "string", const: "BRL" }, status: { type: "string", enum: ["draft", "active", "archived"] }, media: arr(ref("MediaAsset")), version: { type: "integer" } }, ["id", "sellerId", "name", "kind", "currency", "status", "version"]),
   ShopItemWrite: model({ name: { type: "string", minLength: 2, maxLength: 160 }, description: { type: "string", maxLength: 5000 }, kind: { type: "string", enum: ["product", "service"] }, priceMinor: { type: ["integer", "null"], minimum: 0 }, compareAtPriceMinor: { type: ["integer", "null"], minimum: 0 }, currency: { type: "string", const: "BRL" }, status: { type: "string", enum: ["draft", "active"] }, mediaIds: { type: "array", maxItems: 8, items: uuid }, version: { type: "integer" } }, ["name", "kind", "currency"]),
   PageShopItem: page("ShopItem"),
@@ -295,14 +307,17 @@ for (const route of R) {
   paths[path] ??= {};
   const name = `${route.tag}_${method}_${path.replaceAll(/[{}]/g, "").replaceAll("/", "_").replaceAll("-", "_")}`.replaceAll(/_+/g, "_");
   const operationId = `${name}_${Object.keys(paths[path]).length + 1}`;
-  const successCode = route.redirect ? "302" : route.accepted || method === "post" && route.status !== "live" ? "201" : method === "delete" && route.response === "Empty" ? "204" : "200";
+  const successCode = route.redirect ? "302" : route.accepted ? "202" : method === "post" && route.status !== "live" ? "201" : method === "delete" && route.response === "Empty" ? "204" : "200";
   const responses = route.redirect ? { "302": { description: "Redirecionamento no fluxo OIDC; callback valida state/PKCE." } }
     : { [successCode]: route.contentResponse ? { description: "Bytes de mídia aprovados após a checagem de autorização.", content: { "image/*": { schema: { type: "string", format: "binary" } }, "video/*": { schema: { type: "string", format: "binary" } } } }
       : route.stream ? { description: "SSE autenticado; eventos são apenas notificações de recursos que precisam ser reconsultados.", content: { "text/event-stream": { schema: { type: "string" } } } }
       : { description: route.status === "live" ? "Endpoint implementado e observado no servidor atual." : "Contrato proposto; handler ainda não existe.", ...(route.response ? { content: { "application/json": { schema: ref(route.response) } } } : {}) }, ...errorResponses };
   const parameters = [];
-  for (const match of path.matchAll(/\{([^}]+)\}/g)) parameters.push({ name: match[1], in: "path", required: true, schema: match[1].endsWith("Id") ? uuid : string });
-  for (const query of route.query ?? []) parameters.push({ name: query, in: "query", required: false, schema: query === "limit" ? { type: "integer", minimum: 1, maximum: 100, default: 20 } : string });
+  for (const match of path.matchAll(/\{([^}]+)\}/g)) parameters.push({
+    name: match[1], in: "path", required: true,
+    schema: match[1] === "cityId" ? { type: "string", pattern: "^[0-9]{7}$" } : match[1].endsWith("Id") ? uuid : string,
+  });
+  for (const query of route.query ?? []) parameters.push({ name: query, in: "query", required: (route.requiredQuery ?? []).includes(query), schema: query === "limit" ? { type: "integer", minimum: 1, maximum: 100, default: 20 } : string });
   for (const query of route.query ?? []) if (query === "q") parameters[parameters.findIndex(p => p.name === query && p.in === "query")].schema = { type: "string", maxLength: 160 };
   if (route.request && schemas[route.request]) route.request = route.request;
   paths[path][method] = {
@@ -310,9 +325,9 @@ for (const route of R) {
     description: route.status === "live" ? "LIVE on the audited API server." : `PROPOSED ONLY; not currently implemented.${route.accepted ? " Async job and request ID; no synchronous-success simulation." : ""}`,
     ...(route.query?.includes("q") && !parameters.some(p => p.name === "q") ? { parameters: [{ name: "q", in: "query", required: true, schema: { type: "string", maxLength: 160 } }] } : {}),
     ...(parameters.length ? { parameters } : {}),
-    ...(route.redirect ? { parameters: [...parameters, { name: "state", in: "query", required: true, schema: string }, { name: "code", in: "query", required: false, schema: string }] } : {}),
+    ...(route.redirect ? { parameters: [...parameters, ...((route.query ?? []).includes("state") ? [] : [{ name: "state", in: "query", required: true, schema: string }]), ...((route.query ?? []).includes("code") ? [] : [{ name: "code", in: "query", required: false, schema: string }])] } : {}),
     ...(["get", "head", "options"].includes(method) || route.redirect ? {} : { security: [{ SessionCookie: [], CsrfHeader: [] }], ...(route.request ? { requestBody: { required: method !== "delete", content: { "application/json": { schema: schemas[route.request] ? ref(route.request) : model({}) } } } } : {}) }),
-    ...(route.auth === "optional" ? { security: [] } : {}),
+    ...(route.auth === "optional" || route.auth === "none" ? { security: [] } : {}),
     ...(!route.auth && !route.redirect && route.status !== "live" && ["get"].includes(method) ? { security: [{ SessionCookie: [] }] } : {}),
     responses: responses,
   };

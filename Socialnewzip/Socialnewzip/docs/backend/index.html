@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seekalive — documentação do backend</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--panel:#12151d;--text:#eef0f5;--muted:#a9adba;--accent:#ff851b;--line:#292e39}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:30px max(20px,calc((100% - 1120px)/2));background:#10141c;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+header strong{color:var(--accent);letter-spacing:.04em}nav{display:flex;gap:12px;overflow:auto;margin-top:12px;white-space:nowrap}nav a{color:var(--muted);font-size:13px}
+main{max-width:1120px;margin:0 auto;padding:28px 22px 80px}section{padding:20px 0 42px;border-bottom:1px solid var(--line)}
+h1{font-size:2rem;line-height:1.2}h2{font-size:1.55rem;margin-top:2.1em}h3{font-size:1.15rem;margin-top:1.6em}
+p,li{color:#d7dae2}a{color:#ffad5c}code{background:#1c2029;padding:2px 5px;border-radius:4px;color:#ffd0a1}
+pre{overflow:auto;background:#10141b;padding:16px;border:1px solid var(--line);border-radius:10px;white-space:pre-wrap}
+blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--accent);background:var(--panel);color:var(--muted)}
+.table-wrap{overflow:auto;margin:14px 0}table{border-collapse:collapse;width:100%;min-width:600px;background:var(--panel)}
+th,td{text-align:left;vertical-align:top;padding:9px 11px;border:1px solid var(--line)}th{color:#ffd0a1;background:#191d26}
+hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640px){header{position:static;padding:20px}main{padding:16px}}
+</style></head><body>
+<header><strong>SEEKALIVE · DOCUMENTAÇÃO TÉCNICA</strong><nav>
+<a href="#README">Visão geral</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
+</nav></header><main><section id="README"><h1>Seekalive — documentação do aplicativo e especificação do backend</h1>
+<p><strong>Data da auditoria:</strong> 22/10/2026. <strong>Natureza:</strong> documentação técnica e proposta de implementação, não backend entregue.</p>
+<blockquote>Nenhum banco foi criado, nenhuma migração foi executada, nenhum provedor foi conectado e nenhuma credencial foi solicitada. Somente <code>GET /api/healthz</code> existe no servidor auditado. Todos os demais endpoints deste pacote são contratos propostos, mesmo quando já há um adaptador no front-end.</blockquote>
+<h2>Como utilizar este pacote</h2>
+<ol>
+<li>Ler este documento e <code>architecture-and-security.md</code>: escopo, regras e decisões propostas.</li>
+<li>Consultar <code>frontend-integration.md</code>: cada página e cada armazenamento temporário que precisam de integração.</li>
+<li>Usar <code>endpoints.md</code> e <code>openapi.json</code>: catálogo de métodos, permissões, corpos, respostas e erros.</li>
+<li>Revisar <code>data-dictionary.md</code> e <code>schema-core.sql</code>: modelo relacional proposto. <strong>Não executar o SQL automaticamente.</strong></li>
+<li>Consultar <code>external-services-and-operations.md</code>: serviços, links oficiais, configuração, implantação e monitoramento.</li>
+<li>Seguir <code>implementation-and-tests.md</code>: ordem de implementação, critérios de aceite e funcionalidades futuras.</li>
+</ol>
+<p>O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é <strong>separado</strong> de <code>lib/api-spec/openapi.yaml</code>, que permanece intacto e descreve somente a API atual.</p>
+<h2>1. Produto</h2>
+<p>Seekalive reúne três módulos conectados por uma identidade única:</p>
+<div class="table-wrap"><table>
+<tr><th>Módulo</th><th>Objetivo</th><th>Entidades centrais</th></tr>
+<tr><td>Social</td><td>Publicar, interagir, manter perfis e relacionamentos</td><td>Conta, publicação, artigo, mídia, comentário, repost, Círculo, conversa</td></tr>
+<tr><td>Seek</td><td>Descobrir comércios, profissionais e eventos</td><td>A própria conta comercial, dados comerciais, cidade, avaliação, evento</td></tr>
+<tr><td>Shop</td><td>Descobrir produtos, ofertas e serviços</td><td>Item, vendedor comercial, catálogo e salvos</td></tr>
+</table></div>
+<p><strong>Regra estrutural:</strong> uma conta é pessoal ou comercial. Uma conta comercial continua sendo uma conta Social; sua extensão comercial alimenta o Seek. Não criar um cadastro independente de estabelecimentos. Para o Shop real, a proposta é vincular cada vendedor a uma conta comercial existente — os vendedores fictícios atuais ainda não possuem esse vínculo consistente.</p>
+<p><strong>Não pertencem ao produto:</strong> Shuffle e Comunidades. Círculos permanecem como relacionamento bilateral entre pessoas, não como grupos/comunidades com membros, administradores ou publicações próprias.</p>
+<p><strong>Identidade e navegação:</strong> marca Seekalive; símbolo Elo; interface escura/laranja. Barra inferior preservada: menu lateral, Social, criação, Seek e Shop. A implementação do backend não autoriza redesenhar esses controles.</p>
+<h2>2. O que existe de verdade hoje</h2>
+<div class="table-wrap"><table>
+<tr><th>Área</th><th>Situação auditada</th></tr>
+<tr><td>Servidor</td><td>Express/TypeScript em <code>artifacts/api-server</code>, com <code>GET /api/healthz</code> → <code>{&quot;status&quot;:&quot;ok&quot;}</code></td></tr>
+<tr><td>Banco</td><td>Biblioteca Drizzle + driver PostgreSQL preparada em <code>lib/db</code>; <code>src/schema/index.ts</code> está vazio. Isso não comprova existência de banco provisionado ou conectado</td></tr>
+<tr><td>Especificação</td><td><code>lib/api-spec/openapi.yaml</code> só descreve saúde; clientes gerados e Zod não significam API Social pronta</td></tr>
+<tr><td>Login</td><td>Estado de demonstração. <code>AppContext</code> inicia autenticado e usa conta local/mock; credenciais do formulário não são autenticadas no servidor</td></tr>
+<tr><td>Cadastro</td><td>Cria perfil no navegador. Não cria identidade de autenticação, não verifica e-mail e não guarda credenciais de autenticação reais</td></tr>
+<tr><td>Recuperação/verificação</td><td>Telas e transições locais, sem envio de e-mail, token de recuperação ou validação real do código</td></tr>
+<tr><td>Publicações/comentários</td><td><code>contentService</code> seleciona <code>demoContentAdapter</code>; existe adaptador REST proposto, mas desativado</td></tr>
+<tr><td>Fotos/vídeos</td><td><code>URL.createObjectURL</code>, memória e URLs <code>blob:</code>. Não são uploads e deixam de funcionar após recarga</td></tr>
+<tr><td>Contas/avaliações</td><td>Dados de exemplo e registros no <code>localStorage</code>; não são dados compartilhados entre dispositivos</td></tr>
+<tr><td>Relacionamentos/mensagens</td><td>Estado React; Círculos também têm listas locais de página que precisam ser unificadas</td></tr>
+<tr><td>Seek</td><td>Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância</td></tr>
+<tr><td>Mocks Seek</td><td>Ativos por padrão no desenvolvimento: 8 locais, 4 prestadores, 6 eventos. São fictícios e não devem ser importados como catálogo de produção</td></tr>
+<tr><td>Shop</td><td>Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real</td></tr>
+<tr><td>Configurações</td><td>Vários controles de privacidade, notificações, segurança e conta estão desabilitados, não apenas aguardando um endpoint existente</td></tr>
+</table></div>
+<p>O frontend e a API têm processos separados. O Vite auditado não possui proxy <code>/api</code> configurado. Antes de ligar os adaptadores, configurar roteamento de mesma origem; caso contrário uma URL de API pode devolver HTML da SPA.</p>
+<h2>3. Regras de negócio obrigatórias</h2>
+<h3>Identidade e autorização</h3>
+<ul>
+<li>O servidor identifica o autor pela sessão, nunca pelo <code>authorId</code>, <code>senderId</code>, <code>reviewerId</code>, <code>sellerId</code> ou <code>organizerId</code> enviado pelo navegador.</li>
+<li><code>username</code> único sem diferenciação de maiúsculas; preservar a regra atual de 3–20 caracteres <code>[a-z0-9_]</code>. Definir lista reservada, política de troca e redirecionamento de links antigos.</li>
+<li><code>isFollowing</code>, <code>isInCircle</code>, <code>circleStatus</code>, <code>isBlocked</code>, <code>isMuted</code>, <code>isLiked</code> e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil.</li>
+<li>Selos de verificação e papéis administrativos não são editáveis pela API de perfil.</li>
+<li>A verificação de e-mail vem do provedor de identidade. Um código digitado no frontend nunca basta para declarar a conta verificada.</li>
+</ul>
+<h3>Conteúdo Social</h3>
+<ul>
+<li>Uma publicação possui um autor; um artigo é uma publicação com <code>format=article</code>, não um blog ou identidade separados.</li>
+<li>Referenciar outro conteúdo não muda autoria nem duplica o original.</li>
+<li>Repost é uma relação entre conta e publicação pública; remover repost não remove o original.</li>
+<li>Texto curto: até 280 caracteres; título de artigo: 1–160; corpo: 1–50.000; comentário: 1–2.000; mensagem: 1–5.000. Conteúdo somente com espaços é inválido.</li>
+<li>Até 8 mídias por publicação. Formato de mídia exige pelo menos uma mídia; artigo exige título e corpo; uma referência isolada sem texto/mídia não constitui publicação válida.</li>
+<li>Mídias publicadas alimentam automaticamente a galeria do autor, pessoal ou comercial. A galeria deriva das publicações e mantém a audiência; não copiar o arquivo nem criar uma galeria pública paralela.</li>
+<li>Mídias legadas de perfil comercial exigem uma estratégia de importação explícita para a mesma origem de ativos/publicações, sem duplicação silenciosa.</li>
+<li>Resposta de comentário deve pertencer à mesma publicação do comentário pai. Curtidas, reposts e salvos são únicos por conta/recurso.</li>
+<li>Compartilhamento registra, no máximo, uma intenção de compartilhar. Não é prova de entrega por WhatsApp, rede externa ou destinatário.</li>
+</ul>
+<h3>Privacidade proposta para o servidor</h3>
+<p>O frontend tem verificações parciais; esta é a política segura proposta, que exige adaptar telas e testes:</p>
+<ol>
+<li>Conteúdo privado: apenas autor e eventual moderação autorizada/auditada.</li>
+<li>Conteúdo para Círculos: autor e relação bilateral aceita; seguir alguém não equivale a entrar no Círculo.</li>
+<li>Conteúdo público: visível conforme o estado da conta. Conta privada requer relação de seguimento aceita para conteúdo destinado ao perfil; bloqueio prevalece sobre relações anteriores.</li>
+<li>Aplicar a mesma política a feed, busca, perfil, comentários, contadores, galeria, notificações, referências e download dos arquivos.</li>
+<li>Recursos privados ou não existentes devem produzir resposta indistinguível para terceiros, normalmente <code>404</code>. Ações negadas em recurso que o usuário pode conhecer podem retornar <code>403</code>.</li>
+<li>Silenciar é um filtro pessoal de distribuição; bloquear impede interações e acesso conforme a política, sem conceder poder de apagar avaliações legítimas de um negócio.</li>
+</ol>
+<p>A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou bloqueadas. A precisão de endereço de profissionais deve ser controlada: área de atendimento não deve publicar residência particular.</p>
+<h3>Comércio, serviços e avaliações</h3>
+<ul>
+<li><code>business_profiles.account_id</code> é a mesma chave da conta comercial, com relação 1:1.</li>
+<li>Categoria, especialidades e áreas de atendimento são dados declarados pelo responsável. Não significam verificação profissional.</li>
+<li>Delivery, atendimento no local/mesa, retirada, reservas e agendamento são <strong>capacidades declaradas</strong>. Não são pedidos, entregas, mesas disponíveis ou horários reserváveis.</li>
+<li>Avaliação: nota inteira 1–5, comentário atual com pelo menos 10 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.</li>
+<li>Resposta comercial: somente dono da conta comercial; mínimo 3 e máximo 5.000 caracteres conforme os limites do esquema SQL proposto. Avaliação: mínimo 10 e máximo 5.000 caracteres. Esses limites são proposta técnica, não validação já executada no backend.</li>
+<li>O dono pode responder, não apagar crítica de cliente pela API comercial. Remoções são do autor ou de moderação autorizada.</li>
+<li>Média e quantidade são calculadas das avaliações elegíveis. Ausência de avaliações não significa nota zero.</li>
+</ul>
+<h3>Localização e eventos</h3>
+<ul>
+<li>Preferência de cidade, endereço do negócio e posição física são conceitos separados.</li>
+<li>Município deve usar ID oficial do IBGE, não comparação livre de nome. Código é texto de 7 dígitos, não chave UUID.</li>
+<li>GPS exige ação explícita. Por padrão, não persistir coordenadas do dispositivo nem incluí-las em logs, analytics ou URL de consulta.</li>
+<li>Distância exige coordenadas verificadas do negócio, fonte geográfica e cálculo real. Distância em linha reta não é rota, tempo de viagem ou prazo de entrega.</li>
+<li>Não adicionar mapa visual por consequência da implementação geográfica.</li>
+<li>Evento real exige organizador comercial existente, cidade, data/hora com fuso, estado de publicação e dados próprios. Interesse não equivale a ingresso, inscrição paga ou reserva.</li>
+<li>Datas UTC/ISO no transporte e armazenamento; fuso IANA para apresentação e regras de calendário. Não interpretar rótulos como “sábado, 21 jun” como datas canônicas.</li>
+</ul>
+<h2>4. Entregas de backend e limites</h2>
+<p><strong>Núcleo a implementar:</strong> identidade, conta/perfil, Social, mídias, relacionamentos, mensagens, notificações, Seek, avaliações, eventos, catálogo Shop, salvos, busca, preferências, moderação e privacidade.</p>
+<p><strong>Extensões ainda sujeitas a decisão:</strong> checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.</p>
+<p><strong>Decisões propostas, não escolhas já contratadas:</strong> PostgreSQL aproveitando Drizzle, API REST versionada em Express, autenticação via provedor OIDC com sessão segura, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados.</p>
+<h2>5. Links e versões</h2>
+<ul>
+<li>Rotas da interface e URLs relativas da API estão em <code>frontend-integration.md</code> e <code>endpoints.md</code>.</li>
+<li>Links oficiais das integrações estão em <code>external-services-and-operations.md</code>.</li>
+<li>URL pública definitiva do app/API: <strong>não definida por esta auditoria</strong>. Não inferir domínio de produção a partir do endereço de desenvolvimento.</li>
+<li>Base proposta de mesma origem: <code>/api/v1</code>; saúde existente: <code>/api/healthz</code>.</li>
+<li>Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.</li>
+</ul></section>
+<section id="architecture-and-security"><h1>Arquitetura, segurança e fluxos</h1>
+<h2>1. Arquitetura de referência</h2>
+<pre><code>Navegador / aplicativo web
+  | mesma origem; cookie HttpOnly; token CSRF nas alterações
+  v
+Roteador HTTP / Express
+  | autenticação -&gt; autorização -&gt; validação -&gt; serviço de domínio
+  +--&gt; PostgreSQL / Drizzle (transações, índices, constraints)
+  +--&gt; Object Storage privado (upload autorizado / leitura com ACL)
+  +--&gt; Provedor OIDC (login, recuperação, verificação, MFA)
+  +--&gt; Provedor de e-mail e Web Push (quando habilitados)
+  +--&gt; Adaptador de geocodificação (opcional e explícito)
+  |
+  +--&gt; Outbox na mesma transação
+          -&gt; worker de mídia / notificações / busca / exclusão
+          -&gt; stream SSE autorizado para o destinatário</code></pre>
+<p>Preservar a stack atual; separar routers, políticas, serviços, repositórios e DTOs. Não colocar a regra de domínio somente no componente React nem retornar linhas SQL diretamente. O pacote não cria esses diretórios na aplicação.</p>
+<h3>Responsabilidades sugeridas</h3>
+<ul>
+<li><strong>HTTP:</strong> parsing, limites, contexto de sessão, request ID e serialização.</li>
+<li><strong>Políticas:</strong> <code>canReadAccount</code>, <code>canReadPost</code>, <code>canInteract</code>, <code>canManageBusiness</code>, <code>canReadConversation</code>, <code>canUseMedia</code>.</li>
+<li><strong>Serviços:</strong> transações e regras de estado; não dependem de componentes de UI.</li>
+<li><strong>Repositórios:</strong> queries parametrizadas, índices, paginação e bloqueio otimista.</li>
+<li><strong>DTOs:</strong> camelCase, propriedades do visitante e URLs autorizadas; omitir PII e metadados internos.</li>
+<li><strong>Workers:</strong> tarefas repetíveis com deduplicação, retentativa, fila de falhas e cancelamento.</li>
+</ul>
+<h2>2. Convenções da API</h2>
+<div class="table-wrap"><table>
+<tr><th>Convenção</th><th>Contrato proposto</th></tr>
+<tr><td>Versão</td><td><code>/api/v1</code>; manter <code>/api/healthz</code> existente</td></tr>
+<tr><td>IDs novos</td><td>UUID gerado no servidor; IDs legados de demonstração não são importados</td></tr>
+<tr><td>Datas</td><td>ISO 8601 UTC; fuso IANA separado quando houver calendário local</td></tr>
+<tr><td>Dinheiro</td><td>Inteiro em centavos + moeda ISO, inicialmente BRL; jamais fazer cálculo com <code>R$ 29,90</code></td></tr>
+<tr><td>Paginação</td><td>`{items: [...], nextCursor: string</td><td>null}`; limite padrão 20, máximo 100</td></tr>
+<tr><td>Cursor</td><td>Opaco, assinado ou validado, vinculado a filtros/ordem/escopo; desempate por ID</td></tr>
+<tr><td>Busca</td><td>Normalização de acentos, limites de tamanho, ranking documentado; não chamar de semântica sem implementação</td></tr>
+<tr><td>Erro</td><td><code>{error:{code,message,requestId,fields?}}</code>, sem SQL, token, stack ou informação privada</td></tr>
+<tr><td>Concorrência</td><td><code>version</code>/ETag em recursos editáveis; <code>If-Match</code> nas alterações; <code>412</code> para versão divergente</td></tr>
+<tr><td>Relações</td><td>PUT/DELETE idempotentes; repost POST existente também deve ser idempotente por par conta/publicação</td></tr>
+<tr><td>Criações</td><td><code>Idempotency-Key</code> em POST com efeito; vincular conta, método, rota e hash do corpo; rejeitar reutilização com corpo diferente</td></tr>
+<tr><td>Limites</td><td><code>429</code> e <code>Retry-After</code>; cotas propostas, configuráveis e medidas</td></tr>
+</table></div>
+<p>Status principais: <code>200</code>, <code>201</code>, <code>202</code> para tarefa realmente aceita, <code>204</code> sem corpo, <code>400</code> sintaxe, <code>401</code>, <code>403</code>, <code>404</code>, <code>409</code> conflito de domínio, <code>412</code> versão, <code>413</code> tamanho, <code>415</code> tipo, <code>422</code> validação, <code>429</code>, <code>500</code>, <code>502</code> integração, <code>503</code> indisponibilidade. <code>401</code> nunca deve ser convertido em resultado vazio nem em dados de demonstração.</p>
+<h3>Exemplo de erro</h3>
+<pre><code>{
+  &quot;error&quot;: {
+    &quot;code&quot;: &quot;VALIDATION_FAILED&quot;,
+    &quot;message&quot;: &quot;Revise os campos informados.&quot;,
+    &quot;requestId&quot;: &quot;req_exemplo&quot;,
+    &quot;fields&quot;: [{&quot;path&quot;: &quot;rating&quot;, &quot;message&quot;: &quot;Informe uma nota inteira entre 1 e 5.&quot;}]
+  }
+}</code></pre>
+<h3>Adaptação dos contratos existentes</h3>
+<ul>
+<li>O cliente espera objeto <code>Post</code> diretamente, não envelope <code>{data: Post}</code>. Páginas usam <code>Page&lt;T&gt;</code>.</li>
+<li>Busca de pessoas existente retorna array de resumo; busca de tags retorna array de strings. Não trocar o formato sem alterar o adaptador.</li>
+<li>Comentário enviado usa <code>text</code>; resposta usa <code>content</code>. Essa diferença foi preservada no contrato.</li>
+<li><code>authorId</code> atual deve ser retirado das decisões de autorização. Compatibilidade temporária pode aceitá-lo somente se coincidir com a sessão.</li>
+<li>Publicação com mídias deve passar <code>mediaIds</code> de uploads concluídos, não <code>blob:</code>, <code>data:</code>, URLs de terceiros ou object keys fornecidos pelo cliente. Alterar <code>PublishPostInput</code>, validação e adaptador antes de ativar REST.</li>
+<li>Completar <code>postSchema</code> com <code>isBookmarked</code>, <code>parentPostId</code> quando aplicável e <code>version</code>; hoje esses campos não estão todos no parser REST.</li>
+<li><code>type=text|video</code> é legado de apresentação; derivar de <code>format</code> e das mídias, não criar duas fontes conflitantes.</li>
+<li>Referências públicas continuam <code>seek_entity|shop_item|social_post</code>. O legado <code>seek_entity</code> com <code>id=&quot;event:&lt;id&gt;&quot;</code> deve ser normalizado internamente para evento, com FK própria, sem criar entidade comercial fictícia.</li>
+</ul>
+<h2>3. Autenticação e ciclo de conta</h2>
+<p><strong>Proposta:</strong> provedor de identidade compatível com OIDC/OAuth, Authorization Code + PKCE, sessão de aplicação no servidor. A escolha/configuração do provedor é uma decisão anterior à implementação; não há provedor conectado na auditoria.</p>
+<ol>
+<li>O navegador inicia <code>/auth/authorize</code>; backend cria <code>state</code>, <code>nonce</code>, PKCE e intenção de cadastro com TTL.</li>
+<li>Callback valida estado, emissor, audiência, nonce, prazo e assinatura antes de vincular <code>provider + subject</code>.</li>
+<li>E-mail coincidente não autoriza vincular duas identidades automaticamente; exigir prova autenticada da conta existente.</li>
+<li>Conta Social é criada/completada em transação, com username único, tipo pessoal/comercial, aceite dos termos e identidade verificada.</li>
+<li>Rotacionar sessão no login e mudanças sensíveis. Cookie <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite=Lax</code>, caminho apropriado. Nunca usar token de acesso em <code>localStorage</code>.</li>
+<li>Senha, recuperação e MFA ficam com o provedor escolhido. As telas atuais de senha/código são demonstrações e precisarão usar seu SDK ou fluxo autorizado.</li>
+<li>Encerrar sessão revoga a sessão no servidor, fecha streams e limpa caches privados. Recarregar a página não autentica automaticamente.</li>
+</ol>
+<p>Os endpoints de recuperação/verificação/ações sensíveis do catálogo são fachadas propostas. Se o provedor exigir redirecionamento em vez de código de seis dígitos, adaptar a UI; não criar um “sucesso” local para manter a aparência atual.</p>
+<p><strong>Não implementar um segundo banco de senhas ao lado do OIDC.</strong> Caso o produto opte posteriormente por autenticação própria, será uma decisão separada: hashing Argon2id, tokens de uso único armazenados como hash, proteção contra enumeração, expiração e auditoria. Essa alternativa não faz parte do SQL principal.</p>
+<h3>Contas e consentimento</h3>
+<ul>
+<li>Registrar versão de termos/política aceita e data. Separar consentimento de marketing e notificações do contrato necessário para operar a conta.</li>
+<li>Alteração de e-mail, exclusão, conexão de identidade e recuperação exigem reautenticação.</li>
+<li>Exclusão/desativação deve revogar sessões, parar descoberta, ocultar conteúdo, cancelar jobs e iniciar rotina de retenção/anônimização. Não prometer eliminação instantânea de backups.</li>
+<li>Exportação é tarefa assíncrona com autorização do solicitante, prazo e download privado; deve excluir segredos e dados privados de terceiros.</li>
+</ul>
+<h2>4. Upload, publicação e galeria</h2>
+<pre><code>POST /media/uploads (MIME declarado, tamanho, finalidade)
+  -&gt; valida cota/usuário -&gt; cria media_asset pending
+  -&gt; retorna instrução de upload temporária, escopo de um objeto
+PUT/POST no armazenamento, conforme instrução autorizada
+POST /media/{id}/complete
+  -&gt; verifica objeto real, tamanho, checksum e tipo pelo conteúdo
+  -&gt; processamento/antivírus/remoção de EXIF/transcodificação
+GET /media/{id} -&gt; ready ou failed/quarantined
+POST /social/posts com mediaIds
+  -&gt; valida autoria e estado ready -&gt; grava post + post_media + outbox
+GET /accounts/{id}/media
+  -&gt; consulta publicações legíveis + post_media, sem duplicar ativos</code></pre>
+<p>Limites atuais a preservar inicialmente: 8 mídias; foto até 10 MiB; vídeo até 100 MiB. JPEG/PNG/WebP/GIF/AVIF e MP4/WebM/MOV/OGG. Tipo informado pelo navegador é insuficiente: verificar magic bytes, dimensões, duração, tamanho descomprimido e codecs. Arquivos inválidos não viram URLs publicáveis.</p>
+<p>Não aceitar SVG/HTML executável como foto. Remover EXIF, inclusive GPS, das variantes públicas. Validar URLs externas somente se houver um serviço específico de importação com proteção SSRF; a primeira versão deve aceitar arquivos enviados, não buscar qualquer URL.</p>
+<p><strong>Leitura privada:</strong> usar endpoint autorizado de conteúdo/proxy para ativos restritos. URLs pré-assinadas de leitura têm janela de acesso até expirar e não podem prometer revogação imediata. Se forem usadas para mídias públicas, definir TTL, invalidação e política de mudança de audiência. Nunca expor bucket inteiro ou object keys previsíveis como autorização.</p>
+<p>Uploads sem vínculo podem expirar, proposta inicial 24 horas. Um ativo ainda usado em avatar, capa ou outra publicação não pode ser apagado por excluir apenas um vínculo. Exclusão física é job idempotente após checagem de referências e retenção.</p>
+<h2>5. Transações críticas</h2>
+<div class="table-wrap"><table>
+<tr><th>Operação</th><th>Unidade transacional / prevenção de corrida</th></tr>
+<tr><td>Cadastro</td><td>Identidade + conta + perfil comercial, se houver + termos; unique username/provider-subject</td></tr>
+<tr><td>Publicar</td><td>Sessão + ACL da referência + ownership de mídia + post + vínculos + outbox</td></tr>
+<tr><td>Repost/curtir/salvar</td><td>Unique de par; retry não duplica; contador derivado ou atualizado na mesma transação</td></tr>
+<tr><td>Comentário/resposta</td><td>Permissão do post + pai no mesmo post + conteúdo + evento de notificação</td></tr>
+<tr><td>Círculo</td><td>Par canônico de contas; ator solicitado/solicitante validado; transição pending→accepted uma vez</td></tr>
+<tr><td>Bloquear</td><td>Bloqueio e revogação das relações/interações incompatíveis em transação; desbloquear não recria relações automaticamente</td></tr>
+<tr><td>Avaliação</td><td>Sessão do avaliador + conta comercial distinta + unique negócio/avaliador; média coerente com moderação</td></tr>
+<tr><td>Resposta comercial</td><td>Apenas dono do negócio vinculado à avaliação; nenhum <code>businessAccountId</code> arbitrário</td></tr>
+<tr><td>Mensagem</td><td>Participação + permissão de contato + clientMessageId único + mensagem + outbox</td></tr>
+<tr><td>Leitura de conversa</td><td>Cursor monotônico; mensagem deve pertencer à conversa; um participante não altera o cursor de outro</td></tr>
+<tr><td>Atualização de perfil</td><td>Versão esperada; username único; cache do Seek invalidado somente após commit</td></tr>
+<tr><td>Remoção de conteúdo</td><td>Estado removido + dependências/reposts ocultos + invalidação de busca/referências/galeria</td></tr>
+</table></div>
+<h2>6. Tempo real</h2>
+<p>Proposta inicial: SSE <code>GET /api/v1/stream</code> com sessão, heartbeat, limite por conta e <code>Last-Event-ID</code>; escritas permanecem REST. WebSocket é alternativa caso presença/digitação/volume justifiquem, não dependência obrigatória.</p>
+<p>Envelope:</p>
+<pre><code>{
+  &quot;eventId&quot;: &quot;00000000-0000-4000-8000-000000000001&quot;,
+  &quot;type&quot;: &quot;message.created&quot;,
+  &quot;occurredAt&quot;: &quot;2026-10-22T15:00:00Z&quot;,
+  &quot;resourceId&quot;: &quot;00000000-0000-4000-8000-000000000002&quot;,
+  &quot;version&quot;: 1
+}</code></pre>
+<p>Tipos propostos: <code>message.created</code>, <code>conversation.read</code>, <code>notification.created</code>, <code>notification.read</code>, <code>circle.updated</code>, <code>post.updated</code>, <code>post.deleted</code>, <code>media.ready</code>, <code>media.failed</code>, <code>event.updated</code>.</p>
+<p>Autorizar cada assinante e cada replay. Revogar assinaturas em logout/bloqueio/remoção de participante. Preferir IDs a corpo de mensagens em pushes e notificações de sistema. Entrega é <strong>pelo menos uma vez</strong>: frontend deduplica por eventId e consulta o recurso autorizado. Não prometer entrega exatamente uma vez.</p>
+<h2>7. Segurança e abuso</h2>
+<ul>
+<li>Autorização por objeto em todo ID recebido: BOLA/IDOR é um risco central em posts, mídias, salvos, avaliações e conversas.</li>
+<li>Cookie de sessão exige defesa CSRF nas mutações: token + validação de origem; CORS não é autorização. SameSite não substitui todas as verificações.</li>
+<li>Origens CORS explícitas somente se realmente houver frontend separado. Não combinar credenciais com <code>Access-Control-Allow-Origin: *</code>.</li>
+<li>Queries parametrizadas; allowlist de ordenação e campos editáveis; não repassar objetos arbitrários do cliente para UPDATE.</li>
+<li>Sanitizar corpo de artigo ao renderizar; definir formato permitido. HTML de usuário não deve executar script, iframe ou handlers. Escapar texto normal.</li>
+<li>Usar CSP, HSTS em HTTPS, <code>X-Content-Type-Options: nosniff</code> e política de referrer.</li>
+<li>Rate limit por rota, conta e IP; anti-enumeração em autenticação; limites de busca, tamanho de página, payload e uploads; proteção contra spam e fan-out excessivo.</li>
+<li>Moderação exige papel administrativo confiável fora do perfil editável, motivo e trilha auditável. Verificação de negócio não é papel de administrador.</li>
+<li>Webhooks: assinatura, timestamp/tolerância, deduplicação por evento do provedor, corpo bruto para verificar assinatura e processamento assíncrono idempotente. Não confiar em query string de “pagamento aprovado”.</li>
+<li>Logs redigidos: nunca senha, cookie, token, segredo, URL assinada, corpo de DM, código de recuperação ou GPS bruto.</li>
+<li>O banco deve ter usuário de aplicação com privilégios mínimos e credenciais diferentes das de migração. Testes não devem usar dados pessoais de produção.</li>
+</ul>
+<h2>8. LGPD e retenção</h2>
+<p>Esta é orientação de engenharia, não parecer jurídico. Documentar finalidades, bases legais e operadores com revisão responsável.</p>
+<p>Propostas para aprovação: remover upload órfão após 24h; idempotência por 24–72h conforme operação; logs operacionais redigidos por 30 dias; exportação privada com expiração curta; retenção de auditoria/moderação segundo necessidade legal. Não fixar retenção financeira antes de definir o modelo comercial e obrigações aplicáveis.</p>
+<p>Não guardar GPS físico por padrão. Histórico de busca/visitas deve ser opt-in ou ter finalidade claramente informada e ação para limpar. Minimizar IP/user-agent e evitar rastreamento persistente desnecessário.</p>
+<p>Exclusão deve tratar conta, identidade, sessões, mídia, busca, caches, notificações, mensagens, avaliações, jobs e backups. Mensagens/conteúdo de interação podem exigir anonimização ou tombstone em vez de cascade cego; a política deve ser documentada e testada.</p></section>
+<section id="frontend-integration"><h1>Inventário de telas, rotas e pontos de integração</h1>
+<p>Todos os caminhos de código abaixo são relativos a <code>artifacts/social/src</code>, salvo indicação contrária. Rotas da UI são links relativos do aplicativo, <strong>não endpoints de API</strong>.</p>
+<h2>1. Rotas auditadas</h2>
+<div class="table-wrap"><table>
+<tr><th>Rotas da interface</th><th>Código / comportamento atual</th><th>Integração necessária</th></tr>
+<tr><td><code>/</code>, <code>/login</code>, <code>/register</code></td><td><code>App.tsx</code>, <code>Login</code>, <code>Register</code>, <code>AppContext</code>; login demonstrativo</td><td>Sessão real, cadastro único, identidade, termos, username, retorno de autenticação</td></tr>
+<tr><td><code>/forgot-password</code>, <code>/verify-email</code></td><td>Sucesso local/código de demonstração</td><td>Fluxo real do provedor, rate limit, desafio com expiração e estados de erro</td></tr>
+<tr><td><code>/onboarding/interests</code>, <code>/onboarding/suggestions</code></td><td>Preferências/sugestões locais; conclusão no-op</td><td>Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida</td></tr>
+<tr><td><code>/feed</code></td><td>Feed local: para você, seguindo, artigos, vídeos</td><td><code>GET social/feed</code>, paginação, audiência, bloqueios, contadores e cache por visitante</td></tr>
+<tr><td><code>/compose</code>, <code>/article/create</code></td><td><code>contentService</code> demo + mídias blob</td><td>Upload, criação transacional, validação, idempotência e publicação com referência</td></tr>
+<tr><td><code>/post/:postId</code>, <code>/article/:postId</code></td><td>Leitura e interação locais</td><td>Leitura autorizada, comentários/respostas, curtidas, reposts, remoção e edição proposta</td></tr>
+<tr><td><code>/search</code></td><td>Pessoas/publicações/tags e tendências locais</td><td>Busca paginada, índices, permissões e tendências calculadas</td></tr>
+<tr><td><code>/profile</code>, <code>/profile/:username</code></td><td>Perfil pessoal/comercial com posts/mídias/artigos</td><td>DTO de conta + relações do visitante + conteúdo autorizado + galeria derivada</td></tr>
+<tr><td><code>/profile/edit</code></td><td>Atualiza conta local e SocialContext</td><td>PATCH de conta, extensão comercial, mídia, município, horários, recursos, versão</td></tr>
+<tr><td><code>/profile/:username/followers</code>, <code>/profile/:username/following</code></td><td>Listas locais</td><td>Listas paginadas e permissões para perfis privados</td></tr>
+<tr><td><code>/profile/:username/circles</code>, <code>/circles</code></td><td>Listas de amizades/convites; estado parcialmente separado</td><td>Uma fonte canônica de relações; respeitar username da rota e política de lista pública</td></tr>
+<tr><td><code>/social/activity</code></td><td>Histórico, salvos, curtidas, comentários e publicações</td><td>Consultas do ator autenticado; limpar histórico sem apagar conteúdo original</td></tr>
+<tr><td><code>/social/suggestions</code></td><td>Sugestões locais</td><td>Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis</td></tr>
+<tr><td><code>/notifications</code></td><td>Eventos e leitura locais</td><td>Destinatário no servidor, paginação, marcar lida, preferências e entrega</td></tr>
+<tr><td><code>/messages</code>, <code>/messages/:conversationId</code></td><td>Conversas/mensagens locais</td><td>Participação, criação de conversa, texto, leitura monotônica, deduplicação e stream</td></tr>
+<tr><td><code>/seek</code></td><td>Localização, categorias, filtros, carrosséis, salvos e mocks</td><td>Descoberta por contas comerciais, busca, cidades, avaliações e eventos reais</td></tr>
+<tr><td><code>/seek/event/:id</code></td><td>Detalhe de demonstração; ingresso desabilitado</td><td>Evento real com organizador, interesse persistente, estado; ingressos são extensão</td></tr>
+<tr><td><code>/shop</code>, <code>/shop/item/:id</code></td><td>Catálogo ilustrativo, detalhe, favoritos; compra desabilitada</td><td>Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo</td></tr>
+<tr><td><code>/settings</code>, <code>/settings/account</code></td><td>Username local; ações sensíveis desabilitadas</td><td>Preferências, identidade, reautenticação, exportação/desativação/exclusão</td></tr>
+<tr><td><code>/settings/privacy</code>, <code>/settings/blocked</code></td><td>Controles principalmente desabilitados</td><td>Política efetiva, bloqueios/mutes e permissões de contato/relacionamento</td></tr>
+<tr><td><code>/settings/notifications</code></td><td>Defaults visuais desabilitados</td><td>Preferências reais e consentimento para push/e-mail</td></tr>
+<tr><td><code>/settings/security</code></td><td>Sessões/MFA/histórico indisponíveis</td><td>Sessões revogáveis, ações no provedor e auditoria de acesso redigida</td></tr>
+<tr><td><code>/settings/appearance</code></td><td>Escuro; tamanho 16/18/20 local</td><td>Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render</td></tr>
+<tr><td><code>/styleguide</code>, página inexistente</td><td>Apoio visual e fallback</td><td>Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API</td></tr>
+</table></div>
+<p>O estado “autenticado” do router é apenas UI. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.</p>
+<h2>2. Arquivos que precisam trocar de fonte</h2>
+<div class="table-wrap"><table>
+<tr><th>Arquivo</th><th>Alteração de integração, quando autorizada</th></tr>
+<tr><td><code>context/AppContext.tsx</code></td><td>Consultar sessão, retirar login automático/mock, expiração e logout autoritativos</td></tr>
+<tr><td><code>context/SocialContext.tsx</code></td><td>Substituir fixtures/reducer como verdade por cache de API e mutações reconciliadas</td></tr>
+<tr><td><code>services/contentService.ts</code></td><td>Migrar payload de mídia/autor; ativar REST somente após teste real; não fallback para demo em erro</td></tr>
+<tr><td><code>services/restContracts.ts</code></td><td>Completar operações, erros, paginação e validações; manter formatos existentes documentados</td></tr>
+<tr><td><code>services/contentValidation.ts</code></td><td>Compartilhar regras com servidor sem confundir validação de UI com segurança</td></tr>
+<tr><td><code>services/mediaService.ts</code>, <code>hooks/use-draft-media.ts</code></td><td>Upload real, estado de processamento, progresso/cancelamento; blob somente para preview temporário</td></tr>
+<tr><td><code>services/referenceResolver.ts</code>, <code>lib/contentLinks.ts</code></td><td>Resolver no servidor respeitando audiência e destino original, incluindo <code>event:</code></td></tr>
+<tr><td><code>lib/postMedia.ts</code></td><td>Galeria derivada de publicações e mídias autorizadas; não expor ativo oculto por outro caminho</td></tr>
+<tr><td><code>data/accountStorage.ts</code>, <code>data/reviewStorage.ts</code></td><td>Retirar como persistência principal; importação, se houver, explícita e validada</td></tr>
+<tr><td><code>hooks/useSeekDiscovery.ts</code>, <code>lib/seekDiscovery.ts</code></td><td>Consultar API por filtros/cidade; separar estado de UI dos dados; preservar retorno e scroll</td></tr>
+<tr><td><code>services/seekLocationService.ts</code></td><td>Manter seleção manual e GPS consentido; adaptar catálogo à API/cache; geocodificação só após configuração</td></tr>
+<tr><td><code>hooks/use-saved-shop-items.ts</code>, salvos comerciais</td><td>API única de salvos tipados, compartilhada entre perfil e módulos</td></tr>
+<tr><td><code>data/mockData.ts</code>, <code>demoCatalog.ts</code>, <code>demoSeek*.ts</code>, <code>demoIntegrationPosts.ts</code></td><td>Fixtures exclusivamente de testes/preview; não seeds automáticos de produção</td></tr>
+<tr><td><code>components/profile/CommercialProfilePage.tsx</code></td><td>Dados da mesma conta comercial, avaliações e resposta; nenhuma identidade comercial paralela</td></tr>
+<tr><td><code>lib/api-spec/openapi.yaml</code> (raiz do projeto)</td><td>Evoluir contrato vigente após aprovação; preservar título <code>Api</code> exigido pelo código gerado</td></tr>
+<tr><td><code>lib/api-client-react</code>, <code>lib/api-zod</code></td><td>Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente</td></tr>
+<tr><td><code>lib/db/src/schema</code></td><td>Implementar Drizzle a partir do modelo revisado; criar migrações versionadas</td></tr>
+<tr><td><code>artifacts/api-server/src/app.ts</code></td><td>Ordem de middleware, autenticação, CSRF, limites, routers, erros e logs seguros</td></tr>
+</table></div>
+<h3>Atenção aos contratos atuais</h3>
+<p>O adaptador existente não envia CSRF nem <code>Idempotency-Key</code> e não trata <code>412</code>, <code>413</code>, <code>415</code>, <code>429</code> de forma específica. Acrescentar essas respostas à experiência de erro. Consultas devem suportar cancelamento, e um resultado antigo não deve sobrescrever a cidade/filtro novo.</p>
+<p><code>AppContext</code>, <code>SocialContext</code> e página de Círculos hoje podem representar estados distintos. A API deve ser a fonte única; a mudança de username precisa atualizar todos os caches, links, sessão e busca. “Atualização otimista” exige rollback em erro, não apenas toast de sucesso.</p>
+<h2>3. Persistência atual e destino</h2>
+<div class="table-wrap"><table>
+<tr><th>Origem atual</th><th>Chave / conteúdo</th><th>Destino</th></tr>
+<tr><td>localStorage</td><td><code>seekalive-social-accounts</code>, <code>seekalive-active-account</code></td><td>Conta e sessão reais; nunca importar identidade/ownership sem autenticação</td></tr>
+<tr><td>localStorage</td><td><code>seekalive-social-reviews</code></td><td>Avaliações validadas por sessão; não importar avaliações de outras pessoas</td></tr>
+<tr><td>localStorage</td><td><code>seekalive-saved-shop-items</code>, <code>seekalive-saved-businesses</code></td><td><code>saved_resources</code>, somente IDs reais e legíveis</td></tr>
+<tr><td>sessionStorage</td><td><code>seekalive-seek-saved-events</code></td><td>Salvos de evento reais, ou manter local quando for apenas demonstração</td></tr>
+<tr><td>sessionStorage</td><td><code>seekalive-seek-filters</code>, <code>seekalive-seek-scroll</code></td><td>Pode continuar como estado de navegação local; não precisa virar tabela</td></tr>
+<tr><td>sessionStorage</td><td><code>seekalive-seek-recent-cities</code></td><td>Preferência manual local; sincronização entre dispositivos opcional/consentida</td></tr>
+<tr><td>sessionStorage</td><td><code>seekalive-seek-demo-preview</code></td><td>Somente desenvolvimento; nunca configura catálogo de produção</td></tr>
+<tr><td>Memória React</td><td>Posts, comentários, reposts, relações, notificações e mensagens</td><td>Tabelas e cache de API; fixtures não são dados migráveis automaticamente</td></tr>
+<tr><td><code>blob:</code></td><td>Fotos/vídeos de rascunho/publicação</td><td>Upload de arquivos reais e vínculos de mídia; URL blob não pode ser “migrada” pelo servidor</td></tr>
+</table></div>
+<p>Não transformar tudo em tabela: scroll, modal aberto, termo parcialmente digitado e seleção temporária são estados de UI. O servidor deve persistir escolhas de produto, conteúdo e relações, não cada renderização.</p>
+<h2>4. Exemplos de integração</h2>
+<h3>Publicação</h3>
+<pre><code>POST /api/v1/social/posts
+Content-Type: application/json
+X-CSRF-Token: &lt;token-da-sessao&gt;
+Idempotency-Key: &lt;uuid-da-tentativa&gt;
+
+{
+  &quot;format&quot;: &quot;media&quot;,
+  &quot;content&quot;: &quot;Um registro do encontro.&quot;,
+  &quot;audience&quot;: &quot;public&quot;,
+  &quot;mediaIds&quot;: [&quot;00000000-0000-4000-8000-000000000010&quot;],
+  &quot;reference&quot;: {&quot;type&quot;:&quot;seek_entity&quot;,&quot;id&quot;:&quot;00000000-0000-4000-8000-000000000011&quot;}
+}</code></pre>
+<p>O servidor preenche autor, datas, contadores, menções e hashtags, valida os arquivos e a referência. A resposta continua no formato <code>Post</code> esperado pelo cliente.</p>
+<h3>Busca de serviço em município</h3>
+<pre><code>GET /api/v1/seek/discover?q=pedreiro&amp;kind=provider&amp;cityId=3550308&amp;minRating=4&amp;sort=rating&amp;limit=20</code></pre>
+<p>Mapeamento do filtro atual: <code>query→q</code>, <code>tab=providers→kind=provider</code>, <code>minimumRating→minRating</code>; <code>list</code> e <code>scroll</code> não são filtros de servidor. <code>onlyOpen</code> atual é situação declarada: mapear para <code>open=declared</code>, não “aberto agora” sem horários estruturados.</p>
+<h3>Referência a evento legado</h3>
+<pre><code>GET /api/v1/references/seek_entity/event%3A00000000-0000-4000-8000-000000000012</code></pre>
+<p>O adaptador mantém <code>encodeURIComponent</code>. O servidor valida o prefixo, resolve evento e retorna <code>/seek/event/&lt;id&gt;</code>, sem transformar o evento em conta.</p>
+<h3>Avaliação</h3>
+<pre><code>PUT /api/v1/seek/businesses/00000000-0000-4000-8000-000000000011/reviews/me
+Content-Type: application/json
+X-CSRF-Token: &lt;token-da-sessao&gt;
+
+{&quot;rating&quot;:5,&quot;comment&quot;:&quot;Atendimento cuidadoso e serviço bem explicado.&quot;}</code></pre>
+<p>O autor vem da sessão. Atualização substitui a avaliação da mesma pessoa, sem duplicar contagens; resposta comercial é um recurso separado.</p>
+<h2>5. Matriz resumida de permissão</h2>
+<div class="table-wrap"><table>
+<tr><th>Recurso</th><th>Visitante autorizado a ler</th><th>Quem altera</th></tr>
+<tr><td>Perfil público</td><td>Público conforme política de exposição</td><td>Dono; moderação auditada para suspensão</td></tr>
+<tr><td>Conta privada</td><td>Dono/seguidores aceitos conforme campo</td><td>Dono; sem exposição de e-mail/sessões</td></tr>
+<tr><td>Publicação/artigo</td><td>Audiência + privacidade + bloqueio</td><td>Autor</td></tr>
+<tr><td>Comentário</td><td>Leitor autorizado do post</td><td>Autor; moderação com motivo</td></tr>
+<tr><td>Galeria/arquivo</td><td>Mesma audiência da origem</td><td>Dono do ativo e vínculos autorizados</td></tr>
+<tr><td>Avaliação comercial</td><td>Política pública/moderação do negócio</td><td>Avaliador; resposta somente dono do negócio</td></tr>
+<tr><td>Evento/item Shop</td><td>Publicado e organizador/vendedor acessível</td><td>Dono da conta comercial</td></tr>
+<tr><td>Conversa/mensagem</td><td>Participantes autorizados</td><td>Remetente para envio; participante para seu cursor de leitura</td></tr>
+<tr><td>Notificação/salvo/preferência</td><td>Apenas destinatário/dono</td><td>Apenas destinatário/dono</td></tr>
+<tr><td>Relatório de abuso</td><td>Denunciante vê seu protocolo; moderador vê fila</td><td>Equipe autorizada, com auditoria</td></tr>
+<tr><td>Exportação/exclusão</td><td>Próprio titular reautenticado</td><td>Worker autorizado, com trilha e estados</td></tr>
+</table></div></section>
+<section id="endpoints"><h1>Endpoints e contrato OpenAPI</h1>
+<p>Gerado por <code>node docs/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>134 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
+<blockquote>Salvo <code>GET /api/healthz</code>, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.</blockquote>
+<h2>Respostas, paginação e autenticação</h2>
+<ul>
+<li>A maioria dos GET responde <code>200</code>; POST de recurso <code>201</code>; POST de job <code>202</code>; alterações em relação existente <code>200</code>/<code>204</code>; callback OIDC redireciona. Código exato por operação e schema estão em OpenAPI.</li>
+<li>Página: <code>items</code> e <code>nextCursor</code> opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente <code>Page&lt;T&gt;</code>.</li>
+<li>Erro: <code>{error:{code,message,requestId,fields?}}</code>. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.</li>
+<li>Escritas autenticadas: cookie + <code>X-CSRF-Token</code>; POST com efeito recebe <code>Idempotency-Key</code> quando indicado na especificação de arquitetura.</li>
+<li>Rota marcada <code>ACTIVA</code> existe hoje. Outras são propostas e requerem implementação, migração e testes.</li>
+</ul>
+<h2>Health</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/healthz</code></td><td>Público</td><td>—</td><td><code>Health</code></td><td><strong>ACTIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/health/ready</code></td><td>Sessão autenticada</td><td>—</td><td><code>Readiness</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Auth</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/auth/session</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Session</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/csrf</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Csrf</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/authorize</code></td><td>Público</td><td>—</td><td>302 redirect</td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/callback</code></td><td>Público</td><td>—</td><td>302 redirect</td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/auth/logout</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/sessions</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageSession</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/auth/sessions/{sessionId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/auth/recovery</code></td><td>Público</td><td><code>RecoveryRequest</code></td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
+<tr><td>POST</td><td><code>/v1/auth/verification</code></td><td>Público/sessão; ACL no servidor</td><td><code>VerificationRequest</code></td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
+<tr><td>POST</td><td><code>/v1/auth/verification/confirm</code></td><td>Sessão autenticada</td><td><code>VerificationConfirm</code></td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Accounts</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td>—</td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/accounts</code></td><td>Sessão autenticada</td><td><code>AccountCreate</code></td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PATCH</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td><code>AccountPatch</code></td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td>—</td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/availability</code></td><td>Público</td><td>—</td><td><code>Availability</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/{accountId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/profiles/{username}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Profile</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/accounts/me/preferences</code></td><td>Sessão autenticada</td><td><code>Preferences</code></td><td><code>Preferences</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/me/preferences</code></td><td>Sessão autenticada</td><td>—</td><td><code>Preferences</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/accounts/me/onboarding</code></td><td>Sessão autenticada</td><td><code>Interests</code></td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/accounts/me/export</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/me/export/{jobId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>ExportJob</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/{accountId}/media</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageMedia</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/{accountId}/business</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>BusinessProfile</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/accounts/me/business</code></td><td>Sessão autenticada</td><td><code>BusinessWrite</code></td><td><code>BusinessProfile</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/accounts/me/business</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/accounts/me/privacy</code></td><td>Sessão autenticada</td><td><code>PrivacyWrite</code></td><td><code>Privacy</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/me/privacy</code></td><td>Sessão autenticada</td><td>—</td><td><code>Privacy</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Social</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/social/feed</code></td><td>Sessão autenticada</td><td>—</td><td><code>PagePost</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/posts</code></td><td>Sessão autenticada</td><td><code>PostCreate</code></td><td><code>Post</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/posts/{postId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Post</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PATCH</td><td><code>/v1/social/posts/{postId}</code></td><td>Sessão autenticada</td><td><code>PostPatch</code></td><td><code>Post</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/posts/{postId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/articles</code></td><td>Sessão autenticada</td><td><code>PostCreate</code></td><td><code>Post</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/articles/{postId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Post</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/posts/{postId}/comments</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageComment</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/posts/{postId}/comments</code></td><td>Sessão autenticada</td><td><code>CommentCreate</code></td><td><code>Comment</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PATCH</td><td><code>/v1/social/comments/{commentId}</code></td><td>Sessão autenticada</td><td><code>CommentPatch</code></td><td><code>Comment</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/comments/{commentId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/posts/{postId}/like</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/posts/{postId}/like</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/posts/{postId}/repost</code></td><td>Sessão autenticada</td><td>—</td><td><code>Repost</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/posts/{postId}/repost</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/comments/{commentId}/like</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/comments/{commentId}/like</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/posts/{postId}/share-intents</code></td><td>Sessão autenticada</td><td>—</td><td><code>ShareIntent</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/users/search</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/tags/search</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageTag</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/search</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>SearchResults</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/trends</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageTrend</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/references/{type}/{id}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>ReferencePreview</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/activity</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageActivity</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/activity/history</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Relations</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/social/accounts/{accountId}/followers</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/accounts/{accountId}/following</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/accounts/{accountId}/follow</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Follow</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/accounts/{accountId}/follow</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/follow-requests</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageFollow</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/accept</code></td><td>Sessão autenticada</td><td>—</td><td><code>Follow</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/decline</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/circles</code></td><td>Sessão autenticada</td><td>—</td><td><code>Circle</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/circles/requests</code></td><td>Sessão autenticada</td><td><code>CircleRequest</code></td><td><code>Circle</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/circles/requests/{accountId}/accept</code></td><td>Sessão autenticada</td><td>—</td><td><code>Circle</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/circles/requests/{accountId}/decline</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/circles/requests/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/circles/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/blocks</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/mutes</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/mutes/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/mutes/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/posts/{postId}/saved</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/posts/{postId}/saved</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/saved</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageSaved</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Media</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>POST</td><td><code>/v1/media/uploads</code></td><td>Sessão autenticada</td><td><code>UploadCreate</code></td><td><code>Upload</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/media/{mediaId}/complete</code></td><td>Sessão autenticada</td><td>—</td><td><code>MediaAsset</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/media/{mediaId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>MediaAsset</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/media/{mediaId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/media/{mediaId}/content</code></td><td>Sessão autenticada</td><td>—</td><td>bytes/SSE</td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Seek</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/seek/cities</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageCity</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/seek/cities/{cityId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>City</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/seek/categories</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageCategory</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/seek/discover</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageDiscovery</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/seek/businesses/{accountId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>BusinessProfile</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/seek/businesses/{accountId}/reviews</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageReview</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/seek/businesses/{accountId}/reviews/me</code></td><td>Sessão autenticada</td><td><code>ReviewWrite</code></td><td><code>Review</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/seek/businesses/{accountId}/reviews/me</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/seek/businesses/{accountId}/reviews/{reviewId}/reply</code></td><td>Sessão autenticada</td><td><code>ReviewReplyWrite</code></td><td><code>Review</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/seek/businesses/{accountId}/reviews/{reviewId}/reply</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/seek/events</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageEvent</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/seek/events</code></td><td>Sessão autenticada</td><td><code>EventCreate</code></td><td><code>Event</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/seek/events/{eventId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Event</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PATCH</td><td><code>/v1/seek/events/{eventId}</code></td><td>Sessão autenticada</td><td><code>EventPatch</code></td><td><code>Event</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/seek/events/{eventId}/publish</code></td><td>Sessão autenticada</td><td>—</td><td><code>Event</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/seek/events/{eventId}/cancel</code></td><td>Sessão autenticada</td><td>—</td><td><code>Event</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/seek/events/{eventId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/seek/events/{eventId}/interest</code></td><td>Sessão autenticada</td><td>—</td><td><code>EventInterest</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/seek/events/{eventId}/interest</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/geo/reverse</code></td><td>Sessão autenticada</td><td><code>GeoReverseRequest</code></td><td><code>GeoResolution</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Shop</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/shop/items</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageShopItem</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/shop/items/{itemId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>ShopItem</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/shop/stores</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageStore</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/shop/categories</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageCategory</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/me/shop/items</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageShopItem</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/accounts/me/shop/items</code></td><td>Sessão autenticada</td><td><code>ShopItemWrite</code></td><td><code>ShopItem</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PATCH</td><td><code>/v1/shop/items/{itemId}</code></td><td>Sessão autenticada</td><td><code>ShopItemWrite</code></td><td><code>ShopItem</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/shop/items/{itemId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/shop/items/{itemId}/saved</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/shop/items/{itemId}/saved</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Messaging</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/conversations</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageConversation</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/conversations</code></td><td>Sessão autenticada</td><td><code>ConversationCreate</code></td><td><code>Conversation</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/conversations/{conversationId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Conversation</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/conversations/{conversationId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/conversations/{conversationId}/messages</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageMessage</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/conversations/{conversationId}/messages</code></td><td>Sessão autenticada</td><td><code>MessageCreate</code></td><td><code>Message</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/conversations/{conversationId}/read</code></td><td>Sessão autenticada</td><td><code>ReadReceipt</code></td><td><code>ReadReceipt</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/stream</code></td><td>Sessão autenticada</td><td>—</td><td>bytes/SSE</td><td><strong>PROPOSTA</strong>; Server-Sent Events</td></tr>
+</table></div>
+<h2>Notifications</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/notifications</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageNotification</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/notifications/{notificationId}/read</code></td><td>Sessão autenticada</td><td>—</td><td><code>Notification</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/notifications/read-all</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/notifications/preferences</code></td><td>Sessão autenticada</td><td>—</td><td><code>NotificationPreferences</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/notifications/preferences</code></td><td>Sessão autenticada</td><td><code>NotificationPreferences</code></td><td><code>NotificationPreferences</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/notifications/push-subscriptions</code></td><td>Sessão autenticada</td><td><code>PushSubscription</code></td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/notifications/push-subscriptions/{subscriptionId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Privacy</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>POST</td><td><code>/v1/reports</code></td><td>Sessão autenticada</td><td><code>ReportCreate</code></td><td><code>ReportReceipt</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/reports/{reportId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>ReportReceipt</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/privacy/requests</code></td><td>Sessão autenticada</td><td><code>PrivacyRequest</code></td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
+<tr><td>GET</td><td><code>/v1/privacy/requests/{requestId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>PrivacyJob</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Moderation</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>GET</td><td><code>/v1/moderation/reports</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageReport</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/moderation/reports/{reportId}/actions</code></td><td>Sessão autenticada</td><td><code>ModerationAction</code></td><td><code>Report</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/moderation/audit</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageAudit</code></td><td><strong>PROPOSTA</strong></td></tr>
+</table></div>
+<h2>Rotas intencionalmente não prometidas</h2>
+<p>Checkout, pagamento, assinatura, pedido, entrega, reserva de mesa, agendamento confirmado, ingresso e localização por raio não aparecem como recursos prontos nesta especificação. Se aprovados, serão uma fase e contratos separados. O Shop atual desabilita compra e os eventos atuais não recebem inscrições pagas.</p></section>
+<section id="data-dictionary"><h1>Seekalive core data dictionary</h1>
+<p><strong>PROPOSED, NOT APPLIED. Documentation only.</strong> <code>schema-core.sql</code> is a proposed PostgreSQL design, not a migration, generated ORM schema, or claim of implemented backend behavior. The existing database library defines no application tables. No database connection, SQL execution, migration, application change, or package installation is part of this work.</p>
+<h2>Sources and boundaries</h2>
+<p>Reviewed frontend contracts in <code>artifacts/social/src/data/mockData.ts</code>, <code>src/types/content.ts</code>, <code>src/services/contentValidation.ts</code>, <code>src/services/referenceResolver.ts</code>, <code>src/pages/settings/Privacy.tsx</code>, and <code>src/pages/Circles.tsx</code>; incorporated the review validation audit (comment minimum 10 characters, business reply minimum 3, rating 1–5).</p>
+<ul>
+<li>One <code>accounts</code> identity is personal <strong>or</strong> commercial. A commercial profile extends that identity; it is not a separate login/account.</li>
+<li>Circles means mutual friends: incoming requests, sent requests, accepted friends, decline/cancel/remove. It does <strong>not</strong> mean Communities, groups, group roles, or memberships in a named circle. Current Circles interactions are local demo state.</li>
+<li>Current privacy settings are explicitly disabled/unavailable. <code>canReadPost</code> currently checks public, author, or circle membership; it is not complete production authorization. Proposed private-profile and communication policies below require server implementation.</li>
+<li>Current email/password account screens are browser demos, not real authentication. Proposed authentication is an OIDC adapter with provider-owned credentials and recovery. There are no password hashes, password-reset tokens, or browser-managed production sessions in this model.</li>
+<li>Event interest, product discovery, business hours, and advertised service options do not imply checkout, payments, delivery dispatch, reservations, or appointment booking.</li>
+</ul>
+<h2>Conventions and DTO mapping</h2>
+<p>All bare <code>id</code> columns are UUID primary keys generated by <code>gen_random_uuid()</code> (pgcrypto). Relationship tables use the explicitly listed composite keys. Foreign keys default to <code>NO ACTION</code> unless SQL specifies otherwise. <code>created_at</code>, <code>updated_at</code>, and operational timestamps are <code>timestamptz</code>; SQL defaults initialize timestamps but <strong>do not automatically maintain <code>updated_at</code></strong>. The server must update it. Local opening times use <code>time</code>, exceptions use <code>date</code>; weekday 0 is Sunday. Nullable columns are optional data, not empty-string sentinels. SQL is authoritative for individual types and CHECK expressions.</p>
+<p>Frontend DTOs use <strong>camelCase</strong>, SQL uses <strong>snake_case</strong>. Serializers, not accidental ORM field exposure, must bridge them:</p>
+<div class="table-wrap"><table>
+<tr><th>Frontend field or behavior</th><th>Proposed storage / response rule</th></tr>
+<tr><td><code>User.id</code>, <code>authorId</code>, demo IDs such as <code>u1</code></td><td>Real UUIDs; demo IDs are not insertable production IDs or migration seeds. Derive actor from session, never trust supplied <code>authorId</code>.</td></tr>
+<tr><td><code>accountType</code>, <code>commercialProfile</code></td><td><code>accounts.account_type</code> plus <code>business_profiles</code> and child tables.</td></tr>
+<tr><td><code>displayName</code>, <code>joinedAt</code>, <code>location</code></td><td><code>display_name</code>, <code>created_at</code>, <code>location_label</code>; location text is not a coordinate.</td></tr>
+<tr><td><code>avatarUrl</code>, <code>coverUrl</code>, <code>img</code>, <code>mediaUrls</code>, business <code>photos</code>/<code>videos</code></td><td>Asset FKs or owner/purpose gallery query; return authorized asset URLs, never accept arbitrary external URLs as owned uploads.</td></tr>
+<tr><td><code>cityId</code>, <code>cityName</code>, <code>cityState</code>, <code>serviceAreas</code></td><td>Seven-digit IBGE ID strings and city joins; service-area city IDs, not arbitrary display names. Validate IDs against an authoritative IBGE import; regex alone proves only shape.</td></tr>
+<tr><td><code>categoryKey</code>, <code>category</code>, <code>discoveryKind</code></td><td>Category key/label join and <code>discovery_kind</code>; application checks category domain.</td></tr>
+<tr><td><code>openingHours</code>, <code>isOpen</code>, <code>distanceKm</code></td><td>Hours and exceptions rendered in business timezone; distance is optional, computed only from approved data. No fabricated distance or stored device location.</td></tr>
+<tr><td><code>stats</code>, <code>likes</code>, <code>comments</code>, <code>reposts</code>, <code>interested</code>, <code>unreadCount</code></td><td>Aggregates over eligible rows; do not trust client counters. <code>shares</code> has no durable tracking model in core; do not invent a count.</td></tr>
+<tr><td><code>isFollowing</code>, <code>isInCircle</code>, <code>circleStatus</code>, <code>isBlocked</code>, <code>isMuted</code>, <code>isLiked</code>, <code>isReposted</code>, <code>isBookmarked</code></td><td>Viewer-specific joins, never global booleans on target accounts/content.</td></tr>
+<tr><td>Post <code>format</code>, legacy <code>type: text/video</code>, <code>article</code></td><td>Canonical <code>format</code> is text/media/article. Legacy <code>type</code> derives from attached asset kinds; <code>article_title</code>/<code>article_body</code> nest into <code>article</code>.</td></tr>
+<tr><td><code>mediaTypes</code></td><td>Derive from <code>media_assets.kind</code> in <code>post_media.position</code> order, not an independently mutable array.</td></tr>
+<tr><td><code>reference: {type,id}</code></td><td>Keep public types <code>seek_entity</code> / <code>shop_item</code> / <code>social_post</code>. For <code>seek_entity</code>, an <code>event:</code>-prefixed ID → <code>seek_event_id</code> after stripping exactly one prefix and validating the remaining UUID; otherwise → <code>business_account_id</code>. <code>shop_item</code> → <code>shop_item_id</code>; <code>social_post</code> → <code>referenced_post_id</code>. Serialize event targets back as <code>seek_entity</code> with <code>event:</code> + UUID. Store only the UUID in the FK, never the prefix. Reject empty/malformed prefixed IDs; do not fall back to business lookup. One optional reference per post.</td></tr>
+<tr><td><code>replyToCommentId</code>, <code>parentPostId</code></td><td><code>parent_comment_id</code>, <code>parent_post_id</code>; reposts are independent relationship records, not copied content.</td></tr>
+<tr><td><code>SeekReview.rating</code>, preview <code>rating</code>, <code>ratingCount</code></td><td>Proposed individual review rating is <strong>nullable</strong>, 1–5 when set, permitting comment-only reviews. Current <code>SeekReview</code> requires a rating and needs an explicit future DTO change. Compute average/count over published, non-null ratings; no ratings → null average and zero rating count, not invented 0 stars. Review count may differ from rating count.</td></tr>
+<tr><td><code>businessReply</code></td><td><code>reply_content</code>, <code>replied_at</code>; only the reviewed business identity can reply.</td></tr>
+<tr><td><code>ShopItem.price</code>, <code>oldPrice</code>, event <code>price</code></td><td>Current formatted strings are display DTOs only. Real <code>price_minor</code>, <code>old_price_minor</code> are integer minor units; BRL uses cents, paired with ISO currency. No float money or parsing localized labels at persistence boundaries. Free events use 0; unknown price must be resolved before publication, not silently 0.</td></tr>
+<tr><td>Shop <code>store</code>, optional <code>sellerId</code>, event optional <code>organizerId</code></td><td>Required commercial seller/organizer FKs; store label joins account display name. Demo objects lacking seller/organizer need real data before persistence. Shop ratings/review counts have no product-review source in core; omit rather than repurpose business ratings.</td></tr>
+<tr><td>Event <code>date</code>, <code>startsAt</code></td><td>Persist actual instant and IANA timezone; format <code>date</code> for display. DTO timestamps use ISO 8601 with timezone (normally UTC <code>Z</code>); date-only exceptions use <code>YYYY-MM-DD</code>. Never store localized date labels as event time.</td></tr>
+<tr><td>Message <code>isRead</code>, conversation <code>lastMessage</code></td><td>Participant read watermark and latest authorized message query. No global read boolean; honor recipient read-receipt preference before disclosure.</td></tr>
+<tr><td>Notification <code>entityId</code>, <code>isRead</code></td><td>Typed post/comment target or actor for relationship events; map deliberately to legacy DTO, <code>read_at != null</code>.</td></tr>
+</table></div>
+<p>No balance or wallet exists in core. Any future balance, ledger, fee, refund, or settlement uses <strong>integer cents/minor units plus currency</strong>, never JavaScript floating-point monetary arithmetic. PostgreSQL <code>bigint</code> may exceed JS safe integer range: serialize minor units as decimal strings or enforce an explicit safe-number API bound. Currency syntax checks are not an ISO currency registry.</p>
+<h2>Table dictionary</h2>
+<p>Access descriptions are <strong>required server policies</strong>, not SQL grants/RLS implemented by this document. “Public” always means filtered by account/content status, privacy and blocks. PK and UNIQUE constraints automatically create indexes; indexes below name their column purpose in addition to those keys. Not every foreign key has a standalone index; add reverse lookup/deletion indexes after query and purge plans are measured.</p>
+<h3>Identity, preferences and discovery</h3>
+<div class="table-wrap"><table>
+<tr><th>Table / intent</th><th>Columns</th><th>Keys / indexes / invariants</th><th>Required access</th></tr>
+<tr><td><code>accounts</code> — canonical identity</td><td><code>id</code>, <code>username</code>, <code>display_name</code>, <code>account_type</code>, <code>bio</code>, <code>location_label</code>, <code>website_url</code>, <code>avatar_asset_id</code>, <code>cover_asset_id</code>, <code>is_verified</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code>, <code>deleted_at</code></td><td>PK id; unique lower(username), unique (id, account_type); type personal/commercial, active/suspended/deleted status; asset FKs added after assets exist.</td><td>Public-safe profile projection; self edits allowed fields; verification/status only trusted administrative operations. Never expose identity/session data through profile serialization.</td></tr>
+<tr><td><code>auth_identities</code> — OIDC links</td><td><code>id</code>, <code>account_id</code>, <code>provider</code>, <code>subject</code>, <code>verified_email</code>, <code>created_at</code></td><td>Unique provider+subject; unique id+account for session binding; account index. Provider is canonical issuer/adapter identifier; subject is case-sensitive. Email need not be globally unique and is not a login-linking key.</td><td>Auth service only; explicit reauthentication to link/unlink; never auto-link accounts by matching email.</td></tr>
+<tr><td><code>sessions</code> — server sessions</td><td><code>id</code>, <code>account_id</code>, <code>auth_identity_id</code>, <code>token_hash</code>, <code>created_at</code>, <code>expires_at</code>, <code>revoked_at</code></td><td>Unique 32-byte digest; account and expiry indexes; composite identity/account FK; expiry after creation.</td><td>Auth service only; owner may list sanitized active sessions and revoke. Store only hash of a cryptographically random opaque token.</td></tr>
+<tr><td><code>account_settings</code> — privacy/locale</td><td><code>account_id</code>, <code>private_profile</code>, <code>circle_requests_from</code>, <code>messages_from</code>, <code>read_receipts</code>, <code>locale</code>, <code>timezone</code>, <code>updated_at</code></td><td>Account PK/FK; request enum everyone/followers/nobody, message enum everyone/circles/nobody.</td><td>Self only; server consults settings for every relevant action. Validate locale and IANA zone.</td></tr>
+<tr><td><code>categories</code> — controlled taxonomy</td><td><code>key</code>, <code>label</code>, <code>domain</code>, <code>active</code></td><td>Text PK; domain business/event/shop.</td><td>Public read; curated admin write. Server validates the target table's category domain.</td></tr>
+<tr><td><code>cities</code> — Brazilian municipalities</td><td><code>ibge_id</code>, <code>name</code>, <code>state_code</code>, <code>timezone</code></td><td>Seven-digit text PK; two-uppercase-letter state shape; lower(name)+state index.</td><td>Public read; authoritative controlled imports only, no fabricated municipality seeds.</td></tr>
+<tr><td><code>business_profiles</code> — commercial extension</td><td><code>account_id</code>, constant <code>account_type</code>, <code>category_key</code>, <code>city_id</code>, <code>discovery_kind</code>, <code>address</code>, <code>timezone</code>, <code>price_level</code>, <code>amenities</code>, <code>tags</code>, <code>service_options</code>, <code>updated_at</code></td><td>Account PK/FK; composite (account_id, account_type) FK with commercial-only CHECK; city/category/kind discovery index; price level 1–4; JSON object options.</td><td>Public-safe read; owner writes. Allowlist service-option booleans: delivery, dineIn, tableService, reservations, appointments, takeout. These advertise capabilities, not transaction workflows.</td></tr>
+<tr><td><code>business_hours</code> — weekly local intervals</td><td><code>id</code>, <code>business_account_id</code>, <code>weekday</code>, <code>opens_at</code>, <code>closes_at</code></td><td>Unique business+weekday+opening; 0–6 day; closing after opening. Unique index supports owner/day lookup.</td><td>Owner write; public read. Server prevents overlapping intervals. Overnight intervals split across weekdays; use <code>24:00</code> for end of day.</td></tr>
+<tr><td><code>business_hour_exceptions</code> — date overrides</td><td><code>id</code>, <code>business_account_id</code>, <code>local_date</code>, <code>is_closed</code>, <code>opens_at</code>, <code>closes_at</code></td><td>Unique business+date; closed has no times, open has both ordered times.</td><td>Owner write; public read. Overrides weekly hours entirely. Core supports one open interval per exception date; multiple exceptional shifts require extension.</td></tr>
+<tr><td><code>business_service_areas</code> — city coverage</td><td><code>business_account_id</code>, <code>city_id</code></td><td>Composite PK, reverse city index; both FKs.</td><td>Owner write; public discovery read. Coverage is city-level, not a geofence or delivery guarantee.</td></tr>
+<tr><td><code>media_assets</code> — managed object metadata</td><td><code>id</code>, <code>owner_account_id</code>, <code>object_key</code>, <code>kind</code>, <code>mime_type</code>, <code>byte_size</code>, <code>width</code>, <code>height</code>, <code>duration_ms</code>, <code>status</code>, <code>purpose</code>, <code>created_at</code>, <code>expires_at</code></td><td>Unique object key; owner+purpose+creation index; non-ready expiry index; positive bytes/dimensions; image/video; pending/ready/quarantined status.</td><td>Owner upload intent; scan worker controls readiness. Ready is not equivalent to public: delivery must recheck referencing resource audience. Gallery assets use owner+business_gallery purpose.</td></tr>
+</table></div>
+<h3>Social content and graph</h3>
+<div class="table-wrap"><table>
+<tr><th>Table / intent</th><th>Columns</th><th>Keys / indexes / invariants</th><th>Required access</th></tr>
+<tr><td><code>posts</code> — text/media/articles</td><td><code>id</code>, <code>author_id</code>, <code>content</code>, <code>format</code>, <code>audience</code>, <code>article_title</code>, <code>article_body</code>, <code>parent_post_id</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Author/time, published-public/time, parent indexes; 280 text chars; article title 1–160 and body 1–50,000; title/body only for articles; no direct self-parent.</td><td>Author creates/edits/deletes; visibility checked on every fetch, search, preview and interaction. Media presence/nonempty publication needs transaction checks.</td></tr>
+<tr><td><code>post_media</code> — ordered attachments</td><td><code>post_id</code>, <code>asset_id</code>, <code>position</code>, <code>alt_text</code></td><td>PK post+asset; unique post+position; position 0–7 caps attachments at eight; asset reverse index; delete post cascades join only.</td><td>Same visibility as post; writer must own ready assets; never rely on client media type.</td></tr>
+<tr><td><code>post_mentions</code> — resolved accounts</td><td><code>post_id</code>, <code>mentioned_account_id</code></td><td>Composite PK; reverse account+post index.</td><td>Author/server extraction writes; read through visible post; notification only if recipient can see post and interaction is allowed.</td></tr>
+<tr><td><code>hashtags</code> — normalized vocabulary</td><td><code>id</code>, <code>normalized_tag</code></td><td>Unique nonempty tag, up to 100 chars.</td><td>Controlled server upsert after Unicode/locale normalization; public tag suggestions must not reveal private usage.</td></tr>
+<tr><td><code>post_hashtags</code> — token associations</td><td><code>post_id</code>, <code>hashtag_id</code></td><td>Composite PK; reverse hashtag+post index.</td><td>Server maintains atomically with post edits; discovery always filters visible posts.</td></tr>
+<tr><td><code>post_references</code> — one typed target</td><td><code>post_id</code>, nullable <code>business_account_id</code>, <code>shop_item_id</code>, <code>referenced_post_id</code>, <code>seek_event_id</code></td><td>Post PK/FK; exactly one of four non-null targets; each target has FK and index; no direct self-reference.</td><td>Resolve accessible target during publish and again on read; unavailable target yields unavailable preview, not leaked metadata. Events use the existing <code>seek_entity</code> type with normalized <code>event:</code> ID, not a new public type.</td></tr>
+<tr><td><code>comments</code> — replies within a post</td><td><code>id</code>, <code>post_id</code>, <code>author_id</code>, <code>parent_comment_id</code>, <code>content</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Unique (id, post_id); composite parent/post FK forces same post; no direct self-parent; 1–2,000 trimmed chars; post/time, parent/post, author indexes.</td><td>Author write, authorized post viewers read; lock/check live parent and prevent cycles; parent/post association immutable through API.</td></tr>
+<tr><td><code>comment_likes</code> — one reaction</td><td><code>comment_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Composite PK, account reverse index.</td><td>Session actor adds/removes own like only on readable, eligible comment/post.</td></tr>
+<tr><td><code>post_likes</code> — one reaction</td><td><code>post_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Composite PK, account reverse index.</td><td>Session actor own mutations; current target access required.</td></tr>
+<tr><td><code>reposts</code> — non-copying boost</td><td><code>id</code>, <code>post_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Unique post+account; account/time index.</td><td>Own mutation; proposed policy permits repost of published public posts from public profiles only; recheck source visibility on rendering.</td></tr>
+<tr><td><code>follows</code> — directed relationship</td><td><code>follower_id</code>, <code>followed_id</code>, <code>status</code>, <code>created_at</code></td><td>Pair PK; no self-follow; inbound followed+status+follower index; pending/accepted.</td><td>Requester creates/cancels; target accepts/removes pending requests. Public profiles may be accepted immediately by server; private profiles require approval.</td></tr>
+<tr><td><code>circle_relationships</code> — unordered mutual friendship</td><td><code>account_low_id</code>, <code>account_high_id</code>, <code>requested_by_id</code>, <code>status</code>, <code>created_at</code>, <code>accepted_at</code></td><td>Ordered UUID pair PK prevents reverse duplicates/self pairs; requester must be endpoint; accepted requires timestamp; high-endpoint/status index complements low-endpoint PK.</td><td>Endpoints only see pending relationship details. Only recipient accepts/declines; requester cancels; either removes accepted friendship. Never a Communities table.</td></tr>
+<tr><td><code>blocks</code> — directed denial</td><td><code>blocker_id</code>, <code>blocked_id</code>, <code>created_at</code></td><td>Pair PK; reverse index; self-block forbidden.</td><td>Blocker manages; do not expose another user's block list. Either direction denies interaction/visibility under policy.</td></tr>
+<tr><td><code>mutes</code> — viewer filtering</td><td><code>muter_id</code>, <code>muted_id</code>, <code>created_at</code></td><td>Pair PK; reverse muted index; self-mute forbidden.</td><td>Muter only; suppress feed/notification delivery without treating mute as access denial.</td></tr>
+</table></div>
+<h3>Seek, Shop and saves</h3>
+<div class="table-wrap"><table>
+<tr><th>Table / intent</th><th>Columns</th><th>Keys / indexes / invariants</th><th>Required access</th></tr>
+<tr><td><code>business_reviews</code> — one review per reviewer/business</td><td><code>id</code>, <code>business_account_id</code>, <code>reviewer_id</code>, <code>rating</code>, <code>comment</code>, <code>reply_content</code>, <code>replied_at</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Unique business+reviewer; cannot review own identity; nullable 1–5 rating, required trimmed comment 10–5,000 chars; optional reply 3–5,000 chars with paired timestamp; reviewer and business/time indexes.</td><td>Reviewer edits own rating/comment, business edits only own reply, moderators status; published rows readable with applicable visibility. Current UI still requires rating; nullable storage is a proposed explicit extension. No second review after soft-delete without restoring/updating existing unique row.</td></tr>
+<tr><td><code>seek_events</code> — discovery event</td><td><code>id</code>, <code>organizer_account_id</code>, <code>city_id</code>, <code>category_key</code>, <code>name</code>, <code>description</code>, <code>venue</code>, <code>starts_at</code>, <code>ends_at</code>, <code>timezone</code>, <code>price_minor</code>, <code>currency</code>, <code>cover_asset_id</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Required business organizer FK, city/category/asset FKs; ordered times, nonnegative price; city/status/start and organizer indexes.</td><td>Organizer writes; public reads published/eligible events, organizer sees drafts; server validates timezone and status transitions. Interest does not reserve a ticket.</td></tr>
+<tr><td><code>event_interests</code> — intent to attend</td><td><code>event_id</code>, <code>account_id</code>, <code>created_at</code></td><td>Composite PK; reverse account index.</td><td>Actor own add/remove; eligible event required; counts public, interested-user lists require privacy review.</td></tr>
+<tr><td><code>shop_items</code> — product listing, not order</td><td><code>id</code>, <code>seller_account_id</code>, <code>category_key</code>, <code>name</code>, <code>description</code>, <code>tag</code>, <code>price_minor</code>, <code>old_price_minor</code>, <code>currency</code>, <code>cover_asset_id</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code></td><td>Required business seller; nonnegative integer money; old price absent or &gt;= price; seller/status and category/status indexes.</td><td>Seller writes; public eligible listing reads; no stock, purchase, shipping or payment promises.</td></tr>
+<tr><td><code>saved_resources</code> — private bookmarks</td><td><code>id</code>, <code>account_id</code>, nullable <code>post_id</code>, <code>business_account_id</code>, <code>event_id</code>, <code>shop_item_id</code>, <code>created_at</code></td><td>Exactly one typed FK; <code>event_id</code> references the same <code>seek_events(id)</code> target as <code>post_references.seek_event_id</code>; four partial unique account+target indexes; owner/time index.</td><td>Owner only; normalize prefixed event IDs before storage. Saving does not confer access after privacy/status changes. Lists reauthorize each target, with unavailable entries handled without metadata leakage.</td></tr>
+</table></div>
+<h3>Messaging, safety and operations</h3>
+<div class="table-wrap"><table>
+<tr><th>Table / intent</th><th>Columns</th><th>Keys / indexes / invariants</th><th>Required access</th></tr>
+<tr><td><code>conversations</code> — message container</td><td><code>id</code>, <code>created_by_id</code>, <code>created_at</code></td><td>Creator FK/index.</td><td>Create through transactional participant-policy checks; participants only. Core storage permits multiple participants but does not claim a group-chat UI. Current direct-chat service must require exactly two eligible accounts.</td></tr>
+<tr><td><code>conversation_participants</code> — membership/read state</td><td><code>conversation_id</code>, <code>account_id</code>, <code>joined_at</code>, <code>left_at</code>, <code>last_read_at</code></td><td>Pair PK; account/conversation index; departure not before joining.</td><td>Server manages membership; actor may advance own read watermark/leave. Active membership and allowed history interval checked on reads; watermark monotonicity enforced transactionally.</td></tr>
+<tr><td><code>messages</code> — text-only messages</td><td><code>id</code>, <code>conversation_id</code>, <code>sender_id</code>, <code>content</code>, <code>created_at</code>, <code>deleted_at</code></td><td>Composite participant FK proves sender has membership row, not active membership; 1–5,000 trimmed chars; conversation/time/id and sender indexes.</td><td>Active eligible participants only; verify DM preference/blocks and membership under lock for sends. No attachment, encryption-at-rest claim, or end-to-end encryption claim here.</td></tr>
+<tr><td><code>notifications</code> — private inbox</td><td><code>id</code>, <code>recipient_id</code>, <code>actor_id</code>, <code>kind</code>, <code>post_id</code>, <code>comment_id</code>, <code>read_at</code>, <code>created_at</code></td><td>Typed FKs, at most one post/comment; kind enum matches frontend; recipient/time/id and unread-recipient indexes.</td><td>Server creates after eligibility checks; recipient reads/marks read; reauthorize source on render. Server validates which target is required for each kind (not enforced by CHECK).</td></tr>
+<tr><td><code>push_subscriptions</code> — delivery endpoints</td><td><code>id</code>, <code>account_id</code>, <code>endpoint</code>, <code>p256dh</code>, <code>auth_secret_ciphertext</code>, <code>created_at</code>, <code>expires_at</code>, <code>revoked_at</code></td><td>Unique HTTPS-shaped endpoint; owner index.</td><td>Owner register/revoke, delivery worker reads encrypted secret. Authenticate endpoint reassignment; validate permitted endpoint origins and prevent SSRF; no secrets in API output/logs.</td></tr>
+<tr><td><code>reports</code> — typed safety queue</td><td><code>id</code>, <code>reporter_id</code>, nullable <code>reported_account_id</code>, <code>post_id</code>, <code>comment_id</code>, <code>message_id</code>, <code>business_review_id</code>, <code>event_id</code>, <code>shop_item_id</code>, <code>reason</code>, <code>status</code>, <code>created_at</code>, <code>resolved_at</code></td><td>Exactly one target FK; reason 1–2,000 chars; status/time and reporter indexes.</td><td>Reporter submits accessible target and sees sanitized own progress; moderators see minimum evidence needed. Reporting a message requires membership; report is not an access bypass.</td></tr>
+<tr><td><code>moderation_actions</code> — review decisions</td><td><code>id</code>, <code>report_id</code>, <code>moderator_id</code>, <code>action</code>, <code>reason</code>, <code>created_at</code>, <code>expires_at</code></td><td>Report and moderator FKs/indexes; allowlisted actions.</td><td>Privileged safety service only; moderator role is validated by trusted server authorization, not any <code>accounts</code> flag. Every action refers to a report; proactive actions first create an internal report through controlled service.</td></tr>
+<tr><td><code>audit_logs</code> — security trace</td><td><code>id</code>, <code>actor_id</code>, <code>action</code>, <code>resource_type</code>, <code>resource_id</code>, <code>request_id</code>, <code>metadata</code>, <code>created_at</code>, <code>retain_until</code></td><td>Resource/time and retention indexes; retain_until after creation; JSON object. Resource descriptor intentionally not an FK so traces survive removal.</td><td>Append-only application role, restricted audit readers and separate purge role. SQL does not itself grant append-only enforcement. Metadata must not contain credentials, message bodies, device coordinates, or arbitrary request payloads.</td></tr>
+<tr><td><code>outbox_events</code> — reliable async side effects</td><td><code>id</code>, <code>event_type</code>, <code>aggregate_type</code>, <code>aggregate_id</code>, <code>payload</code>, <code>created_at</code>, <code>available_at</code>, <code>processed_at</code>, <code>attempts</code>, <code>last_error_code</code></td><td>Pending available/id partial index; nonnegative attempts; object payload. Aggregate descriptor intentionally not a polymorphic FK.</td><td>Server writes in same transaction as domain mutation; workers claim with locks, retry idempotently, minimize payload. Event delivery is at-least-once, not exactly-once.</td></tr>
+<tr><td><code>idempotency_keys</code> — authenticated command deduplication</td><td><code>account_id</code>, <code>operation</code>, <code>key</code>, <code>request_hash</code>, <code>status</code>, <code>response_status</code>, <code>response_body</code>, <code>created_at</code>, <code>expires_at</code></td><td>Composite PK scopes keys by actor+operation; 32-byte hash; HTTP status range; expiry index.</td><td>Server only; lock/conflict-check key, reject same key with different request hash; authorize again before returning stored response. Avoid sensitive response bodies.</td></tr>
+<tr><td><code>webhook_receipts</code> — trusted provider deduplication</td><td><code>id</code>, <code>provider</code>, <code>provider_event_id</code>, <code>payload_hash</code>, <code>status</code>, <code>received_at</code>, <code>processed_at</code>, <code>expires_at</code></td><td>Unique provider+event; 32-byte hash; expiry index.</td><td>Verified webhook adapter only; authenticate signature/timestamp/replay window <strong>before</strong> insert; do not store full payload by default. Not a claim of a live payment integration.</td></tr>
+<tr><td><code>privacy_requests</code> — export/delete/rectify workflow</td><td><code>id</code>, <code>account_id</code>, <code>kind</code>, <code>status</code>, <code>requested_at</code>, <code>due_at</code>, <code>completed_at</code>, <code>export_object_key</code>, <code>export_expires_at</code></td><td>Owner/request time and status/due indexes; due after request; paired export key/expiry only for export requests.</td><td>Verified requester sees sanitized own state; privacy worker processes. Export downloads are authorized, short-lived signed URLs, not public asset rows. Service enforces legal deadlines and completion transition rules.</td></tr>
+</table></div>
+<h2>Constraints SQL enforces, and what it does not</h2>
+<h3>Identity and commercial invariants</h3>
+<p>The commercial-only invariant does <strong>not</strong> depend on an unchecked comment: <code>business_profiles.account_type</code> is constrained to <code>commercial</code>, and <code>(account_id, account_type)</code> references the unique pair in <code>accounts</code>. The ordinary <code>account_id</code> PK/FK is also present. This is a declarative alternative to a constraint trigger; changing an account back to personal while a business profile remains is rejected. Seller/organizer/review target FKs refer to <code>business_profiles</code>, transitively enforcing commercial identity. Creating a commercial account/profile together, changing types safely, and requiring every active commercial account to have a profile are application transaction responsibilities. The schema allows a commercial account before profile completion.</p>
+<p>OIDC adapter must validate issuer, audience, signature, expiry, nonce, PKCE and state; verified email is only a provider claim. Use a high-entropy opaque session token in a <strong>Secure, HttpOnly, SameSite cookie</strong>, appropriate cookie path/domain, CSRF defenses, rotation on privilege/auth changes and server-side expiry/revocation checks. Store a SHA-256-size token hash, not the bearer token. Do not put session tokens/passwords in localStorage. Recovery, MFA and credential changes belong to the identity provider. Provider tokens, if ever needed, require a separately reviewed encrypted storage design; they are not in this core.</p>
+<h3>Required authorization transactions</h3>
+<ol>
+<li>Obtain actor from the authenticated session; check account active status and resource status. Service/database credentials never reach the browser. There are no implemented RLS policies or GRANTs in this proposal; SQL integrity is <strong>not</strong> app privacy.</li>
+<li>Proposed post policy: author may read own eligible content; <code>private</code> means author only; <code>circles</code> means accepted mutual relationship; <code>public</code> is visible subject to blocks and, for a private profile, accepted-follow approval. Private-profile gating and circle audience checks intersect for non-author viewers. This is a proposed stricter policy, not the current demo's claim. Deleted/removed content is restricted to explicitly authorized owner/moderation workflows.</li>
+<li>Resolve blocks in <strong>both</strong> directions. A block operation locks both accounts in canonical UUID order, creates block, removes follows in both directions and any friendship/request, and cancels queued deliveries where appropriate. Relationship creation/acceptance, communication and settings changes must use the same lock protocol or serializable transactions with retries to avoid races. Unblocking does not resurrect relationships.</li>
+<li>Mutual friend state has one ordered pair. Incoming/outgoing derives from <code>requested_by_id</code>, not duplicate rows. Decline/cancel/remove delete the relationship (minimal audit separately). Only the non-requester accepts a pending row; lock/check recipient policy and blocks. A mutual friend is not automatically a follower; do not silently conflate these states.</li>
+<li>Publication transaction checks nonempty short text or attached media for non-articles, at least one asset for media format, at most eight matching ready owned assets, valid URLs/purposes, article requirements, target readability, mentions and hashtag normalization. Persist post, attachments, tokens, reference and outbox together. SQL caps slots and article lengths but does not prove an attachment exists or is ready/owned.</li>
+<li>Validate both raw and trimmed lengths consistently with frontend validation. SQL <code>char_length</code> measures Unicode characters whereas JS length uses UTF-16 code units; implement a documented canonical counting rule in the future API/DTO validator, test emoji boundaries, and do not claim perfect parity today. Normalize hashtags using the frontend's pt-BR lowercasing plus a deliberate Unicode normalization rule.</li>
+<li>Authorize comments, replies, likes, interests, reviews, reposts and saves against current target access. Parent/referenced post graphs must not become cyclic; SQL prohibits self-links but not multi-row cycles. Keep parent IDs immutable through the API; check ancestor chains if moves are introduced.</li>
+<li>Only reviewers modify their review fields; only reviewed business modifies reply; moderators alone change safety status. SQL cannot infer actor from a mutation. Rating averages exclude null and removed reviews; review uniqueness survives soft deletion.</li>
+<li>Conversation creation inserts all participants atomically after DM policy checks. Lock participants/policies for sends; existence of a participant FK does not prove <code>left_at IS NULL</code>. Recheck blocks before delivery. Do not disclose another participant's read state when read receipts are disabled. Serialize concurrent creation for the same unordered direct-chat pair to prevent duplicates (no direct-pair unique constraint here).</li>
+<li>Public feeds, search, hashtag counts, notification previews, reference previews, media URLs and caches must use the same visibility predicate. A previously saved/liked/referenced resource confers no continuing read entitlement. Cache keys include viewer/policy scope; invalidate on audience, follow/friend, block and status changes.</li>
+<li>Validate category domain, IANA timezone names, meaningful event/venue data, publish transitions and approved asset ownership in services. JSON option shape checks do not enforce option keys/types. Weekly hours overlap checks require business-row locking; exception day overrides need timezone-aware calculation, including DST.</li>
+<li>Use transactionally written outbox entries for async effects. Claim/retry workers with row locking, bounded backoff and deduplication; check current visibility again before push/email. Generic outbox/audit descriptors are operational references, not substitutes for typed core content FKs. Idempotency response storage and webhook receipt insertion alone do not make side effects atomic.</li>
+</ol>
+<h2>Retention, deletion and geography</h2>
+<p>These are proposed defaults requiring product/security/legal approval and actual workers; timestamp columns do not delete data. Never persist device latitude/longitude by default, including in sessions, audit metadata, outbox payloads, request logs or analytics. Strip image EXIF/GPS during processing. A user-selected municipality may be persisted as a city choice through a future explicit preference; it is not permission to save location history. Business address is voluntarily supplied business data.</p>
+<ul>
+<li>Sessions: proposed maximum 30-day lifetime, shorter if provider policy requires; revoke immediately on logout/deletion; purge expired/revoked session records within 7 days. No device fingerprint/IP column.</li>
+<li>Pending upload intents: set <code>expires_at</code> within 24 hours; purge abandoned objects and metadata. Quarantine: deny all delivery immediately, review/purge within 30 days unless documented legal hold. Ready assets retained only while needed by owner/resources; garbage collector checks all asset FKs and gallery purpose.</li>
+<li>Idempotency entries: proposed 24-hour TTL. Webhook receipts: proposed 30-day dedupe window; any provider with longer replay/retry requires an explicit adjusted policy. Processed outbox entries: purge within 7 days; failed entries enter restricted review and must not be kept indefinitely.</li>
+<li>Push: revoke on logout opt-out/deletion and remove invalid endpoints promptly; periodically confirm inactive subscriptions, with a proposed 90-day inactivity purge managed by worker metadata/policy.</li>
+<li>Notifications: proposed 90 days. Content and messages: retained while needed for the user-facing service, with account deletion initiating erasure/anonymization and object/cache cleanup within a proposed 30-day operational target unless a justified legal hold applies.</li>
+<li>Audit/safety evidence: require purpose-specific <code>retain_until</code>/worker retention policy, proposed 180 days for ordinary audit; minimum necessary report evidence, restricted access and documented legal exceptions. Do not use audit logs as an indefinite copy of deleted content. Moderation/report records and related account FKs require a deliberate anonymization/purge plan.</li>
+<li>Privacy exports: expire within 24 hours, remove object after expiry. <code>due_at</code> is calculated from applicable jurisdiction, not a universal hard-coded legal deadline; verify requester and record completion. Request records retained only as long as necessary to demonstrate handling under an approved schedule.</li>
+</ul>
+<p>Most domain deletes intentionally use restrictive FKs, not giant cascades. Soft deletion changes status first, revokes sessions and hides content but is <strong>not erasure</strong>. A deletion worker must order relation cleanup, redact/tombstone retained rows only where justified, remove asset references, erase objects and search/cache copies, and eventually delete account PII. Account-to-asset cycles are resolved by clearing avatar/cover before deleting owner assets. Retention exceptions must have an authorized purpose and deadline. Backups require separately defined expiry and restoration deletion replay; this SQL does not solve backup erasure.</p>
+<p><strong>No geospatial columns or PostGIS dependency are present.</strong> City lookup/service coverage is core; proximity requires real, approved geocoding and consent. Do not fabricate coordinates from demo <code>distanceKm</code>. Optional future public-business geography could add <code>latitude double precision CHECK (latitude BETWEEN -90 AND 90)</code> and <code>longitude double precision CHECK (longitude BETWEEN -180 AND 180)</code> with a both-null-or-both-set CHECK. If PostGIS is deliberately enabled, the exact point expression is:</p>
+<pre><code>ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography</code></pre>
+<p>Longitude is first. An exact matching optional expression index would be:</p>
+<pre><code>CREATE INDEX business_profiles_location_gist ON business_profiles
+USING gist ((ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography))
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
+<p>These snippets are <strong>future design only</strong>, cannot run against the core without adding the documented columns and installing PostGIS, and are not an instruction to do so. Query with the same expression/predicate using <code>ST_DWithin(..., query_point::geography, radius_meters)</code>. Device coordinates used as a query point must stay ephemeral; never write them to these business coordinates.</p>
+<h2>Non-core extensions and known limits</h2>
+<ul>
+<li>Checkout: orders, line items with price snapshots, payment intents, refunds, disputes, tax, payouts and balanced ledger are future scope. No core balance or order tables.</li>
+<li>Delivery: addresses with explicit retention/consent, delivery zones/fees, fulfillment status, courier assignment and tracking are future scope. No location tracking by default.</li>
+<li>Booking: services, staff/resources, availability, holds, conflict prevention, reservations/appointments and cancellation policies are future scope.</li>
+<li>Product reviews, stock/SKUs/variants, multi-image listing galleries, recurring events/tickets, Communities, named circles, group administration, message attachments and richer hour exceptions are not implied by core.</li>
+<li>UUID/IBGE IDs and required seller/organizer/city/time data need explicit DTO evolution/import validation. Demo fixture values are not authentic seed records. No rows are inserted by the SQL.</li>
+<li>Limits at launch still need policy: upload sizes/MIME signatures, allowed origins, relationship/report rate limits, listing description lengths, pagination, quotas, spam controls, timezone/currency registries and business verification. SQL provides foundational checks, not a full abuse-control specification.</li>
+<li>Operational roles, RLS defense-in-depth, encryption key management, scheduler/worker implementation, migrations, rollback, backup/restore and performance/load tests remain implementation work.</li>
+</ul>
+<h2>Static review (not execution)</h2>
+<p>The core contains <strong>42 tables</strong>. Reviewed dependency order: accounts → OIDC/settings/taxonomies → commercial extensions → assets → deferred account asset FKs → posts/social graph → reviews/events/items → typed references/saves → conversations/participants/messages → notifications/safety/operations. Self-referential post/comment FKs reference their own declared keys; comments' <code>(id, post_id)</code> unique key supports same-post replies. Sessions bind the identity and account via composite FK. Assets break the account/avatar cycle via <code>ALTER TABLE</code>. Referenced tables are declared before external FKs; no applied migrations, live rows, or runtime validation are asserted.</p>
+<p>The SQL was reviewed as text only. No SQL parser/database execution was performed. Before adoption, convert into reviewed migrations, test CHECK/unique/FK rejection paths, concurrent authorization races, deletion ordering, Unicode limits, transaction rollback, and privacy behavior under real authenticated requests.</p></section>
+<section id="external-services-and-operations"><h1>Serviços externos, configuração e operação</h1>
+<h2>Situação da auditoria</h2>
+<p>Não há provedor de identidade, serviço de mapas/geocodificação, armazenamento de objetos, e-mail, push, pagamentos ou checkout conectado nesta auditoria. Não há domínio de produção confirmado neste pacote. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.</p>
+<p>O único endpoint ativo observado é <code>GET /api/healthz</code>. Os outros endpoints são contratos propostos. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.</p>
+<h2>Serviços candidatos e documentação oficial</h2>
+<div class="table-wrap"><table>
+<tr><th>Necessidade</th><th>Opção / situação</th><th>Referência oficial</th></tr>
+<tr><td>Banco relacional</td><td>PostgreSQL é o destino proposto; Drizzle/driver já aparecem no projeto, mas não existe schema Drizzle ativo nem confirmação de banco provisionado</td><td><a href="https://docs.replit.com/features/data-and-storage/sql-database" rel="noopener noreferrer">Replit SQL Database</a></td></tr>
+<tr><td>Fotos e vídeos</td><td>Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca <code>blob:</code> como URL de backend</td><td><a href="https://docs.replit.com/features/data-and-storage/object-storage" rel="noopener noreferrer">Replit Object Storage</a></td></tr>
+<tr><td>Autenticação</td><td>Comparar provedor OIDC e Replit-managed Clerk antes de implementar. Nada está conectado. Confirmar impacto de tenants separados entre desenvolvimento e produção</td><td><a href="https://docs.replit.com/features/auth-and-identity/clerk-auth" rel="noopener noreferrer">Replit Clerk Auth</a></td></tr>
+<tr><td>Cidades brasileiras</td><td>O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render</td><td><a href="https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&amp;orderBy=nome" rel="noopener noreferrer">API de localidades do IBGE</a></td></tr>
+<tr><td>Mapas/geocodificação</td><td>Nenhum fornecedor escolhido. A interface pode selecionar cidade manualmente. GPS só após consentimento; resolver cidade aproximada sem persistir coordenadas</td><td>Decidir provedor e termos antes de habilitar o endpoint proposto</td></tr>
+<tr><td>E-mail e notificações</td><td>Integrações não conectadas. Só adicionar após decidir provedor, consentimento, templates, retentativa e descadastro</td><td>Proposta em <code>architecture-and-security.md</code></td></tr>
+<tr><td>Pagamentos / Shop</td><td>Não há checkout real. Estoque, pedido, pagamento, entrega e reembolso estão fora do escopo do catálogo atual</td><td>Decisão comercial e integração financeira ficam para projeto próprio</td></tr>
+<tr><td>Deploy e secrets</td><td>Usar Secrets para valores sensíveis e deployments do Replit para publicação; não registrar valores em arquivos</td><td><a href="https://docs.replit.com/core-concepts/project-editor/app-setup/secrets" rel="noopener noreferrer">Secrets</a> · <a href="https://docs.replit.com/learn/projects-and-artifacts/replit-deployments" rel="noopener noreferrer">Deployments</a></td></tr>
+</table></div>
+<h2>Catálogo municipal</h2>
+<p>O frontend já contém uma cópia versionada em <code>artifacts/social/public/data/ibge-cities-20261022.json</code>, com código oficial IBGE de sete dígitos, nome e UF; não contém geolocalização precisa. Foi obtida da API pública do IBGE em 22/10/2026. O SQL proposto em <code>schema-core.sql</code> trata município como referência para negócios, eventos e busca. O pacote ZIP inclui esse arquivo para auxiliar a implementação do seed.</p>
+<p>Para atualizar: baixar de novo a fonte oficial, validar unicidade do código, quantidade e UF, comparar diff, e importar por migration/seed idempotente. Não apagar código antigo sem estratégia para FKs. O frontend pode manter seleção manual quando GPS ou geocodificação não estiver disponível.</p>
+<h2>Configuração (nomes, nunca valores)</h2>
+<p>Os nomes a seguir são inventário de proposta para deployment; não afirmam que já existam:</p>
+<div class="table-wrap"><table>
+<tr><th>Nome sugerido</th><th>Uso / tratamento</th></tr>
+<tr><td><code>SESSION_SECRET</code></td><td>Já consta como secret disponível no ambiente. Não ler nem exibir seu valor. Antes de produção, confirmar rotação, comprimento e uso; preferir sessão criptograficamente segura gerada pelo servidor/provedor</td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>String de conexão do PostgreSQL; cadastrar somente pelo fluxo de Secrets. Não escrever em <code>.env</code> versionado ou log</td></tr>
+<tr><td><code>SITE_ORIGIN</code></td><td>Origem oficial para validação de redirecionamento/links; configurar por ambiente após confirmação do domínio de produção</td></tr>
+<tr><td><code>OBJECT_STORAGE_BUCKET</code></td><td>Identificador do bucket; credenciais ficam no serviço integrado, não no código</td></tr>
+<tr><td><code>OIDC_ISSUER</code>, <code>OIDC_CLIENT_ID</code></td><td>Identificadores do cliente/issuer, conforme provedor escolhido; segredo do cliente apenas em Secrets</td></tr>
+<tr><td><code>OIDC_CLIENT_SECRET</code></td><td>Sensível; somente Replit Secrets, nunca documentação, build output ou log</td></tr>
+<tr><td><code>EMAIL_PROVIDER_<em></code>, <code>MAPS_PROVIDER_</em></code></td><td>Só definir depois da escolha explícita do fornecedor e usando Secrets para credenciais</td></tr>
+</table></div>
+<p>Segredos de desenvolvimento e produção devem ter escopos separados. Não reutilizar banco de desenvolvimento para dados de usuários reais. Nunca pedir ao usuário para colar senha, token ou chave no chat.</p>
+<h2>Operação e monitoramento</h2>
+<ul>
+<li>Manter readiness separado de liveness: liveness não deve falhar por indisponibilidade temporária de serviço externo; readiness deve mostrar dependências sem revelar strings de conexão.</li>
+<li>Gerar <code>requestId</code>; redigir cookies, tokens, e-mail, conteúdo privado e coordenadas dos logs.</li>
+<li>Medir latência/erros por rota, filas de uploads, falhas de e-mail/push e atrasos de outbox; alertar sem incluir conteúdo do usuário.</li>
+<li>Retentar tarefas externas com backoff e chave de idempotência; mensagens irrecuperáveis vão para fila de falhas monitorada.</li>
+<li>Ter backup/retention e teste de restauração do banco antes de habilitar dados reais; planejar ciclo de vida/exclusão de mídia separadamente.</li>
+<li>Antes de publicar, conferir origem/callbacks OIDC, variáveis do ambiente certo, migrações aplicadas deliberadamente e health/readiness.</li>
+</ul>
+<p>Mais referências de plataforma: <a href="https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases" rel="noopener noreferrer">Storage e bancos no Replit</a> e <a href="https://docs.replit.com/build/troubleshooting" rel="noopener noreferrer">Troubleshooting</a>.</p></section>
+<section id="implementation-and-tests"><h1>Plano de implementação e testes</h1>
+<p>Este plano organiza o backend futuro; não autoriza nem executa migrações ou mudanças de produto. As fases dependem de decisões explícitas nos itens indicados.</p>
+<h2>Antes de implementar</h2>
+<ol>
+<li>Confirmar autenticação (provedor OIDC/Clerk ou alternativa) e regras de conta/consentimento.</li>
+<li>Confirmar PostgreSQL por ambiente e política de backup/retention.</li>
+<li>Confirmar armazenamento de mídia, limites, formatos e retenção.</li>
+<li>Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.</li>
+<li>Revisar <code>schema-core.sql</code>, constraints, migrações, termos de privacidade e matriz de autorização.</li>
+<li>Aprovar e versionar o contrato OpenAPI proposto sem substituir o contrato atual até haver migração testada.</li>
+</ol>
+<h2>Fases sugeridas e critérios de aceite</h2>
+<h3>Fase 1 — Infraestrutura segura e identidade</h3>
+<ul>
+<li>Configurar ambiente de desenvolvimento isolado e banco PostgreSQL.</li>
+<li>Implementar migrations versionadas, readiness, request IDs, validação, rate limits, sessão HttpOnly e CSRF.</li>
+<li>Criar fluxo real de autenticação, sessão, recuperação e encerramento; remover o falso estado autenticado.</li>
+<li>Aceite: visitante anônimo não lê/escreve recursos protegidos; logout revoga a sessão; CSRF/expiração são testados; nenhum segredo aparece em logs.</li>
+</ul>
+<h3>Fase 2 — Conta única, perfil e relacionamentos</h3>
+<ul>
+<li>Conta pessoal/comercial é a mesma identidade Social; extensão comercial vinculada um-a-um à conta.</li>
+<li>Implementar perfil, privacidade, seguir, Círculo, bloqueio/silenciamento e salvos.</li>
+<li>Aceite: toda consulta aplica ACL no servidor; perfil privado, bloqueios e requests são testados para ambos os lados; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle.</li>
+</ul>
+<h3>Fase 3 — Social e mídia</h3>
+<ul>
+<li>Implementar upload direto com URL assinada, inspeção MIME/tamanho, quarentena e processamento.</li>
+<li>Implementar publicação, artigos, galeria derivada, comentários, curtidas, reposts e referências com autorização.</li>
+<li>Aceite: só mídia pronta e pertencente ao autor pode ser anexada; excluir/ocultar publicação não deixa mídia acessível por URL alternativa; <code>blob:</code> só é preview local e nunca entra no banco.</li>
+</ul>
+<h3>Fase 4 — Seek, avaliações e eventos</h3>
+<ul>
+<li>Cadastrar catálogo IBGE e categorias aprovadas; descobrir somente contas comerciais Social elegíveis.</li>
+<li>Implementar extensão comercial, serviços (delivery/mesa/reserva/agendamento), horários, avaliação única por usuário/comércio e resposta do comerciante.</li>
+<li>Implementar eventos com conta organizadora comercial existente; interesse não equivale a ingresso.</li>
+<li>Aceite: perfil pessoal não aparece como estabelecimento; comerciante só edita dados da própria conta; avaliações respeitam uma por autor/negócio e não podem ser autoavaliação; município sempre resolve pelo código IBGE.</li>
+</ul>
+<h3>Fase 5 — Shop (catálogo, sem checkout)</h3>
+<ul>
+<li>Integrar produto a vendedor com conta comercial existente; salvos e filtros.</li>
+<li>Aceite: nenhum botão/tela promete compra, estoque, entrega ou pagamento enquanto isso não existir. Checkout é projeto separado.</li>
+</ul>
+<h3>Fase 6 — Mensagens, notificações, privacidade e operação</h3>
+<ul>
+<li>Implementar conversas privadas, stream/eventos autorizados, notificações, denúncias e jobs de exportação/exclusão.</li>
+<li>Aceite: somente participantes autorizados leem mensagens; stream não vaza conteúdo; exclusão/exportação tem estados e auditoria redigida.</li>
+</ul>
+<h3>Fase 7 — Ativar o frontend gradualmente</h3>
+<ul>
+<li>Integrar por módulo; manter demo somente em preview/testes explicitamente identificados.</li>
+<li>Não fazer fallback silencioso para dados demo em erro de rede.</li>
+<li>Aceite: contratos validados, loading/erro/vazio/paginação acessíveis, controles existentes preservados e testes visuais em viewport móvel/desktop.</li>
+</ul>
+<h2>Estratégia de teste</h2>
+<div class="table-wrap"><table>
+<tr><th>Camada</th><th>Cobertura obrigatória</th></tr>
+<tr><td>Validação/contratos</td><td>DTO Zod/OpenAPI, limites, enum, códigos e respostas; gerar spec reproduzível</td></tr>
+<tr><td>Unidade</td><td>Políticas de leitura/ação, normalização username, status, audiência, transições de evento e tipos de conta</td></tr>
+<tr><td>PostgreSQL</td><td>Migrations up/down em banco descartável, FKs, unicidade concorrente, constraints e isolamento transacional</td></tr>
+<tr><td>Integração HTTP</td><td>Sessão anônima/autenticada, CSRF, paginação, idempotência, erros, rate limits e ACL por recurso</td></tr>
+<tr><td>Segurança</td><td>IDOR entre contas, perfil privado, bloqueio mútuo, mídia privada, brute force e enumeração, XSS/links, SSRF em URLs, upload poliglota e CSRF</td></tr>
+<tr><td>Concorrência</td><td>Duas avaliações simultâneas, like/repost repetidos, edição com versão antiga, upload duplicado e outbox reprocessada</td></tr>
+<tr><td>Dados</td><td>Seed de municípios determinístico; usuários e conteúdos sintéticos apenas em ambiente local; nunca importar contas mock como usuários reais</td></tr>
+<tr><td>Frontend</td><td>Fluxos de perfil Social/comercial, abas de perfil, galeria, publicação/mídia, Seek e estados de erro sem regressão da navegação</td></tr>
+<tr><td>Operação</td><td>Health/readiness, logs sem PII/segredos, backup/restauração, job retry/failure queue e alertas</td></tr>
+</table></div>
+<h2>Decisões que permanecem abertas</h2>
+<ul>
+<li>Provedor OIDC e UX final de cadastro/verificação/recuperação.</li>
+<li>Região, ambiente e operação do PostgreSQL.</li>
+<li>Object Storage, política de URL pública/assinada e limites de vídeo.</li>
+<li>Fornecedor de geocodificação/mapas (se houver), consentimento e retenção.</li>
+<li>Provedor de e-mail/push.</li>
+<li>Escopo e fornecedor de checkout/pagamentos para uma fase comercial futura.</li>
+<li>Regras de moderação, retenção/legal hold e prazos de exclusão.</li>
+</ul>
+<h2>Estado inicial do contrato</h2>
+<p>O gerador (<code>node docs/backend/generate-contracts.mjs</code>) escreve <code>openapi.json</code> e <code>endpoints.md</code>. O contrato registra 134 operações propostas; somente <code>GET /api/healthz</code> é uma rota implementada confirmada. Antes de gerar clientes ou conectar o frontend, revisar as decisões acima e validar schemas/ref/operationIds.</p></section></main></body></html>

@@ -61,6 +61,7 @@
         ],
         "summary": "Verificar servidor (rota existente)",
         "description": "LIVE on the audited API server.",
+        "security": [],
         "responses": {
           "200": {
             "description": "Endpoint implementado e observado no servidor atual.",
@@ -202,8 +203,7 @@
               }
             }
           }
-        },
-        "security": []
+        }
       }
     },
     "/v1/auth/session": {
@@ -538,6 +538,7 @@
             }
           }
         ],
+        "security": [],
         "responses": {
           "302": {
             "description": "Redirecionamento no fluxo OIDC; callback valida state/PKCE."
@@ -557,15 +558,7 @@
           {
             "name": "code",
             "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -577,16 +570,9 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "code",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
+        "security": [],
         "responses": {
           "302": {
             "description": "Redirecionamento no fluxo OIDC; callback valida state/PKCE."
@@ -1086,12 +1072,7 @@
         ],
         "summary": "Solicitar recuperação via provedor; resposta anti-enumeração 202",
         "description": "PROPOSED ONLY; not currently implemented. Async job and request ID; no synchronous-success simulation.",
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -1103,7 +1084,7 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
@@ -1266,7 +1247,7 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
@@ -1913,7 +1894,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "202": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
@@ -2232,11 +2213,17 @@
         ],
         "summary": "Verificar disponibilidade pública de username",
         "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
+        "parameters": [
           {
-            "SessionCookie": []
+            "name": "username",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "security": [],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -3224,7 +3211,7 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
@@ -7418,7 +7405,7 @@
           "social"
         ],
         "summary": "Registrar intenção de compartilhar (não prova entrega externa)",
-        "description": "PROPOSED ONLY; not currently implemented. Async job and request ID; no synchronous-success simulation.",
+        "description": "PROPOSED ONLY; not currently implemented.",
         "parameters": [
           {
             "name": "postId",
@@ -7442,7 +7429,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Accepted"
+                  "$ref": "#/components/schemas/ShareIntent"
                 }
               }
             }
@@ -13642,7 +13629,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid"
+              "pattern": "^[0-9]{7}$"
             }
           }
         ],
@@ -22158,7 +22145,7 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
@@ -22754,6 +22741,71 @@
           "checks"
         ]
       },
+      "Csrf": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "csrfToken": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "csrfToken",
+          "expiresAt"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "lastSeenAt",
+          "isCurrent"
+        ]
+      },
+      "PageSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Session"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
       "Account": {
         "type": "object",
         "additionalProperties": false,
@@ -23181,6 +23233,38 @@
           "version"
         ]
       },
+      "ServiceOptions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "delivery": {
+            "type": "boolean"
+          },
+          "dineIn": {
+            "type": "boolean"
+          },
+          "tableService": {
+            "type": "boolean"
+          },
+          "reservations": {
+            "type": "boolean"
+          },
+          "appointments": {
+            "type": "boolean"
+          },
+          "takeout": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "delivery",
+          "dineIn",
+          "tableService",
+          "reservations",
+          "appointments",
+          "takeout"
+        ]
+      },
       "BusinessHour": {
         "type": "object",
         "additionalProperties": false,
@@ -23251,7 +23335,7 @@
             }
           },
           "serviceOptions": {
-            "$ref": "#/components/schemas/BusinessProfile"
+            "$ref": "#/components/schemas/ServiceOptions"
           },
           "tags": {
             "type": "array",
@@ -23775,6 +23859,72 @@
           "items"
         ]
       },
+      "Repost": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "postId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "postId",
+          "authorId",
+          "createdAt"
+        ]
+      },
+      "Trend": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "publicPostCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "tag",
+          "publicPostCount"
+        ]
+      },
+      "PageTrend": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Trend"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
       "PageTag": {
         "type": "object",
         "additionalProperties": false,
@@ -24188,6 +24338,27 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/City"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "PageEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Event"
             }
           },
           "nextCursor": {
@@ -24789,6 +24960,24 @@
           "city",
           "precision",
           "persisted"
+        ]
+      },
+      "ShareIntent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt"
         ]
       },
       "ShopItem": {
