@@ -29,7 +29,7 @@ export default function Circles() {
     cancelCircle(id);
   }
 
-  function removeFriend(id: string) {
+  function removeFromCircle(id: string) {
     cancelCircle(id);
   }
 
@@ -77,7 +77,7 @@ export default function Circles() {
         ))}
       </div>
 
-      {/* Tab 0: Amigos */}
+      {/* Tab 0: Pessoas do Círculo */}
       {activeTab === 0 && (
         <>
           {/* Search */}
@@ -87,7 +87,7 @@ export default function Circles() {
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Buscar amigos"
+                placeholder="Buscar no seu Círculo"
                 className="w-full h-9 pl-9 pr-4 bg-muted/50 rounded-full text-sm text-foreground placeholder:text-muted-foreground border border-transparent focus:border-primary focus:outline-none"
               />
             </div>
@@ -124,7 +124,7 @@ export default function Circles() {
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{user.bio.slice(0, 60)}</p>
                   </div>
                   <button
-                    onClick={() => removeFriend(user.id)}
+                    onClick={() => removeFromCircle(user.id)}
                     data-testid={`button-remove-circle-${user.id}`}
                     className="shrink-0 px-3 py-1.5 rounded-full border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
                   >

@@ -83,16 +83,16 @@ export default function Profile() {
   function handleCircle() {
     if (isMe) return;
     if (circleStatus === "accepted") return;
-    if (hasIncomingCircleRequest) {
-      acceptCircle(user.id);
-      toast({ title: "Adicionado ao seu Círculo" });
-      return;
-    }
-    if (circleStatus === "pending") {
-      cancelCircle(user.id);
-      return;
-    }
     try {
+      if (hasIncomingCircleRequest) {
+        acceptCircle(user.id);
+        toast({ title: "Adicionado ao seu Círculo" });
+        return;
+      }
+      if (circleStatus === "pending") {
+        cancelCircle(user.id);
+        return;
+      }
       requestCircle(user.id);
       toast({ title: "Solicitação enviada" });
     } catch (error) {
@@ -104,7 +104,7 @@ export default function Profile() {
     }
   }
 
-  if (!isMe && user.isPrivate && !user.isInCircle) {
+  if (!isMe && user.isPrivate && !user.isInCircle && circleStatus !== "accepted") {
     return (
       <div className="min-h-[70vh] px-5 py-16">
         <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center">
@@ -115,7 +115,7 @@ export default function Profile() {
           <h1 className="text-xl font-bold">{user.displayName}</h1>
           <p className="mt-1 text-sm text-muted-foreground">@{user.username}</p>
           <p className="mt-4 text-sm text-muted-foreground">Este perfil é privado. Publicações e informações aparecem para pessoas do Círculo.</p>
-          <Button onClick={handleCircle} className="mt-5 rounded-full" disabled={circleStatus === "accepted"}>
+          <Button onClick={handleCircle} className="mt-5 rounded-full" disabled={circleStatus === "pending" && !hasIncomingCircleRequest}>
             {hasIncomingCircleRequest ? "Aceitar solicitação" : circleStatus === "pending" ? "Solicitação enviada" : "Pedir para entrar no Círculo"}
           </Button>
         </div>
@@ -168,7 +168,7 @@ export default function Profile() {
                 </Button>
               ) : (
                 <>
-                  {/* Amigos button */}
+                  {/* Círculo */}
                   <button
                     type="button"
                     onClick={handleCircle}
@@ -184,11 +184,11 @@ export default function Profile() {
                     }`}
                   >
                     {circleStatus === "accepted"
-                      ? <><Check className="w-3 h-3" /> Amigos</>
+                      ? <><Check className="w-3 h-3" /> No Círculo</>
                       : circleStatus === "pending"
                       ? hasIncomingCircleRequest
                         ? <><Check className="w-3 h-3" /> Aceitar solicitação</>
-                        : <><Users className="w-3 h-3" /> Solicitação enviada</>
+                        : <><Users className="w-3 h-3" /> Cancelar solicitação</>
                       : <><UserPlus className="w-3 h-3" /> Adicionar ao Círculo</>
                     }
                   </button>

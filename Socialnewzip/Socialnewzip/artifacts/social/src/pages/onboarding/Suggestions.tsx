@@ -37,7 +37,7 @@ export default function OnboardingSuggestions() {
         </div>
 
         <div className="mb-2">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Passo 2 de 2 · Perfis sugeridos</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Perfis sugeridos</p>
           <div className="flex gap-2 mb-6">
             <div className="h-1 flex-1 rounded-full bg-primary" />
             <div className="h-1 flex-1 rounded-full bg-primary" />

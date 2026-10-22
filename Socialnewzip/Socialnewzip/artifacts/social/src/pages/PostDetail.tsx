@@ -33,7 +33,7 @@ export default function PostDetail() {
         <UnavailableState
           title={result.state === "forbidden" ? "Sem permissão" : "Publicação indisponível"}
           description={result.state === "forbidden"
-            ? "Esta publicação é restrita a amigos ou privada."
+            ? "Esta publicação é restrita ao Círculo ou privada."
             : "Ela pode ter sido removida ou o link está incorreto."}
           action={<Button asChild className="rounded-full"><Link href="/feed">Voltar ao feed</Link></Button>}
         />

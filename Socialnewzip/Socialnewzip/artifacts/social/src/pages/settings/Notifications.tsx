@@ -12,7 +12,7 @@ interface ToggleItem {
 
 const groups: { title: string; items: ToggleItem[] }[] = [
   {
-    title: "Amigos",
+    title: "Círculo",
     items: [
       { label: "Solicitações de círculo", desc: "Quando alguém pede para entrar no seu círculo", key: "circle_requests" },
       { label: "Círculo aceito", desc: "Quando sua solicitação é aceita", key: "circle_accepted" },

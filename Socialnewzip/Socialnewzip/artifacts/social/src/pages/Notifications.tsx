@@ -48,7 +48,11 @@ export default function Notifications() {
     return () => clearTimeout(t);
   }, []);
 
-  const filtered = notifications.filter(n => {
+  const relevantNotifications = notifications.filter(n =>
+    n.type !== "circle_request" ||
+    (getUserById(n.actorId)?.circleStatus === "pending" && getUserById(n.actorId)?.circleRequestDirection === "incoming")
+  );
+  const filtered = relevantNotifications.filter(n => {
     if (activeTab === 0) return true;
     if (activeTab === 1) return n.type === "mention";
     if (activeTab === 2) return n.type === "circle_request" || n.type === "circle_accepted";
@@ -56,7 +60,7 @@ export default function Notifications() {
     return true;
   });
 
-  const unread = notifications.filter(n => !n.isRead).length;
+  const unread = relevantNotifications.filter(n => !n.isRead).length;
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
@@ -129,7 +133,7 @@ export default function Notifications() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(n.createdAt)}</p>
 
-                  {n.type === "circle_request" && (
+                  {n.type === "circle_request" && actor?.circleStatus === "pending" && actor.circleRequestDirection === "incoming" && (
                     <div className="flex gap-2 mt-2.5">
                       <button
                         onClick={(e) => { e.stopPropagation(); acceptCircleNotification(n.actorId, n.id); }}

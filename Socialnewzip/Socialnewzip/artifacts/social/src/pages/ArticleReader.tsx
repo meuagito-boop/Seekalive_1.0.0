@@ -29,7 +29,7 @@ export default function ArticleReader() {
         {header}
         <UnavailableState
           title={result.state === "forbidden" ? "Sem permissão" : "Artigo indisponível"}
-          description={result.state === "forbidden" ? "Este artigo é restrito a amigos ou privado." : "Ele pode ter sido removido ou o link está incorreto."}
+          description={result.state === "forbidden" ? "Este artigo é restrito ao Círculo ou privado." : "Ele pode ter sido removido ou o link está incorreto."}
           action={<Button asChild className="rounded-full"><Link href="/feed">Voltar ao feed</Link></Button>}
         />
       </div>

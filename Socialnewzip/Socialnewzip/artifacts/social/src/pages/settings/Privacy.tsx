@@ -67,7 +67,10 @@ export default function SettingsPrivacy() {
   const [, setLocation] = useLocation();
   const { currentUser, updateAccount } = useAppContext();
   const { updateUser } = useSocial();
-  const [prefs, setPrefs] = useState(() => getPrivacyPreferences(currentUser?.id));
+  const [prefs, setPrefs] = useState(() => ({
+    ...getPrivacyPreferences(currentUser?.id),
+    profilePrivate: currentUser?.isPrivate ?? getPrivacyPreferences(currentUser?.id).profilePrivate,
+  }));
 
   function update<K extends keyof typeof prefs>(key: K, value: (typeof prefs)[K]) {
     setPrefs(previous => {

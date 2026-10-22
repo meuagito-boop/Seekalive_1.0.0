@@ -369,7 +369,7 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 // ── Provider ──────────────────────────────────────────────────────────
 export function SocialProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
-  const { currentUser } = useAppContext();
+  const { currentUser, updateAccount } = useAppContext();
   function assertSession(authorId: string) {
     if (!currentUser) throw new ContentServiceError("Entre na sua conta para continuar.", 401);
     if (authorId !== currentUser.id) throw new ContentServiceError("Você não tem permissão para publicar em nome de outra conta.", 403);
@@ -502,11 +502,18 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         stats: { ...target.stats, circles: target.stats.circles + (target.isInCircle ? 0 : 1) },
       };
       saveSocialAccount(accepted);
+      if (!target.isInCircle) {
+        updateAccount({
+          ...currentUser,
+          stats: { ...currentUser.stats, circles: currentUser.stats.circles + 1 },
+        });
+      }
       dispatch({ type: "ACCEPT_CIRCLE", userId });
     },
     cancelCircle: (userId) => {
       const target = state.users.find(user => user.id === userId);
       if (target) {
+        const wasMember = target.circleStatus === "accepted" || target.isInCircle;
         saveSocialAccount({
           ...target,
           circleStatus: null,
@@ -514,6 +521,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
           isInCircle: false,
           stats: { ...target.stats, circles: Math.max(0, target.stats.circles - (target.circleStatus === "accepted" || target.isInCircle ? 1 : 0)) },
         });
+        if (wasMember && currentUser) {
+          updateAccount({
+            ...currentUser,
+            stats: { ...currentUser.stats, circles: Math.max(0, currentUser.stats.circles - 1) },
+          });
+        }
       }
       dispatch({ type: "CANCEL_CIRCLE", userId });
     },
@@ -550,6 +563,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         .map(id => state.users.find(user => user.id === id));
       if (recipients?.some(recipient => !recipient))
         throw new ContentServiceError("A pessoa desta conversa não está disponível.", 404);
+      if (recipients?.some(recipient => recipient?.isBlocked))
+        throw new ContentServiceError("Esta pessoa não está disponível para mensagens.", 403);
       const policies = (recipients ?? []).map(recipient => getPrivacyPreferences(recipient!.id).messages);
       if (policies.includes("nobody"))
         throw new ContentServiceError("Esta pessoa não está recebendo mensagens diretas.", 403);
@@ -559,8 +574,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "SEND_MESSAGE", message });
     },
     acceptCircleNotification: (actorId, notifId) => {
+      if (!currentUser) throw new ContentServiceError("Entre na sua conta para responder à solicitação.", 401);
       const target = state.users.find(user => user.id === actorId);
-      if (!target || target.circleStatus !== "pending")
+      if (!target || target.circleStatus !== "pending" || target.circleRequestDirection !== "incoming")
         throw new ContentServiceError("Essa solicitação do Círculo não está disponível.", 404);
       saveSocialAccount({
         ...target,
@@ -569,11 +585,21 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         isInCircle: true,
         stats: { ...target.stats, circles: target.stats.circles + (target.isInCircle ? 0 : 1) },
       });
+      if (!target.isInCircle) {
+        updateAccount({
+          ...currentUser,
+          stats: { ...currentUser.stats, circles: currentUser.stats.circles + 1 },
+        });
+      }
       dispatch({ type: "ACCEPT_CIRCLE_NOTIFICATION", actorId, notifId });
     },
     declineCircleNotification: (actorId, notifId) => {
       const target = state.users.find(user => user.id === actorId);
-      if (target) saveSocialAccount({ ...target, circleStatus: null, circleRequestDirection: undefined, isInCircle: false });
+      if (!target || target.circleStatus !== "pending" || target.circleRequestDirection !== "incoming") {
+        dispatch({ type: "MARK_NOTIFICATION_READ", id: notifId });
+        return;
+      }
+      saveSocialAccount({ ...target, circleStatus: null, circleRequestDirection: undefined, isInCircle: false });
       dispatch({ type: "DECLINE_CIRCLE_NOTIFICATION", actorId, notifId });
     },
   };
