@@ -330,7 +330,7 @@ export function CommercialProfilePage({
               className="h-10 shrink-0 rounded-full px-4"
             >
               <Star className="mr-2 h-4 w-4" />
-              Avaliar
+              Adicionar avaliação
             </Button>
             <a
               href={mapsUrl(commercial.address)}
@@ -353,21 +353,28 @@ export function CommercialProfilePage({
           {shareNotice && <p role="status" className="mt-2 text-xs text-primary">{shareNotice}</p>}
         </section>
 
-        <nav aria-label="Seções do perfil" className="sticky top-14 z-30 flex gap-1 overflow-x-auto border-b border-border bg-background/95 px-2 backdrop-blur [scrollbar-width:none]">
-          {profileTabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`flex-none whitespace-nowrap border-b-2 px-1.5 py-3 text-[10px] font-semibold transition-colors sm:px-2 sm:text-xs md:px-5 md:text-sm ${
-                activeTab === tab
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tab === "Avaliações" ? `Avaliações${businessReviews.length ? ` (${businessReviews.length})` : ""}` : tab}
-            </button>
-          ))}
+        <nav
+          aria-label="Seções do perfil"
+          className="sticky top-14 z-30 overflow-x-auto border-b border-border bg-background/95 backdrop-blur [scrollbar-width:none]"
+        >
+          <div role="tablist" aria-label="Seções do perfil comercial" className="flex h-12 w-full min-w-[480px] md:min-w-full">
+            {profileTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 whitespace-nowrap border-b-2 px-2 text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </nav>
 
         <div className="px-4 py-5 md:px-8">
