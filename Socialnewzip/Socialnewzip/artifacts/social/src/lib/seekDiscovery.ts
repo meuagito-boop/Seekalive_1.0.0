@@ -102,7 +102,9 @@ export function buildSeekItems(
       category: profile.category,
       categoryKey: profile.categoryKey,
       description: user.bio,
-      image: isExample ? undefined : discoveryImage(user.coverUrl) ?? discoveryImage(user.avatarUrl),
+      image: isExample
+        ? user.coverUrl.includes("/demo-seek/") ? discoveryImage(user.coverUrl) : undefined
+        : discoveryImage(user.coverUrl) ?? discoveryImage(user.avatarUrl),
       href: `/profile/${encodeURIComponent(user.username)}`,
       region: profile.serviceAreas?.length ? profile.serviceAreas.join(" · ") : user.location || "Região não informada",
       cityId: profile.cityId,
@@ -125,7 +127,7 @@ export function buildSeekItems(
     category: event.categoryKey,
     categoryKey: event.categoryKey,
     description: event.description ?? "",
-    image: event.isExample ? undefined : discoveryImage(event.img),
+    image: event.isExample ? event.img.includes("/demo-seek/") ? discoveryImage(event.img) : undefined : discoveryImage(event.img),
     href: `/seek/event/${encodeURIComponent(event.id)}`,
     region: event.cityName ? `${event.cityName}${event.cityState ? `, ${event.cityState}` : ""}` : "Região não informada",
     cityId: event.cityId,

@@ -31,6 +31,12 @@ export function DiscoveryCard({ item, saved, onToggleSave, onOpenReviews, varian
           <img src={item.image} alt="" loading="lazy" decoding="async"
             onError={() => setFailedImage(item.image ?? null)}
             className="absolute inset-0 h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-500 group-hover:scale-[1.03]" />
+        ) : item.isExample && item.rating !== undefined ? (
+          <p className="flex min-h-11 items-center gap-1 text-xs">
+            <Star className="h-3.5 w-3.5 fill-primary text-primary" aria-hidden="true" />
+            <span className="font-semibold">{item.rating.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+            <span className="text-muted-foreground">· {item.reviewCount} avaliações de exemplo</span>
+          </p>
         ) : null}
         <div className="absolute inset-0 -z-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.22),transparent_60%)]">
           {!hasImage && <Icon className="h-8 w-8 text-primary/70" aria-hidden />}

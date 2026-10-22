@@ -142,10 +142,15 @@ export default function Seek() {
 
         {/* Example toggle */}
         {d.examplesAvailable && (
-          <label className="mx-3 flex min-h-11 items-center gap-3 text-xs text-muted-foreground md:mx-0">
+          <div className="mx-3 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 md:mx-0">
+          <label className="flex min-h-11 items-center gap-3 text-xs text-muted-foreground">
             <input type="checkbox" className="h-5 w-5 accent-[hsl(var(--primary))]" checked={d.includeExamples} onChange={(e) => d.setIncludeExamples(e.target.checked)} />
-            Mostrar exemplos de demonstração (marcados como “Exemplo”, não são negócios reais)
+            Modo demonstração: locais, serviços e eventos fictícios. Fotos ilustrativas.
           </label>
+          <button type="button" onClick={d.showAllExamples} className="mb-1 min-h-11 rounded-lg px-2 text-xs font-bold text-primary hover:bg-primary/10">
+            Ver prévia completa
+          </button>
+          </div>
         )}
 
         <div aria-live="polite" className="sr-only">{d.results.length} resultados</div>

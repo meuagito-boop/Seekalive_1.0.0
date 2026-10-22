@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSocial } from "@/context/SocialContext";
 import { mockUsers } from "@/data/mockData";
 import { demoSeekEvents } from "@/data/demoSeekEvents";
+import { demoSeekAccounts } from "@/data/demoSeekAccounts";
 import { buildSeekItems, defaultDiscoveryFilters, filterDiscovery, validateDiscoveryFilters } from "@/lib/seekDiscovery";
 import type { DiscoveryFilters, DiscoveryLocation } from "@/lib/seekDiscovery";
 import { readRecentLocations, rememberManualLocation } from "@/services/seekLocationService";
@@ -10,7 +11,8 @@ const FILTER_KEY = "seekalive-seek-filters";
 const SAVED_KEY = "seekalive-saved-businesses";
 const EVENT_SAVED_KEY = "seekalive-seek-saved-events";
 const SCROLL_KEY = "seekalive-seek-scroll";
-const exampleIds = new Set(mockUsers.map(user => user.id));
+const exampleIds = new Set([...mockUsers, ...demoSeekAccounts].map(user => user.id));
+const EXAMPLES_KEY = "seekalive-seek-demo-preview";
 
 function readFilters(): DiscoveryFilters {
   try { return validateDiscoveryFilters(JSON.parse(sessionStorage.getItem(FILTER_KEY) ?? "null")); }
@@ -29,8 +31,8 @@ export function useSeekDiscovery() {
   const [location, updateLocation] = useState<DiscoveryLocation | null>(() => readRecentLocations()[0] ?? null);
   const [locationOpen, setLocationOpen] = useState(false);
   const [includeExamples, updateExamples] = useState(() => {
-    try { return import.meta.env.DEV && sessionStorage.getItem("seekalive-seek-show-examples") === "true"; }
-    catch { return false; }
+    try { return import.meta.env.DEV && sessionStorage.getItem(EXAMPLES_KEY) !== "false"; }
+    catch { return import.meta.env.DEV; }
   });
   const examplesAvailable = import.meta.env.DEV;
   const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
@@ -83,7 +85,7 @@ export function useSeekDiscovery() {
   }
   function setIncludeExamples(value: boolean) {
     updateExamples(examplesAvailable && value);
-    try { sessionStorage.setItem("seekalive-seek-show-examples", String(examplesAvailable && value)); }
+    try { sessionStorage.setItem(EXAMPLES_KEY, String(examplesAvailable && value)); }
     catch { setNotice("Não foi possível manter a opção de exemplos ao sair desta tela."); }
   }
   function selectLocation(next: DiscoveryLocation) {
@@ -110,6 +112,11 @@ export function useSeekDiscovery() {
     clearFilters: () => updateState(previous => ({ ...defaultDiscoveryFilters, tab: previous.tab, list: previous.list })),
     location, selectLocation, locationOpen, setLocationOpen, includeExamples, setIncludeExamples, examplesAvailable,
     offline, savedIds, toggleSaved,
+    showAllExamples: () => {
+      setIncludeExamples(true);
+      updateState({ ...defaultDiscoveryFilters });
+      updateLocation(null);
+    },
     reviewBusiness: users.find(user => user.id === reviewBusinessId && user.accountType === "commercial") ?? null,
     openReviews: setReviewBusinessId, closeReviews: () => setReviewBusinessId(null),
     locationNotice: notice ?? (location?.source === "device"

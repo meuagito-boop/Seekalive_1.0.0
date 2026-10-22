@@ -4,6 +4,9 @@ import { buildSeekItems, defaultDiscoveryFilters, discoveryImage, filterDiscover
 import type { DiscoveryLocation, SeekDiscoveryItem } from "../src/lib/seekDiscovery";
 import { LocationError, locationErrorMessage, parseIBGECities, readRecentLocations, rememberManualLocation, requestDeviceLocation, searchCities } from "../src/services/seekLocationService";
 import type { User } from "../src/data/mockData";
+import { mockUsers } from "../src/data/mockData";
+import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "../src/data/demoSeekAccounts";
+import { demoSeekEvents } from "../src/data/demoSeekEvents";
 
 const sp: DiscoveryLocation = { id: "3550308", city: "São Paulo", state: "SP", label: "São Paulo, SP · Brasil", source: "manual" };
 const santos: DiscoveryLocation = { id: "3548500", city: "Santos", state: "SP", label: "Santos, SP · Brasil", source: "manual" };
@@ -17,6 +20,24 @@ const fixtureUser: User = {
   commercialProfile: { categoryKey: "servicos", category: "Serviços", address: "", tags: ["pedreiro"], cityId: sp.id },
   stats: { posts: 0, followers: 0, following: 0, circles: 0 },
 };
+
+test("prévia contém lugares, serviços e eventos navegáveis com imagens ilustrativas e cidades", () => {
+  const users = [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts];
+  const items = buildSeekItems(users, demoSeekReviews, demoSeekEvents.map(event => ({ ...event, isExample: true })),
+    new Set(users.map(user => user.id)));
+  assert.ok(items.filter(item => item.kind === "provider").length >= 4);
+  assert.ok(items.filter(item => item.kind === "place").length >= 6);
+  assert.equal(items.filter(item => item.kind === "event").length, 6);
+  assert.ok(items.some(item => item.image?.includes("/demo-seek/")));
+  assert.ok(items.every(item => item.isExample));
+  assert.ok(items.filter(item => item.kind === "event").every(item => item.cityId && item.startsAt && Number.isFinite(Date.parse(item.startsAt))));
+  for (const account of demoSeekAccounts) {
+    assert.equal(account.accountType, "commercial");
+    assert.ok(items.some(item => item.accountId === account.id && item.href === `/profile/${account.username}`));
+  }
+  const matches = filterDiscovery(items, { ...defaultDiscoveryFilters, query: "pedreiro", minimumRating: 4 }, sp);
+  assert.ok(matches.some(item => item.id === "demo_marcos_reformas"));
+});
 
 test("Seek é alimentado pelas contas comerciais do Social e respeita bloqueio/privacidade", () => {
   const users: User[] = [fixtureUser, { ...fixtureUser, id: "personal", accountType: "personal" },

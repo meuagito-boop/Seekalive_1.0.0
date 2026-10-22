@@ -11,6 +11,7 @@ import type { PublishPostInput, SocialComment, SocialRepost } from "@/types/cont
 import { contentService, ContentServiceError } from "@/services/contentService";
 import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/contentValidation";
 import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
+import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
 
 // ── State shape ──────────────────────────────────────────────────────
 export interface SocialState {
@@ -279,11 +280,11 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
 // ── Initial state ─────────────────────────────────────────────────────
 const initialState: SocialState = {
   posts: [...demoIntegrationPosts, ...mockPosts].map(p => ({ ...p, isBookmarked: false, isReposted: false })),
-  users: [...mockUsers],
+  users: import.meta.env?.DEV ? [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts] : [...mockUsers],
   notifications: [...mockNotifications],
   conversations: [...mockConversations],
   messages: [...mockMessages],
-  reviews: [...mockSeekReviews],
+  reviews: [...mockSeekReviews, ...(import.meta.env?.DEV ? demoSeekReviews : [])],
   postComments: [],
   repostEntries: [],
 };

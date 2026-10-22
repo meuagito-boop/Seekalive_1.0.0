@@ -72,7 +72,12 @@ try {
   await navigate();
   await evaluate("localStorage.clear();sessionStorage.clear()");
   await navigate();
-  await check("Abrir Seek não solicita GPS nem mostra exemplos como resultados reais", "window.__gpsCalls===0 && document.querySelectorAll('article').length===0 && !document.querySelector('input[type=checkbox]')?.checked");
+  await wait("!!document.querySelector('#seek-events')");
+  await check("Prévia abre preenchida com locais, prestadores, eventos e fotos sem solicitar GPS",
+    "window.__gpsCalls===0 && !!document.querySelector('#seek-providers') && !!document.querySelector('#seek-places') && !!document.querySelector('#seek-events') && document.querySelectorAll('article img').length>0 && document.querySelector('input[type=checkbox]').checked");
+  await evaluate("document.querySelector('input[type=checkbox]').click()");
+  await wait("document.querySelectorAll('article').length===0");
+  await check("Exemplos identificados podem ser ocultados sem se misturar a contas reais", "document.body.textContent.includes('Modo demonstração') && !document.querySelector('input[type=checkbox]').checked");
   const account = (id, name, category, cityId, cityName) => ({
     id, username: id, displayName: name, bio: category === "servicos" ? "Pedreiro, reformas e pintura" : "Atendimento local",
     avatarUrl: "", coverUrl: "", location: `${cityName}, SP`, joinedAt: "2026-10-22", accountType: "commercial",

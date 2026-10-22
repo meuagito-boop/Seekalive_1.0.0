@@ -27,6 +27,8 @@ export default function SeekEventDetail() {
   return (
     <div className="mx-auto min-h-[100dvh] max-w-3xl pb-24">
       <div className="relative h-56 overflow-hidden md:mt-4 md:h-72 md:rounded-2xl">
+        <img src={event.img} alt={`Foto ilustrativa de ${event.name}`} className="absolute inset-0 h-full w-full object-cover"
+          onError={event => { event.currentTarget.style.display = "none"; }} />
         <div className="flex h-full items-center justify-center bg-primary/10">
           <CalendarDays className="h-16 w-16 text-primary/60" aria-hidden="true" />
         </div>
@@ -35,7 +37,7 @@ export default function SeekEventDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
       </div>
-      <div className="-mt-10 px-4 md:px-6">
+      <div className="relative z-10 -mt-10 px-4 md:px-6">
         <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">Seek · Evento de demonstração</span>
         <p className="mt-2 text-sm text-muted-foreground">Exemplo para testar a interface. Data, preço e interessados não representam um evento real.</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight">{event.name}</h1>

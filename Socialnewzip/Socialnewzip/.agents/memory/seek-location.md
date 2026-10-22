@@ -15,8 +15,8 @@ Cidade de exploração, cidade cadastrada pelo negócio e posição física do d
 
 **How to apply:** Não mostrar distâncias, raio funcional ou “perto de você” sem infraestrutura e dados suficientes. Preferir identificação estruturada do município no perfil comercial; texto legado é apenas declaração do perfil, não um endereço geocodificado.
 
-Exemplos do Seek devem ser opt-in, identificados e restritos ao desenvolvimento. Não tratar contas semeadas, eventos de exemplo, contagens ou imagens aleatórias como catálogo real de produção.
+Exemplos do Seek devem estar visíveis por padrão no desenvolvimento, identificados e restritos a esse ambiente. Incluir lugares, prestadores e eventos com imagens ilustrativas relevantes e perfis/detalhes navegáveis. Não tratar exemplos como catálogo real de produção.
 
-**Why:** O prompt do usuário exige resultados confiáveis e proíbe dados fictícios no fluxo de produção.
+**Why:** O usuário pediu explicitamente mocks de locais, eventos e serviços para conseguir visualizar a interface e corrigiu a experiência vazia, em que não conseguia ver o resultado. A restrição a dados fictícios em produção permanece.
 
-**How to apply:** Preservar a ligação entre contas comerciais do Social e resultados do Seek. Uma listagem vazia é preferível a inventar dados, avaliações ou disponibilidade.
+**How to apply:** Preservar a ligação entre contas comerciais do Social e resultados do Seek também nos mocks. Manter um controle explícito para ocultar exemplos e uma ação para ver a prévia completa sem filtros. Em produção, uma listagem vazia é preferível a inventar dados, avaliações ou disponibilidade.
