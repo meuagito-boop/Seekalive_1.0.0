@@ -42,3 +42,59 @@ mtime_ms = 1792672463852
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/c4ccb7c3-8f5a-4a07-a6f5-efdf19793939/96d93202-e583-43f6-9590-be5cde354d15"
 storage_version_token = "1792672976412870"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "o1ZH36jFPnvfOuOb-wyQX"
+uri = "file://attached_assets/seekalive_logos/comparativo.png"
+type = "image"
+title = "SeekAlive — 3 propostas de logotipo"
+description = "Comparação das propostas Encontro, Elo e Pulso, com versões em fundos claro e escuro, ícone do app e teste em tamanho reduzido."
+logical_id = "83497fa1-9be6-4f65-a306-51dddea2c377"
+content_hash = "sha256:27d747eb669cd2b4953194c03b660d9de02ae52c980af33c087a95e1eb05a050"
+size = 155889
+mtime_ms = 1792675400880
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/83497fa1-9be6-4f65-a306-51dddea2c377/bfe0c8ba-7fa2-41bf-bf0f-f9a532e8449d"
+storage_version_token = "1792675427352254"
+content_type = "image/png"
+
+[[outputs]]
+id = "nCSK90ktGNLLmIN3VKBAC"
+uri = "file://attached_assets/seekalive_logos/01-encontro.svg"
+type = "image"
+title = "Encontro — símbolo em SVG"
+description = "Símbolo vetorial da proposta Encontro, com fundo transparente. Estudo para escolha; não aplicado ao aplicativo."
+logical_id = "78f7501a-738c-4ad4-bdd8-ba86a6d25f17"
+content_hash = "sha256:cebe1369bde5736d23858e48398e792a89dbd5d0222c7d53483e6a5baa54bc95"
+size = 1017
+mtime_ms = 1792675345647
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/78f7501a-738c-4ad4-bdd8-ba86a6d25f17/aebb9f47-2d6c-48ff-9ec5-30c00ecf9e78"
+storage_version_token = "1792675428006751"
+content_type = "image/svg+xml"
+
+[[outputs]]
+id = "uW-gT2kTgplVm0Q6FQSIC"
+uri = "file://attached_assets/seekalive_logos/02-elo.svg"
+type = "image"
+title = "Elo — símbolo em SVG"
+description = "Símbolo vetorial da proposta Elo, com fundo transparente. Estudo para escolha; não aplicado ao aplicativo."
+logical_id = "ef9c7074-ce99-46c6-9e98-e7a03c201dc9"
+content_hash = "sha256:461d5cbde050d671c43048411d499f7732622d9f8d3b8ab9bfce62e3a71c884d"
+size = 941
+mtime_ms = 1792675277807
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/ef9c7074-ce99-46c6-9e98-e7a03c201dc9/6240920d-cd1c-40b7-a5f3-a626fe0ec9c7"
+storage_version_token = "1792675428611432"
+content_type = "image/svg+xml"
+
+[[outputs]]
+id = "94KyBSavnkW8o8s0Gjzcd"
+uri = "file://attached_assets/seekalive_logos/03-pulso.svg"
+type = "image"
+title = "Pulso — símbolo em SVG"
+description = "Símbolo vetorial da proposta Pulso, com fundo transparente. Estudo para escolha; não aplicado ao aplicativo."
+logical_id = "f2ae3a55-f2ce-455a-a69e-f1515b73b895"
+content_hash = "sha256:d1043b4237253426e23fd1a0c9a2a6cb0a03d9ac060e4ceebbaf910d841c8cb5"
+size = 1101
+mtime_ms = 1792675277975
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/f2ae3a55-f2ce-455a-a69e-f1515b73b895/c602140b-2ec9-4b4a-b185-50298e471f28"
+storage_version_token = "1792675429197304"
+content_type = "image/svg+xml"
