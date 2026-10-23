@@ -1,5 +1,6 @@
 -- SEEKALIVE CORE — PROPOSED, NOT APPLIED.
--- Documentation only; NOT a migration or a representation of a live database.
+-- Full product proposal only; not a migration and not the exact current dev schema.
+-- The 7-table auth/onboarding subset is applied separately through Drizzle in dev.
 -- Static dependency review only. PostgreSQL with pgcrypto; no PostGIS required.
 -- No grants/RLS policies are supplied: never expose these tables to browsers.
 -- Authorization, privacy, retention and cross-row publication rules require
@@ -52,14 +53,13 @@ CREATE TABLE password_credentials (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- One-time email verification and password recovery challenges. Only a digest
--- of each opaque random token is stored. The service consumes/revokes active
--- challenges transactionally and applies rate limits outside this table.
+-- One-time email verification and password recovery challenges. The current
+-- verification handler stores a peppered HMAC-SHA256 digest of a six-digit code.
 CREATE TABLE auth_challenges (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES accounts(id),
   purpose text NOT NULL CHECK (purpose IN ('verify_email', 'password_recovery')),
-  token_hash bytea NOT NULL UNIQUE CHECK (octet_length(token_hash) = 32),
+  token_hash char(64) NOT NULL UNIQUE CHECK (char_length(token_hash) = 64),
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL,
   consumed_at timestamptz,
@@ -73,8 +73,8 @@ CREATE INDEX auth_challenges_expiry ON auth_challenges(expires_at) WHERE consume
 CREATE TABLE sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES accounts(id),
-  token_hash bytea NOT NULL UNIQUE CHECK (octet_length(token_hash) = 32),
-  csrf_token_hash bytea NOT NULL CHECK (octet_length(csrf_token_hash) = 32),
+  token_hash char(64) NOT NULL UNIQUE CHECK (char_length(token_hash) = 64),
+  csrf_token_hash char(64) NOT NULL CHECK (char_length(csrf_token_hash) = 64),
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL,
   revoked_at timestamptz,

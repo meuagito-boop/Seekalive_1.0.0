@@ -1,6 +1,6 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **129 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **130 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
 > Salvo `GET /api/healthz`, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.
 
@@ -23,17 +23,23 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **PROPOSTA** |
-| GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **PROPOSTA** |
-| POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **PROPOSTA**; assíncrona |
-| POST | `/v1/auth/login` | Público | `LoginRequest` | `AuthResult` | **PROPOSTA** |
-| POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
+| GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **ATIVA** |
+| GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **ATIVA** |
+| POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/login` | Público | `LoginRequest` | `AuthResult` | **ATIVA** |
+| POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **ATIVA** |
 | GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **PROPOSTA** |
 | DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | POST | `/v1/auth/recovery` | Público | `RecoveryRequest` | `Accepted` | **PROPOSTA**; assíncrona |
 | POST | `/v1/auth/recovery/confirm` | Público | `RecoveryConfirm` | `Empty` | **PROPOSTA** |
-| POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **PROPOSTA**; assíncrona |
-| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `AuthResult` | **PROPOSTA** |
+| POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `AuthResult` | **ATIVA** |
+
+## Onboarding
+
+| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
+|---|---|---|---|---|---|
+| POST | `/v1/onboarding/interests` | Sessão autenticada | `OnboardingCompletionRequest` | `OnboardingCompletionResult` | **ATIVA** |
 
 ## Accounts
 

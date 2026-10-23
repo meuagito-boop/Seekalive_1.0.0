@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { onboardingInterestSteps } from "@/data/onboardingInterestSteps";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
-import { saveAccountInterests } from "@/data/appPreferences";
+import { completeOnboarding as saveOnboarding } from "@/services/authApi";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OnboardingInterests() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -15,6 +16,8 @@ export default function OnboardingInterests() {
   const [, setLocation] = useLocation();
   const { currentUser, updateAccount } = useAppContext();
   const { updateUser } = useSocial();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!currentUser) setLocation("/login");
@@ -32,17 +35,28 @@ export default function OnboardingInterests() {
 
   const currentStep = onboardingInterestSteps[step];
 
-  function saveAndContinue(skipped: boolean) {
+  async function saveAndContinue(skipped: boolean) {
     if (!currentUser) {
       setLocation("/login");
       return;
     }
     const selectedInterests = skipped ? [] : Array.from(selected);
-    const updatedUser = { ...currentUser, interests: selectedInterests, onboardingCompleted: true };
-    saveAccountInterests(currentUser.id, selectedInterests, skipped);
-    updateAccount(updatedUser);
-    updateUser(updatedUser);
-    setLocation(skipped ? "/feed" : "/onboarding/suggestions");
+    setIsSaving(true);
+    try {
+      await saveOnboarding({ interests: selectedInterests, skipped });
+      const updatedUser = { ...currentUser, interests: selectedInterests, onboardingCompleted: true };
+      updateAccount(updatedUser);
+      updateUser(updatedUser);
+      setLocation(skipped ? "/feed" : "/onboarding/suggestions");
+    } catch (error) {
+      toast({
+        title: "Não foi possível salvar suas escolhas",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -114,16 +128,18 @@ export default function OnboardingInterests() {
           <Button
             type="button"
             className="h-12 flex-1 rounded-xl font-semibold"
-            onClick={() => step < onboardingInterestSteps.length - 1 ? setStep(value => value + 1) : saveAndContinue(false)}
+            disabled={isSaving}
+            onClick={() => step < onboardingInterestSteps.length - 1 ? setStep(value => value + 1) : void saveAndContinue(false)}
             data-testid="button-next-onboarding"
           >
-            {step < onboardingInterestSteps.length - 1 ? "Próximo" : "Concluir"}
+            {isSaving ? "Salvando..." : step < onboardingInterestSteps.length - 1 ? "Próximo" : "Concluir"}
           </Button>
         </div>
         <button
           type="button"
           className="mt-4 w-full text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
-          onClick={() => saveAndContinue(true)}
+          disabled={isSaving}
+          onClick={() => void saveAndContinue(true)}
           data-testid="button-skip-interests"
         >
           Pular por agora

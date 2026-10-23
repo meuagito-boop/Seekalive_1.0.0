@@ -215,14 +215,14 @@ content_type = "text/markdown"
 id = "2IsF34gGVMpT8nIf9_Xh0"
 uri = "file://seekalive/app/docs/backend/index.html"
 type = "html"
-title = "Documentação Seekalive — atualizada"
-description = "Auditoria atualizada: fixtures apenas no desenvolvimento; em produção, telas vazias e o mock de comércio somente como imagem estática."
+title = "Documentação técnica do Seekalive"
+description = "Documento HTML navegável com arquitetura, regras, OpenAPI, esquema de dados, integrações e pendências do backend. Atualizado para refletir a fatia de autenticação já implementada."
 logical_id = "13321547-beab-4979-a7c7-1bfcea7c2fa6"
-content_hash = "sha256:879b0e72f8c68538cd20291f312a3ceaf2c97d30df16b997179732c682449099"
-size = 169327
-mtime_ms = 1792721214741
-storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/13321547-beab-4979-a7c7-1bfcea7c2fa6/4fa0dbd1-aef0-453c-9079-f1ec14e566a5"
-storage_version_token = "1792721379341958"
+content_hash = "sha256:5f6f89fcd45d06bfbd8cc9eb0d238b602be85f97680678256dbb1829b0b3fcde"
+size = 177797
+mtime_ms = 1792729180584
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/13321547-beab-4979-a7c7-1bfcea7c2fa6/2e9cd773-1549-4751-b197-99b74065c69f"
+storage_version_token = "1792729509658871"
 content_type = "text/html"
 
 [[outputs]]

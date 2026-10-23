@@ -69,6 +69,26 @@ export default defineConfig({
     strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8080",
+        changeOrigin: false,
+        configure(proxy) {
+          proxy.on("proxyReq", (proxyRequest, request) => {
+            const origin = request.headers.origin;
+            if (origin) {
+              try {
+                proxyRequest.setHeader("x-forwarded-proto", new URL(origin).protocol.slice(0, -1));
+              } catch {
+                // The API validates the origin and CSRF token before any state change.
+              }
+            }
+            const forwardedHost = request.headers["x-forwarded-host"] ?? request.headers.host;
+            if (forwardedHost) proxyRequest.setHeader("x-forwarded-host", forwardedHost);
+          });
+        },
+      },
+    },
     fs: {
       strict: true,
     },

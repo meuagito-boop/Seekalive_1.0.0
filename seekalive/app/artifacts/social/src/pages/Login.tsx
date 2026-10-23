@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useAppContext } from "@/context/AppContext";
+import { AuthApiError, loginAccount } from "@/services/authApi";
 
 const schema = z.object({
   identifier: z.string().trim().min(3, "Informe seu nome de usuário ou e-mail"),
@@ -22,17 +24,34 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [savePassword, setSavePassword] = useState(false);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { setAuthenticatedAccount } = useAppContext();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { identifier: "", password: "" },
   });
 
-  function onSubmit(_values: FormValues) {
-    toast({
-      title: "Login ainda não conectado",
-      description: "A autenticação será ligada ao serviço de contas quando o backend for iniciado. A senha não foi enviada nem salva pelo Seekalive.",
-    });
+  async function onSubmit(values: FormValues) {
+    try {
+      const result = await loginAccount(values);
+      setAuthenticatedAccount(result.account);
+      setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
+    } catch (error) {
+      if (error instanceof AuthApiError && error.code === "EMAIL_NOT_VERIFIED") {
+        if (values.identifier.includes("@")) {
+          sessionStorage.setItem("seekalive:pending-email", values.identifier.trim().toLowerCase());
+        }
+        toast({ title: "Confirme seu e-mail", description: error.message });
+        setLocation("/verify-email");
+        return;
+      }
+      toast({
+        title: "Não foi possível entrar",
+        description: error instanceof Error ? error.message : "Confira seus dados e tente novamente.",
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -56,7 +75,7 @@ export default function Login() {
         <h1 className="mb-2 text-3xl font-bold tracking-tight text-foreground">Entrar</h1>
         <p className="mb-8 text-sm leading-6 text-muted-foreground">Acesse sua conta Seekalive e continue de onde parou.</p>
         <p role="note" className="mb-5 rounded-xl border border-border bg-background/70 px-4 py-3 text-xs leading-5 text-muted-foreground">
-          O login real será conectado ao serviço de contas. Por enquanto, o formulário não envia nem armazena sua senha.
+          O acesso só é liberado depois que o e-mail da conta estiver confirmado.
         </p>
 
         <Form {...form}>
@@ -138,9 +157,10 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full h-12 rounded-xl font-semibold text-base"
+              disabled={form.formState.isSubmitting}
               data-testid="button-login"
             >
-              Entrar
+              {form.formState.isSubmitting ? "Entrando..." : "Entrar"}
             </Button>
           </form>
         </Form>

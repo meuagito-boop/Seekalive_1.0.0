@@ -4,7 +4,7 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 
 ## Antes de implementar
 
-1. Autenticação própria pela API já foi escolhida e o contrato proposto está em `openapi.json` e `schema-core.sql`; conta pendente sem sessão até confirmar e-mail. Escolher provedor de envio e duração/retenção de sessões antes dos handlers.
+1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail e interesses do onboarding. A conta só recebe sessão após confirmação; o envio de e-mail segue bloqueado sem provedor. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
 2. Confirmar PostgreSQL por ambiente e política de backup/retention.
 3. Confirmar armazenamento de mídia, limites, formatos e retenção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.

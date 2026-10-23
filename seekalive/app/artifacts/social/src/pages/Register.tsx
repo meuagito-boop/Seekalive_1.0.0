@@ -9,9 +9,8 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { useAppContext } from "@/context/AppContext";
-import { useSocial } from "@/context/SocialContext";
-import type { User } from "@/data/mockData";
+import { useToast } from "@/hooks/use-toast";
+import { AuthApiError, registerAccount as submitRegistration } from "@/services/authApi";
 
 const commercialCategories = [
   { value: "restaurantes", label: "Restaurantes" },
@@ -42,7 +41,7 @@ const schema = z.object({
     .max(20, "O nome de usuário deve ter no máximo 20 caracteres")
     .regex(/^[a-z0-9_]+$/, "Use letras minúsculas, números e _"),
   email: z.string().trim().email("E-mail inválido").max(254, "O e-mail é muito longo"),
-  password: z.string().min(8, "Senha deve ter ao menos 8 caracteres"),
+  password: z.string().min(8, "Senha deve ter ao menos 8 caracteres").max(128, "A senha deve ter no máximo 128 caracteres"),
   confirmPassword: z.string(),
   terms: z.boolean().refine(v => v, "Aceite os termos para continuar"),
 }).superRefine((data, ctx) => {
@@ -91,8 +90,7 @@ type FormValues = z.infer<typeof schema>;
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [, setLocation] = useLocation();
-  const { registerAccount } = useAppContext();
-  const { addUser, users } = useSocial();
+  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -117,73 +115,58 @@ export default function Register() {
     },
   });
 
-  function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormValues) {
     const username = values.username.trim().replace(/^@/, "").toLowerCase();
     const email = values.email.trim().toLowerCase();
-    if (users.some((user) => user.username.toLowerCase() === username)) {
-      form.setError("username", { type: "manual", message: "Esse username já está em uso" });
-      return;
-    }
-    if (users.some((user) => user.email?.toLowerCase() === email)) {
-      form.setError("email", { type: "manual", message: "Esse e-mail já está cadastrado neste navegador" });
-      return;
-    }
-
-    const selectedCategory = commercialCategories.find((category) => category.value === values.businessCategory);
-    const displayName = values.accountType === "commercial"
-      ? values.businessName.trim()
-      : `${values.firstName.trim()} ${values.lastName.trim()}`;
-    const location = values.accountType === "commercial"
-      ? `${values.city.trim()}, ${values.state.trim()}, ${values.country.trim()}`
-      : undefined;
-    const businessAddress = values.accountType === "commercial"
-      ? `${values.address.trim()}, ${values.city.trim()}, ${values.state.trim()} ${values.postalCode.trim()}, ${values.country.trim()}`
-      : undefined;
-    const user: User = {
-      id: `user_${username}`,
-      username,
-      displayName,
-      firstName: values.accountType === "personal" ? values.firstName.trim() : undefined,
-      lastName: values.accountType === "personal" ? values.lastName.trim() : undefined,
+    const common = {
       age: Number(values.age),
+      username,
       email,
-      bio: values.accountType === "commercial"
-        ? `${selectedCategory?.label ?? "Comércio"} em ${location}.`
-        : "Novo por aqui.",
-      avatarUrl: "",
-      coverUrl: "",
-      location,
-      address: businessAddress,
-      postalCode: values.accountType === "commercial" ? values.postalCode.trim() : undefined,
-      city: values.accountType === "commercial" ? values.city.trim() : undefined,
-      state: values.accountType === "commercial" ? values.state.trim() : undefined,
-      country: values.accountType === "commercial" ? values.country.trim() : undefined,
-      joinedAt: new Date().toISOString(),
-      accountType: values.accountType,
-      interests: [],
-      onboardingCompleted: false,
-      commercialProfile: values.accountType === "commercial" && selectedCategory
-        ? {
-            discoveryKind: values.discoveryKind,
-            categoryKey: selectedCategory.value,
-            category: selectedCategory.label,
-            address: businessAddress ?? "",
-            cityName: values.city.trim(),
-            cityState: values.state.trim(),
-            tags: [],
-          }
-        : undefined,
-      stats: { posts: 0, followers: 0, following: 0, circles: 0 },
+      password: values.password,
+      passwordConfirmation: values.confirmPassword,
+      acceptedTermsVersion: "v1",
     };
+    const payload = values.accountType === "personal"
+      ? {
+          ...common,
+          accountType: "personal" as const,
+          firstName: values.firstName.trim(),
+          lastName: values.lastName.trim(),
+        }
+      : {
+          ...common,
+          accountType: "commercial" as const,
+          businessName: values.businessName.trim(),
+          categoryKey: values.businessCategory,
+          discoveryKind: values.discoveryKind,
+          address: values.address.trim(),
+          postalCode: values.postalCode.trim(),
+          city: values.city.trim(),
+          state: values.state.trim(),
+          country: values.country.trim(),
+        };
 
-    addUser(user);
-    registerAccount(user);
-    setLocation("/onboarding/interests");
+    try {
+      const result = await submitRegistration(payload);
+      sessionStorage.setItem("seekalive:pending-email", email);
+      toast({ title: "Confirme seu e-mail", description: result.message });
+      setLocation("/verify-email");
+    } catch (error) {
+      if (error instanceof AuthApiError && error.code === "USERNAME_UNAVAILABLE") {
+        form.setError("username", { type: "server", message: error.message });
+        return;
+      }
+      toast({
+        title: "Não foi possível concluir o cadastro",
+        description: error instanceof Error ? error.message : "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
   }
 
   const username = form.watch("username").replace(/^@/, "").toLowerCase();
   const accountType = form.watch("accountType");
-  const isUsernameAvailable = username.length > 2 && !users.some((user) => user.username.toLowerCase() === username);
+  const isUsernameValidFormat = username.length > 2 && username.length <= 20 && /^[a-z0-9_]+$/.test(username);
 
   return (
     <div className="relative flex min-h-[100dvh] items-start justify-center overflow-hidden bg-background px-4 py-8 sm:items-center sm:py-12">
@@ -206,7 +189,7 @@ export default function Register() {
         <h1 className="mb-2 text-3xl font-bold tracking-tight">Criar conta</h1>
         <p className="mb-8 text-sm leading-6 text-muted-foreground">Um perfil para compartilhar sua vida e, se quiser, apresentar seu negócio no Seek.</p>
         <p role="note" className="mb-6 rounded-xl border border-border bg-background/70 px-4 py-3 text-xs leading-5 text-muted-foreground">
-          Nesta etapa, os dados do perfil ficam salvos apenas neste navegador. A senha nunca é armazenada pelo Seekalive.
+          Você só poderá entrar depois de confirmar o e-mail. O cadastro não cria uma sessão antes da verificação.
         </p>
 
         <Form {...form}>
@@ -408,8 +391,8 @@ export default function Register() {
                         data-testid="input-username"
                         className="h-12 bg-card border-border rounded-xl pl-8 pr-10"
                       />
-                      {isUsernameAvailable && (
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
+                      {isUsernameValidFormat && (
+                        <span aria-label="Formato válido" className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
                           <Check className="w-4 h-4" />
                         </span>
                       )}
@@ -528,9 +511,10 @@ export default function Register() {
             <Button
               type="submit"
               className="w-full h-12 rounded-xl font-semibold text-base mt-2"
+              disabled={form.formState.isSubmitting}
               data-testid="button-register"
             >
-              Criar conta
+              {form.formState.isSubmitting ? "Enviando..." : "Criar conta"}
             </Button>
           </form>
         </Form>

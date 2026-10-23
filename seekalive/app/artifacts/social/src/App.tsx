@@ -148,7 +148,21 @@ function AuthRouter() {
 }
 
 function Router() {
-  const { isAuthenticated } = useAppContext();
+  const { currentUser, isAuthenticated, isAuthLoading } = useAppContext();
+  const [location] = useLocation();
+  if (isAuthLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-sm text-muted-foreground" role="status">
+        Verificando sua sessão...
+      </div>
+    );
+  }
+  if (isAuthenticated && currentUser?.onboardingCompleted === false && location !== "/onboarding/interests") {
+    return <Redirect to="/onboarding/interests" />;
+  }
+  if (isAuthenticated && currentUser?.onboardingCompleted && location === "/onboarding/interests") {
+    return <Redirect to="/feed" />;
+  }
   return isAuthenticated ? <AuthRouter /> : <UnauthRouter />;
 }
 

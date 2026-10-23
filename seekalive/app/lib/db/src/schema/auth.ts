@@ -1,0 +1,113 @@
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  smallint,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    username: varchar("username", { length: 20 }).notNull(),
+    firstName: varchar("first_name", { length: 80 }),
+    lastName: varchar("last_name", { length: 80 }),
+    age: smallint("age").notNull(),
+    acceptedTermsVersion: varchar("accepted_terms_version", { length: 50 }).notNull(),
+    termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }).defaultNow().notNull(),
+    displayName: varchar("display_name", { length: 100 }).notNull(),
+    accountType: varchar("account_type", { length: 16 }).notNull(),
+    status: varchar("status", { length: 32 }).default("pending_verification").notNull(),
+    isPrivate: boolean("is_private").default(false).notNull(),
+    isVerified: boolean("is_verified").default(false).notNull(),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("accounts_username_unique").on(table.username)],
+);
+
+export const accountEmails = pgTable(
+  "account_emails",
+  {
+    accountId: uuid("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
+    emailNormalized: varchar("email_normalized", { length: 254 }).notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("account_emails_email_unique").on(table.emailNormalized)],
+);
+
+export const passwordCredentials = pgTable("password_credentials", {
+  accountId: uuid("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
+  passwordHash: text("password_hash").notNull(),
+  passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const commercialProfiles = pgTable("business_profiles", {
+  accountId: uuid("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
+  categoryKey: varchar("category_key", { length: 40 }).notNull(),
+  discoveryKind: varchar("discovery_kind", { length: 16 }).notNull(),
+  address: varchar("address", { length: 250 }).notNull(),
+  postalCode: varchar("postal_code", { length: 20 }).notNull(),
+  cityName: varchar("city_name", { length: 120 }).notNull(),
+  stateName: varchar("state_name", { length: 100 }).notNull(),
+  countryName: varchar("country_name", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const authChallenges = pgTable(
+  "auth_challenges",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
+    purpose: varchar("purpose", { length: 32 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("auth_challenges_token_hash_unique").on(table.tokenHash),
+    index("auth_challenges_account_purpose").on(table.accountId, table.purpose, table.createdAt),
+  ],
+);
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    csrfTokenHash: varchar("csrf_token_hash", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("sessions_token_hash_unique").on(table.tokenHash),
+    index("sessions_account_id_index").on(table.accountId),
+    index("sessions_expiry_index").on(table.expiresAt),
+  ],
+);
+
+export const accountInterests = pgTable(
+  "account_interests",
+  {
+    accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
+    interestKey: varchar("interest_key", { length: 80 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.accountId, table.interestKey] })],
+);

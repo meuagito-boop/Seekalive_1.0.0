@@ -1,22 +1,42 @@
 import { BrandMark } from "@/components/brand/BrandMark";
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Circle, CheckCircle2 } from "lucide-react";
+import { Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { useAppContext } from "@/context/AppContext";
+import { AuthApiError, confirmEmail, resendVerification } from "@/services/authApi";
 
 export default function VerifyEmail() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [verified, setVerified] = useState(false);
+  const [email, setEmail] = useState(() => sessionStorage.getItem("seekalive:pending-email") ?? "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { setAuthenticatedAccount } = useAppContext();
 
   function handleChange(index: number, value: string) {
-    if (!/^\d*$/.test(value)) return;
+    const digits = value.replace(/\D/g, "");
+    if (!digits) {
+      const next = [...code];
+      next[index] = "";
+      setCode(next);
+      return;
+    }
     const newCode = [...code];
-    newCode[index] = value.slice(-1);
+    if (digits.length > 1) {
+      digits.slice(0, 6 - index).split("").forEach((digit, offset) => {
+        newCode[index + offset] = digit;
+      });
+      setCode(newCode);
+      inputRefs.current[Math.min(index + digits.length, 5)]?.focus();
+      return;
+    }
+    newCode[index] = digits;
     setCode(newCode);
-    if (value && index < 5) inputRefs.current[index + 1]?.focus();
+    if (index < 5) inputRefs.current[index + 1]?.focus();
   }
 
   function handleKeyDown(index: number, e: React.KeyboardEvent) {
@@ -25,16 +45,48 @@ export default function VerifyEmail() {
     }
   }
 
-  function handleVerify() {
-    if (code.every(c => c !== "")) {
-      toast({ title: "Verificação não configurada", description: "Nenhum código foi enviado. A verificação será conectada junto com o serviço de autenticação." });
+  async function handleVerify() {
+    if (!email.trim()) {
+      toast({ title: "Informe seu e-mail", description: "Use o mesmo e-mail informado no cadastro.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await confirmEmail({ email: email.trim().toLowerCase(), code: code.join("") });
+      sessionStorage.removeItem("seekalive:pending-email");
+      setAuthenticatedAccount(result.account);
+      toast({ title: "E-mail confirmado", description: "Sua conta está ativa." });
+      setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
+    } catch (error) {
+      toast({
+        title: "Não foi possível confirmar",
+        description: error instanceof Error ? error.message : "Confira o código e tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
-  function handleResend() {
-    setCode(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
-    toast({ title: "Reenvio indisponível", description: "O envio de e-mails ainda não está conectado." });
+  async function handleResend() {
+    if (!email.trim()) {
+      toast({ title: "Informe seu e-mail", description: "Use o mesmo e-mail informado no cadastro.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await resendVerification({ email: email.trim().toLowerCase() });
+      setCode(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+      toast({ title: "Solicitação recebida", description: result.message });
+    } catch (error) {
+      const description = error instanceof AuthApiError
+        ? error.message
+        : "Não foi possível enviar um novo código. Tente novamente mais tarde.";
+      toast({ title: "Reenvio indisponível", description, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const isFull = code.every(c => c !== "");
@@ -51,21 +103,27 @@ export default function VerifyEmail() {
           <span className="text-2xl font-bold tracking-tight">Seekalive</span>
         </div>
 
-        {verified ? (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-foreground">Email verificado!</h2>
-            <p className="text-muted-foreground mt-2 text-sm">Redirecionando...</p>
-          </motion.div>
-        ) : (
-          <>
+        <>
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
               <Circle className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-3xl font-bold mb-2">Verificar email</h1>
             <p className="text-muted-foreground mb-8 text-sm">
-              A confirmação por e-mail será ativada quando o serviço de contas for conectado. Nenhum código foi enviado.
+              Confirme o e-mail da sua conta para liberar o acesso ao Seekalive.
             </p>
+
+            <label className="mb-5 block text-left text-sm font-medium">
+              E-mail
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="seu@email.com"
+                className="mt-2 h-12 w-full rounded-xl border border-border bg-card px-4 text-foreground outline-none focus:border-primary"
+                data-testid="input-verification-email"
+              />
+            </label>
 
             <div className="flex gap-2 justify-center mb-8">
               {code.map((digit, i) => (
@@ -87,19 +145,18 @@ export default function VerifyEmail() {
             <Button
               className="w-full h-12 rounded-xl font-semibold"
               onClick={handleVerify}
-              disabled={!isFull}
+              disabled={!isFull || isSubmitting || !email.trim()}
               data-testid="button-verify"
             >
-              Verificar
+              {isSubmitting ? "Verificando..." : "Verificar"}
             </Button>
 
             <div className="mt-6 text-sm text-muted-foreground">
-              <button className="text-primary hover:underline" onClick={handleResend} data-testid="button-resend">
+              <button className="text-primary hover:underline disabled:opacity-50" onClick={handleResend} disabled={isSubmitting || !email.trim()} data-testid="button-resend">
                 Tentar enviar novamente
               </button>
             </div>
           </>
-        )}
       </motion.div>
     </div>
   );

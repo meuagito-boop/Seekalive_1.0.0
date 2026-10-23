@@ -19,7 +19,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <a href="#README">Visão geral</a><a href="#analysis-of-reference-documents">Análise dos PDFs</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
 </nav></header><main><section id="README"><h1>Seekalive — documentação do aplicativo e especificação do backend</h1>
 <p><strong>Data da auditoria:</strong> 22/10/2026. <strong>Natureza:</strong> documentação técnica e proposta de implementação, não backend entregue.</p>
-<blockquote>Nenhum banco foi criado, nenhuma migração foi executada, nenhum provedor foi conectado e nenhuma credencial foi solicitada. Somente <code>GET /api/healthz</code> existe no servidor auditado. Todos os demais endpoints deste pacote são contratos propostos, mesmo quando já há um adaptador no front-end.</blockquote>
+<blockquote>A primeira fatia do backend está implementada: sessão, CSRF, cadastro/login, confirmação de e-mail e onboarding. O banco de desenvolvimento tem sete tabelas da fatia de conta. Nenhum provedor de e-mail está conectado; cadastro e reenvio retornam <code>503</code> até o envio ser configurado. Os demais endpoints do produto continuam como contratos propostos.</blockquote>
 <h2>Como utilizar este pacote</h2>
 <ol>
 <li>Ler este documento e <code>architecture-and-security.md</code>: escopo, regras e decisões propostas.</li>
@@ -46,7 +46,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>2. O que existe de verdade hoje</h2>
 <div class="table-wrap"><table>
 <tr><th>Área</th><th>Situação auditada</th></tr>
-<tr><td>Servidor</td><td>Express/TypeScript em <code>artifacts/api-server</code>, com <code>GET /api/healthz</code> → <code>{&quot;status&quot;:&quot;ok&quot;}</code></td></tr>
+<tr><td>Servidor</td><td>Express/TypeScript em <code>artifacts/api-server</code>; saúde e rotas de autenticação/onboarding estão implementadas</td></tr>
 <tr><td>Banco</td><td>Biblioteca Drizzle + driver PostgreSQL preparada em <code>lib/db</code>; <code>src/schema/index.ts</code> está vazio. Isso não comprova existência de banco provisionado ou conectado</td></tr>
 <tr><td>Especificação</td><td><code>lib/api-spec/openapi.yaml</code> só descreve saúde; clientes gerados e Zod não significam API Social pronta</td></tr>
 <tr><td>Login</td><td>Não há autenticação real. O cadastro cria uma conta local e ativa a sessão só neste navegador; a tela de login não autentica nem restaura essa conta</td></tr>
@@ -118,7 +118,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>4. Entregas de backend e limites</h2>
 <p><strong>Núcleo a implementar:</strong> identidade, conta/perfil, Social, mídias, relacionamentos, mensagens, notificações, Seek, avaliações, eventos, catálogo Shop, salvos, busca, preferências, moderação e privacidade.</p>
 <p><strong>Extensões ainda sujeitas a decisão:</strong> checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.</p>
-<p><strong>Direção já escolhida:</strong> autenticação própria pela API; login e cadastro continuam demonstrativos até a implementação do backend. O contrato OpenAPI e o esquema SQL abaixo agora descrevem essa direção, mas continuam propostas e não foram implementados nem aplicados. Cadastro cria conta pendente sem sessão; só a confirmação do e-mail ativa a conta e permite entrar. <strong>Demais decisões ainda propostas:</strong> PostgreSQL aproveitando Drizzle, API REST versionada em Express, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados.</p>
+<p><strong>Direção implementada nesta etapa:</strong> autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio total de contas sem e-mail confirmado. O schema Drizzle da fatia de conta foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI documenta tanto as rotas ativas quanto as propostas. <strong>Bloqueio atual:</strong> o usuário dispensou a integração de e-mail; por isso, o servidor não cria a conta e responde <code>503</code> quando o envio não está configurado. O schema completo de produto continua proposto; não foi aplicado nem migrado para produção.</p>
 <h2>5. Links e versões</h2>
 <ul>
 <li>Rotas da interface e URLs relativas da API estão em <code>frontend-integration.md</code> e <code>endpoints.md</code>.</li>
@@ -220,7 +220,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <div class="table-wrap"><table>
 <tr><th>Área</th><th>Estado atual</th><th>Prontidão</th></tr>
 <tr><td>Rotas e navegação</td><td>Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente</td><td>Parcial</td></tr>
-<tr><td>Identidade e sessão</td><td>Login/cadastro continuam demonstrativos. Direção escolhida: autenticação própria na API quando começar o backend; recuperação e verificação reais também ficam para essa fase</td><td>Adiado por decisão até o backend</td></tr>
+<tr><td>Identidade e sessão</td><td>Login, cadastro, sessão, CSRF, confirmação de e-mail e onboarding já chamam a API; recuperação de senha permanece demonstrativa</td><td>Envio de e-mail sem provedor; cadastro responde 503</td></tr>
 <tr><td>Contas e perfis</td><td>Dados guardados em <code>localStorage</code>; edição local. Contextos de conta e Social podem divergir</td><td>Bloqueador</td></tr>
 <tr><td>Publicações e comentários</td><td><code>SocialContext</code> com reducer; <code>contentService</code> usa <code>demoContentAdapter</code>; adaptador REST não está ativo</td><td>Bloqueador</td></tr>
 <tr><td>Fotos e vídeos</td><td>Prévia usa URL <code>blob:</code> do navegador; não há upload, ID de mídia ou persistência remota</td><td>Bloqueador</td></tr>
@@ -242,13 +242,13 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li><code>AppContext</code> considera ativa a conta carregada do <code>localStorage</code>; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.</li>
 <li>O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.</li>
 </ul>
-<p><strong>Decisão registrada:</strong> a autenticação será própria pela API; login e cadastro demonstrativos permanecem até a fase de backend. O contrato proposto agora define registro/login, credenciais, sessão, verificação e recuperação; o OpenAPI e o SQL continuam documentação, sem handlers ou migração. Nunca tratar <code>localStorage</code> como identidade ou autorização.</p>
+<p><strong>Decisão e estado atual:</strong> autenticação própria implementada em Express, com sessão opaca, CSRF e hash Argon2id. Login, cadastro, verificação e onboarding estão ligados às rotas da API. O banco de desenvolvimento tem o schema de sete tabelas da primeira fatia; <code>localStorage</code> não concede acesso. Recuperação de senha ainda é demonstrativa.</p>
 <p><strong>Regra confirmada:</strong> conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão; a confirmação ativa a conta e inicia uma sessão. Essa regra deve ser aplicada no servidor em todas as rotas.</p>
-<p><strong>Atenção restante antes dos handlers:</strong> escolher provedor de e-mail, política de expiração/retenção de sessão e origem final da API. O SQL segue como proposta sem aplicação.</p>
+<p><strong>Atenção restante:</strong> conectar um serviço de envio de e-mail para que cadastro e verificação possam concluir. O cookie de sessão usa validade configurável de sete dias por padrão. Não há alteração em banco de produção; o SQL completo segue como proposta.</p>
 <p>O contrato limita senhas a 128 caracteres; os formulários atuais ainda não definem limite máximo. Alinhar validação visual e mensagens de erro antes de ligar registro/login à API.</p>
 <h3>P0 — Nenhum caminho frontend → API está ligado</h3>
 <ul>
-<li><code>artifacts/api-server/src</code> confirma apenas <code>GET /api/healthz</code>; não há handlers de identidade, conteúdo, mídia, Seek, avaliações, Shop, mensagens ou notificações.</li>
+<li><code>artifacts/api-server/src</code> implementa saúde, autenticação e onboarding. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações, recuperação de senha e gestão de sessões continuam sem handlers.</li>
 <li>O frontend não usa os endpoints <code>/api/v1</code> propostos. <code>services/contentService.ts</code> exporta <code>demoContentAdapter</code>; <code>services/restContracts.ts</code> é apenas um contrato/adaptador parcial.</li>
 <li>A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.</li>
 <li>O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar o navegador. A implementação atual não oferece autenticação, autorização ou CSRF.</li>
@@ -338,7 +338,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>Ordem recomendada para fechar a prontidão</h2>
 <ol>
 <li><strong>Concluído no frontend/documentação:</strong> perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.</li>
-<li><strong>Contrato proposto; implementação adiada:</strong> autenticação própria na API com registro pessoal/comercial, login por usuário/e-mail, sessão segura, verificação e recuperação. Antes dos handlers, aprovar acesso de conta não verificada, provedor de e-mail e expiração/retention de sessão.</li>
+<li><strong>Primeira fatia implementada:</strong> registro pessoal/comercial, login por usuário/e-mail, sessão, CSRF, verificação obrigatória e gravação das escolhas de onboarding. O envio de e-mail segue bloqueado; recuperação de senha, testes de integração e rotas dos demais módulos continuam pendentes.</li>
 <li><strong>Concluído no frontend:</strong> fixtures de exemplo ficam no desenvolvimento; curtidas, repostagens, salvos, leituras, filtros e preferências locais são separados por conta. Não migrar automaticamente os valores das chaves antigas sem identificar seu dono.</li>
 <li>Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.</li>
 <li>Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.</li>
@@ -410,16 +410,16 @@ Roteador HTTP / Express
 <li>Referências públicas continuam <code>seek_entity|shop_item|social_post</code>. O legado <code>seek_entity</code> com <code>id=&quot;event:&lt;id&gt;&quot;</code> deve ser normalizado internamente para evento, com FK própria, sem criar entidade comercial fictícia.</li>
 </ul>
 <h2>3. Autenticação e ciclo de conta</h2>
-<p><strong>Direção escolhida:</strong> autenticação própria pela API, a implementar somente quando começar o backend. Até lá, login, cadastro, verificação e recuperação permanecem demonstrativos no frontend. O contrato OpenAPI e o esquema SQL descrevem agora uma proposta customizada; ainda não há handlers, sessão real, migração ou banco.</p>
+<p><strong>Direção implementada parcialmente:</strong> autenticação própria na API. Sessão, CSRF, cadastro/login, confirmação de e-mail e onboarding têm handlers; o schema Drizzle correspondente foi aplicado apenas no banco de desenvolvimento. A integração de envio de e-mail não foi conectada, então cadastro e reenvio retornam <code>503</code> sem criar sessão ou liberar acesso. Recuperação de senha e os demais módulos continuam pendentes.</p>
 <p>Requisitos para a futura implementação:</p>
 <ol>
-<li><code>POST /v1/auth/register</code> aceita os campos atuais de cadastro pessoal ou comercial. Cria uma única identidade Social pendente; conta comercial e extensão comercial são gravadas na mesma transação. Não cria sessão nem libera acesso. A resposta é genérica para não revelar se um e-mail já existe. Senha e confirmação são entrada transitória; confirmação nunca é armazenada. Para comércio, o nome da empresa vira o nome público da conta; cidade/estado/país informados no cadastro devem ser normalizados para o catálogo de municípios, sem converter endereço em coordenada.</li>
-<li><code>POST /v1/auth/login</code> aceita o identificador já usado pela interface — nome de usuário ou e-mail — e senha. Só cria sessão quando o e-mail estiver confirmado e a conta estiver ativa; conta pendente não acessa recursos. Aplicar respostas seguras contra enumeração, limite de tentativas e auditoria sem registrar credenciais.</li>
+<li><code>POST /v1/auth/register</code> valida os campos atuais de cadastro pessoal ou comercial. Sem serviço de e-mail configurado, responde <code>503</code> antes de gravar a conta. Com envio configurado, cria identidade Social pendente e extensão comercial na mesma transação, gera código de seis dígitos de uso único e não emite sessão. Senha e confirmação são entrada transitória; confirmação nunca é armazenada.</li>
+<li><code>POST /v1/auth/login</code> aceita nome de usuário ou e-mail e senha. Só cria sessão quando o e-mail estiver confirmado e a conta ativa. Conta pendente recebe <code>403 EMAIL_NOT_VERIFIED</code>, sem cookie. Senhas usam Argon2id; tentativas têm limite por IP no processo atual, que precisa de armazenamento compartilhado antes de escalar horizontalmente.</li>
 <li>E-mail normalizado é privado e único. Nunca incluí-lo, nome civil, idade ou senha no DTO público de perfil. Armazenar senha somente como hash Argon2id codificado e versionado; nunca persistir senha em browser, logs, eventos ou telemetria.</li>
 <li>Emitir sessão opaca aleatória em cookie <code>__Host-seekalive_session</code> com <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite=Lax</code>, <code>Path=/</code>; persistir somente hash. <code>GET /v1/auth/csrf</code> emite também cookie pré-autenticação opaco e curto mais token de CSRF. Cadastro/login/recuperação exigem o cookie pré-autenticação e <code>X-CSRF-Token</code>; mutações autenticadas exigem sessão e CSRF. Aplicar validação de origem, expiração, rotação e revogação.</li>
-<li>Verificação de e-mail e recuperação usam tokens opacos de uso único, expirados e persistidos como hash. A conta só muda de <code>pending_verification</code> para <code>active</code> ao confirmar o e-mail; a confirmação cria a primeira sessão. Recuperação responde <code>202</code> sem revelar se a conta existe; confirmar nova senha consome o desafio e revoga todas as sessões na mesma transação. Provedor de envio de e-mail continua por escolher.</li>
+<li>Verificação usa código numérico de seis dígitos, guardado somente como HMAC-SHA256, expira em 10 minutos e permite cinco tentativas. A conta só muda de <code>pending_verification</code> para <code>active</code> ao confirmar; a confirmação consome o desafio e cria a primeira sessão na mesma transação. Recuperação de senha ainda não tem handler. Provedor de envio continua desconectado.</li>
 <li><code>GET /v1/auth/session</code> retorna estado autenticado ou anônimo; <code>GET /v1/auth/sessions</code> lista somente sessões da própria conta. Logout revoga a sessão no servidor e limpa caches privados. O estado no navegador não prova autenticação.</li>
-<li>Uma conta com e-mail não confirmado não pode entrar nem acessar qualquer recurso. A interface deve permanecer na etapa de verificação; a sessão só é emitida depois da confirmação. Esta é uma regra de autorização do servidor, não apenas uma proteção de rota React.</li>
+<li>Uma conta com e-mail não confirmado não pode entrar nem acessar qualquer recurso. A sessão só é emitida depois da confirmação; as rotas protegidas verificam status ativo e <code>verified_at</code>. Esta é uma regra de autorização do servidor, não apenas uma proteção de rota React.</li>
 </ol>
 <p><strong>Regra de bloqueio no contrato:</strong> bloquear grava a relação do iniciador e, na mesma transação, remove follows aceitos e solicitações pendentes nos dois sentidos. Mensagens e conteúdo não são apagados; conversas ficam ocultas durante o bloqueio e podem voltar após desbloquear. Só o iniciador remove seu bloqueio; follows e pedidos não são recriados. A API deve aplicar isso em toda leitura, escrita e entrega de mídia/notificação.</p>
 <h3>Contas e consentimento</h3>
@@ -498,7 +498,7 @@ GET /accounts/{id}/media
 <h2>1. Rotas auditadas</h2>
 <div class="table-wrap"><table>
 <tr><th>Rotas da interface</th><th>Código / comportamento atual</th><th>Integração necessária</th></tr>
-<tr><td><code>/</code>, <code>/login</code>, <code>/register</code></td><td><code>App.tsx</code>, <code>Login</code>, <code>Register</code>, <code>AppContext</code>; login demonstrativo</td><td>Autenticação própria pela API, cadastro único, identidade, termos, username ou e-mail, sessão segura</td></tr>
+<tr><td><code>/</code>, <code>/login</code>, <code>/register</code></td><td><code>App.tsx</code>, <code>Login</code>, <code>Register</code>, <code>AppContext</code>; sessão validada pela API, formulário conectado</td><td>Conta Social única; confirmação obrigatória do e-mail antes de emitir sessão</td></tr>
 <tr><td><code>/forgot-password</code>, <code>/verify-email</code></td><td>Sucesso local/código de demonstração</td><td>Fluxos da API própria, envio de e-mail, anti-enumeração, limite de tentativas, expiração e estados de erro</td></tr>
 <tr><td><code>/onboarding/interests</code>, <code>/onboarding/suggestions</code></td><td>Preferências locais; sugestões são fixtures e as escolhas de seguir não são persistidas; conclusão no-op</td><td>Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida</td></tr>
 <tr><td><code>/feed</code></td><td>Feed local: para você, seguindo, artigos, vídeos</td><td><code>GET social/feed</code>, paginação, audiência, bloqueios, contadores e cache por visitante</td></tr>
@@ -524,15 +524,16 @@ GET /accounts/{id}/media
 <tr><td><code>/settings/appearance</code></td><td>Escuro; tamanho 16/18/20 local</td><td>Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render</td></tr>
 <tr><td><code>/styleguide</code>, página inexistente</td><td>Apoio visual e fallback</td><td>Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API</td></tr>
 </table></div>
-<p>O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. A autenticação própria pela API foi escolhida para a fase de backend e já possui contrato OpenAPI/SQL proposto, ainda sem handlers, migrations ou banco. Registro cria conta pendente sem sessão; somente confirmar o e-mail permite entrar e iniciar o onboarding. Login aceita username ou e-mail, mas não concede sessão a conta não verificada. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.</p>
+<p>O estado autenticado agora vem de <code>GET /api/v1/auth/session</code>, nunca de <code>localStorage</code>. Login, cadastro e confirmação usam a API e cookie <code>HttpOnly</code>; o navegador guarda apenas perfil local auxiliar, não credenciais. O schema Drizzle da fatia de conta está aplicado no banco de desenvolvimento. Registro não cria sessão; só a confirmação do e-mail ativa a conta. Como o envio de e-mail não está conectado, o cadastro responde <code>503</code> explicitamente e não cria conta nesta configuração.</p>
 <h3>Fluxo de acesso proposto</h3>
 <ol>
-<li>A tela de apresentação leva ao login; o cadastro cria a conta pessoal/comercial com status <code>pending_verification</code> e responde <code>202</code> sem cookie de sessão.</li>
-<li>A pessoa confirma o token recebido no e-mail. Só então o servidor marca a conta como ativa, emite cookie de sessão e libera a rota de onboarding.</li>
-<li>Login com usuário/e-mail e senha só emite sessão para conta ativa com e-mail confirmado. Conta pendente não recebe sessão nem pode consultar recursos privados.</li>
-<li>Recuperação de senha não confirma e-mail por si só; ela também não libera login enquanto <code>verified_at</code> estiver vazio.</li>
+<li>A tela de apresentação leva ao login; cadastro envia os dados pessoais/comerciais à API. Com envio disponível, cria conta pendente e responde <code>202</code> sem cookie. Sem envio configurado, responde <code>503</code> sem criar conta.</li>
+<li>A pessoa informa o código de seis dígitos recebido no e-mail. Só então o servidor confirma o endereço, ativa a conta e emite cookie de sessão.</li>
+<li>Login aceita usuário ou e-mail, mas só emite sessão para conta ativa e verificada. Conta pendente não recebe sessão nem pode consultar recursos privados.</li>
+<li>Depois de entrar pela primeira vez, interesses podem ser salvos ou pulados pelo endpoint de onboarding. A tela de onboarding não aparece em sessões já concluídas.</li>
+<li>Recuperação de senha ainda não está conectada; quando implementada, não poderá confirmar e-mail nem liberar acesso por si só.</li>
 </ol>
-<p>O frontend atual navega diretamente do cadastro ao onboarding e mantém login demonstrativo; essa navegação precisa ser adaptada ao estado <code>verification_required</code> quando a API for ligada.</p>
+<p>O proxy Vite encaminha <code>/api</code> à API local durante o desenvolvimento. As telas continuam acessíveis pelo app, mas a criação de contas reais depende do envio de e-mail.</p>
 <p>Hoje a interface não usa o adaptador REST de conteúdo: <code>contentService</code> aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints <code>/api/v1</code> propostos.</p>
 <h2>2. Arquivos que precisam trocar de fonte</h2>
 <div class="table-wrap"><table>
@@ -618,7 +619,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td>Exportação/exclusão</td><td>Próprio titular reautenticado</td><td>Worker autorizado, com trilha e estados</td></tr>
 </table></div></section>
 <section id="endpoints"><h1>Endpoints e contrato OpenAPI</h1>
-<p>Gerado por <code>node docs/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>129 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
+<p>Gerado por <code>node docs/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>130 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
 <blockquote>Salvo <code>GET /api/healthz</code>, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.</blockquote>
 <h2>Respostas, paginação e autenticação</h2>
 <ul>
@@ -637,17 +638,22 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h2>Auth</h2>
 <div class="table-wrap"><table>
 <tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
-<tr><td>GET</td><td><code>/v1/auth/session</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>CurrentSession</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/auth/csrf</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Csrf</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/auth/register</code></td><td>Público</td><td><code>RegisterRequest</code></td><td><code>RegistrationPending</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
-<tr><td>POST</td><td><code>/v1/auth/login</code></td><td>Público</td><td><code>LoginRequest</code></td><td><code>AuthResult</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/auth/logout</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/session</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>CurrentSession</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/csrf</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Csrf</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/auth/register</code></td><td>Público</td><td><code>RegisterRequest</code></td><td><code>RegistrationPending</code></td><td><strong>ATIVA</strong>; assíncrona</td></tr>
+<tr><td>POST</td><td><code>/v1/auth/login</code></td><td>Público</td><td><code>LoginRequest</code></td><td><code>AuthResult</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/auth/logout</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>ATIVA</strong></td></tr>
 <tr><td>GET</td><td><code>/v1/auth/sessions</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageSession</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>DELETE</td><td><code>/v1/auth/sessions/{sessionId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>POST</td><td><code>/v1/auth/recovery</code></td><td>Público</td><td><code>RecoveryRequest</code></td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
 <tr><td>POST</td><td><code>/v1/auth/recovery/confirm</code></td><td>Público</td><td><code>RecoveryConfirm</code></td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/auth/verification</code></td><td>Público/sessão; ACL no servidor</td><td><code>VerificationRequest</code></td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
-<tr><td>POST</td><td><code>/v1/auth/verification/confirm</code></td><td>Público</td><td><code>VerificationConfirm</code></td><td><code>AuthResult</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/auth/verification</code></td><td>Público/sessão; ACL no servidor</td><td><code>VerificationRequest</code></td><td><code>Accepted</code></td><td><strong>ATIVA</strong>; assíncrona</td></tr>
+<tr><td>POST</td><td><code>/v1/auth/verification/confirm</code></td><td>Público</td><td><code>VerificationConfirm</code></td><td><code>AuthResult</code></td><td><strong>ATIVA</strong></td></tr>
+</table></div>
+<h2>Onboarding</h2>
+<div class="table-wrap"><table>
+<tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
+<tr><td>POST</td><td><code>/v1/onboarding/interests</code></td><td>Sessão autenticada</td><td><code>OnboardingCompletionRequest</code></td><td><code>OnboardingCompletionResult</code></td><td><strong>ATIVA</strong></td></tr>
 </table></div>
 <h2>Accounts</h2>
 <div class="table-wrap"><table>
@@ -1002,7 +1008,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <p>Este plano organiza o backend futuro; não autoriza nem executa migrações ou mudanças de produto. As fases dependem de decisões explícitas nos itens indicados.</p>
 <h2>Antes de implementar</h2>
 <ol>
-<li>Autenticação própria pela API já foi escolhida e o contrato proposto está em <code>openapi.json</code> e <code>schema-core.sql</code>; conta pendente sem sessão até confirmar e-mail. Escolher provedor de envio e duração/retenção de sessões antes dos handlers.</li>
+<li>Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail e interesses do onboarding. A conta só recebe sessão após confirmação; o envio de e-mail segue bloqueado sem provedor. O tempo de sessão atual é configurável por <code>SESSION_TTL_SECONDS</code> (padrão de 7 dias).</li>
 <li>Confirmar PostgreSQL por ambiente e política de backup/retention.</li>
 <li>Confirmar armazenamento de mídia, limites, formatos e retenção.</li>
 <li>Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.</li>

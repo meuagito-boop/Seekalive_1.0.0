@@ -21,7 +21,7 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 | Área | Estado atual | Prontidão |
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
-| Identidade e sessão | Login/cadastro continuam demonstrativos. Direção escolhida: autenticação própria na API quando começar o backend; recuperação e verificação reais também ficam para essa fase | Adiado por decisão até o backend |
+| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail e onboarding já chamam a API; recuperação de senha permanece demonstrativa | Envio de e-mail sem provedor; cadastro responde 503 |
 | Contas e perfis | Dados guardados em `localStorage`; edição local. Contextos de conta e Social podem divergir | Bloqueador |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
@@ -44,17 +44,17 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 - `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
 - O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
 
-**Decisão registrada:** a autenticação será própria pela API; login e cadastro demonstrativos permanecem até a fase de backend. O contrato proposto agora define registro/login, credenciais, sessão, verificação e recuperação; o OpenAPI e o SQL continuam documentação, sem handlers ou migração. Nunca tratar `localStorage` como identidade ou autorização.
+**Decisão e estado atual:** autenticação própria implementada em Express, com sessão opaca, CSRF e hash Argon2id. Login, cadastro, verificação e onboarding estão ligados às rotas da API. O banco de desenvolvimento tem o schema de sete tabelas da primeira fatia; `localStorage` não concede acesso. Recuperação de senha ainda é demonstrativa.
 
 **Regra confirmada:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão; a confirmação ativa a conta e inicia uma sessão. Essa regra deve ser aplicada no servidor em todas as rotas.
 
-**Atenção restante antes dos handlers:** escolher provedor de e-mail, política de expiração/retenção de sessão e origem final da API. O SQL segue como proposta sem aplicação.
+**Atenção restante:** conectar um serviço de envio de e-mail para que cadastro e verificação possam concluir. O cookie de sessão usa validade configurável de sete dias por padrão. Não há alteração em banco de produção; o SQL completo segue como proposta.
 
 O contrato limita senhas a 128 caracteres; os formulários atuais ainda não definem limite máximo. Alinhar validação visual e mensagens de erro antes de ligar registro/login à API.
 
 ### P0 — Nenhum caminho frontend → API está ligado
 
-- `artifacts/api-server/src` confirma apenas `GET /api/healthz`; não há handlers de identidade, conteúdo, mídia, Seek, avaliações, Shop, mensagens ou notificações.
+- `artifacts/api-server/src` implementa saúde, autenticação e onboarding. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações, recuperação de senha e gestão de sessões continuam sem handlers.
 - O frontend não usa os endpoints `/api/v1` propostos. `services/contentService.ts` exporta `demoContentAdapter`; `services/restContracts.ts` é apenas um contrato/adaptador parcial.
 - A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar o navegador. A implementação atual não oferece autenticação, autorização ou CSRF.
@@ -153,7 +153,7 @@ Esses resultados comprovam compilação e um conjunto limitado de regras, não a
 ## Ordem recomendada para fechar a prontidão
 
 1. **Concluído no frontend/documentação:** perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.
-2. **Contrato proposto; implementação adiada:** autenticação própria na API com registro pessoal/comercial, login por usuário/e-mail, sessão segura, verificação e recuperação. Antes dos handlers, aprovar acesso de conta não verificada, provedor de e-mail e expiração/retention de sessão.
+2. **Primeira fatia implementada:** registro pessoal/comercial, login por usuário/e-mail, sessão, CSRF, verificação obrigatória e gravação das escolhas de onboarding. O envio de e-mail segue bloqueado; recuperação de senha, testes de integração e rotas dos demais módulos continuam pendentes.
 3. **Concluído no frontend:** fixtures de exemplo ficam no desenvolvimento; curtidas, repostagens, salvos, leituras, filtros e preferências locais são separados por conta. Não migrar automaticamente os valores das chaves antigas sem identificar seu dono.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
 5. Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.

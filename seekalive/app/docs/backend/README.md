@@ -2,7 +2,7 @@
 
 **Data da auditoria:** 22/10/2026. **Natureza:** documentação técnica e proposta de implementação, não backend entregue.
 
-> Nenhum banco foi criado, nenhuma migração foi executada, nenhum provedor foi conectado e nenhuma credencial foi solicitada. Somente `GET /api/healthz` existe no servidor auditado. Todos os demais endpoints deste pacote são contratos propostos, mesmo quando já há um adaptador no front-end.
+> A primeira fatia do backend está implementada: sessão, CSRF, cadastro/login, confirmação de e-mail e onboarding. O banco de desenvolvimento tem sete tabelas da fatia de conta. Nenhum provedor de e-mail está conectado; cadastro e reenvio retornam `503` até o envio ser configurado. Os demais endpoints do produto continuam como contratos propostos.
 
 ## Como utilizar este pacote
 
@@ -37,7 +37,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 
 | Área | Situação auditada |
 |---|---|
-| Servidor | Express/TypeScript em `artifacts/api-server`, com `GET /api/healthz` → `{"status":"ok"}` |
+| Servidor | Express/TypeScript em `artifacts/api-server`; saúde e rotas de autenticação/onboarding estão implementadas |
 | Banco | Biblioteca Drizzle + driver PostgreSQL preparada em `lib/db`; `src/schema/index.ts` está vazio. Isso não comprova existência de banco provisionado ou conectado |
 | Especificação | `lib/api-spec/openapi.yaml` só descreve saúde; clientes gerados e Zod não significam API Social pronta |
 | Login | Não há autenticação real. O cadastro cria uma conta local e ativa a sessão só neste navegador; a tela de login não autentica nem restaura essa conta |
@@ -116,7 +116,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 
 **Extensões ainda sujeitas a decisão:** checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.
 
-**Direção já escolhida:** autenticação própria pela API; login e cadastro continuam demonstrativos até a implementação do backend. O contrato OpenAPI e o esquema SQL abaixo agora descrevem essa direção, mas continuam propostas e não foram implementados nem aplicados. Cadastro cria conta pendente sem sessão; só a confirmação do e-mail ativa a conta e permite entrar. **Demais decisões ainda propostas:** PostgreSQL aproveitando Drizzle, API REST versionada em Express, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados.
+**Direção implementada nesta etapa:** autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio total de contas sem e-mail confirmado. O schema Drizzle da fatia de conta foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI documenta tanto as rotas ativas quanto as propostas. **Bloqueio atual:** o usuário dispensou a integração de e-mail; por isso, o servidor não cria a conta e responde `503` quando o envio não está configurado. O schema completo de produto continua proposto; não foi aplicado nem migrado para produção.
 
 ## 5. Links e versões
 

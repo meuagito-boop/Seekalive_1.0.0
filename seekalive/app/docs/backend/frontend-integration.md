@@ -6,7 +6,7 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 
 | Rotas da interface | Código / comportamento atual | Integração necessária |
 |---|---|---|
-| `/`, `/login`, `/register` | `App.tsx`, `Login`, `Register`, `AppContext`; login demonstrativo | Autenticação própria pela API, cadastro único, identidade, termos, username ou e-mail, sessão segura |
+| `/`, `/login`, `/register` | `App.tsx`, `Login`, `Register`, `AppContext`; sessão validada pela API, formulário conectado | Conta Social única; confirmação obrigatória do e-mail antes de emitir sessão |
 | `/forgot-password`, `/verify-email` | Sucesso local/código de demonstração | Fluxos da API própria, envio de e-mail, anti-enumeração, limite de tentativas, expiração e estados de erro |
 | `/onboarding/interests`, `/onboarding/suggestions` | Preferências locais; sugestões são fixtures e as escolhas de seguir não são persistidas; conclusão no-op | Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida |
 | `/feed` | Feed local: para você, seguindo, artigos, vídeos | `GET social/feed`, paginação, audiência, bloqueios, contadores e cache por visitante |
@@ -32,16 +32,17 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 
-O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. A autenticação própria pela API foi escolhida para a fase de backend e já possui contrato OpenAPI/SQL proposto, ainda sem handlers, migrations ou banco. Registro cria conta pendente sem sessão; somente confirmar o e-mail permite entrar e iniciar o onboarding. Login aceita username ou e-mail, mas não concede sessão a conta não verificada. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.
+O estado autenticado agora vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador guarda apenas perfil local auxiliar, não credenciais. O schema Drizzle da fatia de conta está aplicado no banco de desenvolvimento. Registro não cria sessão; só a confirmação do e-mail ativa a conta. Como o envio de e-mail não está conectado, o cadastro responde `503` explicitamente e não cria conta nesta configuração.
 
 ### Fluxo de acesso proposto
 
-1. A tela de apresentação leva ao login; o cadastro cria a conta pessoal/comercial com status `pending_verification` e responde `202` sem cookie de sessão.
-2. A pessoa confirma o token recebido no e-mail. Só então o servidor marca a conta como ativa, emite cookie de sessão e libera a rota de onboarding.
-3. Login com usuário/e-mail e senha só emite sessão para conta ativa com e-mail confirmado. Conta pendente não recebe sessão nem pode consultar recursos privados.
-4. Recuperação de senha não confirma e-mail por si só; ela também não libera login enquanto `verified_at` estiver vazio.
+1. A tela de apresentação leva ao login; cadastro envia os dados pessoais/comerciais à API. Com envio disponível, cria conta pendente e responde `202` sem cookie. Sem envio configurado, responde `503` sem criar conta.
+2. A pessoa informa o código de seis dígitos recebido no e-mail. Só então o servidor confirma o endereço, ativa a conta e emite cookie de sessão.
+3. Login aceita usuário ou e-mail, mas só emite sessão para conta ativa e verificada. Conta pendente não recebe sessão nem pode consultar recursos privados.
+4. Depois de entrar pela primeira vez, interesses podem ser salvos ou pulados pelo endpoint de onboarding. A tela de onboarding não aparece em sessões já concluídas.
+5. Recuperação de senha ainda não está conectada; quando implementada, não poderá confirmar e-mail nem liberar acesso por si só.
 
-O frontend atual navega diretamente do cadastro ao onboarding e mantém login demonstrativo; essa navegação precisa ser adaptada ao estado `verification_required` quando a API for ligada.
+O proxy Vite encaminha `/api` à API local durante o desenvolvimento. As telas continuam acessíveis pelo app, mas a criação de contas reais depende do envio de e-mail.
 
 Hoje a interface não usa o adaptador REST de conteúdo: `contentService` aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints `/api/v1` propostos.
 

@@ -21,9 +21,10 @@ const del = (tag, p, s, o, x) => add(tag, "delete", p, s, null, o, x);
 const P = "PagePost", A = "Account", C = "Comment", N = "Notification";
 
 g("health", "/healthz", "Verificar servidor (rota existente)", "Health", null, { status: "live", auth: "none" });
-g("auth", "/v1/auth/session", "Consultar sessão atual sem revelar credenciais", "CurrentSession", null, { auth: "optional" });
+g("auth", "/v1/auth/session", "Consultar sessão atual sem revelar credenciais", "CurrentSession", null, { auth: "optional", status: "live" });
 g("auth", "/v1/auth/csrf", "Emitir desafio CSRF para a origem atual", "Csrf", null, {
   auth: "optional",
+  status: "live",
   contractDescription: "Retorna token CSRF legível pelo cliente e emite cookie pré-autenticação opaco, Secure/HttpOnly/SameSite; o token deve ser validado contra esse contexto ou sessão.",
   responseHeaders: {
     "Set-Cookie": {
@@ -36,12 +37,14 @@ post("auth", "/v1/auth/register", "Criar conta Social e solicitar verificação 
   auth: "none",
   csrfOnly: true,
   accepted: true,
-  contractDescription: "Cria uma identidade Social pendente de verificação e, para conta comercial, sua extensão comercial na mesma transação; valida senha e confirmação, descarta a confirmação e envia instruções ao e-mail informado. Não cria sessão nem permite acesso. A resposta é genérica e não revela se o e-mail já está cadastrado.",
+  status: "live",
+  contractDescription: "Com envio de e-mail configurado, cria uma identidade Social pendente e, para conta comercial, sua extensão comercial na mesma transação; envia código de seis dígitos, sem emitir sessão. Sem provedor de e-mail, retorna 503 e não cria conta. A resposta 202 é genérica e não revela se o e-mail já está cadastrado.",
 });
 post("auth", "/v1/auth/login", "Autenticar por nome de usuário ou e-mail e senha", "LoginRequest", "AuthResult", {
   auth: "none",
   csrfOnly: true,
   successCode: "200",
+  status: "live",
   contractDescription: "Normaliza o identificador e só cria sessão após validar senha e e-mail confirmado. Para credenciais corretas de conta pendente, retorna 403 EMAIL_NOT_VERIFIED sem cookie; conta pendente não acessa recursos. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
   responseHeaders: {
     "Set-Cookie": {
@@ -51,7 +54,8 @@ post("auth", "/v1/auth/login", "Autenticar por nome de usuário ou e-mail e senh
   },
 });
 post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Empty", {
-  successCode: "200",
+  successCode: "204",
+  status: "live",
   responseHeaders: {
     "Set-Cookie": {
       description: "Expira __Host-seekalive_session no mesmo Path e atributos do cookie emitido no login.",
@@ -77,19 +81,25 @@ post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação de e-
   auth: "optional",
   csrfOnly: true,
   accepted: true,
-  contractDescription: "Com sessão, usa somente o e-mail da própria conta; sem sessão, aceita o e-mail informado e responde sem confirmar se existe conta.",
+  status: "live",
+  contractDescription: "Aceita o e-mail informado e não confirma se existe conta. Sem provedor de e-mail, retorna 503 sem enviar código.",
 });
 post("auth", "/v1/auth/verification/confirm", "Confirmar desafio de e-mail de uso único", "VerificationConfirm", "AuthResult", {
   auth: "none",
   csrfOnly: true,
   successCode: "200",
-  contractDescription: "Consome o desafio de verificação, marca o e-mail como confirmado e ativa a conta na mesma transação. Somente então emite sessão segura e permite o acesso ao onboarding e ao aplicativo.",
+  status: "live",
+  contractDescription: "Valida o código de seis dígitos de uso único, marca o e-mail como confirmado e ativa a conta na mesma transação. Somente então emite sessão segura e permite o acesso ao onboarding e ao aplicativo.",
   responseHeaders: {
     "Set-Cookie": {
       description: "Sessão opaca criada/rotacionada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
       schema: { type: "string" },
     },
   },
+});
+post("onboarding", "/v1/onboarding/interests", "Salvar ou pular interesses do onboarding", "OnboardingCompletionRequest", "OnboardingCompletionResult", {
+  status: "live",
+  contractDescription: "Requer sessão ativa e e-mail verificado. Substitui as escolhas anteriores e marca o onboarding como concluído; pular salva uma lista vazia, mas também conclui a etapa.",
 });
 
 g("accounts", "/v1/accounts/me", "Consultar conta e projeções do visitante", A);
@@ -237,20 +247,36 @@ const schemas = {
   Accepted: model({ jobId: uuid, status: { type: "string", enum: ["queued", "processing"] } }, ["jobId", "status"]),
   Health: model({ status: { type: "string", const: "ok" } }, ["status"]),
   Readiness: model({ status: { type: "string", enum: ["ready", "degraded"] }, checks: { type: "object", additionalProperties: { type: "string" } } }, ["status", "checks"]),
-  Csrf: model({ csrfToken: string, expiresAt: { type: "string", format: "date-time" } }, ["csrfToken", "expiresAt"]),
-  Session: model({ id: uuid, createdAt: { type: "string", format: "date-time" }, lastSeenAt: { type: "string", format: "date-time" }, expiresAt: { type: "string", format: "date-time" }, isCurrent: { type: "boolean" } }, ["id", "createdAt", "lastSeenAt", "expiresAt", "isCurrent"]),
+  Csrf: model({ csrfToken: string }, ["csrfToken"]),
+  Session: model({ id: uuid, createdAt: { type: "string", format: "date-time" }, expiresAt: { type: "string", format: "date-time" } }, ["id", "createdAt", "expiresAt"]),
   PageSession: page("Session"),
+  AuthenticatedAccount: model({
+    id: uuid,
+    username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" },
+    displayName: { type: "string", maxLength: 100 },
+    accountType: { type: "string", enum: ["personal", "commercial"] },
+    joinedAt: { type: "string", format: "date-time" },
+    onboardingCompleted: { type: "boolean" },
+  }, ["id", "username", "displayName", "accountType", "joinedAt", "onboardingCompleted"]),
   CurrentSession: model({
     authenticated: { type: "boolean" },
-    account: { oneOf: [ref("Account"), { type: "null" }] },
+    account: { oneOf: [ref("AuthenticatedAccount"), { type: "null" }] },
     session: { oneOf: [ref("Session"), { type: "null" }] },
   }, ["authenticated", "account", "session"]),
   AuthResult: model({
-    account: ref("Account"),
+    account: ref("AuthenticatedAccount"),
     session: ref("Session"),
     csrfToken: string,
     emailVerified: { type: "boolean", const: true },
   }, ["account", "session", "csrfToken", "emailVerified"]),
+  OnboardingCompletionRequest: model({
+    interests: { type: "array", maxItems: 100, items: { type: "string", minLength: 1, maxLength: 80 }, uniqueItems: true },
+    skipped: { type: "boolean" },
+  }, ["interests", "skipped"]),
+  OnboardingCompletionResult: model({
+    onboardingCompleted: { type: "boolean", const: true },
+    interestCount: { type: "integer", minimum: 0, maximum: 100 },
+  }, ["onboardingCompleted", "interestCount"]),
   RegistrationPending: model({
     status: { type: "string", const: "verification_required" },
     message: { type: "string", maxLength: 240 },
@@ -301,7 +327,10 @@ const schemas = {
     passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
   }, ["token", "newPassword", "passwordConfirmation"]),
   VerificationRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }),
-  VerificationConfirm: model({ token: { type: "string", minLength: 32, maxLength: 512, writeOnly: true } }, ["token"]),
+  VerificationConfirm: model({
+    email: { type: "string", format: "email", maxLength: 254 },
+    code: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
+  }, ["email", "code"]),
   Account: model({
     id: uuid, username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", maxLength: 80 },
     bio: { type: "string", maxLength: 500 }, avatarUrl: { type: ["string", "null"] }, coverUrl: { type: ["string", "null"] },
@@ -464,20 +493,19 @@ for (const route of R) {
       : {}),
     responses: responses,
   };
-  if (route.status === "live") paths[path][method].security = [];
 }
 
 const spec = {
   openapi: "3.1.0",
   info: {
-    title: "Seekalive API (proposta; uma rota ativa)",
-    version: "0.1.0-proposed",
-    description: "Contrato proposto de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. A autenticação própria pela API está especificada como proposta; nenhuma rota, banco ou integração deste documento foi implementada.",
+    title: "Seekalive API",
+    version: "0.2.0-auth-slice",
+    description: "A rota de saúde e a primeira fatia de autenticação/onboarding estão implementadas. O envio de e-mail ainda não está configurado; cadastro e reenvio respondem 503 até haver um provedor. Os demais contratos seguem como proposta.",
     contact: { name: "Seekalive API" },
   },
-  servers: [{ url: "/api", description: "Prefixo de mesma origem proposto. Roteador do frontend ainda precisa ser conectado." }],
+  servers: [{ url: "/api", description: "Prefixo de mesma origem, encaminhado pelo proxy de desenvolvimento do frontend." }],
   tags: [
-    { name: "health" }, { name: "auth" }, { name: "accounts" }, { name: "social" }, { name: "relations" },
+    { name: "health" }, { name: "auth" }, { name: "onboarding" }, { name: "accounts" }, { name: "social" }, { name: "relations" },
     { name: "media" }, { name: "seek" }, { name: "shop" }, { name: "messaging" },
     { name: "notifications" }, { name: "privacy" }, { name: "moderation" },
   ],
