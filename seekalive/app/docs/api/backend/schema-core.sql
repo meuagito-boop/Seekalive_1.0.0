@@ -1,7 +1,7 @@
 -- SEEKALIVE CORE — PROPOSED, NOT APPLIED.
 -- Full product proposal only; not a migration and not the exact current dev schema.
 -- The current 10-table auth/profile/relations subset is maintained separately in
--- lib/db/src/schema and applied through Drizzle in dev. Do not run this proposal.
+-- infra/database/src/schema and applied through Drizzle in dev. Do not run this proposal.
 -- Static dependency review only. PostgreSQL with pgcrypto; no PostGIS required.
 -- No grants/RLS policies are supplied: never expose these tables to browsers.
 -- Authorization, privacy, retention and cross-row publication rules require

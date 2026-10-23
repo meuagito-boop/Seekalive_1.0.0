@@ -35,7 +35,9 @@ minimumReleaseAgeExclude:
   - stripe-replit-sync
 
 packages:
-  - apps/*/*
+  - Aplicativo/*
+  - Gestor/*
+  - Painel/*
   - shared/*
   - infra/*
   - artifacts/*

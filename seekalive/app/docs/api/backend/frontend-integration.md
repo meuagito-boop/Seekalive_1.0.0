@@ -1,6 +1,6 @@
 # Inventário de telas, rotas e pontos de integração
 
-Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, salvo indicação contrária. Rotas da UI são links relativos do aplicativo, **não endpoints de API**.
+Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, salvo indicação contrária. Rotas da UI são links relativos do aplicativo, **não endpoints de API**.
 
 ## 1. Rotas auditadas
 
@@ -64,10 +64,10 @@ Hoje a interface usa a API para autenticação, verificação e conclusão de in
 | `hooks/use-saved-shop-items.ts`, salvos comerciais | API única de salvos tipados, compartilhada entre perfil e módulos |
 | `data/mockData.ts`, `demoCatalog.ts`, `demoSeek*.ts`, `demoIntegrationPosts.ts` | Fixtures exclusivamente de testes/preview; não seeds automáticos de produção |
 | `components/profile/CommercialProfilePage.tsx` | Dados da mesma conta comercial, avaliações e resposta; galeria deve combinar mídias publicadas e mídia de perfil de forma explícita e sem duplicação |
-| `lib/api-spec/openapi.yaml` (raiz do projeto) | Evoluir contrato vigente após aprovação; preservar título `Api` exigido pelo código gerado |
-| `lib/api-client-react`, `lib/api-zod` | Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente |
-| `lib/db/src/schema` | Implementar Drizzle a partir do modelo revisado; criar migrações versionadas |
-| `artifacts/api-server/src/app.ts` | Ordem de middleware, autenticação, CSRF, limites, routers, erros e logs seguros |
+| `shared/api-spec/openapi.yaml` | Evoluir contrato vigente após aprovação; preservar título `Api` exigido pelo código gerado |
+| `shared/api-client-react`, `shared/contracts` | Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente |
+| `infra/database/src/schema` | Implementar Drizzle a partir do modelo revisado; criar migrações versionadas |
+| `Aplicativo/back/src/app.ts` | Ordem de middleware, autenticação, CSRF, limites, módulos, erros e logs seguros |
 
 ### Atenção aos contratos atuais
 

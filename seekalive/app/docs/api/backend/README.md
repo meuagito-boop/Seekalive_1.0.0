@@ -15,7 +15,7 @@
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é **separado** de `lib/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública deste artefato.
+O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
 
 ## 1. Produto
 
@@ -37,9 +37,9 @@ Seekalive reúne três módulos conectados por uma identidade única:
 
 | Área | Situação auditada |
 |---|---|
-| Servidor | Express/TypeScript em `artifacts/api-server`; saúde e rotas de autenticação/onboarding estão implementadas |
+| Servidor | Express/TypeScript em `Aplicativo/back`; saúde, autenticação, onboarding, perfis e relações estão implementados |
 | Banco | Drizzle/PostgreSQL com schema de identidade, perfil básico, privacidade e relações aplicado somente ao banco de desenvolvimento; produção não foi alterada |
-| Especificação | `lib/api-spec/openapi.yaml` mantém o contrato público existente; `docs/backend/openapi.json` distingue endpoints ativos dos propostos |
+| Especificação | `shared/api-spec/openapi.yaml` mantém o contrato público existente; `docs/api/backend/openapi.json` distingue endpoints ativos dos propostos |
 | Login | API própria com senha protegida, cookie de sessão HttpOnly, CSRF e bloqueio de contas sem e-mail confirmado |
 | Cadastro | A rota de cadastro/verificação está implementada, mas a criação real permanece bloqueada com `503` até configurar o envio de e-mail; nenhuma conta sem confirmação recebe sessão |
 | Recuperação/verificação | Confirmação de e-mail tem rotas; recuperação de senha ainda não está implementada. Sem provedor de e-mail, cadastro e reenvio não concluem |

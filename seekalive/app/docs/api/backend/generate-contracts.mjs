@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 // tag, method, path, summary, request schema, response schema, behavior
-// "live" is reserved for the endpoint verified in artifacts/api-server.
+// "live" is reserved for endpoints verified in Aplicativo/back.
 const R = [];
 const add = (tag, method, path, summary, request, response, extra = {}) =>
   R.push({ tag, method, path, summary, request, response, ...extra });

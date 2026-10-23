@@ -10,10 +10,10 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../../infra/database"
+      "path": "../../infra/database"
     },
     {
-      "path": "../../../shared/contracts"
+      "path": "../../shared/contracts"
     }
   ]
 }

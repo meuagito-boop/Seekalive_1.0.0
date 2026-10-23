@@ -11,9 +11,9 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 
 ## Como a análise foi feita
 
-- Inventário das rotas e dos módulos de produto em `artifacts/social/src` (159 arquivos de origem, sendo 158 TypeScript/TSX), incluindo pontos de entrada, contextos, serviços, persistência local, telas de conta, perfis, Social, Seek, Shop e configurações.
+- Inventário das rotas e dos módulos de produto em `Aplicativo/front/src` (159 arquivos de origem, sendo 158 TypeScript/TSX), incluindo pontos de entrada, contextos, serviços, persistência local, telas de conta, perfis, Social, Seek, Shop e configurações.
 - Leitura focalizada das regras de negócio e fluxos de maior risco; busca estática por chamadas de rede, armazenamento, fixtures, controles desabilitados e contratos.
-- Conferência do esqueleto API em `artifacts/api-server`, dos contratos OpenAPI/SQL propostos e dos testes disponíveis.
+- Conferência da API em `Aplicativo/back`, dos contratos OpenAPI/SQL propostos e dos testes disponíveis.
 - A leitura não inclui dependências, bundles, arquivos gerados ou primitivas genéricas de UI como uma auditoria de segurança de cada byte. O resultado é uma revisão funcional/de integração do código próprio, não uma certificação de segurança ou revisão de produção.
 
 ## Resultado por área
@@ -54,7 +54,7 @@ O contrato limita senhas a 128 caracteres; os formulários atuais ainda não def
 
 ### P0 — O frontend ainda não consome perfil e relações da API
 
-- `artifacts/api-server/src` implementa saúde, autenticação, onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações, recuperação de senha e gestão de sessões continuam sem handlers.
+- `Aplicativo/back/src` implementa saúde, autenticação, onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações, recuperação de senha e gestão de sessões continuam sem handlers.
 - A autenticação e o onboarding usam a API. As telas de perfil, privacidade, seguir, pedidos, Círculo e bloqueio ainda não consomem os endpoints ativos. `services/contentService.ts` continua apontando para `demoContentAdapter`.
 - A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.

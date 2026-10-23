@@ -21,7 +21,7 @@ Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding
 
 ## Catálogo municipal
 
-O frontend já contém uma cópia versionada em `artifacts/social/public/data/ibge-cities-20261022.json`, com código oficial IBGE de sete dígitos, nome e UF; não contém geolocalização precisa. Foi obtida da API pública do IBGE em 22/10/2026. O SQL proposto em `schema-core.sql` trata município como referência para negócios, eventos e busca. O pacote ZIP inclui esse arquivo para auxiliar a implementação do seed.
+O frontend já contém uma cópia versionada em `Aplicativo/front/public/data/ibge-cities-20261022.json`, com código oficial IBGE de sete dígitos, nome e UF; não contém geolocalização precisa. Foi obtida da API pública do IBGE em 22/10/2026. O SQL proposto em `schema-core.sql` trata município como referência para negócios, eventos e busca. O pacote ZIP inclui esse arquivo para auxiliar a implementação do seed.
 
 Para atualizar: baixar de novo a fonte oficial, validar unicidade do código, quantidade e UF, comparar diff, e importar por migration/seed idempotente. Não apagar código antigo sem estratégia para FKs. O frontend pode manter seleção manual quando GPS ou geocodificação não estiver disponível.
 
