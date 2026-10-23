@@ -25,7 +25,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 |---|---|---|---|---|---|
 | GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **PROPOSTA** |
 | GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **PROPOSTA** |
-| POST | `/v1/auth/register` | Público | `RegisterRequest` | `AuthResult` | **PROPOSTA** |
+| POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **PROPOSTA**; assíncrona |
 | POST | `/v1/auth/login` | Público | `LoginRequest` | `AuthResult` | **PROPOSTA** |
 | POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **PROPOSTA** |

@@ -32,7 +32,16 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 
-O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. A autenticação própria pela API foi escolhida para a fase de backend e já possui contrato OpenAPI/SQL proposto, ainda sem handlers, migrations ou banco. Registro retorna sessão para permitir o onboarding; login aceita username ou e-mail. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.
+O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. A autenticação própria pela API foi escolhida para a fase de backend e já possui contrato OpenAPI/SQL proposto, ainda sem handlers, migrations ou banco. Registro cria conta pendente sem sessão; somente confirmar o e-mail permite entrar e iniciar o onboarding. Login aceita username ou e-mail, mas não concede sessão a conta não verificada. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.
+
+### Fluxo de acesso proposto
+
+1. A tela de apresentação leva ao login; o cadastro cria a conta pessoal/comercial com status `pending_verification` e responde `202` sem cookie de sessão.
+2. A pessoa confirma o token recebido no e-mail. Só então o servidor marca a conta como ativa, emite cookie de sessão e libera a rota de onboarding.
+3. Login com usuário/e-mail e senha só emite sessão para conta ativa com e-mail confirmado. Conta pendente não recebe sessão nem pode consultar recursos privados.
+4. Recuperação de senha não confirma e-mail por si só; ela também não libera login enquanto `verified_at` estiver vazio.
+
+O frontend atual navega diretamente do cadastro ao onboarding e mantém login demonstrativo; essa navegação precisa ser adaptada ao estado `verification_required` quando a API for ligada.
 
 Hoje a interface não usa o adaptador REST de conteúdo: `contentService` aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints `/api/v1` propostos.
 

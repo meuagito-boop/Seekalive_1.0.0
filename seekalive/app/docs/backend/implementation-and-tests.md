@@ -4,7 +4,7 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 
 ## Antes de implementar
 
-1. Autenticação própria pela API já foi escolhida e o contrato proposto está em `openapi.json` e `schema-core.sql`; revisar e aprovar política de acesso antes da verificação de e-mail, serviço de envio e duração/retention de sessões antes dos handlers.
+1. Autenticação própria pela API já foi escolhida e o contrato proposto está em `openapi.json` e `schema-core.sql`; conta pendente sem sessão até confirmar e-mail. Escolher provedor de envio e duração/retenção de sessões antes dos handlers.
 2. Confirmar PostgreSQL por ambiente e política de backup/retention.
 3. Confirmar armazenamento de mídia, limites, formatos e retenção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.
@@ -18,7 +18,7 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 - Configurar ambiente de desenvolvimento isolado e banco PostgreSQL.
 - Implementar migrations versionadas, readiness, request IDs, validação, rate limits, sessão HttpOnly e CSRF.
 - Criar fluxo real de autenticação, sessão, recuperação e encerramento; remover o falso estado autenticado.
-- Aceite: visitante anônimo não lê/escreve recursos protegidos; logout revoga a sessão; CSRF/expiração são testados; nenhum segredo aparece em logs.
+- Aceite: visitante anônimo e conta sem e-mail verificado não leem/escrevem recursos protegidos; cadastro não emite sessão; confirmação de e-mail ativa a conta e então emite sessão; logout revoga a sessão; CSRF/expiração são testados; nenhum segredo aparece em logs.
 - Aceite: build de produção não carrega registros fictícios de demonstração; páginas sem endpoint/dados mostram estados vazios, enquanto o preview de desenvolvimento mantém as fixtures para revisão visual.
 
 ### Fase 2 — Conta única, perfil e relacionamentos

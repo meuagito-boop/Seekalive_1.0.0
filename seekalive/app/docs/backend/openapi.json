@@ -536,8 +536,8 @@
         "tags": [
           "auth"
         ],
-        "summary": "Criar uma conta Social pessoal ou comercial e iniciar sessão",
-        "description": "Cria uma única identidade Social e, para conta comercial, sua extensão comercial na mesma transação. Valida senha e confirmação, descarta a confirmação, dispara verificação de e-mail e inicia sessão para permitir o onboarding opcional. A resposta informa se o e-mail ainda está pendente.",
+        "summary": "Criar conta Social e solicitar verificação de e-mail",
+        "description": "Cria uma identidade Social pendente de verificação e, para conta comercial, sua extensão comercial na mesma transação; valida senha e confirmação, descarta a confirmação e envia instruções ao e-mail informado. Não cria sessão nem permite acesso. A resposta é genérica e não revela se o e-mail já está cadastrado.",
         "security": [
           {
             "PreAuthCookie": [],
@@ -555,20 +555,12 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResult"
-                }
-              }
-            },
-            "headers": {
-              "Set-Cookie": {
-                "description": "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
-                "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/RegistrationPending"
                 }
               }
             }
@@ -713,7 +705,7 @@
           "auth"
         ],
         "summary": "Autenticar por nome de usuário ou e-mail e senha",
-        "description": "Normaliza o identificador e retorna erro genérico para credencial inválida, conta inexistente ou senha incorreta. Nunca retorna hash, senha ou token de sessão no corpo.",
+        "description": "Normaliza o identificador e só cria sessão após validar senha e e-mail confirmado. Para credenciais corretas de conta pendente, retorna 403 EMAIL_NOT_VERIFIED sem cookie; conta pendente não acessa recursos. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
         "security": [
           {
             "PreAuthCookie": [],
@@ -1889,7 +1881,7 @@
           "auth"
         ],
         "summary": "Confirmar desafio de e-mail de uso único",
-        "description": "Consome o desafio de verificação e atualiza o status do e-mail. Emite sessão segura para permitir continuar o fluxo de conta.",
+        "description": "Consome o desafio de verificação, marca o e-mail como confirmado e ativa a conta na mesma transação. Somente então emite sessão segura e permite o acesso ao onboarding e ao aplicativo.",
         "security": [
           {
             "PreAuthCookie": [],
@@ -22469,19 +22461,34 @@
           "csrfToken": {
             "type": "string"
           },
-          "emailVerificationStatus": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "verified"
-            ]
+          "emailVerified": {
+            "type": "boolean",
+            "const": true
           }
         },
         "required": [
           "account",
           "session",
           "csrfToken",
-          "emailVerificationStatus"
+          "emailVerified"
+        ]
+      },
+      "RegistrationPending": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "verification_required"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 240
+          }
+        },
+        "required": [
+          "status",
+          "message"
         ]
       },
       "PersonalRegistration": {

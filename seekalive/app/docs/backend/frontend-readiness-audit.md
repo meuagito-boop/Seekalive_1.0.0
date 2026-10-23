@@ -46,7 +46,9 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 
 **Decisão registrada:** a autenticação será própria pela API; login e cadastro demonstrativos permanecem até a fase de backend. O contrato proposto agora define registro/login, credenciais, sessão, verificação e recuperação; o OpenAPI e o SQL continuam documentação, sem handlers ou migração. Nunca tratar `localStorage` como identidade ou autorização.
 
-**Atenção restante:** a política de acesso de contas com e-mail ainda pendente precisa ser definida antes de implementar handlers. Também devem ser aprovados provedor de e-mail, política de retenção/expiração de sessão e origem final da API. Nenhuma dessas definições autoriza aplicar o SQL ou iniciar a autenticação real.
+**Regra confirmada:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão; a confirmação ativa a conta e inicia uma sessão. Essa regra deve ser aplicada no servidor em todas as rotas.
+
+**Atenção restante antes dos handlers:** escolher provedor de e-mail, política de expiração/retenção de sessão e origem final da API. O SQL segue como proposta sem aplicação.
 
 O contrato limita senhas a 128 caracteres; os formulários atuais ainda não definem limite máximo. Alinhar validação visual e mensagens de erro antes de ligar registro/login à API.
 

@@ -32,23 +32,17 @@ g("auth", "/v1/auth/csrf", "Emitir desafio CSRF para a origem atual", "Csrf", nu
     },
   },
 });
-post("auth", "/v1/auth/register", "Criar uma conta Social pessoal ou comercial e iniciar sessão", "RegisterRequest", "AuthResult", {
+post("auth", "/v1/auth/register", "Criar conta Social e solicitar verificação de e-mail", "RegisterRequest", "RegistrationPending", {
   auth: "none",
   csrfOnly: true,
-  successCode: "201",
-  contractDescription: "Cria uma única identidade Social e, para conta comercial, sua extensão comercial na mesma transação. Valida senha e confirmação, descarta a confirmação, dispara verificação de e-mail e inicia sessão para permitir o onboarding opcional. A resposta informa se o e-mail ainda está pendente.",
-  responseHeaders: {
-    "Set-Cookie": {
-      description: "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
-      schema: { type: "string" },
-    },
-  },
+  accepted: true,
+  contractDescription: "Cria uma identidade Social pendente de verificação e, para conta comercial, sua extensão comercial na mesma transação; valida senha e confirmação, descarta a confirmação e envia instruções ao e-mail informado. Não cria sessão nem permite acesso. A resposta é genérica e não revela se o e-mail já está cadastrado.",
 });
 post("auth", "/v1/auth/login", "Autenticar por nome de usuário ou e-mail e senha", "LoginRequest", "AuthResult", {
   auth: "none",
   csrfOnly: true,
   successCode: "200",
-  contractDescription: "Normaliza o identificador e retorna erro genérico para credencial inválida, conta inexistente ou senha incorreta. Nunca retorna hash, senha ou token de sessão no corpo.",
+  contractDescription: "Normaliza o identificador e só cria sessão após validar senha e e-mail confirmado. Para credenciais corretas de conta pendente, retorna 403 EMAIL_NOT_VERIFIED sem cookie; conta pendente não acessa recursos. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
   responseHeaders: {
     "Set-Cookie": {
       description: "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
@@ -89,7 +83,7 @@ post("auth", "/v1/auth/verification/confirm", "Confirmar desafio de e-mail de us
   auth: "none",
   csrfOnly: true,
   successCode: "200",
-  contractDescription: "Consome o desafio de verificação e atualiza o status do e-mail. Emite sessão segura para permitir continuar o fluxo de conta.",
+  contractDescription: "Consome o desafio de verificação, marca o e-mail como confirmado e ativa a conta na mesma transação. Somente então emite sessão segura e permite o acesso ao onboarding e ao aplicativo.",
   responseHeaders: {
     "Set-Cookie": {
       description: "Sessão opaca criada/rotacionada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
@@ -255,8 +249,12 @@ const schemas = {
     account: ref("Account"),
     session: ref("Session"),
     csrfToken: string,
-    emailVerificationStatus: { type: "string", enum: ["pending", "verified"] },
-  }, ["account", "session", "csrfToken", "emailVerificationStatus"]),
+    emailVerified: { type: "boolean", const: true },
+  }, ["account", "session", "csrfToken", "emailVerified"]),
+  RegistrationPending: model({
+    status: { type: "string", const: "verification_required" },
+    message: { type: "string", maxLength: 240 },
+  }, ["status", "message"]),
   PersonalRegistration: model({
     accountType: { type: "string", const: "personal" },
     firstName: { type: "string", minLength: 2, maxLength: 80 },
