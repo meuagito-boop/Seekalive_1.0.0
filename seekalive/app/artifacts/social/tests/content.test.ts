@@ -118,6 +118,15 @@ test("seguimentos escolhidos no onboarding permanecem vinculados à conta no nav
     else Reflect.deleteProperty(globalThis, "window");
   }
 });
+test("alteração de nome de usuário sincroniza as fontes da conta e do Social", () => {
+  const source = readFileSync(
+    join(process.cwd(), "artifacts/social/src/pages/settings/Account.tsx"),
+    "utf8",
+  );
+  const usernameHandler = source.split("function submitUsername")[1]?.split("const disabledField")[0] ?? "";
+  assert.match(usernameHandler, /const updated = \{\s*\.\.\.currentUser,\s*username:\s*next\s*\};/);
+  assert.match(usernameHandler, /updateAccount\(updated\);\s*updateUser\(updated\);/);
+});
 test("Seek busca sem acentos e combina categoria, nota, status, distância e ordenação", () => {
   assert.ok(matchesSeekSearch(["Café Central", "São Paulo"], " cafe  sao "));
   assert.equal(matchesSeekSearch(["Café Central"], "bar"), false);

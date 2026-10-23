@@ -74,7 +74,9 @@ export default function SettingsAccount() {
       return;
     }
     setError(null);
-    updateAccount({ ...currentUser, username: next });
+    const updated = { ...currentUser, username: next };
+    updateAccount(updated);
+    updateUser(updated);
     setUsername("");
     toast({ title: "Nome de usuário alterado", description: `Agora você é @${next} neste navegador.` });
   }

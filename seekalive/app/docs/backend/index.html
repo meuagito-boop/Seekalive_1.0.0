@@ -267,7 +267,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Relações, solicitações, publicações, comentários e avaliações continuam como conteúdo compartilhado local e identificado por autor/destinatário; não são preferências do visitante. Isso não substitui autorização no servidor.</li>
 <li>Chaves globais antigas não são apagadas nem migradas automaticamente: não há como saber a qual conta os valores compartilhados pertenciam. Os novos escopos começam vazios, preservando os valores legados no navegador.</li>
 <li>Em <code>onboarding/Suggestions.tsx</code>, cada toque em “Seguir” aplica a relação imediatamente: contas públicas são atualizadas no armazenamento local da conta ativa; perfis privados criam uma solicitação pendente, também local. “Concluir e entrar” e “Pular por agora” apenas navegam; não há lote de escolhas a salvar nessa etapa. Não exige API nesta fase.</li>
-<li><code>settings/Account.tsx</code> atualiza o username no <code>AppContext</code>, mas não sincroniza essa alteração com <code>SocialContext</code>, podendo deixar o perfil/busca com o valor anterior.</li>
+<li>Corrigido: alterar o nome de usuário em <code>settings/Account.tsx</code> agora atualiza o <code>AppContext</code> e o <code>SocialContext</code>, mantendo a conta persistida e o perfil/busca alinhados.</li>
 </ul>
 <p><strong>Antes de integrar:</strong> o servidor ainda precisa associar cada ação ao usuário autenticado e devolver projeções do visitante. O isolamento atual é apenas uma separação de interface no navegador; não é autorização nem proteção contra alteração do <code>localStorage</code>.</p>
 <h3>P1 — Privacidade e segurança só existem parcialmente no frontend</h3>
@@ -327,7 +327,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>Testes e verificações</h2>
 <p>Na auditoria e nesta correção:</p>
 <ul>
-<li><code>pnpm test:social</code>: <strong>37 testes aprovados</strong> incluindo isolamento/persistência local de ações sociais e seguimentos por conta, além de regras de conteúdo, privacidade, seguimento, validação, referências e erros do adaptador.</li>
+<li><code>pnpm test:social</code>: <strong>38 testes aprovados</strong> incluindo isolamento/persistência local de ações sociais e seguimentos por conta, sincronização de nome de usuário entre conta e Social, além de regras de conteúdo, privacidade, seguimento, validação, referências e erros do adaptador.</li>
 <li><code>pnpm --filter @workspace/social run typecheck</code>: aprovado.</li>
 <li><code>pnpm --filter @workspace/social run build</code>: aprovado anteriormente; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.</li>
 </ul>

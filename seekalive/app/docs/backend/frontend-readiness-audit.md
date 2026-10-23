@@ -73,7 +73,7 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 - Relações, solicitações, publicações, comentários e avaliações continuam como conteúdo compartilhado local e identificado por autor/destinatário; não são preferências do visitante. Isso não substitui autorização no servidor.
 - Chaves globais antigas não são apagadas nem migradas automaticamente: não há como saber a qual conta os valores compartilhados pertenciam. Os novos escopos começam vazios, preservando os valores legados no navegador.
 - Em `onboarding/Suggestions.tsx`, cada toque em “Seguir” aplica a relação imediatamente: contas públicas são atualizadas no armazenamento local da conta ativa; perfis privados criam uma solicitação pendente, também local. “Concluir e entrar” e “Pular por agora” apenas navegam; não há lote de escolhas a salvar nessa etapa. Não exige API nesta fase.
-- `settings/Account.tsx` atualiza o username no `AppContext`, mas não sincroniza essa alteração com `SocialContext`, podendo deixar o perfil/busca com o valor anterior.
+- Corrigido: alterar o nome de usuário em `settings/Account.tsx` agora atualiza o `AppContext` e o `SocialContext`, mantendo a conta persistida e o perfil/busca alinhados.
 
 **Antes de integrar:** o servidor ainda precisa associar cada ação ao usuário autenticado e devolver projeções do visitante. O isolamento atual é apenas uma separação de interface no navegador; não é autorização nem proteção contra alteração do `localStorage`.
 
@@ -139,7 +139,7 @@ Ainda é necessário validar esses contratos com testes de integração quando a
 
 Na auditoria e nesta correção:
 
-- `pnpm test:social`: **37 testes aprovados** incluindo isolamento/persistência local de ações sociais e seguimentos por conta, além de regras de conteúdo, privacidade, seguimento, validação, referências e erros do adaptador.
+- `pnpm test:social`: **38 testes aprovados** incluindo isolamento/persistência local de ações sociais e seguimentos por conta, sincronização de nome de usuário entre conta e Social, além de regras de conteúdo, privacidade, seguimento, validação, referências e erros do adaptador.
 - `pnpm --filter @workspace/social run typecheck`: aprovado.
 - `pnpm --filter @workspace/social run build`: aprovado anteriormente; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.
 
