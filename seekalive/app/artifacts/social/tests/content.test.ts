@@ -13,6 +13,7 @@ import { validateMediaFiles } from "../src/services/mediaService";
 import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters";
 import { saveStoredSeekReviews } from "../src/data/reviewStorage";
 import { accountStorageKey } from "../src/data/accountScopedStorage";
+import { getStoredAccounts, saveSocialAccount } from "../src/data/accountStorage";
 import {
   getSocialAccountActivity,
   readSocialAccountActivityMap,
@@ -89,6 +90,29 @@ test("ações sociais locais ficam isoladas por conta e sobrevivem à releitura 
     assert.deepEqual(getSocialAccountActivity(reloaded, "conta-a").bookmarkedPostIds, []);
     assert.deepEqual(getSocialAccountActivity(reloaded, "conta-b").likedPostIds, []);
     assert.deepEqual(getSocialAccountActivity(reloaded, "conta-b").bookmarkedPostIds, ["post-1"]);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "window", previous);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
+});
+test("seguimentos escolhidos no onboarding permanecem vinculados à conta no navegador", () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const storage = new Map<string, string>();
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem(key: string) { return storage.get(key) ?? null; },
+        setItem(key: string, value: string) { storage.set(key, value); },
+      },
+    },
+  });
+  try {
+    saveSocialAccount({ ...currentUser, id: "onboarding-a", username: "conta_a", followingIds: ["u1"] });
+    saveSocialAccount({ ...currentUser, id: "onboarding-b", username: "conta_b", followingIds: ["u2", "u3"] });
+    const accounts = getStoredAccounts();
+    assert.deepEqual(accounts.find(account => account.id === "onboarding-a")?.followingIds, ["u1"]);
+    assert.deepEqual(accounts.find(account => account.id === "onboarding-b")?.followingIds, ["u2", "u3"]);
   } finally {
     if (previous) Object.defineProperty(globalThis, "window", previous);
     else Reflect.deleteProperty(globalThis, "window");
