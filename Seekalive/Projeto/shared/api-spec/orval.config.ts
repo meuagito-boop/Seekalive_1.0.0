@@ -13,8 +13,8 @@ const apiClientReactSrc = path.resolve(
 const apiZodSrc = path.resolve(root, "shared", "contracts", "src");
 
 /**
- * The API spec is versioned locally. Reject remote and file-based references
- * before Orval processes them so code generation cannot fetch arbitrary input.
+ * External references are denied by Orval before dereferencing. This transformer
+ * also rejects any non-local references that remain in the document.
  */
 export function assertLocalReferences(value: unknown, location = "$"): void {
   if (Array.isArray(value)) {
@@ -58,6 +58,11 @@ export default defineConfig({
   "api-client-react": {
     input: {
       target: "./openapi.yaml",
+      parserOptions: {
+        externalRefs: {
+          allow: [],
+        },
+      },
       override: {
         transformer: titleTransformer,
       },
@@ -86,6 +91,11 @@ export default defineConfig({
   zod: {
     input: {
       target: "./openapi.yaml",
+      parserOptions: {
+        externalRefs: {
+          allow: [],
+        },
+      },
       override: {
         transformer: titleTransformer,
       },
