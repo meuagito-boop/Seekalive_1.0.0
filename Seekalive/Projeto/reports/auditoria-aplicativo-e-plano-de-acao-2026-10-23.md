@@ -171,6 +171,7 @@ Esses pontos positivos não removem as lacunas de integração, testes ou persis
 7. Adicionar testes negativos entre contas: perfil privado, follow não aprovado, dados bloqueados, tentativa de desbloqueio por quem não iniciou e isolamento de sessão.
 8. Corrigir o contrato de erros e adicionar identificador de requisição consistente; criar readiness separado de liveness.
 9. Definir política de proxy/origem, rate limiting e armazenamento dos contadores compatíveis com a topologia alvo.
+10. Corrigir operações concorrentes por par de contas para que bloqueio prevaleça sobre follow/aprovação; corrigir CSRF entre abas, contador de tentativas e `joinedAt`.
 
 **Critério de saída:** banco novo recebe o schema por migrações revisáveis; a suíte de API prova regras de autorização sem depender de testes manuais; saúde e prontidão reportam estados diferentes.
 
@@ -178,45 +179,46 @@ Esses pontos positivos não removem as lacunas de integração, testes ou persis
 
 10. Implementar um cliente único para sessão, CSRF, serialização de DTOs, erros, timeout/cancelamento e invalidamento de cache.
 11. Conectar conta, perfil, edição, privacidade, seguidores/seguindo, pedidos, Círculo e bloqueios às APIs existentes.
-12. Remover sucesso local enganoso para operações conectadas; estados de carregamento, vazio, erro, conflito e sessão expirada devem ser visíveis.
-13. Manter o preview fictício restrito ao desenvolvimento e isolado da conta real; verificar também o bundle de produção.
+12. Aplicar o estado de bloqueio consistentemente à busca, listas e resultados, cobrindo os caminhos com testes.
+13. Remover sucesso local enganoso para operações conectadas; estados de carregamento, vazio, erro, conflito e sessão expirada devem ser visíveis.
+14. Manter o preview fictício restrito ao desenvolvimento e isolado da conta real; verificar também o bundle de produção.
 
 **Critério de saída:** a mesma conta mostra as mesmas relações em nova sessão/navegador; falhas de rede não viram sucesso nem fallback para fixtures; bloqueio e autorização são aplicados pelo servidor.
 
 ### Fase 4 — Implementar conteúdo e mídia com autorização
 
-14. Criar APIs de posts, artigos, comentários, likes, reposts e salvamentos com autoria, idempotência, paginação e ACL.
-15. Implementar upload com ownership, validação server-side do conteúdo real do arquivo, limites, status de processamento e referências por ID — não por `blob:` URL.
-16. Definir uma única regra para galeria: mídia publicada deve respeitar audiência do post; mídia independente de perfil comercial deve ter finalidade e autorização próprias.
-17. Cobrir no backend e E2E conteúdo público, privado, de Círculo, autor e observadores bloqueados.
+15. Criar APIs de posts, artigos, comentários, likes, reposts e salvamentos com autoria, idempotência, paginação e ACL.
+16. Implementar upload com ownership, validação server-side do conteúdo real do arquivo, limites, status de processamento e referências por ID — não por `blob:` URL.
+17. Definir uma única regra para galeria: mídia publicada deve respeitar audiência do post; mídia independente de perfil comercial deve ter finalidade e autorização próprias.
+18. Cobrir no backend e E2E conteúdo público, privado, de Círculo, autor e observadores bloqueados.
 
 **Critério de saída:** upload + publicação persistem e são autorizados; nenhuma mídia privada pode ser obtida por URL/ID sem a ACL do conteúdo de origem.
 
 ### Fase 5 — Seek e os domínios do comerciante
 
-18. Implementar leitura/edição de perfil comercial associado obrigatoriamente à conta Social, horários e serviços oferecidos.
-19. Fazer o Seek descobrir apenas contas comerciais elegíveis; jamais converter perfil pessoal ou endereço residencial em localização comercial sem regra aprovada.
-20. Implementar avaliações e respostas com as regras do produto: nota 1–5, uma avaliação por conta/comércio, sem autoavaliação e crítica não apagável pelo comerciante.
-21. Implementar eventos e consultas de descoberta com cidade/categoria/filtros. GPS permanece opt-in; não inventar distância nem disponibilidade em tempo real.
-22. Não prometer reservas, agendamentos, entrega, ingresso, pagamento ou compra até existirem os respectivos fluxos e contratos aprovados.
+19. Implementar leitura/edição de perfil comercial associado obrigatoriamente à conta Social, horários e serviços oferecidos.
+20. Fazer o Seek descobrir apenas contas comerciais elegíveis; jamais converter perfil pessoal ou endereço residencial em localização comercial sem regra aprovada.
+21. Implementar avaliações e respostas com as regras do produto: nota 1–5, uma avaliação por conta/comércio, sem autoavaliação e crítica não apagável pelo comerciante.
+22. Implementar eventos e consultas de descoberta com cidade/categoria/filtros. GPS permanece opt-in; não inventar distância nem disponibilidade em tempo real.
+23. Não prometer reservas, agendamentos, entrega, ingresso, pagamento ou compra até existirem os respectivos fluxos e contratos aprovados.
 
 **Critério de saída:** resultados do Seek têm origem em contas comerciais persistidas e visíveis; apenas serviços marcados como oferecidos aparecem; avaliação e localização têm regras testadas.
 
 ### Fase 6 — Mensagens, notificações, configurações e Shop
 
-23. Definir e implementar conversas/mensagens, participantes, política de recebimento, leitura e autorização.
-24. Aplicar bloqueio ao envio e à leitura; ocultar histórico sem apagar enquanto o bloqueio estiver ativo e reapresentá-lo ao desbloquear, sem restaurar follows/pedidos.
-25. Persistir notificações e preferências e conectar cada controle da interface ao comportamento correspondente.
-26. Implementar catálogo do Shop como leitura quando aprovado; tratar compra/checkout como escopo independente e não habilitado até a decisão de produto.
+24. Definir e implementar conversas/mensagens, participantes, política de recebimento, leitura e autorização.
+25. Aplicar bloqueio ao envio e à leitura; ocultar histórico sem apagar enquanto o bloqueio estiver ativo e reapresentá-lo ao desbloquear, sem restaurar follows/pedidos.
+26. Persistir notificações e preferências; remover leitura automática por timer e conectar cada controle da interface ao comportamento correspondente.
+27. Implementar catálogo do Shop como leitura quando aprovado; tratar compra/checkout como escopo independente e não habilitado até a decisão de produto.
 
 **Critério de saída:** regras de mensagem e bloqueio funcionam em servidor e entre dispositivos; nenhuma configuração é apresentada como ativa sem efeito; compra permanece indisponível até ser implementada.
 
 ### Fase 7 — Preparar publicação, sem confundir desenvolvimento com produção
 
-27. Adicionar E2E de navegador para onboarding e fluxos principais em ambiente isolado.
-28. Fazer build de produção e verificar que fixtures interativas/dados demo não entram no bundle nem aparecem fora de desenvolvimento.
-29. Preparar ambiente de staging, variáveis/secrets por ambiente, aplicação deliberada das migrations, backup/restore, monitoramento, limites, readiness e plano de rollback.
-30. Executar smoke tests em staging com contas descartáveis e confirmar que produção não foi alterada antes da autorização explícita.
+28. Integrar os scripts existentes de auditoria de navegador a um fluxo reproduzível e adicionar E2E com frontend + API reais em ambiente isolado.
+29. Fazer build de produção e verificar que fixtures interativas/dados demo não entram no bundle nem aparecem fora de desenvolvimento.
+30. Preparar ambiente de staging, variáveis/secrets por ambiente, aplicação deliberada das migrations, backup/restore, monitoramento, limites, readiness e plano de rollback.
+31. Executar smoke tests em staging com contas descartáveis e confirmar que produção não foi alterada antes da autorização explícita.
 
 **Critério de saída:** checklist de release aprovado com evidência reproduzível; staging validado; nenhum caminho crítico depende de estado local ou dados fictícios.
 
