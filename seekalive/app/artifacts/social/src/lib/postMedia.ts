@@ -18,13 +18,14 @@ export function getProfileMedia(
   isOwner = false,
   canViewCirclePosts = false,
   authorIsPrivate = false,
+  approvedFollower = false,
 ): ProfileMedia[] {
   return posts
     .filter((post) =>
       post.authorId === accountId &&
       (
         isOwner ||
-        (!authorIsPrivate || canViewCirclePosts) &&
+        (!authorIsPrivate || approvedFollower) &&
         (post.audience === "public" || (canViewCirclePosts && post.audience === "circles"))
       ),
     )

@@ -43,9 +43,10 @@ export function canReadPost(
   viewerId: string | undefined,
   circleMember: boolean,
   authorIsPrivate = false,
+  approvedFollower = false,
 ) {
   if (post.authorId === viewerId) return true;
-  if (authorIsPrivate && !circleMember) return false;
+  if (authorIsPrivate && !approvedFollower) return false;
   return post.audience === "public" || (post.audience === "circles" && circleMember);
 }
 export function makeDemoMessage(conversation: Conversation | undefined, authorId: string | undefined, content: string): Message {

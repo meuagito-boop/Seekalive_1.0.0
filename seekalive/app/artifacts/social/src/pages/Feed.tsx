@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, Play, BookOpenText } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, Clock3, Play, BookOpenText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PostCard } from "@/components/post/PostCard";
@@ -27,7 +27,7 @@ function useVisibleFeed() {
   return useMemo(() => {
     const visible = posts.filter((p) => {
       const author = getUserById(p.authorId);
-      return !!author && !author.isBlocked && canReadPost(p, viewerId, author.isInCircle ?? false, author.isPrivate ?? false);
+      return !!author && !author.isBlocked && canReadPost(p, viewerId, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false);
     });
     const byId = new Map(visible.map((p) => [p.id, p]));
     const items: FeedItem[] = [
@@ -89,9 +89,9 @@ function VideoFeedItem({ post }: { post: Post }) {
               <Avatar className="h-11 w-11 border-2 border-white shadow-lg"><AvatarImage src={author.avatarUrl} alt="" /><AvatarFallback>{author.displayName[0]}</AvatarFallback></Avatar>
             </Link>
             {author.id !== viewerId && (
-              <button type="button" onClick={() => toggleFollow(author.id)} aria-label={author.isFollowing ? "Deixar de seguir" : "Seguir"}
-                className={`absolute -bottom-2 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full ${author.isFollowing ? "bg-zinc-600" : "bg-primary"}`}>
-                {author.isFollowing ? <Check className="h-2.5 w-2.5 text-white" /> : <UserPlus className="h-2.5 w-2.5 text-white" />}
+              <button type="button" onClick={() => toggleFollow(author.id)} aria-label={author.isFollowing ? "Deixar de seguir" : author.followRequestSent ? "Cancelar solicitação para seguir" : author.isPrivate ? "Solicitar para seguir" : "Seguir"}
+                className={`absolute -bottom-2 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full ${author.isFollowing ? "bg-zinc-600" : author.followRequestSent ? "bg-amber-600" : "bg-primary"}`}>
+                {author.isFollowing ? <Check className="h-2.5 w-2.5 text-white" /> : author.followRequestSent ? <Clock3 className="h-2.5 w-2.5 text-white" /> : <UserPlus className="h-2.5 w-2.5 text-white" />}
               </button>
             )}
           </div>

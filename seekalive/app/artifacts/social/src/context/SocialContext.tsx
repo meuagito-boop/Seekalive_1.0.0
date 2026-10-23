@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useReducer, ReactNode } from "react";
 import {
-  Post, User, Notification, Conversation, Message, SeekReview,
+  Post, User, Notification, Conversation, Message, SeekReview, FollowRequest,
   mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages, mockSeekReviews,
   currentUser as demoCurrentUser,
 } from "@/data/mockData";
 import { getStoredAccounts, saveSocialAccount } from "@/data/accountStorage";
+import { getStoredFollowRequests, saveStoredFollowRequests } from "@/data/followRequestStorage";
 import { getStoredSeekReviews, saveStoredSeekReviews } from "@/data/reviewStorage";
 import { useAppContext } from "@/context/AppContext";
 import type { PublishPostInput, SocialComment, SocialRepost } from "@/types/content";
@@ -25,6 +26,7 @@ export interface SocialState {
   reviews: SeekReview[];
   postComments: SocialComment[];
   repostEntries: SocialRepost[];
+  followRequests: FollowRequest[];
 }
 
 // ── Actions ──────────────────────────────────────────────────────────
@@ -44,7 +46,10 @@ type Action =
   | { type: "MARK_ALL_NOTIFICATIONS_READ" }
   | { type: "MARK_NOTIFICATION_READ"; id: string }
   | { type: "MARK_CONVERSATION_READ"; convId: string }
-  | { type: "SEND_MESSAGE"; message: Message };
+  | { type: "SEND_MESSAGE"; message: Message }
+  | { type: "ADD_FOLLOW_REQUEST"; request: FollowRequest }
+  | { type: "REMOVE_FOLLOW_REQUEST"; requestId: string };
+
 
 // ── Reducer ──────────────────────────────────────────────────────────
 export function socialReducer(state: SocialState, action: Action): SocialState {
@@ -207,6 +212,19 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
       };
     }
 
+    case "ADD_FOLLOW_REQUEST":
+      if (state.followRequests.some(request =>
+        request.requesterId === action.request.requesterId &&
+        request.targetId === action.request.targetId
+      )) return state;
+      return { ...state, followRequests: [...state.followRequests, action.request] };
+
+    case "REMOVE_FOLLOW_REQUEST":
+      return {
+        ...state,
+        followRequests: state.followRequests.filter(request => request.id !== action.requestId),
+      };
+
     default:
       return state;
   }
@@ -222,6 +240,7 @@ const initialState: SocialState = {
   reviews: [...mockSeekReviews, ...(import.meta.env?.DEV ? demoSeekReviews : [])],
   postComments: [],
   repostEntries: [],
+  followRequests: [],
 };
 
 function createInitialState(): SocialState {
@@ -231,6 +250,7 @@ function createInitialState(): SocialState {
     ...initialState,
     users: [...usersById.values()],
     reviews: [...reviewsById.values()],
+    followRequests: getStoredFollowRequests(),
   };
 }
 
@@ -243,6 +263,7 @@ interface SocialContextType extends SocialState {
   getConversationMessages: (convId: string) => Message[];
   unreadNotifications: number;
   unreadMessages: number;
+  incomingFollowRequests: FollowRequest[];
   // Action helpers
   toggleLike: (postId: string) => void;
   toggleRepost: (postId: string, actorId?: string) => void;
@@ -252,6 +273,8 @@ interface SocialContextType extends SocialState {
   deletePost: (postId: string, authorId: string) => Promise<void>;
   toggleBookmark: (postId: string) => void;
   toggleFollow: (userId: string) => void;
+  acceptFollowRequest: (requestId: string) => void;
+  declineFollowRequest: (requestId: string) => void;
   addUser: (user: User) => void;
   updateUser: (user: User) => void;
   addPost: (
@@ -276,9 +299,16 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
   const { currentUser, updateAccount } = useAppContext();
   const viewer = currentUser ?? demoCurrentUser;
+  useEffect(() => {
+    saveStoredFollowRequests(state.followRequests);
+  }, [state.followRequests]);
+
   const users = state.users.map((user) => ({
     ...user,
     isFollowing: viewerFollowsUser(viewer, user),
+    followRequestSent: state.followRequests.some(request =>
+      request.requesterId === viewer.id && request.targetId === user.id
+    ),
     isInCircle: areMutualFollowers(viewer, user),
   }));
   function assertSession(authorId: string) {
@@ -289,7 +319,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     const post = state.posts.find(item => item.id === postId);
     if (!post) throw new ContentServiceError("Conteúdo indisponível.", 404);
     const author = users.find(user => user.id === post.authorId);
-    if (!canReadPost(post, currentUser?.id ?? viewer.id, areMutualFollowers(viewer, author), author?.isPrivate ?? false))
+    if (!canReadPost(post, currentUser?.id ?? viewer.id, areMutualFollowers(viewer, author), author?.isPrivate ?? false, author?.isFollowing ?? false))
       throw new ContentServiceError("Você não tem acesso a esta publicação.", 403);
     return post;
   }
@@ -309,6 +339,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       ? state.messages.filter(m => m.conversationId === convId) : [],
     unreadNotifications: state.notifications.filter(n => !n.isRead).length,
     unreadMessages: state.conversations.filter(c => currentUser && c.participantIds.includes(currentUser.id)).reduce((acc, c) => acc + c.unreadCount, 0),
+    incomingFollowRequests: state.followRequests.filter(request => request.targetId === currentUser?.id),
 
     toggleLike: (postId) => dispatch({ type: "TOGGLE_LIKE", postId }),
     toggleRepost: (postId, actorId = currentUser?.id ?? "") => {
@@ -348,7 +379,28 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     toggleFollow: (userId) => {
       const target = state.users.find(user => user.id === userId);
       if (!target || target.id === viewer.id) return;
+      const pendingRequest = state.followRequests.find(request =>
+        request.requesterId === viewer.id && request.targetId === userId
+      );
+      if (pendingRequest) {
+        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId: pendingRequest.id });
+        return;
+      }
+
       const wasFollowing = viewerFollowsUser(viewer, target);
+      if (!wasFollowing && target.isPrivate) {
+        dispatch({
+          type: "ADD_FOLLOW_REQUEST",
+          request: {
+            id: `follow_request_${viewer.id}_${target.id}`,
+            requesterId: viewer.id,
+            targetId: target.id,
+            createdAt: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+
       const targetFollowsViewer = (target.followingIds ?? []).includes(viewer.id);
       const wasMutual = wasFollowing && targetFollowsViewer;
       const willBeMutual = !wasFollowing && targetFollowsViewer;
@@ -380,6 +432,55 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "UPDATE_USER", user: updatedTarget });
       if (currentUser && state.users.some(user => user.id === currentUser.id))
         dispatch({ type: "UPDATE_USER", user: updatedViewer });
+    },
+    acceptFollowRequest: (requestId) => {
+      if (!currentUser) return;
+      const request = state.followRequests.find(item =>
+        item.id === requestId && item.targetId === currentUser.id
+      );
+      if (!request) return;
+
+      const requester = state.users.find(user => user.id === request.requesterId);
+      if (!requester) return;
+
+      const requesterAlreadyFollows = (requester.followingIds ?? []).includes(currentUser.id);
+      const viewerAlreadyFollowsRequester = viewerFollowsUser(viewer, requester);
+      const updatedViewer: User = requesterAlreadyFollows
+        ? viewer
+        : {
+            ...viewer,
+            stats: {
+              ...viewer.stats,
+              followers: viewer.stats.followers + 1,
+              circles: viewer.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
+            },
+          };
+      const updatedRequester: User = requesterAlreadyFollows
+        ? requester
+        : {
+            ...requester,
+            followingIds: [...(requester.followingIds ?? []), currentUser.id],
+            stats: {
+              ...requester.stats,
+              following: requester.stats.following + 1,
+              circles: requester.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
+            },
+          };
+
+      if (!requesterAlreadyFollows) {
+        updateAccount(updatedViewer);
+        saveSocialAccount(updatedViewer);
+        saveSocialAccount(updatedRequester);
+        dispatch({ type: "UPDATE_USER", user: updatedViewer });
+        dispatch({ type: "UPDATE_USER", user: updatedRequester });
+      }
+      dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
+    },
+    declineFollowRequest: (requestId) => {
+      const request = state.followRequests.find(item =>
+        item.id === requestId && item.targetId === currentUser?.id
+      );
+      if (request) dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
     },
     addUser: (user) => {
       saveSocialAccount(user);

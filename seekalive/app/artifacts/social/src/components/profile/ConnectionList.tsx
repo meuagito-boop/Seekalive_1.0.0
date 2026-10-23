@@ -111,10 +111,10 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
                   onClick={() => toggleFollow(user.id)}
                   data-testid={`button-follow-${user.id}`}
                   className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    user.isFollowing ? "bg-muted text-muted-foreground border border-border" : "bg-primary text-primary-foreground"
+                    user.isFollowing || user.followRequestSent ? "bg-muted text-muted-foreground border border-border" : "bg-primary text-primary-foreground"
                   }`}
                 >
-                  {user.isFollowing ? "Seguindo" : "Seguir"}
+                  {user.isFollowing ? "Seguindo" : user.followRequestSent ? "Cancelar" : user.isPrivate ? "Solicitar" : "Seguir"}
                 </button>
               )}
             </motion.div>

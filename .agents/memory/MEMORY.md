@@ -1,0 +1,1 @@
+- [Privacidade e seguimento](private-follow-approval.md) — perfis privados exigem aprovação; seguidores aceitos veem conteúdo público, enquanto Círculo continua mútuo.

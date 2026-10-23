@@ -27,7 +27,7 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
 | Galeria | Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência | Parcial |
 | Relacionamentos e Círculo | O frontend calcula Círculo pelo seguimento recíproco; “deixar de seguir” remove a associação derivada | Regra alinhada; sem API |
-| Privacidade e bloqueio | Visibilidade é verificada no cliente. Preferências são locais; bloqueio não é modelado por relação ator-alvo e a ação “Desbloquear” está desabilitada | Bloqueador |
+| Privacidade e bloqueio | Pedidos de seguimento e aprovação funcionam apenas no navegador; a autorização do servidor ainda não existe. Bloqueio não é modelado por relação ator-alvo e “Desbloquear” está desabilitado | Bloqueador para backend |
 | Mensagens e notificações | Estado local/demonstrativo. Não há API, entrega, sincronização entre aparelhos ou leitura por participante no servidor | Bloqueador |
 | Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros locais. Não há busca/avaliações/eventos reais no servidor | Parcial |
 | Avaliações | Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500 | Parcial |
@@ -76,11 +76,12 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 ### P1 — Privacidade e segurança só existem parcialmente no frontend
 
 - `canReadPost` e filtros de tela são úteis para UX, mas não protegem dados. Feed, busca, perfil, comentário, notificações, mensagens, referência e arquivo precisam da mesma autorização no servidor.
-- O botão “Seguir” muda a relação imediatamente. Não há inbox de solicitações nem aceite para perfis privados. A regra de Círculo, por sua vez, está alinhada: A segue B e B segue A; a remoção de qualquer seguimento elimina o Círculo derivado.
+- Em perfil público, seguir é imediato. Em perfil privado, o frontend cria solicitação pendente; o dono pode aceitar ou recusar em Configurações > Privacidade. O pedido pendente não conta como seguidor. Isso ainda é estado local, sem API/autorização de servidor.
+- Após a aprovação, o seguidor vê publicações com audiência pública do perfil privado. Publicações destinadas ao Círculo continuam exigindo seguimento aceito nos dois sentidos. A regra de Círculo permanece derivada: A segue B e B segue A; a remoção de qualquer seguimento encerra o Círculo.
 - O modelo de bloqueio usa `isBlocked` no objeto do usuário, em vez de uma relação por ator e alvo. A página de bloqueados lista essa flag e apresenta “Desbloquear” desabilitado apesar de existir um handler.
 - As opções para receber mensagens e confirmações de leitura são preferências locais; precisam ser verificadas em cada envio/leitura no backend.
 
-**Decisão pendente:** confirmar se perfil privado exige que cada novo seguimento seja aprovado. Se sim, falta implementar o estado de solicitação e sua interface; esse fluxo não deve ser confundido com Círculo.
+**Frontend concluído para esta regra:** estados de solicitação, cancelamento, aprovação/recusa, acesso a publicações aprovadas e separação do Círculo. O backend ainda precisa aplicar a mesma regra em cada rota e arquivo privado.
 
 ### P1 — Mídias não são uploads e a galeria tem duas fontes
 
@@ -134,7 +135,7 @@ Ainda é necessário validar esses contratos com testes de integração quando a
 
 Na auditoria:
 
-- `pnpm test:social`: **34 testes aprovados** para regras de conteúdo, validação, referências e erros do adaptador.
+- `pnpm test:social`: **35 testes aprovados** para regras de conteúdo, privacidade, seguimento, validação, referências e erros do adaptador.
 - `pnpm --filter @workspace/social run typecheck`: aprovado.
 - `pnpm --filter @workspace/social run build`: aprovado anteriormente; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.
 
@@ -142,7 +143,7 @@ Esses resultados comprovam compilação e um conjunto limitado de regras, não a
 
 ## Ordem recomendada para fechar a prontidão
 
-1. Confirmar o comportamento de seguimento para contas privadas e manter Círculo apenas como estado derivado.
+1. **Concluído no frontend/documentação:** perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.
 2. Escolher autenticação e identidade; documentar sessão e como uma conta pessoal/comercial nasce.
 3. Remover/encapsular dados demo do estado de produção e separar estados viewer-specific por conta.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.

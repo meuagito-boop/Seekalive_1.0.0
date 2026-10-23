@@ -63,6 +63,7 @@ export default function SuggestionsPage() {
         <TabsContent value="people">
           {suggestPeople.map((user, i) => {
             const isFollowing = user.isFollowing ?? false;
+            const followPending = user.followRequestSent ?? false;
             return (
               <motion.div
                 key={user.id}
@@ -82,15 +83,15 @@ export default function SuggestionsPage() {
                 </div>
                 <button
                   type="button"
-                  aria-label={`${isFollowing ? "Deixar de seguir" : "Seguir"} ${user.displayName}`}
+                  aria-label={`${isFollowing ? "Deixar de seguir" : followPending ? "Cancelar solicitação para seguir" : user.isPrivate ? "Solicitar para seguir" : "Seguir"} ${user.displayName}`}
                   onClick={() => toggleFollow(user.id)}
                   className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    isFollowing
+                    isFollowing || followPending
                       ? "bg-muted text-muted-foreground border border-border"
                       : "bg-primary text-primary-foreground"
                   }`}
                 >
-                  {isFollowing ? "Seguindo" : "Seguir"}
+                  {isFollowing ? "Seguindo" : followPending ? "Cancelar" : user.isPrivate ? "Solicitar" : "Seguir"}
                 </button>
               </motion.div>
             );
@@ -150,8 +151,8 @@ export default function SuggestionsPage() {
                   <span className="text-[11px] text-foreground font-medium">{rating === undefined ? "Sem avaliações" : rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                 </div>
               </div>
-              <button type="button" onClick={() => toggleFollow(b.id)} aria-label={`${b.isFollowing ? "Deixar de seguir" : "Seguir"} ${b.displayName}`} className="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                {b.isFollowing ? "Seguindo" : "Seguir"}
+              <button type="button" onClick={() => toggleFollow(b.id)} aria-label={`${b.isFollowing ? "Deixar de seguir" : b.followRequestSent ? "Cancelar solicitação para seguir" : b.isPrivate ? "Solicitar para seguir" : "Seguir"} ${b.displayName}`} className="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                {b.isFollowing ? "Seguindo" : b.followRequestSent ? "Cancelar" : b.isPrivate ? "Solicitar" : "Seguir"}
               </button>
             </motion.div>
           ); })}

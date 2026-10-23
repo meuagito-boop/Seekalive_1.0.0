@@ -135,7 +135,7 @@ export function CommercialProfilePage({
     ? formatWeeklyHours(commercial.weeklyHours)
     : commercial?.openingHours ?? "Horário não informado";
   const offeredServices = serviceOptions.filter(service => commercial?.serviceOptions?.[service.key] === true);
-  const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false);
+  const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
@@ -165,7 +165,7 @@ export function CommercialProfilePage({
   const isSaved = savedIds.includes(user.id);
   const visiblePosts = posts.filter(post => {
     const author = getUserById(post.authorId);
-    return !!author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false);
+    return !!author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false);
   });
   const userPosts = visiblePosts.filter((post) => post.authorId === user.id);
   const userArticles = userPosts.filter((post) => post.format === "article");
@@ -239,11 +239,11 @@ export function CommercialProfilePage({
             </Button>
           ) : (
             <Button
-              variant={user.isFollowing ? "outline" : "default"}
+              variant={user.isFollowing || user.followRequestSent ? "outline" : "default"}
               className="h-8 rounded-full px-3 text-xs"
               onClick={() => toggleFollow(user.id)}
             >
-              {user.isFollowing ? "Seguindo" : "Seguir"}
+              {user.isFollowing ? "Seguindo" : user.followRequestSent ? "Cancelar solicitação" : user.isPrivate ? "Solicitar para seguir" : "Seguir"}
             </Button>
           )}
         </div>

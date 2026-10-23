@@ -24,7 +24,7 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 
 - Conta pessoal/comercial é a mesma identidade Social; extensão comercial vinculada um-a-um à conta.
 - Implementar perfil, privacidade, seguir, Círculo derivado, bloqueio/silenciamento e salvos.
-- Aceite: toda consulta aplica ACL no servidor; Círculo só existe com dois seguimentos efetivos em sentidos opostos e desaparece quando qualquer lado deixa de seguir; perfil privado e pedidos de seguimento (se aprovados como política) são testados para ambos os lados; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle ou Círculo.
+- Aceite: toda consulta aplica ACL no servidor; Círculo só existe com dois seguimentos aceitos em sentidos opostos e desaparece quando qualquer lado deixa de seguir; pedidos para perfis privados ficam pendentes até o aceite, não concedem acesso antes disso e são testados para solicitante e dono; seguidores aceitos veem publicações públicas do perfil privado, mas audiência do Círculo continua mútua; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle ou Círculo.
 
 ### Fase 3 — Social e mídia
 

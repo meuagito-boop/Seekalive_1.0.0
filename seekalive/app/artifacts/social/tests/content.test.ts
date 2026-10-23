@@ -15,7 +15,7 @@ import { saveStoredSeekReviews } from "../src/data/reviewStorage";
 
 const input: PublishPostInput = { content: "Minha opinião #café", authorId: "me", audience: "public" };
 const post = makeDemoPost(input);
-const state = (): SocialState => ({ posts: [post], users: mockUsers, conversations: [], messages: [], notifications: [], reviews: [], postComments: [], repostEntries: [] });
+const state = (): SocialState => ({ posts: [post], users: mockUsers, conversations: [], messages: [], notifications: [], reviews: [], postComments: [], repostEntries: [], followRequests: [] });
 test("datas e contagens usam português e toleram valores inválidos", () => {
   assert.equal(formatTimeAgo(new Date(Date.now() - 90_000).toISOString()), "há 1 min");
   assert.equal(formatTimeAgo(new Date(Date.now() + 60_000).toISOString()), "agora");
@@ -187,11 +187,23 @@ test("excluir remove comentários e reposts, sem apagar outro conteúdo", () => 
   const deleted = socialReducer(reposted, { type: "DELETE_POST", postId: post.id });
   assert.equal(deleted.posts.length + deleted.postComments.length + deleted.repostEntries.length, 0);
 });
-test("privacidade distingue público, círculo e dono", () => {
+test("privacidade distingue aprovados, Círculo, público e dono", () => {
   assert.equal(canReadPost({ ...post, audience: "private" }, "visitante", true), false);
   assert.equal(canReadPost({ ...post, audience: "private" }, "me", false), true);
   assert.equal(canReadPost({ ...post, audience: "circles" }, "visitante", false), false);
   assert.equal(canReadPost({ ...post, audience: "circles" }, "visitante", true), true);
+  assert.equal(canReadPost({ ...post, audience: "public" }, "visitante", false, true, false), false);
+  assert.equal(canReadPost({ ...post, audience: "public" }, "visitante", false, true, true), true);
+  assert.equal(canReadPost({ ...post, audience: "circles" }, "visitante", false, true, true), false);
+  assert.equal(canReadPost({ ...post, audience: "circles" }, "visitante", true, true, true), true);
+  assert.equal(canReadPost({ ...post, audience: "private" }, "visitante", true, true, true), false);
+});
+test("solicitação de seguimento é única por par e pode ser removida", () => {
+  const request = { id: "request-1", requesterId: "u1", targetId: "u2", createdAt: new Date().toISOString() };
+  const added = socialReducer(state(), { type: "ADD_FOLLOW_REQUEST", request });
+  const duplicate = socialReducer(added, { type: "ADD_FOLLOW_REQUEST", request: { ...request, id: "request-2" } });
+  assert.equal(duplicate.followRequests.length, 1);
+  assert.deepEqual(socialReducer(duplicate, { type: "REMOVE_FOLLOW_REQUEST", requestId: request.id }).followRequests, []);
 });
 test("resolvedor não inventa entidade e preserva destinos originais", async () => {
   const snapshot = { users: mockUsers, posts: [post], reviews: [], viewerId: "me" };

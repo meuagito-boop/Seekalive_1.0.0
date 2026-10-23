@@ -39,7 +39,7 @@ export default function Search() {
   const q = query.trim().toLowerCase();
   const filteredPosts = posts.filter(p => {
     const author = users.find(u => u.id === p.authorId);
-    if (!author || !canReadPost(p, viewerId, author.isInCircle ?? false, author.isPrivate ?? false)) return false;
+    if (!author || !canReadPost(p, viewerId, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false)) return false;
     const haystack = [p.content, p.article?.title ?? "", p.article?.body ?? "", ...(p.hashtags ?? []).map(t => `#${t}`), ...(p.mentions ?? []).map(m => `@${m}`)].join(" ").toLowerCase();
     return haystack.includes(q);
   });
@@ -146,13 +146,14 @@ export default function Search() {
                       <p className="text-muted-foreground text-xs truncate">@{user.username}</p>
                     </div>
                     <button
+                      aria-label={`${user.isFollowing ? "Deixar de seguir" : user.followRequestSent ? "Cancelar solicitação para seguir" : user.isPrivate ? "Solicitar para seguir" : "Seguir"} ${user.displayName}`}
                       onClick={() => toggleFollow(user.id)}
                       data-testid={`button-follow-${user.id}`}
                       className={`w-full py-1.5 rounded-full text-xs font-semibold transition-all ${
-                        user.isFollowing ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"
+                        user.isFollowing || user.followRequestSent ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"
                       }`}
                     >
-                      {user.isFollowing ? "Seguindo" : "Seguir"}
+                      {user.isFollowing ? "Seguindo" : user.followRequestSent ? "Cancelar" : user.isPrivate ? "Solicitar" : "Seguir"}
                     </button>
                   </motion.div>
                 ))}
@@ -194,13 +195,14 @@ export default function Search() {
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">{user.bio.slice(0, 70)}</p>
                     </div>
                     <button
+                      aria-label={`${user.isFollowing ? "Deixar de seguir" : user.followRequestSent ? "Cancelar solicitação para seguir" : user.isPrivate ? "Solicitar para seguir" : "Seguir"} ${user.displayName}`}
                       onClick={() => toggleFollow(user.id)}
                       data-testid={`button-follow-result-${user.id}`}
                       className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                        user.isFollowing ? "bg-muted text-muted-foreground border border-border" : "bg-primary text-primary-foreground"
+                        user.isFollowing || user.followRequestSent ? "bg-muted text-muted-foreground border border-border" : "bg-primary text-primary-foreground"
                       }`}
                     >
-                      {user.isFollowing ? "Seguindo" : "Seguir"}
+                      {user.isFollowing ? "Seguindo" : user.followRequestSent ? "Cancelar" : user.isPrivate ? "Solicitar" : "Seguir"}
                     </button>
                   </motion.div>
                 ))

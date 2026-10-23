@@ -51,13 +51,14 @@ export default function Profile() {
   const user = found;
 
   const following = user.isFollowing ?? false;
+  const followRequested = user.followRequestSent ?? false;
   const inCircle = user.isInCircle ?? false;
   const circleCount = isMe ? users.filter(candidate => candidate.isInCircle).length : user.stats.circles;
 
   // Posts filtered to this user
   const visibleToViewer = (p: (typeof posts)[number]) => {
     const author = users.find(u => u.id === p.authorId) ?? (p.authorId === viewer.id ? viewer : undefined);
-    return !!author && !author.isBlocked && canReadPost(p, viewer.id, author.isInCircle ?? false, author.isPrivate ?? false);
+    return !!author && !author.isBlocked && canReadPost(p, viewer.id, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false);
   };
   // Authored posts plus repost distribution records (original author preserved).
   const timeline = [
@@ -73,14 +74,14 @@ export default function Profile() {
     return c.authorId === user.id && !!target && visibleToViewer(target);
   }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const likedPosts = isMe ? posts.filter(p => p.isLiked && visibleToViewer(p)) : [];
-  const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false);
+  const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
 
   function handleFollow() {
     if (isMe) return;
     toggleFollow(user.id);
   }
 
-  if (!isMe && user.isPrivate && !inCircle) {
+  if (!isMe && user.isPrivate && !following) {
     return (
       <div className="min-h-[70vh] px-5 py-16">
         <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center">
@@ -90,9 +91,13 @@ export default function Profile() {
           </Avatar>
           <h1 className="text-xl font-bold">{user.displayName}</h1>
           <p className="mt-1 text-sm text-muted-foreground">@{user.username}</p>
-          <p className="mt-4 text-sm text-muted-foreground">Este perfil é privado. Para ver suas publicações, vocês precisam se seguir mutuamente.</p>
-          <Button onClick={handleFollow} className="mt-5 rounded-full" variant={following ? "outline" : "default"}>
-            {following ? "Seguindo" : "Seguir"}
+          <p className="mt-4 text-sm text-muted-foreground">
+            {followRequested
+              ? "Sua solicitação está aguardando aprovação. O conteúdo ficará visível depois que o dono aceitar."
+              : "Este perfil é privado. Envie uma solicitação para seguir; as publicações públicas do perfil ficam visíveis após a aprovação."}
+          </p>
+          <Button onClick={handleFollow} className="mt-5 rounded-full" variant={followRequested ? "outline" : "default"}>
+            {followRequested ? "Cancelar solicitação" : "Solicitar para seguir"}
           </Button>
         </div>
       </div>
@@ -154,11 +159,11 @@ export default function Profile() {
                   <motion.div whileTap={{ scale: 0.95 }}>
                     <Button
                       onClick={handleFollow}
-                      variant={following ? "outline" : "default"}
+                      variant={following || followRequested ? "outline" : "default"}
                       className="rounded-full h-9 px-5 text-sm font-semibold"
                       data-testid="button-follow"
                     >
-                      {following ? "Seguindo" : "Seguir"}
+                      {following ? "Seguindo" : followRequested ? "Cancelar solicitação" : user.isPrivate ? "Solicitar para seguir" : "Seguir"}
                     </Button>
                   </motion.div>
 

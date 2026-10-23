@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { Check, ChevronRight, X } from "lucide-react";
 import { SettingsSubheader } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getPrivacyPreferences, savePrivacyPreferences } from "@/data/appPreferences";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
@@ -66,7 +67,13 @@ function SelectRow({ label, value, options, onChange, testId }: {
 export default function SettingsPrivacy() {
   const [, setLocation] = useLocation();
   const { currentUser, updateAccount } = useAppContext();
-  const { updateUser } = useSocial();
+  const {
+    updateUser,
+    incomingFollowRequests,
+    getUserById,
+    acceptFollowRequest,
+    declineFollowRequest,
+  } = useSocial();
   const [prefs, setPrefs] = useState(() => ({
     ...getPrivacyPreferences(currentUser?.id),
     profilePrivate: currentUser?.isPrivate ?? getPrivacyPreferences(currentUser?.id).profilePrivate,
@@ -97,12 +104,59 @@ export default function SettingsPrivacy() {
       <p className="px-4 pt-3 text-xs text-muted-foreground">As escolhas ficam salvas neste navegador. Perfis privados e regras de Círculo são aplicados aos conteúdos no protótipo.</p>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="px-4 pt-5 pb-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Solicitações para seguir ({incomingFollowRequests.length})
+          </p>
+        </div>
+        {incomingFollowRequests.length === 0 ? (
+          <p className="px-4 pb-4 text-sm text-muted-foreground">Você não tem solicitações pendentes.</p>
+        ) : (
+          <div className="divide-y divide-border border-y border-border bg-card">
+            {incomingFollowRequests.map(request => {
+              const requester = getUserById(request.requesterId);
+              return (
+                <div key={request.id} className="flex items-center gap-3 px-4 py-3" data-testid={`follow-request-${request.id}`}>
+                  <Avatar className="h-10 w-10 shrink-0">
+                    <AvatarImage src={requester?.avatarUrl} alt="" />
+                    <AvatarFallback>{requester?.displayName?.[0] ?? "?"}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{requester?.displayName ?? "Conta indisponível"}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {requester ? `@${requester.username} quer seguir você` : "Esta conta não está disponível no protótipo."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => acceptFollowRequest(request.id)}
+                    aria-label={`Aceitar solicitação de ${requester?.displayName ?? "conta"}`}
+                    data-testid={`accept-follow-request-${request.id}`}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => declineFollowRequest(request.id)}
+                    aria-label={`Recusar solicitação de ${requester?.displayName ?? "conta"}`}
+                    data-testid={`decline-follow-request-${request.id}`}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <div className="px-4 pt-5 pb-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perfil</p>
         </div>
         <SettingRow
           label="Perfil privado"
-          desc="Somente você e pessoas que se seguem mutuamente com você (seu Círculo) poderão ver o perfil e suas publicações."
+          desc="Novos seguidores precisam da sua aprovação. Seguidores aprovados veem suas publicações públicas; as publicações do Círculo continuam exigindo seguimento mútuo."
           checked={prefs.profilePrivate}
           onToggle={() => update("profilePrivate", !prefs.profilePrivate)}
           testId="toggle-private-profile"

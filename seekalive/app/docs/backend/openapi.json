@@ -9194,7 +9194,7 @@
           "relations"
         ],
         "summary": "Seguir ou pedir para seguir",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "PROPOSED ONLY; not currently implemented. Public accounts create an accepted follow. Private accounts create a pending request; pending requests grant no visibility.",
         "parameters": [
           {
             "name": "accountId",
@@ -9540,7 +9540,7 @@
           "relations"
         ],
         "summary": "Listar pedidos recebidos próprios",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "PROPOSED ONLY; not currently implemented. Returns only pending requests addressed to the authenticated account.",
         "security": [
           {
             "SessionCookie": []
@@ -9697,7 +9697,7 @@
           "relations"
         ],
         "summary": "Aceitar pedido de seguimento recebido",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "PROPOSED ONLY; not currently implemented. Only the target account may accept. Acceptance creates an effective follow and allows the follower to read public-audience posts on the private profile. Circle-audience posts still require effective follows in both directions.",
         "parameters": [
           {
             "name": "accountId",
@@ -9866,7 +9866,7 @@
           "relations"
         ],
         "summary": "Recusar pedido de seguimento recebido",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "PROPOSED ONLY; not currently implemented. Only the target account may decline; the requester does not gain a follow or visibility.",
         "parameters": [
           {
             "name": "accountId",

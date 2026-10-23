@@ -1,24 +1,17 @@
 import { BrandMark } from "@/components/brand/BrandMark";
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { mockUsers } from "@/data/mockData";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
 
 export default function OnboardingSuggestions() {
-  const [followed, setFollowed] = useState<Set<string>>(new Set());
   const [, setLocation] = useLocation();
-
-  function toggle(userId: string) {
-    setFollowed(prev => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  }
+  const { users, toggleFollow } = useSocial();
+  const { currentUser } = useAppContext();
+  const suggestions = users.filter(user => user.id !== currentUser?.id && !user.isBlocked).slice(0, 6);
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-background px-5 py-10 sm:px-8">
@@ -50,8 +43,9 @@ export default function OnboardingSuggestions() {
         </p>
 
         <div className="space-y-3 mb-8">
-          {mockUsers.slice(0, 6).map((user, i) => {
-            const isFollowed = followed.has(user.id);
+          {suggestions.map((user, i) => {
+            const isFollowed = user.isFollowing ?? false;
+            const requestPending = user.followRequestSent ?? false;
             return (
               <motion.div
                 key={user.id}
@@ -71,18 +65,18 @@ export default function OnboardingSuggestions() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => toggle(user.id)}
-                  aria-pressed={isFollowed}
-                  aria-label={`${isFollowed ? "Deixar de seguir" : "Seguir"} ${user.displayName}`}
+                  onClick={() => toggleFollow(user.id)}
+                  aria-pressed={isFollowed || requestPending}
+                  aria-label={`${isFollowed ? "Deixar de seguir" : requestPending ? "Cancelar solicitação para seguir" : user.isPrivate ? "Solicitar para seguir" : "Seguir"} ${user.displayName}`}
                   data-testid={`button-follow-${user.id}`}
                   className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    isFollowed
+                    isFollowed || requestPending
                       ? "bg-muted text-muted-foreground border border-border"
                       : "bg-primary text-primary-foreground"
                   }`}
                 >
                   {isFollowed && <Check className="w-3 h-3" />}
-                  {isFollowed ? "Seguindo" : "Seguir"}
+                  {isFollowed ? "Seguindo" : requestPending ? "Cancelar" : user.isPrivate ? "Solicitar" : "Seguir"}
                 </button>
               </motion.div>
             );
@@ -94,7 +88,7 @@ export default function OnboardingSuggestions() {
           onClick={() => setLocation("/feed")}
           data-testid="button-finish-onboarding"
         >
-          {followed.size > 0 ? `Seguir ${followed.size} e concluir` : "Concluir e entrar"}
+          Concluir e entrar
         </Button>
 
         <button

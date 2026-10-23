@@ -34,9 +34,17 @@ export interface User {
   };
   followingIds?: string[];
   isFollowing?: boolean;
+  followRequestSent?: boolean;
   isInCircle?: boolean;
   isBlocked?: boolean;
   isMuted?: boolean;
+}
+
+export interface FollowRequest {
+  id: string;
+  requesterId: string;
+  targetId: string;
+  createdAt: string;
 }
 
 export interface CommercialProfile {

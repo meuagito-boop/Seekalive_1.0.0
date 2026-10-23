@@ -36,7 +36,7 @@ export function PostCard({ post, compact = false, repostedById }: PostCardProps)
   const reposter = repostedById ? getUserById(repostedById) : undefined;
   const viewerId = currentUser?.id ?? "me";
 
-  if (!author || author.isBlocked || !canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false)) {
+  if (!author || author.isBlocked || !canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false)) {
     return (
       <div className="border-b border-border px-4 py-4 text-sm text-muted-foreground" role="status">
         Publicação indisponível — a conta autora não está acessível.

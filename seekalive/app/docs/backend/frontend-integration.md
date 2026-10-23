@@ -16,6 +16,7 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/profile`, `/profile/:username` | Perfil pessoal/comercial com posts/mídias/artigos | DTO de conta + relações do visitante + conteúdo autorizado + galeria derivada |
 | `/profile/edit` | Atualiza conta local e SocialContext | PATCH de conta, extensão comercial, mídia, município, horários, recursos, versão |
 | `/profile/:username/followers`, `/profile/:username/following` | Listas locais | Listas paginadas e permissões para perfis privados |
+| `/settings/privacy` | Privacidade local; aprova e recusa pedidos de seguimento pendentes no protótipo | `GET /v1/social/follow-requests`, `POST /v1/social/follow-requests/{accountId}/accept` e `/decline`; apenas o dono pode decidir |
 | `/profile/:username/circles`, `/circles` | Lista local já usa a projeção `isInCircle`; a ação “Deixar de seguir” remove uma das arestas e encerra o Círculo derivado | Conectar uma listagem paginada de seguimentos recíprocos efetivos; não criar convite, aceite, recusa ou remoção de Círculo |
 | `/social/activity` | Histórico, salvos, curtidas, comentários e publicações | Consultas do ator autenticado; limpar histórico sem apagar conteúdo original |
 | `/social/suggestions` | Sugestões locais | Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis |

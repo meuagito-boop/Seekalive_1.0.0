@@ -23,7 +23,7 @@ function PanelCard({ title, icon, children }: { title: string; icon: React.React
 export function SocialContextPanel() {
   const { users, reviews, toggleFollow } = useSocial();
   const { currentUser } = useAppContext();
-  const suggestUsers = users.filter(u => u.id !== currentUser?.id && !u.isFollowing && !u.isBlocked).slice(0, 3);
+  const suggestUsers = users.filter(u => u.id !== currentUser?.id && !u.isFollowing && !u.followRequestSent && !u.isBlocked).slice(0, 3);
   const places = users.filter(user => user.accountType === "commercial" && user.commercialProfile && !user.isBlocked).slice(0, 3);
   return (
     <div className="w-full space-y-0">
@@ -40,8 +40,8 @@ export function SocialContextPanel() {
               <p className="text-xs font-semibold text-foreground truncate">{user.displayName}</p>
               <p className="text-[11px] text-muted-foreground truncate">@{user.username}</p>
             </div>
-            <button type="button" onClick={() => toggleFollow(user.id)} aria-label={`Seguir ${user.displayName}`} className="flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-              Seguir
+            <button type="button" onClick={() => toggleFollow(user.id)} aria-label={`${user.isPrivate ? "Solicitar para seguir" : "Seguir"} ${user.displayName}`} className="flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+              {user.isPrivate ? "Solicitar" : "Seguir"}
             </button>
           </div>
         ))}
