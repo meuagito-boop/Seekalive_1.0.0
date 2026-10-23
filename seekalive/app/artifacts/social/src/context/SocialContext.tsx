@@ -14,7 +14,11 @@ import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/co
 import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
 import { getPrivacyPreferences } from "@/data/appPreferences";
-import { useAccountScopedIds } from "@/data/accountScopedStorage";
+import {
+  getAccountBlockProjection,
+  readAccountScopedIdsMap,
+  useAccountScopedIds,
+} from "@/data/accountScopedStorage";
 import {
   getSocialAccountActivity,
   readSocialAccountActivityMap,
@@ -315,6 +319,13 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const { ids: blockedUserIds, toggle: toggleBlockedUser } =
     useAccountScopedIds("seekalive-blocked-users", actorId);
   const blockedUserIdSet = new Set(blockedUserIds);
+  const blockRelations = readAccountScopedIdsMap("seekalive-blocked-users");
+  const blockProjection = getAccountBlockProjection(blockRelations, actorId);
+  const accountsBlockingViewerSet = new Set(blockProjection.blockingViewerIds);
+  const blockedAccountIds = new Set(blockProjection.unavailableAccountIds);
+  const blockedPostIds = new Set(
+    state.posts.filter(post => blockedAccountIds.has(post.authorId)).map(post => post.id),
+  );
   const [activityByAccount, setActivityByAccount] = useState(readSocialAccountActivityMap);
   const accountActivity = useMemo(
     () => getSocialAccountActivity(activityByAccount, actorId),
@@ -345,13 +356,16 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     .filter(notification => notification.recipientId
       ? notification.recipientId === actorId
       : actorId === demoCurrentUser.id)
+    .filter(notification => !blockedAccountIds.has(notification.actorId)
+      && (!notification.entityId || !blockedPostIds.has(notification.entityId)))
     .map(notification => ({
       ...notification,
       isRead: accountActivity.readNotificationIds.includes(notification.id)
         || (actorId === demoCurrentUser.id && notification.isRead),
     }));
   const visibleConversations = state.conversations
-    .filter(conversation => conversation.participantIds.includes(actorId))
+    .filter(conversation => conversation.participantIds.includes(actorId)
+      && !conversation.participantIds.some(id => id !== actorId && blockedAccountIds.has(id)))
     .map(conversation => ({
       ...conversation,
       unreadCount: accountActivity.readConversationIds.includes(conversation.id) ? 0 : conversation.unreadCount,
@@ -380,9 +394,14 @@ export function SocialProvider({ children }: { children: ReactNode }) {
 
   const users = state.users.map((user) => ({
     ...user,
-    isBlocked: blockedUserIdSet.has(user.id),
+    isBlockedByViewer: blockedUserIdSet.has(user.id),
+    blocksViewer: accountsBlockingViewerSet.has(user.id),
+    isBlocked: blockedUserIdSet.has(user.id) || accountsBlockingViewerSet.has(user.id),
     isFollowing: viewer ? viewerFollowsUser(viewer, user) : false,
-    followRequestSent: !!viewer && state.followRequests.some(request =>
+    followRequestSent: !!viewer
+      && !blockedUserIdSet.has(user.id)
+      && !accountsBlockingViewerSet.has(user.id)
+      && state.followRequests.some(request =>
       request.requesterId === viewer.id && request.targetId === user.id
     ),
     isInCircle: viewer ? areMutualFollowers(viewer, user) : false,
@@ -427,7 +446,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       ? visibleMessages.filter(message => message.conversationId === convId) : [],
     unreadNotifications: visibleNotifications.filter(notification => !notification.isRead).length,
     unreadMessages: visibleConversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
-    incomingFollowRequests: state.followRequests.filter(request => request.targetId === currentUser?.id),
+    incomingFollowRequests: state.followRequests.filter(request =>
+      request.targetId === currentUser?.id
+      && !blockedUserIdSet.has(request.requesterId)
+      && !accountsBlockingViewerSet.has(request.requesterId)
+    ),
 
     toggleLike: (postId) => updateCurrentActivity(current => ({
       ...current,
@@ -494,7 +517,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     })),
     toggleFollow: (userId) => {
       const target = state.users.find(user => user.id === userId);
-      if (!viewer || !target || target.id === viewer.id || blockedUserIdSet.has(userId)) return;
+      if (!viewer || !target || target.id === viewer.id
+        || blockedUserIdSet.has(userId) || accountsBlockingViewerSet.has(userId)) return;
       const pendingRequest = state.followRequests.find(request =>
         request.requesterId === viewer.id && request.targetId === userId
       );
@@ -563,6 +587,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         item.id === requestId && item.targetId === targetAccount.id
       );
       if (!request) return;
+      if (blockedUserIdSet.has(request.requesterId) || accountsBlockingViewerSet.has(request.requesterId)) return;
 
       const requester = state.users.find(user => user.id === request.requesterId);
       if (!requester) return;

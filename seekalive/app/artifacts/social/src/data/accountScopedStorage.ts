@@ -43,6 +43,42 @@ export function writeAccountScopedIds(
   }
 }
 
+export function readAccountScopedIdsMap(
+  baseKey: string,
+  storage: BrowserStorageKind = "localStorage",
+): Record<string, string[]> {
+  if (typeof window === "undefined") return {};
+  const prefix = `${baseKey}:account:`;
+  const result: Record<string, string[]> = {};
+  try {
+    const browserStorage = window[storage];
+    for (let index = 0; index < browserStorage.length; index += 1) {
+      const key = browserStorage.key(index);
+      if (!key?.startsWith(prefix)) continue;
+      const accountId = decodeURIComponent(key.slice(prefix.length));
+      result[accountId] = readAccountScopedIds(baseKey, accountId, storage);
+    }
+  } catch {
+    console.warn("Could not read account-specific data in this browser.");
+  }
+  return result;
+}
+
+export function getAccountBlockProjection(
+  relations: Record<string, string[]>,
+  accountId: string,
+) {
+  const blockedByViewerIds = [...new Set(relations[accountId] ?? [])];
+  const blockingViewerIds = Object.entries(relations)
+    .filter(([blockerId, targetIds]) => blockerId !== accountId && targetIds.includes(accountId))
+    .map(([blockerId]) => blockerId);
+  return {
+    blockedByViewerIds,
+    blockingViewerIds,
+    unavailableAccountIds: [...new Set([...blockedByViewerIds, ...blockingViewerIds])],
+  };
+}
+
 /** Keeps browser-only lists separate for each signed-in account. */
 export function useAccountScopedIds(
   baseKey: string,

@@ -26,7 +26,7 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/seek/event/:id` | Detalhe de demonstração; ingresso desabilitado | Evento real com organizador, interesse persistente, estado; ingressos são extensão |
 | `/shop`, `/shop/item/:id` | Catálogo ilustrativo, detalhe, favoritos; compra desabilitada | Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo |
 | `/settings`, `/settings/account` | Username local; ações sensíveis desabilitadas | Preferências, identidade, reautenticação, exportação/desativação/exclusão |
-| `/settings/privacy`, `/settings/blocked` | Preferências são locais; tela de bloqueados lê flag global de demo e o botão “Desbloquear” aparece desabilitado | Persistir preferências por conta; modelar bloqueios por ator-alvo e habilitar ações com autorização |
+| `/settings/privacy`, `/settings/blocked` | Preferências e bloqueios são locais; a relação ator-alvo oculta acesso/interação nos dois sentidos e o dono do bloqueio pode desbloquear | Persistir bloqueios no servidor; aplicar a regra bilateral em leitura, busca, feed, conversas, seguir e solicitações |
 | `/settings/notifications` | Defaults visuais desabilitados | Preferências reais e consentimento para push/e-mail |
 | `/settings/security` | Sessões/MFA/histórico indisponíveis | Sessões revogáveis, ações no provedor e auditoria de acesso redigida |
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |

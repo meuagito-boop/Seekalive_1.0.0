@@ -36,8 +36,12 @@ export interface User {
   isFollowing?: boolean;
   followRequestSent?: boolean;
   isInCircle?: boolean;
-  /** Viewer-relative projection; actual blocks are stored as account-to-target relations. */
+  /** Viewer-relative projection; the stored relation is account-to-target. */
   isBlocked?: boolean;
+  /** Whether the active viewer blocked this profile. */
+  isBlockedByViewer?: boolean;
+  /** Whether this profile blocked the active viewer. */
+  blocksViewer?: boolean;
   isMuted?: boolean;
 }
 

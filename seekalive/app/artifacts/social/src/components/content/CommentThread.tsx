@@ -150,11 +150,14 @@ function CommentItem({
 
 /** Comments belong to exactly one post id; replies point to a parent comment. */
 export function CommentThread({ postId }: { postId: string }) {
-  const { postComments } = useSocial();
+  const { postComments, users } = useSocial();
   const { currentUser } = useAppContext();
 
   const { roots, childrenByParent } = useMemo(() => {
-    const own = postComments.filter((c) => c.postId === postId);
+    const own = postComments.filter((comment) => {
+      if (comment.postId !== postId) return false;
+      return !users.find(user => user.id === comment.authorId)?.isBlocked;
+    });
     const ids = new Set(own.map((c) => c.id));
     const map = new Map<string, SocialComment[]>();
     const rootList: SocialComment[] = [];
@@ -166,7 +169,7 @@ export function CommentThread({ postId }: { postId: string }) {
       }
     }
     return { roots: rootList, childrenByParent: map };
-  }, [postComments, postId]);
+  }, [postComments, postId, users]);
 
   return (
     <section aria-label="Comentários" className="px-4 pb-10">

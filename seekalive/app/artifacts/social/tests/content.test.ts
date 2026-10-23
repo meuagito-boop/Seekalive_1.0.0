@@ -14,7 +14,9 @@ import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters"
 import { saveStoredSeekReviews } from "../src/data/reviewStorage";
 import {
   accountStorageKey,
+  getAccountBlockProjection,
   readAccountScopedIds,
+  readAccountScopedIdsMap,
   writeAccountScopedIds,
 } from "../src/data/accountScopedStorage";
 import { getStoredAccounts, saveSocialAccount } from "../src/data/accountStorage";
@@ -73,6 +75,8 @@ test("ações sociais locais ficam isoladas por conta e sobrevivem à releitura 
       localStorage: {
         getItem(key: string) { return storage.get(key) ?? null; },
         setItem(key: string, value: string) { storage.set(key, value); },
+        get length() { return storage.size; },
+        key(index: number) { return [...storage.keys()][index] ?? null; },
       },
     },
   });
@@ -108,6 +112,8 @@ test("bloqueios locais são relações isoladas entre conta e perfil alvo", () =
       localStorage: {
         getItem(key: string) { return storage.get(key) ?? null; },
         setItem(key: string, value: string) { storage.set(key, value); },
+        get length() { return storage.size; },
+        key(index: number) { return [...storage.keys()][index] ?? null; },
       },
     },
   });
@@ -116,6 +122,22 @@ test("bloqueios locais são relações isoladas entre conta e perfil alvo", () =
     writeAccountScopedIds("seekalive-blocked-users", "conta-b", ["perfil-c"]);
     assert.deepEqual(readAccountScopedIds("seekalive-blocked-users", "conta-a"), ["perfil-b"]);
     assert.deepEqual(readAccountScopedIds("seekalive-blocked-users", "conta-b"), ["perfil-c"]);
+    assert.deepEqual(readAccountScopedIdsMap("seekalive-blocked-users"), {
+      "conta-a": ["perfil-b"],
+      "conta-b": ["perfil-c"],
+    });
+    const accountAView = getAccountBlockProjection(
+      readAccountScopedIdsMap("seekalive-blocked-users"),
+      "conta-a",
+    );
+    const accountBView = getAccountBlockProjection(
+      readAccountScopedIdsMap("seekalive-blocked-users"),
+      "perfil-b",
+    );
+    assert.deepEqual(accountAView.unavailableAccountIds, ["perfil-b"]);
+    assert.deepEqual(accountBView.unavailableAccountIds, ["conta-a"]);
+    assert.deepEqual(accountBView.blockedByViewerIds, []);
+    assert.deepEqual(accountBView.blockingViewerIds, ["conta-a"]);
     assert.notEqual(
       accountStorageKey("seekalive-blocked-users", "conta-a"),
       accountStorageKey("seekalive-blocked-users", "conta-b"),
@@ -139,8 +161,14 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     "utf8",
   );
   assert.match(socialSource, /useAccountScopedIds\("seekalive-blocked-users", actorId\)/);
-  assert.match(socialSource, /isBlocked: blockedUserIdSet\.has\(user\.id\)/);
+  assert.match(socialSource, /isBlockedByViewer: blockedUserIdSet\.has\(user\.id\)/);
+  assert.match(socialSource, /blocksViewer: accountsBlockingViewerSet\.has\(user\.id\)/);
+  assert.match(
+    socialSource,
+    /isBlocked: blockedUserIdSet\.has\(user\.id\) \|\| accountsBlockingViewerSet\.has\(user\.id\)/,
+  );
   assert.match(blockedPageSource, /unblockUser\(userId\)/);
+  assert.match(blockedPageSource, /isBlockedByViewer/);
   assert.doesNotMatch(blockedPageSource, /disabled/);
   assert.match(profileSource, /blockUser\(user\.id\)/);
 });

@@ -1,10 +1,10 @@
 ---
 name: Bloqueio por conta
-description: Comportamento atual do protótipo para bloquear perfis sem backend.
+description: Política confirmada de bloqueio mútuo e sua implementação local antes do backend.
 ---
 
-O frontend guarda bloqueios como relações entre a conta ativa e o perfil alvo. O perfil bloqueado é ocultado para quem bloqueou; a pessoa pode remover o bloqueio na tela de bloqueados ou na página indisponível do perfil. Bloquear não apaga nem altera seguimentos existentes, não cria solicitação/aviso para o alvo e não estabelece ainda um bloqueio bilateral.
+O bloqueio é uma relação iniciada por uma conta contra outra. Enquanto a relação existir, ambas as contas deixam de ver os perfis e conteúdos uma da outra e não podem iniciar novas interações entre si. Só a conta que iniciou a relação pode removê-la. Bloquear não apaga seguimentos aceitos; ao desbloquear, esses seguimentos voltam a valer.
 
-**Why:** o usuário autorizou trocar a flag global do perfil por uma relação ator-alvo e habilitar o desbloqueio, mas não definiu remoção de seguimentos nem visibilidade bilateral. Preservar relações evita uma mudança destrutiva ou uma regra inventada.
+**Why:** o usuário confirmou que a conta bloqueada também deve deixar de ver ou interagir com quem bloqueou. Foi confirmado manter seguimentos existentes em vez de removê-los durante o bloqueio.
 
-**How to apply:** manter o estado local e isolado por conta enquanto o backend não for autorizado. Não remover relações existentes nem presumir efeito bilateral até o usuário decidir a política final; o servidor deverá impor a política aprovada quando for implementado.
+**How to apply:** no frontend atual, manter as relações isoladas por conta no navegador e derivar a indisponibilidade para os dois lados. Ao criar o backend, aplicar a mesma regra em leitura, busca, feed, comentários, mensagens, seguir e solicitações; somente o iniciador pode remover seu bloqueio.

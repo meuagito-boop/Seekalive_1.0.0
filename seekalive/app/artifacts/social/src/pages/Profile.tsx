@@ -91,7 +91,7 @@ export default function Profile() {
   }
 
   function handleBlockToggle() {
-    if (user.isBlocked) {
+    if (user.isBlockedByViewer) {
       unblockUser(user.id);
       toast({ title: "Bloqueio removido", description: "A alteração foi salva neste navegador." });
     } else {
@@ -102,11 +102,16 @@ export default function Profile() {
   }
 
   if (!isMe && user.isBlocked) {
+    const blockedByViewer = !!user.isBlockedByViewer;
     return (
       <UnavailableState
-        title="Perfil bloqueado"
-        description="Você bloqueou este perfil. O conteúdo dele não aparece para você."
-        action={<Button variant="outline" onClick={handleBlockToggle}>Desbloquear perfil</Button>}
+        title={blockedByViewer ? "Perfil bloqueado" : "Perfil indisponível"}
+        description={blockedByViewer
+          ? "Você bloqueou este perfil. O conteúdo não aparece para você nem para a outra conta."
+          : "Esta conta bloqueou o seu perfil. Perfis, conteúdos e interações entre vocês estão indisponíveis."}
+        action={blockedByViewer
+          ? <Button variant="outline" onClick={handleBlockToggle}>Desbloquear perfil</Button>
+          : <Button variant="outline" onClick={handleBlockToggle}>Bloquear também</Button>}
       />
     );
   }
@@ -243,7 +248,7 @@ export default function Profile() {
                             className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50"
                             data-testid="action-bloquear"
                           >
-                            {user.isBlocked ? "Desbloquear" : "Bloquear"}
+                            {user.isBlockedByViewer ? "Desbloquear" : "Bloquear"}
                           </button>
                           <button
                             type="button"

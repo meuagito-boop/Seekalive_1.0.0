@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function SettingsBlocked() {
   const { users, unblockUser } = useSocial();
   const { toast } = useToast();
-  const blocked = users.filter((u) => u.isBlocked);
+  const blocked = users.filter((u) => u.isBlockedByViewer);
 
   function unblock(userId: string) {
     unblockUser(userId);

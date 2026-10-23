@@ -33,6 +33,8 @@ function useVisibleFeed() {
     const items: FeedItem[] = [
       ...visible.map((post) => ({ key: post.id, post, at: post.createdAt })),
       ...repostEntries.flatMap((r) => {
+        const reposter = getUserById(r.authorId);
+        if (!reposter || reposter.isBlocked) return [];
         const post = byId.get(r.postId);
         return post ? [{ key: r.id, post, repostedById: r.authorId, at: r.createdAt }] : [];
       }),
