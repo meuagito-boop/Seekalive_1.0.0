@@ -32,7 +32,16 @@ export default function Profile() {
 
   const { users, posts, repostEntries, postComments, toggleFollow } = useSocial();
   const { currentUser: signedInUser } = useAppContext();
-  const viewer = signedInUser ?? mockCurrentUser;
+  const viewer = signedInUser ?? (import.meta.env.DEV ? mockCurrentUser : null);
+  if (!viewer) {
+    return (
+      <UnavailableState
+        title="Sessão indisponível"
+        description="Entre na sua conta para ver este perfil."
+        action={<Link href="/login" className="text-sm font-semibold text-primary hover:underline">Ir para o login</Link>}
+      />
+    );
+  }
 
   // Resolve user
   const username = params.username;

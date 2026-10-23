@@ -19,6 +19,7 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 - Implementar migrations versionadas, readiness, request IDs, validação, rate limits, sessão HttpOnly e CSRF.
 - Criar fluxo real de autenticação, sessão, recuperação e encerramento; remover o falso estado autenticado.
 - Aceite: visitante anônimo não lê/escreve recursos protegidos; logout revoga a sessão; CSRF/expiração são testados; nenhum segredo aparece em logs.
+- Aceite: build de produção não carrega registros fictícios de demonstração; páginas sem endpoint/dados mostram estados vazios, enquanto o preview de desenvolvimento mantém as fixtures para revisão visual.
 
 ### Fase 2 — Conta única, perfil e relacionamentos
 

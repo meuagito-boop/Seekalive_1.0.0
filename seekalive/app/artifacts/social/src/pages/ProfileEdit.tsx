@@ -17,6 +17,7 @@ import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
 import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/types/businessHours";
 import { emptyWeeklyHours, formatWeeklyHours, hasInvalidOpenHours, makeWeeklyHours } from "@/lib/businessHours";
+import { UnavailableState } from "@/components/content/StateBlocks";
 
 const schema = z.object({
   displayName: z.string().min(2),
@@ -58,8 +59,8 @@ export default function ProfileEdit() {
   const [, setLocation] = useLocation();
   const { currentUser: signedInUser, updateAccount } = useAppContext();
   const { addUser } = useSocial();
-  const currentUser = signedInUser ?? mockCurrentUser;
-  const profile = currentUser.commercialProfile;
+  const currentUser = signedInUser ?? (import.meta.env.DEV ? mockCurrentUser : null);
+  const profile = currentUser?.commercialProfile;
   const [discoveryCity, setDiscoveryCity] = useState<DiscoveryLocation | null>(() =>
     profile?.cityId && profile.cityName && profile.cityState
       ? { id: profile.cityId, city: profile.cityName, state: profile.cityState, source: "manual", label: `${profile.cityName}, ${profile.cityState}` }
@@ -72,22 +73,32 @@ export default function ProfileEdit() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      displayName: currentUser.displayName,
-      username: currentUser.username,
-      bio: currentUser.bio,
-      location: currentUser.location ?? "",
-      website: currentUser.website ?? "",
-      businessAddress: currentUser.commercialProfile?.address ?? "",
-      priceLevel: currentUser.commercialProfile?.priceLevel?.toString() ?? "",
-      serviceDelivery: serviceStatus(currentUser.commercialProfile?.serviceOptions?.delivery),
-      serviceDineIn: serviceStatus(currentUser.commercialProfile?.serviceOptions?.dineIn),
-      serviceTableService: serviceStatus(currentUser.commercialProfile?.serviceOptions?.tableService),
-      serviceReservations: serviceStatus(currentUser.commercialProfile?.serviceOptions?.reservations),
-      serviceAppointments: serviceStatus(currentUser.commercialProfile?.serviceOptions?.appointments),
-      serviceTakeout: serviceStatus(currentUser.commercialProfile?.serviceOptions?.takeout),
+      displayName: currentUser?.displayName ?? "",
+      username: currentUser?.username ?? "",
+      bio: currentUser?.bio ?? "",
+      location: currentUser?.location ?? "",
+      website: currentUser?.website ?? "",
+      businessAddress: currentUser?.commercialProfile?.address ?? "",
+      priceLevel: currentUser?.commercialProfile?.priceLevel?.toString() ?? "",
+      serviceDelivery: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.delivery),
+      serviceDineIn: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.dineIn),
+      serviceTableService: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.tableService),
+      serviceReservations: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.reservations),
+      serviceAppointments: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.appointments),
+      serviceTakeout: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.takeout),
     },
   });
 
+  if (!currentUser) {
+    return (
+      <UnavailableState
+        title="Conta indisponível"
+        description="Entre na sua conta para editar o perfil."
+        action={<Button onClick={() => setLocation("/login")} className="rounded-full">Ir para o login</Button>}
+      />
+    );
+  }
+  const activeUser = currentUser;
   function updateDayHours(day: BusinessDayKey, changes: Partial<BusinessDayHours>) {
     setHoursTouched(true);
     setHoursError("");
@@ -98,7 +109,7 @@ export default function ProfileEdit() {
   }
 
   function onSubmit(values: FormValues) {
-    if (currentUser.accountType === "commercial" && hoursTouched && hasInvalidOpenHours(weeklyHours)) {
+    if (activeUser.accountType === "commercial" && hoursTouched && hasInvalidOpenHours(weeklyHours)) {
       setHoursError("Informe horários válidos para cada dia marcado como aberto.");
       return;
     }
@@ -122,17 +133,17 @@ export default function ProfileEdit() {
         ? formatWeeklyHours(profile.weeklyHours)
         : profile?.openingHours;
     const updatedUser = {
-      ...currentUser,
+      ...activeUser,
       ...profileValues,
       location: values.location || undefined,
       website: values.website || undefined,
-      commercialProfile: currentUser.commercialProfile
+      commercialProfile: activeUser.commercialProfile
         ? {
-            ...currentUser.commercialProfile,
+            ...activeUser.commercialProfile,
             cityId: discoveryCity?.id,
             cityName: discoveryCity?.city,
             cityState: discoveryCity?.state,
-            address: businessAddress?.trim() || currentUser.commercialProfile.address,
+            address: businessAddress?.trim() || activeUser.commercialProfile.address,
             weeklyHours: nextWeeklyHours,
             openingHours: nextOpeningHours,
             priceLevel: priceLevel

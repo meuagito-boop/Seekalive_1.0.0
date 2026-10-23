@@ -48,7 +48,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Contas/avaliações | Dados de exemplo e registros no `localStorage`; não são dados compartilhados entre dispositivos |
 | Relacionamentos/mensagens | Estado React; Círculo é derivado de seguimentos recíprocos no frontend. Aprovação de seguidores em perfis privados não tem fluxo de interface |
 | Seek | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância |
-| Dados demonstrativos | Parte do Seek é restrita a desenvolvimento, mas posts, contas mock, notificações, conversas e mensagens ainda são carregados no Social sem guarda de desenvolvimento; a busca e o painel lateral também têm tendências/eventos estáticos. Remover ou isolar isso antes da produção |
+| Dados demonstrativos | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API |
 | Shop | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real |
 | Configurações | Preferências de privacidade/notificações são locais; recursos de segurança e ações sensíveis estão desabilitados. A tela de bloqueados também não executa desbloqueio |
 

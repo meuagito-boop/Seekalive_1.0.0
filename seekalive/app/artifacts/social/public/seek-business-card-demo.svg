@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="240" viewBox="0 0 720 240" fill="none">
+  <rect width="720" height="240" rx="28" fill="#111217"/>
+  <rect x="1" y="1" width="718" height="238" rx="27" stroke="#2B2C32" stroke-width="2"/>
+  <circle cx="657" cy="42" r="5" fill="#FF7900"/>
+  <text x="40" y="47" fill="#A5A6B2" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700" letter-spacing="2.5">EXEMPLO ILUSTRATIVO</text>
+  <rect x="36" y="69" width="648" height="145" rx="22" fill="#090A0E" stroke="#292A31"/>
+  <rect x="66" y="94" width="62" height="62" rx="18" fill="#2A1B11"/>
+  <text x="88" y="135" fill="#FF7900" font-family="Inter,Arial,sans-serif" font-size="27" font-weight="800">M</text>
+  <text x="151" y="115" fill="#F7F7F9" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700">Mercado da Vila</text>
+  <text x="151" y="142" fill="#9B9CA8" font-family="Inter,Arial,sans-serif" font-size="16">Perfil comercial no Seek</text>
+  <text x="66" y="188" fill="#B8B9C3" font-family="Inter,Arial,sans-serif" font-size="15">Novidades e encontros no seu bairro.</text>
+</svg>

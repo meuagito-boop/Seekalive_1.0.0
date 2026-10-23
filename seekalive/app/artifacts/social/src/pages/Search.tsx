@@ -15,7 +15,7 @@ const tabs = [
   { label: "Tags", id: "Tags" },
 ];
 
-const trending = [
+const demoTrending = [
   { tag: "#ReactJS", category: "Tecnologia", count: 12500 },
   { tag: "#DarkMode", category: "Design", count: 8200 },
   { tag: "#AItools", category: "Tecnologia", count: 34100 },
@@ -31,6 +31,8 @@ export default function Search() {
   const [query, setQuery] = useState(urlQuery);
   const { currentUser } = useAppContext();
   const viewerId = currentUser?.id ?? "me";
+  const trending = import.meta.env.DEV ? demoTrending : [];
+  const suggestedUsers = users.filter(user => user.id !== currentUser?.id).slice(0, 5);
   useEffect(() => { setQuery(urlQuery); }, [urlQuery]);
   const [activeTab, setActiveTab] = useState(0);
 
@@ -98,7 +100,7 @@ export default function Search() {
                 <TrendingUp className="w-5 h-5 text-primary" />
                 <h2 className="font-bold text-lg">Em alta</h2>
               </div>
-              <div className="space-y-1">
+              {trending.length > 0 ? <div className="space-y-1">
                 {trending.map((t, i) => (
                   <motion.button
                     key={t.tag}
@@ -117,7 +119,7 @@ export default function Search() {
                     <Hash className="w-4 h-4 text-muted-foreground" />
                   </motion.button>
                 ))}
-              </div>
+              </div> : <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">As tendências aparecerão quando houver publicações reais.</p>}
             </div>
 
             {/* People suggestions */}
@@ -127,7 +129,7 @@ export default function Search() {
                 <h2 className="font-bold text-lg">Pessoas para seguir</h2>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-                {users.slice(0, 5).map(user => (
+                {suggestedUsers.length > 0 ? suggestedUsers.map(user => (
                   <motion.div
                     key={user.id}
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -156,7 +158,7 @@ export default function Search() {
                       {user.isFollowing ? "Seguindo" : user.followRequestSent ? "Cancelar" : user.isPrivate ? "Solicitar" : "Seguir"}
                     </button>
                   </motion.div>
-                ))}
+                )) : <p className="w-full rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Novas pessoas aparecerão quando houver contas disponíveis.</p>}
               </div>
             </div>
 

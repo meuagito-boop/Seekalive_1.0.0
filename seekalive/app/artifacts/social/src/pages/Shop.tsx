@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Star, Heart, Tag, Store, ChevronRight, Package, Zap, Eye } from "lucide-react";
-import { demoShopItems as mockProducts, demoStores as featuredStores } from "@/data/demoCatalog";
+import { demoShopItems, demoStores } from "@/data/demoCatalog";
 import type { ShopItem } from "@/types/content";
 import { useSavedShopItems } from "@/hooks/use-saved-shop-items";
 
@@ -67,6 +67,9 @@ function ProductCard({ p, liked, onToggle }: { p: ShopItem; liked: boolean; onTo
 export default function Shop() {
   const [activeCategory, setActiveCategory] = useState("all");
   const { isSaved, toggle } = useSavedShopItems();
+  const mockProducts = import.meta.env.DEV ? demoShopItems : [];
+  const featuredStores = import.meta.env.DEV ? demoStores : [];
+  const discountedProducts = mockProducts.filter((p) => p.oldPrice).slice(0, 4);
 
   const filtered = activeCategory === "all"
     ? mockProducts
@@ -75,7 +78,7 @@ export default function Shop() {
   return (
     <div className="min-h-screen">
       {/* Banner */}
-      <div className="hidden md:block bg-gradient-to-r from-orange-500/20 via-primary/10 to-transparent border-b border-border px-6 py-4 max-w-6xl mx-auto mt-4 rounded-xl mb-4">
+      {mockProducts.length > 0 && <div className="hidden md:block bg-gradient-to-r from-orange-500/20 via-primary/10 to-transparent border-b border-border px-6 py-4 max-w-6xl mx-auto mt-4 rounded-xl mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
             <Zap className="w-5 h-5 text-primary" />
@@ -85,13 +88,13 @@ export default function Shop() {
             <p className="text-sm text-muted-foreground">Preços ilustrativos · compra ainda indisponível</p>
           </div>
         </div>
-      </div>
+      </div>}
 
       <div className="hidden md:flex max-w-6xl mx-auto px-4 gap-4 items-start">
 
         {/* Left: categories + stores */}
         <aside className="w-52 flex-shrink-0 sticky top-[108px] self-start space-y-4">
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {featuredStores.length > 0 && <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border">
               <p className="text-sm font-semibold text-foreground">Categorias</p>
             </div>
@@ -116,7 +119,7 @@ export default function Shop() {
                 );
               })}
             </nav>
-          </div>
+          </div>}
 
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
@@ -151,21 +154,23 @@ export default function Shop() {
               Ordenar
             </button>
           </div>
-          <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((p) => (
-              <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
-            ))}
-          </div>
+          {filtered.length > 0
+            ? <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                {filtered.map((p) => (
+                  <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
+                ))}
+              </div>
+            : <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">O catálogo será exibido quando houver produtos reais disponíveis.</p>}
         </main>
 
         {/* Right: featured stores panel */}
         <aside className="w-64 flex-shrink-0 sticky top-[108px] self-start">
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {discountedProducts.length > 0 && <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
               <Zap className="w-4 h-4 text-primary" />
               <p className="text-sm font-semibold text-foreground">Ofertas relâmpago</p>
             </div>
-            {mockProducts.filter((p) => p.oldPrice).slice(0, 4).map((p) => (
+            {discountedProducts.map((p) => (
               <Link key={p.id} href={`/shop/item/${p.id}`} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors border-b border-border last:border-0 no-underline">
                 <img src={p.img} alt={p.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -175,7 +180,7 @@ export default function Shop() {
                 </div>
               </Link>
             ))}
-          </div>
+          </div>}
         </aside>
       </div>
 
@@ -201,15 +206,17 @@ export default function Shop() {
         </div>
 
         {/* Mobile offer banner */}
-        <div className="mx-3 mb-3 p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-2">
+        {mockProducts.length > 0 && <div className="mx-3 mb-3 p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-2">
           <Zap className="w-5 h-5 text-primary flex-shrink-0" />
           <p className="text-xs text-foreground font-medium">Compra ainda indisponível</p>
-        </div>
+        </div>}
 
         <div className="px-3 pb-6 grid grid-cols-2 gap-3">
-          {filtered.map((p) => (
-            <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
-          ))}
+          {filtered.length > 0
+            ? filtered.map((p) => (
+                <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
+              ))
+            : <p className="col-span-2 rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">O catálogo será exibido quando houver produtos reais disponíveis.</p>}
         </div>
       </div>
     </div>

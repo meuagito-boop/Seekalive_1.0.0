@@ -5,7 +5,7 @@
 
 ## Parecer
 
-**O frontend ainda não está pronto para receber o backend em produção.** Há componentes úteis — rotas, validações de interface, regras locais, telas de estados vazios/indisponíveis, modelos de domínio e contratos REST propostos — mas a aplicação continua sendo um protótipo local. A interface não consome os endpoints `/api/v1` documentados, não tem autenticação real, não envia mídia e mistura alguns dados de demonstração ao estado usado pelo Social.
+**O frontend ainda não está pronto para receber o backend em produção.** Há componentes úteis — rotas, validações de interface, regras locais, telas de estados vazios/indisponíveis, modelos de domínio e contratos REST propostos — mas a aplicação continua sendo um protótipo local. A interface não consome os endpoints `/api/v1` documentados, não tem autenticação real, não envia mídia e mantém estado de demonstração/local no navegador; as fixtures pré-carregadas agora ficam apenas no desenvolvimento.
 
 O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqui. Conectar o servidor agora faria a interface aparentar sucesso com dados locais, perder conteúdo após recarga e aplicar permissões somente no navegador.
 
@@ -57,13 +57,13 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 
 **Antes de integrar:** escolher um cliente/base URL, conectar cada módulo por etapas, configurar roteamento/CORS e CSRF, mapear erros/paginação e garantir que falha de rede nunca faça fallback silencioso para fixtures.
 
-### P1 — Dados demonstrativos podem aparecer como conteúdo de produto
+### Resolvido — Fixtures de exemplo aparecem somente no desenvolvimento
 
-- `SocialContext` inicializa posts, contas, notificações, conversas e mensagens de demonstração sem restringi-los ao modo de desenvolvimento.
-- `Search.tsx` contém tendências e contagens estáticas; `SocialContextPanel.tsx` mostra eventos demonstrativos. Parte da descoberta do Seek é marcada como exemplo, mas isso não protege os outros pontos.
-- O catálogo de Shop é explicitamente ilustrativo e a compra está desabilitada; essa transparência deve ser preservada até a existência de dados e operações reais.
+- Posts, usuários seed, notificações, conversas, mensagens, avaliações, tendências e tópicos ficam restritos ao modo de desenvolvimento. A tela inicial pode manter o perfil fictício apenas dentro de uma imagem estática ilustrativa, sem registro ou interação.
+- A página Social, o Shop, as referências a produtos/eventos e os painéis laterais não exibem esses fixtures no build de produção. Sem API conectada, mostram estados vazios em vez de registros inventados. O único exemplo permitido fora do dev é uma imagem estática de apresentação.
+- Os mocks continuam disponíveis no preview de desenvolvimento para revisão visual. O conteúdo escrito pelo usuário no navegador continua local e não passa a ser dado compartilhado/real.
 
-**Antes de integrar:** separar fontes de exemplo da fonte de produção, ou retirar as fixtures do estado da aplicação. Não semear dados fictícios em usuários ou tabelas reais.
+**Frontend concluído para esta regra:** fixtures do produto só aparecem no desenvolvimento; produção não usa sementes fictícias. Antes de publicar com dados reais, conectar os estados vazios aos endpoints e testar o build de produção.
 
 ### P1 — Estado relativo ao usuário está guardado em objetos globais
 
@@ -126,10 +126,10 @@ Ainda é necessário validar esses contratos com testes de integração quando a
 |---|---|---|
 | Acesso e cadastro | `/`, `/login`, `/register`, `/forgot-password`, `/verify-email` | `AppContext`, `accountStorage`, validação local |
 | Onboarding | `/onboarding/interests`, `/onboarding/suggestions` | preferências locais e sugestões mock |
-| Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | `SocialContext`, fixtures, reducer; `contentService` demo |
+| Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | `SocialContext`, fixtures restritas ao desenvolvimento, reducer; `contentService` demo |
 | Perfis e relações | `/profile`, `/profile/:username`, `/profile/edit`, seguidores/seguindo, `/circles` | conta local, `SocialContext`, relações derivadas |
 | Seek | `/seek`, `/seek/event/:id` | dados locais, catálogo IBGE, preferências de busca; eventos de exemplo |
-| Shop | `/shop`, `/shop/item/:id` | catálogo de demonstração e salvos em localStorage |
+| Shop | `/shop`, `/shop/item/:id` | catálogo ilustrativo restrito ao desenvolvimento; salvos em localStorage |
 | Comunicação | `/messages`, `/messages/:conversationId`, `/notifications` | objetos em memória/contexto; sem entrega externa |
 | Configurações | `/settings/*` | preferências locais e controles ainda indisponíveis |
 
@@ -147,7 +147,7 @@ Esses resultados comprovam compilação e um conjunto limitado de regras, não a
 
 1. **Concluído no frontend/documentação:** perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.
 2. **Direção escolhida; implementação adiada:** autenticação própria na API. Definir contrato de registro/login, credenciais, verificação, recuperação e sessão no início da fase de backend.
-3. Remover/encapsular dados demo do estado de produção e separar estados viewer-specific por conta.
+3. **Fixtures de produção concluídos; isolamento por conta pendente:** separar curtidas, salvos, leituras, relações e preferências do estado de demonstração por usuário/visitante.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
 5. Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.
 6. Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.

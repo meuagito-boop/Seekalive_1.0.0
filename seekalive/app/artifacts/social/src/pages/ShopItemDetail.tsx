@@ -13,7 +13,7 @@ export default function ShopItemDetail() {
   const { getUserById } = useSocial();
   const [shareOpen, setShareOpen] = useState(false);
   const { isSaved, toggle } = useSavedShopItems();
-  const item = demoShopItems.find((p) => p.id === params.id);
+  const item = import.meta.env.DEV ? demoShopItems.find((p) => p.id === params.id) : undefined;
 
   if (!item) {
     return (

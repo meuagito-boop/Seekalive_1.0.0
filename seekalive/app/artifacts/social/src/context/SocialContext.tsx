@@ -232,12 +232,14 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
 
 // ── Initial state ─────────────────────────────────────────────────────
 const initialState: SocialState = {
-  posts: [...demoIntegrationPosts, ...mockPosts].map(p => ({ ...p, isBookmarked: false, isReposted: false })),
-  users: import.meta.env?.DEV ? [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts] : [...mockUsers],
-  notifications: [...mockNotifications],
-  conversations: [...mockConversations],
-  messages: [...mockMessages],
-  reviews: [...mockSeekReviews, ...(import.meta.env?.DEV ? demoSeekReviews : [])],
+  posts: import.meta.env.DEV
+    ? [...demoIntegrationPosts, ...mockPosts].map(p => ({ ...p, isBookmarked: false, isReposted: false }))
+    : [],
+  users: import.meta.env.DEV ? [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts] : [],
+  notifications: import.meta.env.DEV ? [...mockNotifications] : [],
+  conversations: import.meta.env.DEV ? [...mockConversations] : [],
+  messages: import.meta.env.DEV ? [...mockMessages] : [],
+  reviews: import.meta.env.DEV ? [...mockSeekReviews, ...demoSeekReviews] : [],
   postComments: [],
   repostEntries: [],
   followRequests: [],
@@ -298,18 +300,18 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 export function SocialProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
   const { currentUser, updateAccount } = useAppContext();
-  const viewer = currentUser ?? demoCurrentUser;
+  const viewer = currentUser ?? (import.meta.env.DEV ? demoCurrentUser : null);
   useEffect(() => {
     saveStoredFollowRequests(state.followRequests);
   }, [state.followRequests]);
 
   const users = state.users.map((user) => ({
     ...user,
-    isFollowing: viewerFollowsUser(viewer, user),
-    followRequestSent: state.followRequests.some(request =>
+    isFollowing: viewer ? viewerFollowsUser(viewer, user) : false,
+    followRequestSent: !!viewer && state.followRequests.some(request =>
       request.requesterId === viewer.id && request.targetId === user.id
     ),
-    isInCircle: areMutualFollowers(viewer, user),
+    isInCircle: viewer ? areMutualFollowers(viewer, user) : false,
   }));
   function assertSession(authorId: string) {
     if (!currentUser) throw new ContentServiceError("Entre na sua conta para continuar.", 401);
@@ -319,7 +321,13 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     const post = state.posts.find(item => item.id === postId);
     if (!post) throw new ContentServiceError("Conteúdo indisponível.", 404);
     const author = users.find(user => user.id === post.authorId);
-    if (!canReadPost(post, currentUser?.id ?? viewer.id, areMutualFollowers(viewer, author), author?.isPrivate ?? false, author?.isFollowing ?? false))
+    if (!canReadPost(
+      post,
+      currentUser?.id ?? (import.meta.env.DEV ? demoCurrentUser.id : ""),
+      !!viewer && areMutualFollowers(viewer, author),
+      author?.isPrivate ?? false,
+      author?.isFollowing ?? false,
+    ))
       throw new ContentServiceError("Você não tem acesso a esta publicação.", 403);
     return post;
   }
@@ -332,7 +340,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     getPostById: (id) => state.posts.find(p => p.id === id),
     getUserById: (id) => {
       if (id === currentUser?.id) return currentUser;
-      if (id === "me") return demoCurrentUser;
+      if (id === "me") return currentUser ?? (import.meta.env.DEV ? demoCurrentUser : undefined);
       return users.find(u => u.id === id);
     },
     getConversationMessages: (convId) => currentUser && state.conversations.some(c => c.id === convId && c.participantIds.includes(currentUser.id))
@@ -378,7 +386,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     toggleBookmark: (postId) => dispatch({ type: "TOGGLE_BOOKMARK", postId }),
     toggleFollow: (userId) => {
       const target = state.users.find(user => user.id === userId);
-      if (!target || target.id === viewer.id) return;
+      if (!viewer || !target || target.id === viewer.id) return;
       const pendingRequest = state.followRequests.find(request =>
         request.requesterId === viewer.id && request.targetId === userId
       );
@@ -434,32 +442,33 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "UPDATE_USER", user: updatedViewer });
     },
     acceptFollowRequest: (requestId) => {
-      if (!currentUser) return;
+      const targetAccount = currentUser;
+      if (!targetAccount) return;
       const request = state.followRequests.find(item =>
-        item.id === requestId && item.targetId === currentUser.id
+        item.id === requestId && item.targetId === targetAccount.id
       );
       if (!request) return;
 
       const requester = state.users.find(user => user.id === request.requesterId);
       if (!requester) return;
 
-      const requesterAlreadyFollows = (requester.followingIds ?? []).includes(currentUser.id);
-      const viewerAlreadyFollowsRequester = viewerFollowsUser(viewer, requester);
+      const requesterAlreadyFollows = (requester.followingIds ?? []).includes(targetAccount.id);
+      const viewerAlreadyFollowsRequester = viewerFollowsUser(targetAccount, requester);
       const updatedViewer: User = requesterAlreadyFollows
-        ? viewer
+        ? targetAccount
         : {
-            ...viewer,
+            ...targetAccount,
             stats: {
-              ...viewer.stats,
-              followers: viewer.stats.followers + 1,
-              circles: viewer.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
+              ...targetAccount.stats,
+              followers: targetAccount.stats.followers + 1,
+              circles: targetAccount.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
             },
           };
       const updatedRequester: User = requesterAlreadyFollows
         ? requester
         : {
             ...requester,
-            followingIds: [...(requester.followingIds ?? []), currentUser.id],
+            followingIds: [...(requester.followingIds ?? []), targetAccount.id],
             stats: {
               ...requester.stats,
               following: requester.stats.following + 1,

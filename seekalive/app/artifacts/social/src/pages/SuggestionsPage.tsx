@@ -6,7 +6,7 @@ import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { Link, useLocation } from "wouter";
 
-const suggestTopics = [
+const demoSuggestTopics = [
   { id: 1, name: "Fotografia", posts: "12,4 mil publicações", color: "bg-blue-500/10 text-blue-400" },
   { id: 2, name: "Tech & IA", posts: "34,1 mil publicações", color: "bg-purple-500/10 text-purple-400" },
   { id: 3, name: "Gastronomia", posts: "8,7 mil publicações", color: "bg-orange-500/10 text-orange-400" },
@@ -20,6 +20,7 @@ export default function SuggestionsPage() {
   const availableUsers = users.filter(user => user.id !== currentUser?.id && !user.isBlocked);
   const suggestPeople = availableUsers.filter(user => user.accountType !== "commercial");
   const suggestBusinesses = availableUsers.filter(user => user.accountType === "commercial" && user.commercialProfile);
+  const suggestTopics = import.meta.env.DEV ? demoSuggestTopics : [];
   const [, navigate] = useLocation();
 
   return (
@@ -61,7 +62,9 @@ export default function SuggestionsPage() {
 
         {/* Pessoas */}
         <TabsContent value="people">
-          {suggestPeople.map((user, i) => {
+          {suggestPeople.length === 0
+            ? <p className="m-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Sugestões de pessoas aparecerão quando houver contas disponíveis.</p>
+            : suggestPeople.map((user, i) => {
             const isFollowing = user.isFollowing ?? false;
             const followPending = user.followRequestSent ?? false;
             return (
@@ -100,7 +103,9 @@ export default function SuggestionsPage() {
 
         {/* Tópicos */}
         <TabsContent value="topics">
-          <div className="p-4 grid grid-cols-2 gap-3">
+          {suggestTopics.length === 0
+            ? <p className="m-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Sugestões de tópicos aparecerão quando houver dados reais.</p>
+            : <div className="p-4 grid grid-cols-2 gap-3">
             {suggestTopics.map((topic, i) => {
               return (
                 <motion.div
@@ -126,12 +131,14 @@ export default function SuggestionsPage() {
                 </motion.div>
               );
             })}
-          </div>
+          </div>}
         </TabsContent>
 
         {/* Comércios */}
         <TabsContent value="business">
-          {suggestBusinesses.map((b, i) => {
+          {suggestBusinesses.length === 0
+            ? <p className="m-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Comércios sugeridos aparecerão quando houver contas comerciais disponíveis.</p>
+            : suggestBusinesses.map((b, i) => {
             const businessReviews = reviews.filter(review => review.businessAccountId === b.id);
             const rating = businessReviews.length ? businessReviews.reduce((sum, review) => sum + review.rating, 0) / businessReviews.length : undefined;
             return (

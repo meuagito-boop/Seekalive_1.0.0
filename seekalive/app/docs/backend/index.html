@@ -57,7 +57,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <tr><td>Contas/avaliações</td><td>Dados de exemplo e registros no <code>localStorage</code>; não são dados compartilhados entre dispositivos</td></tr>
 <tr><td>Relacionamentos/mensagens</td><td>Estado React; Círculo é derivado de seguimentos recíprocos no frontend. Aprovação de seguidores em perfis privados não tem fluxo de interface</td></tr>
 <tr><td>Seek</td><td>Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância</td></tr>
-<tr><td>Dados demonstrativos</td><td>Parte do Seek é restrita a desenvolvimento, mas posts, contas mock, notificações, conversas e mensagens ainda são carregados no Social sem guarda de desenvolvimento; a busca e o painel lateral também têm tendências/eventos estáticos. Remover ou isolar isso antes da produção</td></tr>
+<tr><td>Dados demonstrativos</td><td>Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API</td></tr>
 <tr><td>Shop</td><td>Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real</td></tr>
 <tr><td>Configurações</td><td>Preferências de privacidade/notificações são locais; recursos de segurança e ações sensíveis estão desabilitados. A tela de bloqueados também não executa desbloqueio</td></tr>
 </table></div>
@@ -207,7 +207,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <p><strong>Data:</strong> 22/10/2026  </p>
 <p><strong>Escopo:</strong> preparação do frontend para uma futura integração com backend. Esta auditoria é análise/documentação; não cria endpoints, banco, autenticação ou armazenamento remoto.</p>
 <h2>Parecer</h2>
-<p><strong>O frontend ainda não está pronto para receber o backend em produção.</strong> Há componentes úteis — rotas, validações de interface, regras locais, telas de estados vazios/indisponíveis, modelos de domínio e contratos REST propostos — mas a aplicação continua sendo um protótipo local. A interface não consome os endpoints <code>/api/v1</code> documentados, não tem autenticação real, não envia mídia e mistura alguns dados de demonstração ao estado usado pelo Social.</p>
+<p><strong>O frontend ainda não está pronto para receber o backend em produção.</strong> Há componentes úteis — rotas, validações de interface, regras locais, telas de estados vazios/indisponíveis, modelos de domínio e contratos REST propostos — mas a aplicação continua sendo um protótipo local. A interface não consome os endpoints <code>/api/v1</code> documentados, não tem autenticação real, não envia mídia e mantém estado de demonstração/local no navegador; as fixtures pré-carregadas agora ficam apenas no desenvolvimento.</p>
 <p>O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqui. Conectar o servidor agora faria a interface aparentar sucesso com dados locais, perder conteúdo após recarga e aplicar permissões somente no navegador.</p>
 <h2>Como a análise foi feita</h2>
 <ul>
@@ -252,13 +252,13 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar o navegador. A implementação atual não oferece autenticação, autorização ou CSRF.</li>
 </ul>
 <p><strong>Antes de integrar:</strong> escolher um cliente/base URL, conectar cada módulo por etapas, configurar roteamento/CORS e CSRF, mapear erros/paginação e garantir que falha de rede nunca faça fallback silencioso para fixtures.</p>
-<h3>P1 — Dados demonstrativos podem aparecer como conteúdo de produto</h3>
+<h3>Resolvido — Fixtures de exemplo aparecem somente no desenvolvimento</h3>
 <ul>
-<li><code>SocialContext</code> inicializa posts, contas, notificações, conversas e mensagens de demonstração sem restringi-los ao modo de desenvolvimento.</li>
-<li><code>Search.tsx</code> contém tendências e contagens estáticas; <code>SocialContextPanel.tsx</code> mostra eventos demonstrativos. Parte da descoberta do Seek é marcada como exemplo, mas isso não protege os outros pontos.</li>
-<li>O catálogo de Shop é explicitamente ilustrativo e a compra está desabilitada; essa transparência deve ser preservada até a existência de dados e operações reais.</li>
+<li>Posts, usuários seed, notificações, conversas, mensagens, avaliações, tendências e tópicos ficam restritos ao modo de desenvolvimento. A tela inicial pode manter o perfil fictício apenas dentro de uma imagem estática ilustrativa, sem registro ou interação.</li>
+<li>A página Social, o Shop, as referências a produtos/eventos e os painéis laterais não exibem esses fixtures no build de produção. Sem API conectada, mostram estados vazios em vez de registros inventados. O único exemplo permitido fora do dev é uma imagem estática de apresentação.</li>
+<li>Os mocks continuam disponíveis no preview de desenvolvimento para revisão visual. O conteúdo escrito pelo usuário no navegador continua local e não passa a ser dado compartilhado/real.</li>
 </ul>
-<p><strong>Antes de integrar:</strong> separar fontes de exemplo da fonte de produção, ou retirar as fixtures do estado da aplicação. Não semear dados fictícios em usuários ou tabelas reais.</p>
+<p><strong>Frontend concluído para esta regra:</strong> fixtures do produto só aparecem no desenvolvimento; produção não usa sementes fictícias. Antes de publicar com dados reais, conectar os estados vazios aos endpoints e testar o build de produção.</p>
 <h3>P1 — Estado relativo ao usuário está guardado em objetos globais</h3>
 <ul>
 <li>Likes e bookmarks são alternados por ID de publicação e alteram flags da própria publicação; não recebem consistentemente o ator. Em troca de conta no mesmo navegador, o estado pode parecer pertencer a todas as contas.</li>
@@ -315,10 +315,10 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <tr><th>Módulo</th><th>Rotas/páginas</th><th>Fontes atuais</th></tr>
 <tr><td>Acesso e cadastro</td><td><code>/</code>, <code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/verify-email</code></td><td><code>AppContext</code>, <code>accountStorage</code>, validação local</td></tr>
 <tr><td>Onboarding</td><td><code>/onboarding/interests</code>, <code>/onboarding/suggestions</code></td><td>preferências locais e sugestões mock</td></tr>
-<tr><td>Social</td><td><code>/feed</code>, <code>/search</code>, <code>/post/:id</code>, <code>/article/:id</code>, <code>/compose</code>, <code>/article/create</code>, <code>/social/activity</code>, <code>/social/suggestions</code></td><td><code>SocialContext</code>, fixtures, reducer; <code>contentService</code> demo</td></tr>
+<tr><td>Social</td><td><code>/feed</code>, <code>/search</code>, <code>/post/:id</code>, <code>/article/:id</code>, <code>/compose</code>, <code>/article/create</code>, <code>/social/activity</code>, <code>/social/suggestions</code></td><td><code>SocialContext</code>, fixtures restritas ao desenvolvimento, reducer; <code>contentService</code> demo</td></tr>
 <tr><td>Perfis e relações</td><td><code>/profile</code>, <code>/profile/:username</code>, <code>/profile/edit</code>, seguidores/seguindo, <code>/circles</code></td><td>conta local, <code>SocialContext</code>, relações derivadas</td></tr>
 <tr><td>Seek</td><td><code>/seek</code>, <code>/seek/event/:id</code></td><td>dados locais, catálogo IBGE, preferências de busca; eventos de exemplo</td></tr>
-<tr><td>Shop</td><td><code>/shop</code>, <code>/shop/item/:id</code></td><td>catálogo de demonstração e salvos em localStorage</td></tr>
+<tr><td>Shop</td><td><code>/shop</code>, <code>/shop/item/:id</code></td><td>catálogo ilustrativo restrito ao desenvolvimento; salvos em localStorage</td></tr>
 <tr><td>Comunicação</td><td><code>/messages</code>, <code>/messages/:conversationId</code>, <code>/notifications</code></td><td>objetos em memória/contexto; sem entrega externa</td></tr>
 <tr><td>Configurações</td><td><code>/settings/*</code></td><td>preferências locais e controles ainda indisponíveis</td></tr>
 </table></div>
@@ -334,7 +334,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <ol>
 <li><strong>Concluído no frontend/documentação:</strong> perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.</li>
 <li><strong>Direção escolhida; implementação adiada:</strong> autenticação própria na API. Definir contrato de registro/login, credenciais, verificação, recuperação e sessão no início da fase de backend.</li>
-<li>Remover/encapsular dados demo do estado de produção e separar estados viewer-specific por conta.</li>
+<li><strong>Fixtures de produção concluídos; isolamento por conta pendente:</strong> separar curtidas, salvos, leituras, relações e preferências do estado de demonstração por usuário/visitante.</li>
 <li>Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.</li>
 <li>Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.</li>
 <li>Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.</li>
@@ -1000,6 +1000,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <li>Implementar migrations versionadas, readiness, request IDs, validação, rate limits, sessão HttpOnly e CSRF.</li>
 <li>Criar fluxo real de autenticação, sessão, recuperação e encerramento; remover o falso estado autenticado.</li>
 <li>Aceite: visitante anônimo não lê/escreve recursos protegidos; logout revoga a sessão; CSRF/expiração são testados; nenhum segredo aparece em logs.</li>
+<li>Aceite: build de produção não carrega registros fictícios de demonstração; páginas sem endpoint/dados mostram estados vazios, enquanto o preview de desenvolvimento mantém as fixtures para revisão visual.</li>
 </ul>
 <h3>Fase 2 — Conta única, perfil e relacionamentos</h3>
 <ul>

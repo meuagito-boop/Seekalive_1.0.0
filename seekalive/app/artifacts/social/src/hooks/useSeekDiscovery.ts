@@ -11,7 +11,10 @@ const FILTER_KEY = "seekalive-seek-filters";
 const SAVED_KEY = "seekalive-saved-businesses";
 const EVENT_SAVED_KEY = "seekalive-seek-saved-events";
 const SCROLL_KEY = "seekalive-seek-scroll";
-const exampleIds = new Set([...mockUsers, ...demoSeekAccounts].map(user => user.id));
+const exampleIds = import.meta.env.DEV
+  ? new Set([...mockUsers, ...demoSeekAccounts].map(user => user.id))
+  : new Set<string>();
+const demoEventIds = import.meta.env.DEV ? new Set(demoSeekEvents.map(event => event.id)) : new Set<string>();
 const EXAMPLES_KEY = "seekalive-seek-demo-preview";
 
 function readFilters(): DiscoveryFilters {
@@ -101,8 +104,8 @@ export function useSeekDiscovery() {
     if (!item) return;
     const next = savedIds.includes(id) ? savedIds.filter(saved => saved !== id) : [...savedIds, id];
     try {
-      if (item.kind === "event") sessionStorage.setItem(EVENT_SAVED_KEY, JSON.stringify(next.filter(saved => demoSeekEvents.some(event => event.id === saved))));
-      else localStorage.setItem(SAVED_KEY, JSON.stringify(next.filter(saved => !demoSeekEvents.some(event => event.id === saved))));
+      if (item.kind === "event") sessionStorage.setItem(EVENT_SAVED_KEY, JSON.stringify(next.filter(saved => demoEventIds.has(saved))));
+      else localStorage.setItem(SAVED_KEY, JSON.stringify(next.filter(saved => !demoEventIds.has(saved))));
       setSavedIds(next);
     } catch { setNotice("Não foi possível atualizar os itens salvos. Verifique as permissões de armazenamento do navegador."); }
   }

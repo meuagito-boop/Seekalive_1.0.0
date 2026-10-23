@@ -33,7 +33,7 @@ function resolveDemo(reference: ContentReference, snapshot: ReferenceSnapshot): 
         ratingCount: reviews.length || undefined,
       };
     }
-    const event = reference.id.startsWith("event:")
+    const event = import.meta.env.DEV && reference.id.startsWith("event:")
       ? demoSeekEvents.find(item => item.id === reference.id.slice("event:".length))
       : undefined;
     return event ? {
@@ -42,7 +42,7 @@ function resolveDemo(reference: ContentReference, snapshot: ReferenceSnapshot): 
     } : null;
   }
   if (reference.type === "shop_item") {
-    const item = demoShopItems.find(product => product.id === reference.id);
+    const item = import.meta.env.DEV ? demoShopItems.find(product => product.id === reference.id) : undefined;
     return item ? {
       ...reference, title: item.name, subtitle: item.store, imageUrl: item.img,
       price: item.price, targetPath: `/shop/item/${encodeURIComponent(item.id)}`, entityLabel: "Item Shop",

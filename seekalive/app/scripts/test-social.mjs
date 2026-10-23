@@ -13,6 +13,7 @@ try {
     entryPoints: ["artifacts/social/tests/content.test.ts"], outfile,
     bundle: true, platform: "node", format: "cjs",
     tsconfig: "artifacts/social/tsconfig.json",
+    define: { "import.meta.env": JSON.stringify({ DEV: true }) },
     logLevel: "error",
   });
   const result = spawnSync(process.execPath, ["--test", outfile], { stdio: "inherit" });

@@ -2,6 +2,8 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 
+const businessCardIllustration = `${import.meta.env.BASE_URL}seek-business-card-demo.svg`;
+
 export default function Splash() {
   return (
     <main className="relative isolate flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background px-5 py-12 sm:px-8">
@@ -53,16 +55,11 @@ export default function Splash() {
                 <span className="h-2 w-2 rounded-full bg-primary" />
               </div>
               <div className="space-y-4">
-                <div className="rounded-2xl border border-border bg-background/80 p-5">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-sm font-bold text-primary">M</div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Mercado da Vila</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">Perfil comercial no Seek</p>
-                    </div>
-                  </div>
-                  <p className="text-sm leading-6 text-muted-foreground">Novidades e encontros acontecendo no seu bairro.</p>
-                </div>
+                <img
+                  src={businessCardIllustration}
+                  alt="Imagem ilustrativa estática de um perfil comercial de exemplo no Seek"
+                  className="block h-auto w-full rounded-2xl"
+                />
                 <div className="ml-8 rounded-2xl border border-primary/20 bg-primary/[0.07] p-5">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Descobertas locais</p>
                   <p className="text-lg font-semibold leading-snug text-foreground">Descobertas que começam perto de você.</p>
