@@ -4,17 +4,17 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080; `/api`)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/db run push` — apply the database schema to development only
 - Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- App: `Aplicativo/front` (React + Vite) and `Aplicativo/back` (Express 5 API)
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
@@ -22,7 +22,16 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+## Repository map
+
+- `Aplicativo/front` — current public app (Social, Seek and Shop UI)
+- `Aplicativo/back` — current API for the public app
+- `Gestor/front`, `Gestor/back` — scaffold for the future commercial operations app
+- `Painel/front`, `Painel/back` — scaffold for the future administration app
+- `shared/contracts` — shared API validation contracts
+- `shared/api-spec` and `shared/api-client-react` — OpenAPI source and generated client
+- `infra/database` — Drizzle/PostgreSQL schema and database access
+- `docs` — architecture, module and API documentation
 
 ## Architecture decisions
 
