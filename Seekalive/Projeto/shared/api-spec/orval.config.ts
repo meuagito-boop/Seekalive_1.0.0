@@ -1,12 +1,49 @@
 import { defineConfig, InputTransformerFn } from "orval";
 import path from "path";
+import { fileURLToPath } from "node:url";
 
-const root = path.resolve(__dirname, "..", "..");
-const apiClientReactSrc = path.resolve(root, "lib", "api-client-react", "src");
-const apiZodSrc = path.resolve(root, "lib", "api-zod", "src");
+const configDirectory = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(configDirectory, "..", "..");
+const apiClientReactSrc = path.resolve(
+  root,
+  "shared",
+  "api-client-react",
+  "src",
+);
+const apiZodSrc = path.resolve(root, "shared", "contracts", "src");
+
+/**
+ * The API spec is versioned locally. Reject remote and file-based references
+ * before Orval processes them so code generation cannot fetch arbitrary input.
+ */
+export function assertLocalReferences(value: unknown, location = "$"): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      assertLocalReferences(item, `${location}[${index}]`),
+    );
+    return;
+  }
+
+  if (value === null || typeof value !== "object") {
+    return;
+  }
+
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (key === "$ref") {
+      if (typeof nestedValue !== "string" || !nestedValue.startsWith("#/")) {
+        throw new Error(
+          `External or non-pointer OpenAPI $ref is not allowed at ${location}.`,
+        );
+      }
+    }
+
+    assertLocalReferences(nestedValue, `${location}.${key}`);
+  }
+}
 
 // Our exports make assumptions about the title of the API being "Api" (i.e. generated output is `api.ts`).
 const titleTransformer: InputTransformerFn = (config) => {
+  assertLocalReferences(config);
   config.info ??= {};
   config.info.title = "Api";
 
