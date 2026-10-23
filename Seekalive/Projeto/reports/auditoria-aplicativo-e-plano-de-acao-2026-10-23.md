@@ -1,11 +1,11 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 23/10/2026  
-**Versão do documento:** 1.1
-**Status:** Auditoria atualizada; plano coordenado proposto, aguardando revisão
+**Versão do documento:** 1.2
+**Status:** A01 aplicado e validado em desenvolvimento; validação da topologia de proxy para produção permanece pendente. A02–A12 aguardam execução.
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
-**Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Nenhum código de produto foi modificado para esta auditoria.
+**Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
 
@@ -391,7 +391,7 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Driver proposto:** IA coordenadora — mantém sequência, dependências, critérios de aceite e atualização deste documento; não representa aprovação de mudanças de código.
 - **Aprovador:** usuário Seekalive.
 - **Executor técnico:** agente de implementação a designar em cada etapa.
-- **Status geral:** proposta para revisão; nenhuma pendência foi corrigida por esta auditoria.
+- **Status geral:** A01 aplicado e verificado no ambiente de desenvolvimento; a validação da topologia real do proxy ainda impede encerrá-lo para produção. A02–A12 permanecem pendentes.
 - **Estimativas e datas:** não definidas, pois capacidade/equipe e duração de referência não foram informadas. Não inventar prazos nem usar números RICE sem dados de usuários.
 - **Prioridade:** P0 bloqueia lançamento; P1 deve ser resolvida antes de ativar o domínio correspondente; P2 é necessária antes de ampliar cobertura/escala; P3 é qualidade e consistência.
 - **Limite fixo:** apenas Aplicativo e dependências compartilhadas diretamente ligadas a ele. Gestor/Painel fora do trabalho manual.
@@ -401,7 +401,7 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 
 | Ordem / pacote | Prioridade e status | Escopo e pendências agrupadas | Dependências | Critério de conclusão verificável |
 |---|---|---|---|---|
-| **A01. Corrigir dependências de risco no backend e codegen** | P1 antes de produção/codegen; pendente | Atualizar `proxy-addr` para versão corrigida, validar `trust proxy` com topologia real; atualizar Orval para versão que cubra os avisos (8.22.0+), restringir `$ref` e testar codegen; atualizar Vite sem quebrar o preview; manter limites explícitos em arrays Zod e verificar a advisory antes de considerar mudança major. | Nenhuma; Vite deve ser validado no workflow de preview. | **Dado** o pacote atualizado, **quando** typecheck/build/testes do app e geração a partir da especificação versionada forem executados, **então** passam; testes demonstram que só o proxy confiável determina `req.ip`, e o preview proxied continua funcionando. Especificação remota/local externa não é consumida sem regra explícita. |
+| **A01. Corrigir dependências de risco no backend e codegen** | P1 antes de produção/codegen; **aplicado em desenvolvimento; validação de produção pendente** | Atualizar `proxy-addr` para versão corrigida e configurar confiança apenas para CIDRs explícitos; confirmar a topologia real antes da produção. Orval 8.22.0; rejeitar `$ref` externo/arquivo e testar codegen. Vite 7.3.7 no frontend e no servidor de prévias de componentes. Atualizar o resolvedor de formulários para manter o typecheck compatível; manter limites explícitos nos arrays Zod e verificar a advisory antes de considerar mudança major. | Nenhuma; configuração real de proxies é necessária antes do lançamento. | **Em desenvolvimento:** typecheck, builds, testes, codegen e teste do proxy configurável passam; o preview deve continuar operacional após reiniciar os workflows. **Para encerrar antes de produção:** preencher `TRUSTED_PROXY_CIDRS` com os CIDRs reais e comprovar `req.ip` através da cadeia publicada de proxies. Até isso ser feito, a API não confia em cabeçalhos encaminhados. |
 | **A02. Tornar schema e testes do backend reproduzíveis** | P1; pendente | Trocar `push`/`push-force` como caminho de promoção por migrations incrementais revisáveis; testar criação do banco vazio; criar suíte HTTP/DB para auth, onboarding, perfil, relações e bloqueio; separar readiness de liveness; adicionar not-found JSON e request ID; implementar shutdown gracioso e revisar limites/rate-limit. | A01 para atualizar o ambiente de forma segura; usar somente banco descartável/desenvolvimento. | **Dado** um banco vazio de teste, **quando** as migrations forem aplicadas, **então** o schema esperado é criado sem push destrutivo; a suíte API valida status, DTOs, autenticação/autorização e erros. Nenhuma migration é aplicada em produção. |
 | **A03. Unificar contratos e perfil da conta** | P1; pendente | Definir OpenAPI canônico das rotas reais, corrigir destino do codegen, alinhar status/erros/DTOs; fazer sessão reidratar conta pessoal/comercial, endereço e campos comerciais permitidos; garantir que editar perfil crie a extensão comercial quando ausente; versionar termos e política e oferecer links acessíveis; representar separadamente estado anônimo e erro de sessão. | A02 para testes de contrato; A01 para Orval. | **Dado** login de uma conta comercial, **quando** a sessão for carregada novamente, **então** os mesmos dados comerciais retornam do servidor e podem ser editados; termos exibidos correspondem à versão enviada no aceite; erro de rede não é mostrado como logout. |
 | **A04. Preservar e testar as regras de autenticação** | P1; cadastro real bloqueado por decisão de provedor | Login por usuário ou email; conta real sem email confirmado não recebe sessão nem acessa recursos; código de confirmação tem expiração, uso único e limite atômico; CSRF funciona em múltiplas abas; corrigir `joinedAt`; planejar recuperação/troca de senha separadamente. O envio de e-mail permanece pendente de autorização do provedor. | A02 e A03; etapa de provedor só após autorização explícita. | **Dado** email não verificado, **quando** a conta tenta entrar, **então** não recebe sessão; se envio estiver indisponível, a API informa indisponibilidade sem criar conta autenticável. Com provedor futuramente autorizado, testes provam envio, reenvio, expiração, uso único e confirmação. |
@@ -426,10 +426,24 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 2. Antes de começar, registrar no documento o pacote, executor, data, dependência e testes de entrada; ao terminar, marcar evidência, testes e pendências residuais. Não transformar achado em “resolvido” só porque o código foi alterado.
 3. Toda etapa de backend inclui contrato, migration quando necessária, teste HTTP/DB e estado de erro do frontend. Toda regra de bloqueio/privacidade precisa de teste negativo entre duas contas.
 4. Nenhum dado ou segredo de produção, migration de produção, provider externo, publicação ou alteração em Gestor/Painel entra no plano de execução sem autorização separada.
-5. **Primeiro pacote recomendado:** A01, limitado a dependências e teste do trust proxy; em seguida A02. Os resultados condicionais de Zod/Orval/Vite devem continuar descritos como riscos condicionais, não como exploração confirmada.
+5. **Sequência após A01:** A02 é o próximo pacote recomendado, restrito ao banco de desenvolvimento/descartável. A topologia real de proxy permanece obrigatória antes de produção; os resultados condicionais de Zod/Orval/Vite não devem ser descritos como exploração confirmada.
+
+### 11.5 Execução do pacote A01
+
+**Data:** 23/10/2026. **Resultado:** implementação e verificações concluídas no ambiente de desenvolvimento; não declarar o proxy validado em produção.
+
+- `proxy-addr` foi atualizado para 2.0.8, versão efetivamente resolvida pelo Express. O servidor agora confia em encaminhamento apenas quando `TRUSTED_PROXY_CIDRS` contém CIDRs explícitos; valor vazio significa confiar em nenhum proxy, e CIDR inválido interrompe a inicialização.
+- Orval foi atualizado para 8.22.0. A configuração do codegen foi corrigida para gravar nos pacotes compartilhados existentes, não em um caminho `lib/` inexistente. O transformador e testes rejeitam `$ref` remoto, relativo ou fora de JSON Pointer local. A especificação atual gera sem referências externas.
+- Vite foi atualizado para 7.3.7 no frontend e no servidor isolado de prévias de componentes para manter alinhados os tipos dos plugins. O resolvedor de formulários foi atualizado para 5.9.2 porque o typecheck revelou incompatibilidade de tipos com as versões de Zod e React Hook Form do workspace.
+- Testes acrescentados: seis verificações de segurança, cobrindo a versão de `proxy-addr` usada pelo Express, allowlist/negação de proxies e política de `$ref`.
+- **Verificações aprovadas:** `pnpm run typecheck`; `pnpm run test:social` (42/42); `pnpm --filter @workspace/scripts run test:security-boundaries` (6/6); build da API; build de produção do frontend; codegen Orval seguido de `typecheck:libs`.
+- **Avisos que continuam:** build do frontend ainda emite avisos de sourcemap, importação mista de `mockData.ts` e bundle principal em torno de 953 kB. A geração/build passa, mas esses avisos não foram tratados no A01.
+- **Pendência de produção:** a topologia real de proxy ainda não foi fornecida/validada e nenhum `TRUSTED_PROXY_CIDRS` de produção foi configurado. O limite por IP poderá agrupar usuários atrás do proxy se essa variável não for ajustada. A unidade de teste prova a allowlist do código, não substitui teste HTTP através da infraestrutura publicada.
+- A alteração em `artifacts/mockup-sandbox` limita-se à versão de desenvolvimento do Vite, necessária para o typecheck do sandbox; Gestor e Painel não foram modificados.
 
 ### Histórico do documento
 
 | Versão | Data | Atualização |
 |---|---|---|
 | 1.1 | 2026-10-23 | Consolida os resultados da auditoria complementar, scanners e plano coordenado de remediação com dependências e critérios de aceite. |
+| 1.2 | 2026-10-23 | Registra a execução do A01, as verificações aprovadas e a dependência ainda pendente da topologia real do proxy. |
