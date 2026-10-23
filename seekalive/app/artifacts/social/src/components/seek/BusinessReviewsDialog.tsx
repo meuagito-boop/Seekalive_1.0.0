@@ -45,21 +45,22 @@ export function BusinessReviewsDialog({
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
 
-  const businessReviews = business
+  const allBusinessReviews = business
     ? reviews
-        .filter((review) => review.businessAccountId === business.id && !getUserById(review.reviewerId)?.isBlocked)
+        .filter((review) => review.businessAccountId === business.id)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     : [];
+  const businessReviews = allBusinessReviews.filter(review => !getUserById(review.reviewerId)?.isBlocked);
   const myReview = business
-    ? businessReviews.find((review) => review.reviewerId === currentUser?.id)
+    ? allBusinessReviews.find((review) => review.reviewerId === currentUser?.id)
     : undefined;
   const isOwner = Boolean(
     business &&
       currentUser?.id === business.id &&
       currentUser.accountType === "commercial",
   );
-  const averageRating = businessReviews.length
-    ? businessReviews.reduce((total, review) => total + review.rating, 0) / businessReviews.length
+  const averageRating = allBusinessReviews.length
+    ? allBusinessReviews.reduce((total, review) => total + review.rating, 0) / allBusinessReviews.length
     : 0;
 
   useEffect(() => {
@@ -130,10 +131,10 @@ export function BusinessReviewsDialog({
         <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-3">
           <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
           <span className="text-lg font-bold">
-            {businessReviews.length ? averageRating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}
+            {allBusinessReviews.length ? averageRating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}
           </span>
           <span className="text-sm text-muted-foreground">
-            {businessReviews.length} {businessReviews.length === 1 ? "avaliação" : "avaliações"}
+            {allBusinessReviews.length} {allBusinessReviews.length === 1 ? "avaliação" : "avaliações"}
           </span>
         </div>
 
@@ -206,8 +207,10 @@ export function BusinessReviewsDialog({
           {businessReviews.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-6 text-center">
               <MessageSquareText className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-              <p className="text-sm font-medium">Ainda não há avaliações</p>
-              <p className="mt-1 text-xs text-muted-foreground">Seja a primeira pessoa a compartilhar uma experiência.</p>
+              <p className="text-sm font-medium">{allBusinessReviews.length ? "Nenhuma avaliação visível" : "Ainda não há avaliações"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {allBusinessReviews.length ? "Algumas avaliações não estão disponíveis para esta conta." : "Seja a primeira pessoa a compartilhar uma experiência."}
+              </p>
             </div>
           ) : (
             businessReviews.map((review) => {

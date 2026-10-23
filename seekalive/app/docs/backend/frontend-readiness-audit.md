@@ -140,7 +140,7 @@ Ainda é necessário validar esses contratos com testes de integração quando a
 
 Na auditoria e nesta correção:
 
-- `pnpm test:social`: **41 testes aprovados** incluindo isolamento/persistência local de ações sociais, seguimentos e bloqueios bilaterais por conta, remoção das relações entre contas, desbloqueio ativo, sincronização de nome de usuário entre conta e Social, além de regras de conteúdo, privacidade, validação, referências e erros do adaptador.
+- `pnpm test:social`: **42 testes aprovados** incluindo isolamento/persistência local de ações sociais, seguimentos e bloqueios bilaterais por conta, remoção das relações entre contas, desbloqueio ativo, sincronização de nome de usuário entre conta e Social, além de regras de conteúdo, privacidade, validação, referências e erros do adaptador.
 - `pnpm --filter @workspace/social run typecheck`: aprovado.
 - `pnpm --filter @workspace/social run build`: aprovado nesta revisão; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.
 

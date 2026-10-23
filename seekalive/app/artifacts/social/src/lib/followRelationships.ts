@@ -1,4 +1,4 @@
-import type { User } from "@/data/mockData";
+import type { FollowRequest, User } from "@/data/mockData";
 
 export function viewerFollowsUser(viewer: User | undefined, target: User | undefined): boolean {
   if (!viewer || !target) return false;
@@ -32,6 +32,7 @@ export function removeFollowEdgesForBlock(actor: User, target: User) {
     },
     target: {
       ...target,
+      isFollowing: false,
       followingIds: (target.followingIds ?? []).filter(id => id !== actor.id),
       stats: {
         ...target.stats,
@@ -42,4 +43,17 @@ export function removeFollowEdgesForBlock(actor: User, target: User) {
     },
     changed: actorFollowsTarget || targetFollowsActor,
   };
+}
+
+export function followRequestIdsBetween(
+  requests: FollowRequest[],
+  firstAccountId: string,
+  secondAccountId: string,
+): string[] {
+  return requests
+    .filter(request =>
+      (request.requesterId === firstAccountId && request.targetId === secondAccountId)
+      || (request.requesterId === secondAccountId && request.targetId === firstAccountId)
+    )
+    .map(request => request.id);
 }

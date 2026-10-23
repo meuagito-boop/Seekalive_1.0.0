@@ -28,6 +28,7 @@ import {
 import type { SocialAccountActivity } from "@/data/socialAccountActivityStorage";
 import {
   areMutualFollowers,
+  followRequestIdsBetween,
   removeFollowEdgesForBlock,
   viewerFollowsUser,
 } from "@/lib/followRelationships";
@@ -592,12 +593,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
           dispatch({ type: "UPDATE_USER", user: updatedViewer });
       }
 
-      for (const request of state.followRequests.filter(request =>
-        (request.requesterId === viewer.id && request.targetId === userId)
-        || (request.requesterId === userId && request.targetId === viewer.id)
-      )) {
-        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId: request.id });
-      }
+      for (const requestId of followRequestIdsBetween(state.followRequests, viewer.id, userId))
+        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
       toggleBlockedUser(userId);
     },
     unblockUser: (userId) => {

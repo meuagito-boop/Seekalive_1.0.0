@@ -7,7 +7,10 @@ import { makeDemoPost, makeDemoComment, makeDemoMessage, extractSocialTokens, va
 import { apiRequest, restContentAdapter } from "../src/services/contentService";
 import { resolveReference } from "../src/services/referenceResolver";
 import { socialReducer, type SocialState } from "../src/context/SocialContext";
-import { removeFollowEdgesForBlock } from "../src/lib/followRelationships";
+import {
+  followRequestIdsBetween,
+  removeFollowEdgesForBlock,
+} from "../src/lib/followRelationships";
 import { mockUsers, mockNotifications, currentUser, formatCount, formatTimeAgo } from "../src/data/mockData";
 import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/services/mediaService";
@@ -139,6 +142,11 @@ test("bloqueios locais são relações isoladas entre conta e perfil alvo", () =
     assert.deepEqual(accountBView.unavailableAccountIds, ["conta-a"]);
     assert.deepEqual(accountBView.blockedByViewerIds, []);
     assert.deepEqual(accountBView.blockingViewerIds, ["conta-a"]);
+    writeAccountScopedIds("seekalive-blocked-users", "conta-a", []);
+    assert.deepEqual(
+      getAccountBlockProjection(readAccountScopedIdsMap("seekalive-blocked-users"), "perfil-b").unavailableAccountIds,
+      [],
+    );
     assert.notEqual(
       accountStorageKey("seekalive-blocked-users", "conta-a"),
       accountStorageKey("seekalive-blocked-users", "conta-b"),
@@ -168,6 +176,14 @@ test("bloquear rompe seguimentos e Círculo nos dois sentidos sem afetar outras 
   assert.deepEqual(result.target.stats, { posts: 0, followers: 0, following: 0, circles: 0 });
   assert.equal(result.changed, true);
 });
+test("bloquear cancela solicitações pendentes nas duas direções", () => {
+  const requests = [
+    { id: "a-para-b", requesterId: "conta-a", targetId: "conta-b", createdAt: "" },
+    { id: "b-para-a", requesterId: "conta-b", targetId: "conta-a", createdAt: "" },
+    { id: "a-para-c", requesterId: "conta-a", targetId: "conta-c", createdAt: "" },
+  ];
+  assert.deepEqual(followRequestIdsBetween(requests, "conta-a", "conta-b"), ["a-para-b", "b-para-a"]);
+});
 test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
   const socialSource = readFileSync(
     join(process.cwd(), "artifacts/social/src/context/SocialContext.tsx"),
@@ -188,10 +204,15 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     socialSource,
     /isBlocked: blockedUserIdSet\.has\(user\.id\) \|\| accountsBlockingViewerSet\.has\(user\.id\)/,
   );
+  assert.match(socialSource, /removeFollowEdgesForBlock\(viewer, target\)/);
+  assert.match(socialSource, /followRequestIdsBetween\(state\.followRequests, viewer\.id, userId\)/);
+  assert.match(socialSource, /blockedAccountIds\.has\(notification\.actorId\)/);
+  assert.match(socialSource, /conversation\.participantIds\.some\(id => id !== actorId && blockedAccountIds\.has\(id\)\)/);
   assert.match(blockedPageSource, /unblockUser\(userId\)/);
   assert.match(blockedPageSource, /isBlockedByViewer/);
   assert.doesNotMatch(blockedPageSource, /disabled/);
   assert.match(profileSource, /blockUser\(user\.id\)/);
+  assert.doesNotMatch(profileSource, /Bloquear também/);
 });
 test("seguimentos escolhidos no onboarding permanecem vinculados à conta no navegador", () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, "window");

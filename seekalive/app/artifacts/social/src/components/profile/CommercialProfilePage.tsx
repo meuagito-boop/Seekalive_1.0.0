@@ -141,15 +141,16 @@ export function CommercialProfilePage({
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const businessReviews = reviews
-    .filter((review) => review.businessAccountId === user.id && !getUserById(review.reviewerId)?.isBlocked)
+  const allBusinessReviews = reviews
+    .filter((review) => review.businessAccountId === user.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const rating = businessReviews.length
-    ? businessReviews.reduce((total, review) => total + review.rating, 0) / businessReviews.length
+  const businessReviews = allBusinessReviews.filter(review => !getUserById(review.reviewerId)?.isBlocked);
+  const rating = allBusinessReviews.length
+    ? allBusinessReviews.reduce((total, review) => total + review.rating, 0) / allBusinessReviews.length
     : null;
   const ratingCounts = [5, 4, 3, 2, 1].map((score) => ({
     score,
-    count: businessReviews.filter((review) => review.rating === score).length,
+    count: allBusinessReviews.filter((review) => review.rating === score).length,
   }));
   const photoUrls = [...new Set([
     ...(commercial?.photos ?? []),
@@ -311,7 +312,7 @@ export function CommercialProfilePage({
                     }}
                     className="text-sm font-semibold text-white underline-offset-2 hover:underline"
                   >
-                    {rating === null ? "Sem avaliações" : `${rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} · ${businessReviews.length} ${businessReviews.length === 1 ? "avaliação" : "avaliações"}`}
+                    {rating === null ? "Sem avaliações" : `${rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} · ${allBusinessReviews.length} ${allBusinessReviews.length === 1 ? "avaliação" : "avaliações"}`}
                   </button>
                 </div>
               </div>
@@ -560,7 +561,7 @@ export function CommercialProfilePage({
                       <Star key={score} className={`h-4 w-4 ${rating !== null && score <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
                     ))}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{businessReviews.length} avaliações</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{allBusinessReviews.length} avaliações</p>
                 </div>
                 <div className="space-y-2">
                   {ratingCounts.map(({ score, count }) => (
@@ -570,7 +571,7 @@ export function CommercialProfilePage({
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
                           className="h-full rounded-full bg-amber-400"
-                          style={{ width: `${businessReviews.length ? (count / businessReviews.length) * 100 : 0}%` }}
+                          style={{ width: `${allBusinessReviews.length ? (count / allBusinessReviews.length) * 100 : 0}%` }}
                         />
                       </div>
                       <span className="w-5 text-right text-muted-foreground">{count}</span>
@@ -591,8 +592,10 @@ export function CommercialProfilePage({
                 ))
               ) : (
                 <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center">
-                  <p className="font-semibold">Ainda não há avaliações</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Compartilhe sua experiência para ajudar outras pessoas.</p>
+                  <p className="font-semibold">{allBusinessReviews.length ? "Nenhuma avaliação visível" : "Ainda não há avaliações"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {allBusinessReviews.length ? "Algumas avaliações não estão disponíveis para esta conta." : "Compartilhe sua experiência para ajudar outras pessoas."}
+                  </p>
                 </div>
               )}
             </section>
