@@ -148,8 +148,8 @@ function AuthRouter() {
 }
 
 function Router() {
-  const { currentUser, isAuthenticated, isAuthLoading } = useAppContext();
-  const [location] = useLocation();
+  const { currentUser, isAuthenticated, isAuthLoading, isDevelopmentPreview, logout } = useAppContext();
+  const [location, setLocation] = useLocation();
   if (isAuthLoading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-sm text-muted-foreground" role="status">
@@ -163,7 +163,27 @@ function Router() {
   if (isAuthenticated && currentUser?.onboardingCompleted && location === "/onboarding/interests") {
     return <Redirect to="/feed" />;
   }
-  return isAuthenticated ? <AuthRouter /> : <UnauthRouter />;
+  if (!isAuthenticated) return <UnauthRouter />;
+  return (
+    <>
+      {import.meta.env.DEV && isDevelopmentPreview && (
+        <div
+          role="status"
+          className="relative z-[100] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-primary/30 bg-background px-3 py-2 text-center text-xs text-muted-foreground"
+        >
+          <span>Demonstração de desenvolvimento — dados fictícios, sem conta ou sessão real.</span>
+          <button
+            type="button"
+            className="font-semibold text-primary hover:underline"
+            onClick={() => { void logout().then(() => setLocation("/login")); }}
+          >
+            Encerrar demonstração
+          </button>
+        </div>
+      )}
+      <AuthRouter />
+    </>
+  );
 }
 
 function App() {

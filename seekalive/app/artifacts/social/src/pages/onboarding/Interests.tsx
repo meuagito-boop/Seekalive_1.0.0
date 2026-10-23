@@ -14,7 +14,7 @@ export default function OnboardingInterests() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [step, setStep] = useState(0);
   const [, setLocation] = useLocation();
-  const { currentUser, updateAccount } = useAppContext();
+  const { currentUser, updateAccount, isDevelopmentPreview } = useAppContext();
   const { updateUser } = useSocial();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
@@ -43,10 +43,12 @@ export default function OnboardingInterests() {
     const selectedInterests = skipped ? [] : Array.from(selected);
     setIsSaving(true);
     try {
-      await saveOnboarding({ interests: selectedInterests, skipped });
+      if (!isDevelopmentPreview) {
+        await saveOnboarding({ interests: selectedInterests, skipped });
+      }
       const updatedUser = { ...currentUser, interests: selectedInterests, onboardingCompleted: true };
       updateAccount(updatedUser);
-      updateUser(updatedUser);
+      if (!isDevelopmentPreview) updateUser(updatedUser);
       setLocation(skipped ? "/feed" : "/onboarding/suggestions");
     } catch (error) {
       toast({

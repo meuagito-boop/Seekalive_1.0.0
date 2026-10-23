@@ -25,7 +25,7 @@ export default function Login() {
   const [savePassword, setSavePassword] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { setAuthenticatedAccount } = useAppContext();
+  const { setAuthenticatedAccount, startDevelopmentPreview } = useAppContext();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -164,6 +164,25 @@ export default function Login() {
             </Button>
           </form>
         </Form>
+
+        {import.meta.env.DEV && (
+          <div className="mt-5 rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <p className="mb-3 text-xs leading-5 text-muted-foreground">
+              Preview de desenvolvimento com dados fictícios. Não cria conta nem sessão real.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-xl"
+              onClick={() => {
+                void startDevelopmentPreview().then(() => setLocation("/feed"));
+              }}
+              data-testid="button-development-preview"
+            >
+              Explorar demonstração
+            </Button>
+          </div>
+        )}
 
         <p className="text-center text-sm text-muted-foreground mt-8">
           Ainda não tem conta?{" "}

@@ -7,7 +7,9 @@ interface AppContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
   isAuthLoading: boolean;
+  isDevelopmentPreview: boolean;
   setAuthenticatedAccount: (account: AuthAccount) => void;
+  startDevelopmentPreview: () => Promise<void>;
   updateAccount: (user: User) => void;
   logout: () => Promise<void>;
   completeOnboarding: () => void;
@@ -47,6 +49,7 @@ function toUser(account: AuthAccount): User {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isDevelopmentPreview, setIsDevelopmentPreview] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,17 +71,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setAuthenticatedAccount = (account: AuthAccount) => {
     const user = toUser(account);
+    setIsDevelopmentPreview(false);
     setCurrentUser(user);
     setStoredActiveAccount(user);
   };
 
+  const startDevelopmentPreview = async () => {
+    if (!import.meta.env.DEV) return;
+    const { currentUser: previewUser } = await import("../data/mockData");
+    setIsDevelopmentPreview(true);
+    setIsAuthLoading(false);
+    setCurrentUser({ ...previewUser });
+  };
+
   const updateAccount = (user: User) => {
     setCurrentUser((current) => current?.id === user.id ? user : current);
-    if (currentUser?.id === user.id) setStoredActiveAccount(user);
-    saveSocialAccount(user);
+    if (currentUser?.id === user.id && !isDevelopmentPreview) {
+      setStoredActiveAccount(user);
+      saveSocialAccount(user);
+    }
   };
 
   const logout = async () => {
+    if (isDevelopmentPreview) {
+      setIsDevelopmentPreview(false);
+      setCurrentUser(null);
+      return;
+    }
     try {
       await logoutAccount();
     } catch {
@@ -99,7 +118,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         currentUser,
         isAuthenticated: currentUser !== null,
         isAuthLoading,
+        isDevelopmentPreview,
         setAuthenticatedAccount,
+        startDevelopmentPreview,
         updateAccount,
         logout,
         completeOnboarding,
