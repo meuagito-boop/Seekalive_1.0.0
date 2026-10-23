@@ -10,6 +10,7 @@ import {
   Film,
   Globe,
   MapPin,
+  MoreHorizontal,
   Share2,
   Star,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { BusinessReviewsDialog } from "@/components/seek/BusinessReviewsDialog";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
+import { useToast } from "@/hooks/use-toast";
 import type { User } from "@/data/mockData";
 import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/services/contentValidation";
@@ -120,7 +122,8 @@ export function CommercialProfilePage({
   isMe: boolean;
 }) {
   const { currentUser } = useAppContext();
-  const { posts, reviews, repostEntries, getUserById, toggleFollow } = useSocial();
+  const { posts, reviews, repostEntries, getUserById, toggleFollow, blockUser } = useSocial();
+  const { toast } = useToast();
   const { ids: savedIds, toggle: toggleSavedBusiness } = useAccountScopedIds(
     savedBusinessStorageKey,
     localActorId(currentUser?.id),
@@ -134,6 +137,7 @@ export function CommercialProfilePage({
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -215,6 +219,36 @@ export function CommercialProfilePage({
           >
             <Share2 className="h-4 w-4" />
           </button>
+          {!isMe && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowProfileMenu(value => !value)}
+                aria-label="Mais opções do perfil comercial"
+                aria-expanded={showProfileMenu}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                data-testid="button-more-commercial-profile"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+              {showProfileMenu && (
+                <div className="absolute right-0 top-11 z-50 w-48 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      blockUser(user.id);
+                      toast({ title: "Perfil bloqueado", description: "Você não verá o conteúdo deste perfil." });
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-muted/50"
+                    data-testid="action-block-commercial-profile"
+                  >
+                    Bloquear perfil
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           {isMe ? (
             <Button asChild variant="outline" className="h-8 rounded-full px-3 text-xs">
               <Link href="/profile/edit">Editar perfil</Link>

@@ -12,7 +12,11 @@ import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/services/mediaService";
 import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters";
 import { saveStoredSeekReviews } from "../src/data/reviewStorage";
-import { accountStorageKey } from "../src/data/accountScopedStorage";
+import {
+  accountStorageKey,
+  readAccountScopedIds,
+  writeAccountScopedIds,
+} from "../src/data/accountScopedStorage";
 import { getStoredAccounts, saveSocialAccount } from "../src/data/accountStorage";
 import {
   getSocialAccountActivity,
@@ -94,6 +98,51 @@ test("ações sociais locais ficam isoladas por conta e sobrevivem à releitura 
     if (previous) Object.defineProperty(globalThis, "window", previous);
     else Reflect.deleteProperty(globalThis, "window");
   }
+});
+test("bloqueios locais são relações isoladas entre conta e perfil alvo", () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const storage = new Map<string, string>();
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem(key: string) { return storage.get(key) ?? null; },
+        setItem(key: string, value: string) { storage.set(key, value); },
+      },
+    },
+  });
+  try {
+    writeAccountScopedIds("seekalive-blocked-users", "conta-a", ["perfil-b"]);
+    writeAccountScopedIds("seekalive-blocked-users", "conta-b", ["perfil-c"]);
+    assert.deepEqual(readAccountScopedIds("seekalive-blocked-users", "conta-a"), ["perfil-b"]);
+    assert.deepEqual(readAccountScopedIds("seekalive-blocked-users", "conta-b"), ["perfil-c"]);
+    assert.notEqual(
+      accountStorageKey("seekalive-blocked-users", "conta-a"),
+      accountStorageKey("seekalive-blocked-users", "conta-b"),
+    );
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "window", previous);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
+});
+test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
+  const socialSource = readFileSync(
+    join(process.cwd(), "artifacts/social/src/context/SocialContext.tsx"),
+    "utf8",
+  );
+  const blockedPageSource = readFileSync(
+    join(process.cwd(), "artifacts/social/src/pages/settings/Blocked.tsx"),
+    "utf8",
+  );
+  const profileSource = readFileSync(
+    join(process.cwd(), "artifacts/social/src/pages/Profile.tsx"),
+    "utf8",
+  );
+  assert.match(socialSource, /useAccountScopedIds\("seekalive-blocked-users", actorId\)/);
+  assert.match(socialSource, /isBlocked: blockedUserIdSet\.has\(user\.id\)/);
+  assert.match(blockedPageSource, /unblockUser\(userId\)/);
+  assert.doesNotMatch(blockedPageSource, /disabled/);
+  assert.match(profileSource, /blockUser\(user\.id\)/);
 });
 test("seguimentos escolhidos no onboarding permanecem vinculados à conta no navegador", () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, "window");

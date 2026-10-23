@@ -14,6 +14,7 @@ import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/co
 import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
 import { getPrivacyPreferences } from "@/data/appPreferences";
+import { useAccountScopedIds } from "@/data/accountScopedStorage";
 import {
   getSocialAccountActivity,
   readSocialAccountActivityMap,
@@ -282,6 +283,8 @@ interface SocialContextType extends SocialState {
   deletePost: (postId: string, authorId: string) => Promise<void>;
   toggleBookmark: (postId: string) => void;
   toggleFollow: (userId: string) => void;
+  blockUser: (userId: string) => void;
+  unblockUser: (userId: string) => void;
   acceptFollowRequest: (requestId: string) => void;
   declineFollowRequest: (requestId: string) => void;
   addUser: (user: User) => void;
@@ -309,6 +312,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const { currentUser, updateAccount } = useAppContext();
   const viewer = currentUser ?? (import.meta.env.DEV ? demoCurrentUser : null);
   const actorId = currentUser?.id ?? viewer?.id ?? "guest";
+  const { ids: blockedUserIds, toggle: toggleBlockedUser } =
+    useAccountScopedIds("seekalive-blocked-users", actorId);
+  const blockedUserIdSet = new Set(blockedUserIds);
   const [activityByAccount, setActivityByAccount] = useState(readSocialAccountActivityMap);
   const accountActivity = useMemo(
     () => getSocialAccountActivity(activityByAccount, actorId),
@@ -374,6 +380,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
 
   const users = state.users.map((user) => ({
     ...user,
+    isBlocked: blockedUserIdSet.has(user.id),
     isFollowing: viewer ? viewerFollowsUser(viewer, user) : false,
     followRequestSent: !!viewer && state.followRequests.some(request =>
       request.requesterId === viewer.id && request.targetId === user.id
@@ -487,7 +494,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     })),
     toggleFollow: (userId) => {
       const target = state.users.find(user => user.id === userId);
-      if (!viewer || !target || target.id === viewer.id) return;
+      if (!viewer || !target || target.id === viewer.id || blockedUserIdSet.has(userId)) return;
       const pendingRequest = state.followRequests.find(request =>
         request.requesterId === viewer.id && request.targetId === userId
       );
@@ -541,6 +548,13 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "UPDATE_USER", user: updatedTarget });
       if (currentUser && state.users.some(user => user.id === currentUser.id))
         dispatch({ type: "UPDATE_USER", user: updatedViewer });
+    },
+    blockUser: (userId) => {
+      if (!viewer || userId === viewer.id || !state.users.some(user => user.id === userId)) return;
+      if (!blockedUserIdSet.has(userId)) toggleBlockedUser(userId);
+    },
+    unblockUser: (userId) => {
+      if (blockedUserIdSet.has(userId)) toggleBlockedUser(userId);
     },
     acceptFollowRequest: (requestId) => {
       const targetAccount = currentUser;
@@ -684,7 +698,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       const message = makeDemoMessage(conversation, currentUser?.id, content);
       const recipients = conversation?.participantIds
         .filter(id => id !== currentUser?.id)
-        .map(id => state.users.find(user => user.id === id));
+        .map(id => users.find(user => user.id === id));
       if (recipients?.some(recipient => !recipient))
         throw new ContentServiceError("A pessoa desta conversa não está disponível.", 404);
       if (recipients?.some(recipient => recipient?.isBlocked))

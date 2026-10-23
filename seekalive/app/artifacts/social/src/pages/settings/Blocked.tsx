@@ -6,14 +6,12 @@ import { SettingsSubheader } from "./SettingsSubheader";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsBlocked() {
-  const { users, updateUser } = useSocial();
+  const { users, unblockUser } = useSocial();
   const { toast } = useToast();
   const blocked = users.filter((u) => u.isBlocked);
 
   function unblock(userId: string) {
-    const user = users.find(item => item.id === userId);
-    if (!user) return;
-    updateUser({ ...user, isBlocked: false });
+    unblockUser(userId);
     toast({ title: "Bloqueio removido", description: "A alteração foi salva neste navegador." });
   }
 
@@ -53,7 +51,7 @@ export default function SettingsBlocked() {
                 type="button"
                 onClick={() => unblock(user.id)}
                 data-testid={`button-unblock-${user.id}`}
-                className="shrink-0 px-4 py-1.5 rounded-full border border-border text-xs font-semibold text-muted-foreground opacity-60 cursor-not-allowed"
+                className="shrink-0 px-4 py-1.5 rounded-full border border-border text-xs font-semibold text-foreground hover:border-primary hover:text-primary transition-colors"
               >
                 Desbloquear
               </button>

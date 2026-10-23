@@ -11,9 +11,14 @@ export function localActorId(accountId?: string | null): string {
   return accountId?.trim() || (import.meta.env.DEV ? "me" : "guest");
 }
 
-function readIds(key: string, storage: BrowserStorageKind): string[] {
+export function readAccountScopedIds(
+  baseKey: string,
+  accountId: string,
+  storage: BrowserStorageKind = "localStorage",
+): string[] {
   if (typeof window === "undefined") return [];
   try {
+    const key = accountStorageKey(baseKey, accountId);
     const value: unknown = JSON.parse(window[storage].getItem(key) ?? "[]");
     return Array.isArray(value)
       ? [...new Set(value.filter((item): item is string => typeof item === "string"))]
@@ -23,9 +28,15 @@ function readIds(key: string, storage: BrowserStorageKind): string[] {
   }
 }
 
-function writeIds(key: string, storage: BrowserStorageKind, ids: string[]) {
+export function writeAccountScopedIds(
+  baseKey: string,
+  accountId: string,
+  ids: string[],
+  storage: BrowserStorageKind = "localStorage",
+) {
   if (typeof window === "undefined") return;
   try {
+    const key = accountStorageKey(baseKey, accountId);
     window[storage].setItem(key, JSON.stringify([...new Set(ids)]));
   } catch {
     console.warn("Could not save account-specific data in this browser.");
@@ -39,16 +50,16 @@ export function useAccountScopedIds(
   storage: BrowserStorageKind = "localStorage",
 ) {
   const key = accountStorageKey(baseKey, accountId);
-  const [snapshot, setSnapshot] = useState(() => ({ key, ids: readIds(key, storage) }));
-  const ids = snapshot.key === key ? snapshot.ids : readIds(key, storage);
+  const [snapshot, setSnapshot] = useState(() => ({ key, ids: readAccountScopedIds(baseKey, accountId, storage) }));
+  const ids = snapshot.key === key ? snapshot.ids : readAccountScopedIds(baseKey, accountId, storage);
 
   useEffect(() => {
-    if (snapshot.key !== key) setSnapshot({ key, ids: readIds(key, storage) });
-  }, [key, storage, snapshot.key]);
+    if (snapshot.key !== key) setSnapshot({ key, ids: readAccountScopedIds(baseKey, accountId, storage) });
+  }, [baseKey, accountId, key, storage, snapshot.key]);
 
   function toggle(id: string) {
     const next = ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id];
-    writeIds(key, storage, next);
+    writeAccountScopedIds(baseKey, accountId, next, storage);
     setSnapshot({ key, ids: next });
   }
 

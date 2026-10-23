@@ -30,7 +30,7 @@ export default function Profile() {
   const [showMenu, setShowMenu] = useState(false);
   const { toast } = useToast();
 
-  const { users, posts, repostEntries, postComments, toggleFollow } = useSocial();
+  const { users, posts, repostEntries, postComments, toggleFollow, blockUser, unblockUser } = useSocial();
   const { currentUser: signedInUser } = useAppContext();
   const viewer = signedInUser ?? (import.meta.env.DEV ? mockCurrentUser : null);
   if (!viewer) {
@@ -86,8 +86,29 @@ export default function Profile() {
   const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
 
   function handleFollow() {
-    if (isMe) return;
+    if (isMe || user.isBlocked) return;
     toggleFollow(user.id);
+  }
+
+  function handleBlockToggle() {
+    if (user.isBlocked) {
+      unblockUser(user.id);
+      toast({ title: "Bloqueio removido", description: "A alteração foi salva neste navegador." });
+    } else {
+      blockUser(user.id);
+      toast({ title: "Perfil bloqueado", description: "Você não verá o conteúdo deste perfil." });
+    }
+    setShowMenu(false);
+  }
+
+  if (!isMe && user.isBlocked) {
+    return (
+      <UnavailableState
+        title="Perfil bloqueado"
+        description="Você bloqueou este perfil. O conteúdo dele não aparece para você."
+        action={<Button variant="outline" onClick={handleBlockToggle}>Desbloquear perfil</Button>}
+      />
+    );
   }
 
   if (!isMe && user.isPrivate && !following) {
@@ -107,6 +128,17 @@ export default function Profile() {
           </p>
           <Button onClick={handleFollow} className="mt-5 rounded-full" variant={followRequested ? "outline" : "default"}>
             {followRequested ? "Cancelar solicitação" : "Solicitar para seguir"}
+          </Button>
+          <Button
+            variant="outline"
+            className="mt-2 rounded-full"
+            onClick={() => {
+              blockUser(user.id);
+              toast({ title: "Perfil bloqueado", description: "Você não verá o conteúdo deste perfil." });
+            }}
+            data-testid="button-block-private-profile"
+          >
+            Bloquear perfil
           </Button>
         </div>
       </div>
@@ -196,19 +228,32 @@ export default function Profile() {
                           exit={{ opacity: 0, scale: 0.95, y: -4 }}
                           className="absolute right-0 top-10 w-44 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50"
                         >
-                          {["Silenciar", "Bloquear", "Denunciar"].map(action => (
-                            <button
-                              key={action}
-                              type="button"
-                              disabled
-                              aria-disabled="true"
-                              className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
-                              data-testid={`action-${action.toLowerCase()}`}
-                            >
-                              {action}
-                              <span className="block text-[11px]">Indisponível nesta versão</span>
-                            </button>
-                          ))}
+                          <button
+                            type="button"
+                            disabled
+                            aria-disabled="true"
+                            className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
+                            data-testid="action-silenciar"
+                          >
+                            Silenciar<span className="block text-[11px]">Indisponível nesta versão</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBlockToggle}
+                            className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50"
+                            data-testid="action-bloquear"
+                          >
+                            {user.isBlocked ? "Desbloquear" : "Bloquear"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled
+                            aria-disabled="true"
+                            className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
+                            data-testid="action-denunciar"
+                          >
+                            Denunciar<span className="block text-[11px]">Indisponível nesta versão</span>
+                          </button>
                           <button
                             type="button"
                             className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
