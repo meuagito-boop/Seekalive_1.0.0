@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "test:security-boundaries": "tsx --test ./src/security-boundaries.test.ts",
+    "test:security-boundaries": "tsx --test ./src/security-boundaries.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

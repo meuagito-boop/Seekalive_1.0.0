@@ -44,8 +44,12 @@ export function assertLocalReferences(value: unknown, location = "$"): void {
 // Our exports make assumptions about the title of the API being "Api" (i.e. generated output is `api.ts`).
 const titleTransformer: InputTransformerFn = (config) => {
   assertLocalReferences(config);
-  config.info ??= {};
-  config.info.title = "Api";
+  const existingInfo = config.info;
+  config.info = {
+    ...(existingInfo ?? {}),
+    title: "Api",
+    version: existingInfo?.version ?? "0.0.0",
+  };
 
   return config;
 };
@@ -65,8 +69,10 @@ export default defineConfig({
       mode: "split",
       baseUrl: "/api",
       clean: true,
-      prettier: true,
       override: {
+        query: {
+          version: 5,
+        },
         fetch: {
           includeHttpResponseReturnType: false,
         },
@@ -91,7 +97,6 @@ export default defineConfig({
       schemas: { path: "generated/types", type: "typescript" },
       mode: "split",
       clean: true,
-      prettier: true,
       override: {
         zod: {
           coerce: {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createTrustProxy } from "../../Aplicativo/back/src/security/trustProxy";
-import { assertLocalReferences } from "../../shared/api-spec/orval.config";
+import { createTrustProxy } from "../../Aplicativo/back/src/security/trustProxy.ts";
+import { assertLocalReferences } from "../../shared/api-spec/orval.config.ts";
 
 test("proxy forwarding is ignored unless proxy CIDRs are explicitly configured", () => {
   assert.equal(createTrustProxy(), false);
