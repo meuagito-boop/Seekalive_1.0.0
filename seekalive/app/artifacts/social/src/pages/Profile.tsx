@@ -93,7 +93,12 @@ export default function Profile() {
   function handleBlockToggle() {
     if (user.isBlockedByViewer) {
       unblockUser(user.id);
-      toast({ title: "Bloqueio removido", description: "A alteração foi salva neste navegador." });
+      toast({
+        title: "Seu bloqueio foi removido",
+        description: user.blocksViewer
+          ? "Esta conta também bloqueou você e pode continuar indisponível."
+          : "A alteração foi salva neste navegador.",
+      });
     } else {
       blockUser(user.id);
       toast({ title: "Perfil bloqueado", description: "Você não verá o conteúdo deste perfil." });
@@ -103,14 +108,17 @@ export default function Profile() {
 
   if (!isMe && user.isBlocked) {
     const blockedByViewer = !!user.isBlockedByViewer;
+    const mutualBlock = blockedByViewer && !!user.blocksViewer;
     return (
       <UnavailableState
-        title={blockedByViewer ? "Perfil bloqueado" : "Perfil indisponível"}
-        description={blockedByViewer
-          ? "Você bloqueou este perfil. O conteúdo não aparece para você nem para a outra conta."
+        title={mutualBlock ? "Bloqueio mútuo" : blockedByViewer ? "Perfil bloqueado" : "Perfil indisponível"}
+        description={mutualBlock
+          ? "Você bloqueou esta conta e ela também bloqueou você. Remover o seu bloqueio não remove o bloqueio iniciado pela outra conta."
+          : blockedByViewer
+            ? "Você bloqueou este perfil. Perfis, conteúdos e interações entre vocês estão indisponíveis para ambos."
           : "Esta conta bloqueou o seu perfil. Perfis, conteúdos e interações entre vocês estão indisponíveis."}
         action={blockedByViewer
-          ? <Button variant="outline" onClick={handleBlockToggle}>Desbloquear perfil</Button>
+          ? <Button variant="outline" onClick={handleBlockToggle}>{mutualBlock ? "Remover meu bloqueio" : "Desbloquear perfil"}</Button>
           : <Button variant="outline" onClick={handleBlockToggle}>Bloquear também</Button>}
       />
     );

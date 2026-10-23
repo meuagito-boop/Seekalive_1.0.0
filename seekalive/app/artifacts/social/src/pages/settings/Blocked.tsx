@@ -11,8 +11,14 @@ export default function SettingsBlocked() {
   const blocked = users.filter((u) => u.isBlockedByViewer);
 
   function unblock(userId: string) {
+    const remainsBlockedByOther = blocked.find(user => user.id === userId)?.blocksViewer;
     unblockUser(userId);
-    toast({ title: "Bloqueio removido", description: "A alteração foi salva neste navegador." });
+    toast({
+      title: "Seu bloqueio foi removido",
+      description: remainsBlockedByOther
+        ? "Este perfil também bloqueou você e pode continuar indisponível."
+        : "A alteração foi salva neste navegador.",
+    });
   }
 
   return (
