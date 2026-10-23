@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
-import authRouter from "./auth";
-import healthRouter from "./health";
-import onboardingRouter from "./onboarding";
-import accountsRouter from "./accounts";
-import relationsRouter from "./relations";
+import authRouter from "./auth/presentation/routes";
+import healthRouter from "./health/presentation/routes";
+import onboardingRouter from "./onboarding/presentation/routes";
+import accountsRouter from "./profiles/presentation/routes";
+import relationsRouter from "./social/presentation/routes";
 
 const router: IRouter = Router();
 

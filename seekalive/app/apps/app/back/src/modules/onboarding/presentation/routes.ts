@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { accountInterests, accounts, db } from "@workspace/db";
 import { onboardingCompletionSchema } from "@workspace/api-zod";
-import { loadActiveSession, requireCsrf } from "../lib/auth/security";
+import { loadActiveSession, requireCsrf } from "../../../security/session";
 
 const router: IRouter = Router();
 

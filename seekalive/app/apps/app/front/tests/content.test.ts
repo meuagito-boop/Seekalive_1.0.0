@@ -186,15 +186,15 @@ test("bloquear cancela solicitações pendentes nas duas direções", () => {
 });
 test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
   const socialSource = readFileSync(
-    join(process.cwd(), "artifacts/social/src/context/SocialContext.tsx"),
+    join(process.cwd(), "apps/app/front/src/context/SocialContext.tsx"),
     "utf8",
   );
   const blockedPageSource = readFileSync(
-    join(process.cwd(), "artifacts/social/src/pages/settings/Blocked.tsx"),
+    join(process.cwd(), "apps/app/front/src/pages/settings/Blocked.tsx"),
     "utf8",
   );
   const profileSource = readFileSync(
-    join(process.cwd(), "artifacts/social/src/pages/Profile.tsx"),
+    join(process.cwd(), "apps/app/front/src/pages/Profile.tsx"),
     "utf8",
   );
   assert.match(socialSource, /useAccountScopedIds\("seekalive-blocked-users", actorId\)/);
@@ -239,7 +239,7 @@ test("seguimentos escolhidos no onboarding permanecem vinculados à conta no nav
 });
 test("alteração de nome de usuário sincroniza as fontes da conta e do Social", () => {
   const source = readFileSync(
-    join(process.cwd(), "artifacts/social/src/pages/settings/Account.tsx"),
+    join(process.cwd(), "apps/app/front/src/pages/settings/Account.tsx"),
     "utf8",
   );
   const usernameHandler = source.split("function submitUsername")[1]?.split("const disabledField")[0] ?? "";
@@ -281,7 +281,7 @@ test("notificações contêm apenas recursos mantidos no aplicativo", () => {
   assert.ok(mockNotifications.every(notification => allowed.has(notification.type)));
 });
 test("marca Elo usa Seekalive e o mesmo símbolo no app e favicon", () => {
-  const root = join(process.cwd(), "artifacts/social");
+  const root = join(process.cwd(), "apps/app/front");
   const html = readFileSync(join(root, "index.html"), "utf8");
   assert.match(html, /<title>Seekalive<\/title>/);
   assert.match(html, /apple-touch-icon/);
@@ -299,7 +299,7 @@ test("marca Elo usa Seekalive e o mesmo símbolo no app e favicon", () => {
 });
 
 test("mover menu não remove Social nem troca os destinos da barra inferior", () => {
-  const root = join(process.cwd(), "artifacts/social/src");
+  const root = join(process.cwd(), "apps/app/front/src");
   const bottom = readFileSync(join(root, "components/layout/BottomNav.tsx"), "utf8");
   const sidebar = readFileSync(join(root, "components/social/SocialSidebar.tsx"), "utf8");
   assert.match(bottom, /href="\/seek" aria-label="Seek"/);
@@ -312,7 +312,7 @@ test("mover menu não remove Social nem troca os destinos da barra inferior", ()
   assert.doesNotMatch(sidebar, /<SectionLabel>Explorar<\/SectionLabel>/);
 });
 test("comunidades não retornam em rotas, páginas, dados ou navegação", () => {
-  const root = join(process.cwd(), "artifacts/social/src");
+  const root = join(process.cwd(), "apps/app/front/src");
   const violations: string[] = [];
   function inspect(directory: string) {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {

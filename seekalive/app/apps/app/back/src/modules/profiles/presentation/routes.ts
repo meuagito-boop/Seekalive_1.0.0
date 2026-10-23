@@ -2,7 +2,7 @@ import { and, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { accountEmails, accountFollows, accountFollowRequests, accountBlocks, accounts, db } from "@workspace/db";
 import { accountPatchSchema, privacyWriteSchema } from "@workspace/api-zod";
-import { createAuthRateLimit, loadActiveSession, requireCsrf } from "../lib/auth/security";
+import { createAuthRateLimit, loadActiveSession, requireCsrf } from "../../../security/session";
 
 const router: IRouter = Router();
 const emptyPage = { items: [], nextCursor: null };

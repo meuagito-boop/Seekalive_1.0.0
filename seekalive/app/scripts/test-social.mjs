@@ -4,15 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-const require = createRequire(new URL("../artifacts/api-server/package.json", import.meta.url));
+const require = createRequire(new URL("../apps/app/back/package.json", import.meta.url));
 const { build } = require("esbuild");
 const directory = await mkdtemp(join(tmpdir(), "seekalive-tests-"));
 try {
   const outfile = join(directory, "content.test.cjs");
   await build({
-    entryPoints: ["artifacts/social/tests/content.test.ts"], outfile,
+    entryPoints: ["apps/app/front/tests/content.test.ts"], outfile,
     bundle: true, platform: "node", format: "cjs",
-    tsconfig: "artifacts/social/tsconfig.json",
+    tsconfig: "apps/app/front/tsconfig.json",
     define: { "import.meta.env": JSON.stringify({ DEV: true }) },
     logLevel: "error",
   });

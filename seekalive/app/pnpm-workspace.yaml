@@ -35,9 +35,10 @@ minimumReleaseAgeExclude:
   - stripe-replit-sync
 
 packages:
+  - apps/*/*
+  - shared/*
+  - infra/*
   - artifacts/*
-  - lib/*
-  - lib/integrations/*
   - scripts
 
 catalog:

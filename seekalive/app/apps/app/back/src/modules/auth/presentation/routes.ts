@@ -17,7 +17,7 @@ import {
   verificationConfirmSchema,
   verificationRequestSchema,
 } from "@workspace/api-zod";
-import { logger } from "../lib/logger";
+import { logger } from "../../../common/logger";
 import {
   clearSessionCookie,
   constantTimeEquals,
@@ -32,12 +32,12 @@ import {
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
   setSessionCookie,
-} from "../lib/auth/security";
+} from "../../../security/session";
 import {
   authEmailDelivery,
   EmailDeliveryUnavailableError,
   type AuthEmailDelivery,
-} from "../lib/auth/emailDelivery";
+} from "../infrastructure/emailDelivery";
 
 const router: IRouter = Router();
 const CURRENT_TERMS_VERSION = "v1";
