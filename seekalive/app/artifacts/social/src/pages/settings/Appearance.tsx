@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { SettingsSubheader, SectionTitle } from "./SettingsSubheader";
 import { getAppearancePreferences, saveAppearancePreferences } from "@/data/appPreferences";
+import { useAppContext } from "@/context/AppContext";
+import { localActorId } from "@/data/accountScopedStorage";
 
 const fontSizes = [
   { label: "Padrão", px: 16 },
@@ -16,7 +18,13 @@ function currentRootSize(): number {
 }
 
 export default function SettingsAppearance() {
-  const [size, setSize] = useState<number>(() => getAppearancePreferences().fontSize || currentRootSize());
+  const { currentUser } = useAppContext();
+  const accountId = localActorId(currentUser?.id);
+  const [size, setSize] = useState<number>(() => getAppearancePreferences(accountId).fontSize || currentRootSize());
+
+  useEffect(() => {
+    setSize(getAppearancePreferences(accountId).fontSize || currentRootSize());
+  }, [accountId]);
 
   useEffect(() => {
     if (size === 16) document.documentElement.style.removeProperty("font-size");
@@ -25,7 +33,7 @@ export default function SettingsAppearance() {
 
   function applySize(px: number) {
     setSize(px);
-    saveAppearancePreferences({ fontSize: px as 16 | 18 | 20 });
+    saveAppearancePreferences({ fontSize: px as 16 | 18 | 20 }, accountId);
   }
 
   return (

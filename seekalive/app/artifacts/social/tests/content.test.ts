@@ -12,6 +12,13 @@ import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/services/mediaService";
 import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters";
 import { saveStoredSeekReviews } from "../src/data/reviewStorage";
+import { accountStorageKey } from "../src/data/accountScopedStorage";
+import {
+  getSocialAccountActivity,
+  readSocialAccountActivityMap,
+  saveSocialAccountActivityMap,
+  updateSocialAccountActivity,
+} from "../src/data/socialAccountActivityStorage";
 
 const input: PublishPostInput = { content: "Minha opinião #café", authorId: "me", audience: "public" };
 const post = makeDemoPost(input);
@@ -47,6 +54,41 @@ test("falha de armazenamento de avaliação não simula sucesso", () => {
   });
   try {
     assert.throws(() => saveStoredSeekReviews([]), /Não foi possível salvar a avaliação/);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "window", previous);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
+});
+test("ações sociais locais ficam isoladas por conta e sobrevivem à releitura do navegador", () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const storage = new Map<string, string>();
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem(key: string) { return storage.get(key) ?? null; },
+        setItem(key: string, value: string) { storage.set(key, value); },
+      },
+    },
+  });
+  try {
+    assert.notEqual(accountStorageKey("saved", "conta-a"), accountStorageKey("saved", "conta-b"));
+    let activities = readSocialAccountActivityMap();
+    activities = updateSocialAccountActivity(activities, "conta-a", current => ({
+      ...current,
+      likedPostIds: ["post-1"],
+    }));
+    activities = updateSocialAccountActivity(activities, "conta-b", current => ({
+      ...current,
+      bookmarkedPostIds: ["post-1"],
+    }));
+    assert.equal(saveSocialAccountActivityMap(activities), true);
+
+    const reloaded = readSocialAccountActivityMap();
+    assert.deepEqual(getSocialAccountActivity(reloaded, "conta-a").likedPostIds, ["post-1"]);
+    assert.deepEqual(getSocialAccountActivity(reloaded, "conta-a").bookmarkedPostIds, []);
+    assert.deepEqual(getSocialAccountActivity(reloaded, "conta-b").likedPostIds, []);
+    assert.deepEqual(getSocialAccountActivity(reloaded, "conta-b").bookmarkedPostIds, ["post-1"]);
   } finally {
     if (previous) Object.defineProperty(globalThis, "window", previous);
     else Reflect.deleteProperty(globalThis, "window");

@@ -1,3 +1,5 @@
+import { accountStorageKey } from "@/data/accountScopedStorage";
+
 import type { DiscoveryLocation } from "@/lib/seekDiscovery";
 import { normalizeSeekText } from "@/lib/seekFilters";
 
@@ -73,9 +75,9 @@ export function validManualLocation(value: unknown): value is DiscoveryLocation 
     && typeof location.state === "string" && /^[A-Z]{2}$/.test(location.state);
 }
 
-export function readRecentLocations(): DiscoveryLocation[] {
+export function readRecentLocations(accountId?: string): DiscoveryLocation[] {
   try {
-    const parsed: unknown = JSON.parse(sessionStorage.getItem(RECENTS_KEY) ?? "[]");
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(accountStorageKey(RECENTS_KEY, accountId)) ?? "[]");
     return Array.isArray(parsed) ? parsed.filter(validManualLocation).slice(0, 5)
       .map(({ id, city, state }) => ({ id, city, state, source: "manual", label: `${city}, ${state} · Brasil` })) : [];
   } catch {
@@ -83,11 +85,12 @@ export function readRecentLocations(): DiscoveryLocation[] {
   }
 }
 
-export function rememberManualLocation(location: DiscoveryLocation) {
+export function rememberManualLocation(location: DiscoveryLocation, accountId?: string) {
   if (!validManualLocation(location)) return;
-  const previous = readRecentLocations();
+  const key = accountStorageKey(RECENTS_KEY, accountId);
+  const previous = readRecentLocations(accountId);
   // Explicitly omit coordinates; only city preference is kept for this browser tab.
-  sessionStorage.setItem(RECENTS_KEY, JSON.stringify([
+  sessionStorage.setItem(key, JSON.stringify([
     { id: location.id, city: location.city, state: location.state, label: `${location.city}, ${location.state} · Brasil`, source: "manual" },
     ...previous.filter(city => city.id !== location.id),
   ].slice(0, 5)));

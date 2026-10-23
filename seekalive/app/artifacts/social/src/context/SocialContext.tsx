@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useReducer, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useState, ReactNode } from "react";
 import {
   Post, User, Notification, Conversation, Message, SeekReview, FollowRequest,
   mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages, mockSeekReviews,
@@ -14,6 +14,13 @@ import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/co
 import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
 import { getPrivacyPreferences } from "@/data/appPreferences";
+import {
+  getSocialAccountActivity,
+  readSocialAccountActivityMap,
+  saveSocialAccountActivityMap,
+  updateSocialAccountActivity,
+} from "@/data/socialAccountActivityStorage";
+import type { SocialAccountActivity } from "@/data/socialAccountActivityStorage";
 import { areMutualFollowers, viewerFollowsUser } from "@/lib/followRelationships";
 
 // ── State shape ──────────────────────────────────────────────────────
@@ -233,7 +240,7 @@ export function socialReducer(state: SocialState, action: Action): SocialState {
 // ── Initial state ─────────────────────────────────────────────────────
 const initialState: SocialState = {
   posts: import.meta.env.DEV
-    ? [...demoIntegrationPosts, ...mockPosts].map(p => ({ ...p, isBookmarked: false, isReposted: false }))
+    ? [...demoIntegrationPosts, ...mockPosts].map(p => ({ ...p, isLiked: false, isBookmarked: false, isReposted: false }))
     : [],
   users: import.meta.env.DEV ? [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts] : [],
   notifications: import.meta.env.DEV ? [...mockNotifications] : [],
@@ -301,6 +308,66 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
   const { currentUser, updateAccount } = useAppContext();
   const viewer = currentUser ?? (import.meta.env.DEV ? demoCurrentUser : null);
+  const actorId = currentUser?.id ?? viewer?.id ?? "guest";
+  const [activityByAccount, setActivityByAccount] = useState(readSocialAccountActivityMap);
+  const accountActivity = useMemo(
+    () => getSocialAccountActivity(activityByAccount, actorId),
+    [activityByAccount, actorId],
+  );
+  const accountActivities = Object.values(activityByAccount);
+  const posts = state.posts.map(post => ({
+    ...post,
+    isLiked: accountActivity.likedPostIds.includes(post.id),
+    isBookmarked: accountActivity.bookmarkedPostIds.includes(post.id),
+    isReposted: accountActivity.reposts.some(repost => repost.postId === post.id),
+    likes: post.likes + accountActivities.filter(activity => activity.likedPostIds.includes(post.id)).length,
+    reposts: post.reposts + accountActivities.reduce(
+      (count, activity) => count + activity.reposts.filter(repost => repost.postId === post.id).length,
+      0,
+    ),
+  }));
+  const postComments = state.postComments.map(comment => ({
+    ...comment,
+    isLiked: accountActivity.likedCommentIds.includes(comment.id),
+    likes: comment.likes + accountActivities.filter(activity => activity.likedCommentIds.includes(comment.id)).length,
+  }));
+  const repostEntries = [
+    ...state.repostEntries,
+    ...accountActivities.flatMap(activity => activity.reposts),
+  ].filter((entry, index, entries) => entries.findIndex(candidate => candidate.id === entry.id) === index);
+  const visibleNotifications = state.notifications
+    .filter(notification => notification.recipientId
+      ? notification.recipientId === actorId
+      : actorId === demoCurrentUser.id)
+    .map(notification => ({
+      ...notification,
+      isRead: accountActivity.readNotificationIds.includes(notification.id)
+        || (actorId === demoCurrentUser.id && notification.isRead),
+    }));
+  const visibleConversations = state.conversations
+    .filter(conversation => conversation.participantIds.includes(actorId))
+    .map(conversation => ({
+      ...conversation,
+      unreadCount: accountActivity.readConversationIds.includes(conversation.id) ? 0 : conversation.unreadCount,
+    }));
+  const visibleConversationIds = new Set(visibleConversations.map(conversation => conversation.id));
+  const visibleMessages = state.messages
+    .filter(message => visibleConversationIds.has(message.conversationId))
+    .map(message => ({
+      ...message,
+      isRead: message.senderId === actorId
+        ? message.isRead
+        : accountActivity.readMessageIds.includes(message.id)
+          || (actorId === demoCurrentUser.id && message.isRead),
+    }));
+
+  function updateCurrentActivity(
+    update: (current: SocialAccountActivity) => SocialAccountActivity,
+  ) {
+    const next = updateSocialAccountActivity(activityByAccount, actorId, update);
+    saveSocialAccountActivityMap(next);
+    setActivityByAccount(next);
+  }
   useEffect(() => {
     saveStoredFollowRequests(state.followRequests);
   }, [state.followRequests]);
@@ -334,27 +401,51 @@ export function SocialProvider({ children }: { children: ReactNode }) {
 
   const ctx: SocialContextType = {
     ...state,
+    posts,
+    postComments,
+    repostEntries,
+    notifications: visibleNotifications,
+    conversations: visibleConversations,
+    messages: visibleMessages,
     users,
     dispatch,
 
-    getPostById: (id) => state.posts.find(p => p.id === id),
+    getPostById: (id) => posts.find(p => p.id === id),
     getUserById: (id) => {
       if (id === currentUser?.id) return currentUser;
       if (id === "me") return currentUser ?? (import.meta.env.DEV ? demoCurrentUser : undefined);
       return users.find(u => u.id === id);
     },
-    getConversationMessages: (convId) => currentUser && state.conversations.some(c => c.id === convId && c.participantIds.includes(currentUser.id))
-      ? state.messages.filter(m => m.conversationId === convId) : [],
-    unreadNotifications: state.notifications.filter(n => !n.isRead).length,
-    unreadMessages: state.conversations.filter(c => currentUser && c.participantIds.includes(currentUser.id)).reduce((acc, c) => acc + c.unreadCount, 0),
+    getConversationMessages: (convId) => visibleConversationIds.has(convId)
+      ? visibleMessages.filter(message => message.conversationId === convId) : [],
+    unreadNotifications: visibleNotifications.filter(notification => !notification.isRead).length,
+    unreadMessages: visibleConversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
     incomingFollowRequests: state.followRequests.filter(request => request.targetId === currentUser?.id),
 
-    toggleLike: (postId) => dispatch({ type: "TOGGLE_LIKE", postId }),
+    toggleLike: (postId) => updateCurrentActivity(current => ({
+      ...current,
+      likedPostIds: current.likedPostIds.includes(postId)
+        ? current.likedPostIds.filter(id => id !== postId)
+        : [...current.likedPostIds, postId],
+    })),
     toggleRepost: (postId, actorId = currentUser?.id ?? "") => {
       assertSession(actorId);
       const post = assertReadable(postId);
       if (post.audience !== "public") throw new ContentServiceError("Somente publicações públicas podem ser repostadas.", 403);
-      dispatch({ type: "TOGGLE_REPOST", postId, actorId });
+      updateCurrentActivity(current => {
+        const existing = current.reposts.some(repost => repost.postId === postId);
+        return {
+          ...current,
+          reposts: existing
+            ? current.reposts.filter(repost => repost.postId !== postId)
+            : [...current.reposts, {
+                id: `repost_${actorId}_${postId}`,
+                postId,
+                authorId: actorId,
+                createdAt: new Date().toISOString(),
+              }],
+        };
+      });
     },
     publishPost: async (input) => {
       assertSession(input.authorId);
@@ -375,7 +466,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       const comment = state.postComments.find(item => item.id === commentId);
       if (!comment) throw new ContentServiceError("Comentário indisponível.", 404);
       assertReadable(comment.postId);
-      dispatch({ type: "TOGGLE_COMMENT_LIKE", commentId });
+      updateCurrentActivity(current => ({
+        ...current,
+        likedCommentIds: current.likedCommentIds.includes(commentId)
+          ? current.likedCommentIds.filter(id => id !== commentId)
+          : [...current.likedCommentIds, commentId],
+      }));
     },
     deletePost: async (postId, authorId) => {
       assertSession(authorId);
@@ -383,7 +479,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       if (post.authorId !== authorId) throw new ContentServiceError("Somente o autor pode excluir a publicação.", 403);
       dispatch({ type: "DELETE_POST", postId });
     },
-    toggleBookmark: (postId) => dispatch({ type: "TOGGLE_BOOKMARK", postId }),
+    toggleBookmark: (postId) => updateCurrentActivity(current => ({
+      ...current,
+      bookmarkedPostIds: current.bookmarkedPostIds.includes(postId)
+        ? current.bookmarkedPostIds.filter(id => id !== postId)
+        : [...current.bookmarkedPostIds, postId],
+    })),
     toggleFollow: (userId) => {
       const target = state.users.find(user => user.id === userId);
       if (!viewer || !target || target.id === viewer.id) return;
@@ -552,11 +653,31 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         isReposted: false,
       },
     }),
-    markAllNotificationsRead: () => dispatch({ type: "MARK_ALL_NOTIFICATIONS_READ" }),
-    markNotificationRead: (id) => dispatch({ type: "MARK_NOTIFICATION_READ", id }),
+    markAllNotificationsRead: () => updateCurrentActivity(current => ({
+      ...current,
+      readNotificationIds: [...new Set([...current.readNotificationIds, ...visibleNotifications.map(notification => notification.id)])],
+    })),
+    markNotificationRead: (id) => {
+      if (!visibleNotifications.some(notification => notification.id === id)) return;
+      updateCurrentActivity(current => ({
+        ...current,
+        readNotificationIds: current.readNotificationIds.includes(id)
+          ? current.readNotificationIds
+          : [...current.readNotificationIds, id],
+      }));
+    },
     markConversationRead: (convId) => {
-      if (currentUser && state.conversations.some(c => c.id === convId && c.participantIds.includes(currentUser.id)))
-        dispatch({ type: "MARK_CONVERSATION_READ", convId });
+      if (!visibleConversationIds.has(convId)) return;
+      const messageIds = state.messages
+        .filter(message => message.conversationId === convId && message.senderId !== actorId)
+        .map(message => message.id);
+      updateCurrentActivity(current => ({
+        ...current,
+        readConversationIds: current.readConversationIds.includes(convId)
+          ? current.readConversationIds
+          : [...current.readConversationIds, convId],
+        readMessageIds: [...new Set([...current.readMessageIds, ...messageIds])],
+      }));
     },
     sendMessage: (convId, content) => {
       const conversation = state.conversations.find(item => item.id === convId);

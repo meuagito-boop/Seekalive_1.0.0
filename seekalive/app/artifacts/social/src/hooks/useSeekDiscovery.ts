@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
 import { mockUsers } from "@/data/mockData";
 import { demoSeekEvents } from "@/data/demoSeekEvents";
 import { demoSeekAccounts } from "@/data/demoSeekAccounts";
+import { accountStorageKey, localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
 import { buildSeekItems, defaultDiscoveryFilters, filterDiscovery, validateDiscoveryFilters } from "@/lib/seekDiscovery";
 import type { DiscoveryFilters, DiscoveryLocation } from "@/lib/seekDiscovery";
 import { readRecentLocations, rememberManualLocation } from "@/services/seekLocationService";
@@ -14,24 +16,31 @@ const SCROLL_KEY = "seekalive-seek-scroll";
 const exampleIds = import.meta.env.DEV
   ? new Set([...mockUsers, ...demoSeekAccounts].map(user => user.id))
   : new Set<string>();
-const demoEventIds = import.meta.env.DEV ? new Set(demoSeekEvents.map(event => event.id)) : new Set<string>();
 const EXAMPLES_KEY = "seekalive-seek-demo-preview";
 
-function readFilters(): DiscoveryFilters {
-  try { return validateDiscoveryFilters(JSON.parse(sessionStorage.getItem(FILTER_KEY) ?? "null")); }
+function readFilters(key: string): DiscoveryFilters {
+  try { return validateDiscoveryFilters(JSON.parse(sessionStorage.getItem(key) ?? "null")); }
   catch { return { ...defaultDiscoveryFilters }; }
-}
-function readIds(key: string, storage: "localStorage" | "sessionStorage"): string[] {
-  try {
-    const value: unknown = JSON.parse(window[storage].getItem(key) ?? "[]");
-    return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : [];
-  } catch { return []; }
 }
 
 export function useSeekDiscovery() {
   const { users, reviews } = useSocial();
-  const [state, updateState] = useState(readFilters);
-  const [location, updateLocation] = useState<DiscoveryLocation | null>(() => readRecentLocations()[0] ?? null);
+  const { currentUser } = useAppContext();
+  const actorId = localActorId(currentUser?.id);
+  const filterKey = accountStorageKey(FILTER_KEY, actorId);
+  const [filterSnapshot, setFilterSnapshot] = useState(() => ({ key: filterKey, value: readFilters(filterKey) }));
+  const state = filterSnapshot.key === filterKey ? filterSnapshot.value : readFilters(filterKey);
+  const [locationSnapshot, setLocationSnapshot] = useState<{ accountId: string; value: DiscoveryLocation | null }>(() => ({
+    accountId: actorId,
+    value: readRecentLocations(actorId)[0] ?? null,
+  }));
+  const location = locationSnapshot.accountId === actorId
+    ? locationSnapshot.value
+    : readRecentLocations(actorId)[0] ?? null;
+  const { ids: savedBusinesses, toggle: toggleSavedBusiness } =
+    useAccountScopedIds(SAVED_KEY, actorId, "localStorage");
+  const { ids: savedEvents, toggle: toggleSavedEvent } =
+    useAccountScopedIds(EVENT_SAVED_KEY, actorId, "sessionStorage");
   const [locationOpen, setLocationOpen] = useState(false);
   const [includeExamples, updateExamples] = useState(() => {
     try { return import.meta.env.DEV && sessionStorage.getItem(EXAMPLES_KEY) !== "false"; }
@@ -41,9 +50,7 @@ export function useSeekDiscovery() {
   const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const [notice, setNotice] = useState<string | null>(null);
   const [reviewBusinessId, setReviewBusinessId] = useState<string | null>(null);
-  const [savedIds, setSavedIds] = useState(() => [
-    ...readIds(SAVED_KEY, "localStorage"), ...readIds(EVENT_SAVED_KEY, "sessionStorage"),
-  ]);
+  const savedIds = [...savedBusinesses, ...savedEvents];
   const items = useMemo(() => buildSeekItems(users, reviews,
     examplesAvailable && includeExamples ? demoSeekEvents.map(event => ({ ...event, isExample: true })) : [],
     exampleIds).filter(item => !item.isExample || (examplesAvailable && includeExamples)), [users, reviews, includeExamples, examplesAvailable]);
@@ -56,9 +63,13 @@ export function useSeekDiscovery() {
     return () => { window.removeEventListener("online", online); window.removeEventListener("offline", online); };
   }, []);
   useEffect(() => {
-    try { sessionStorage.setItem(FILTER_KEY, JSON.stringify(state)); }
-    catch { setNotice("Não foi possível manter os filtros nesta aba do navegador."); }
-  }, [state]);
+    if (filterSnapshot.key !== filterKey)
+      setFilterSnapshot({ key: filterKey, value: readFilters(filterKey) });
+  }, [filterKey, filterSnapshot.key]);
+  useEffect(() => {
+    if (locationSnapshot.accountId !== actorId)
+      setLocationSnapshot({ accountId: actorId, value: readRecentLocations(actorId)[0] ?? null });
+  }, [actorId, locationSnapshot.accountId]);
   useEffect(() => {
     let frame = 0;
     try {
@@ -72,19 +83,20 @@ export function useSeekDiscovery() {
   }, []);
 
   function setState(patch: Partial<DiscoveryFilters>) {
-    updateState(previous => {
-      const next = { ...previous, ...patch };
-      if (patch.tab && patch.tab !== previous.tab) {
-        next.category = patch.category ?? "";
-        if (patch.tab === "events") { next.minimumRating = 0; next.onlyOpen = false; }
-        if (["places", "providers"].includes(patch.tab)) {
-          next.eventPrice = "all";
-          next.eventPeriod = "all";
-          if (next.sort === "date") next.sort = "relevance";
-        }
+    const next = { ...state, ...patch };
+    if (patch.tab && patch.tab !== state.tab) {
+      next.category = patch.category ?? "";
+      if (patch.tab === "events") { next.minimumRating = 0; next.onlyOpen = false; }
+      if (["places", "providers"].includes(patch.tab)) {
+        next.eventPrice = "all";
+        next.eventPeriod = "all";
+        if (next.sort === "date") next.sort = "relevance";
       }
-      return validateDiscoveryFilters(next);
-    });
+    }
+    const validated = validateDiscoveryFilters(next);
+    setFilterSnapshot({ key: filterKey, value: validated });
+    try { sessionStorage.setItem(filterKey, JSON.stringify(validated)); }
+    catch { setNotice("Não foi possível manter os filtros nesta aba do navegador."); }
   }
   function setIncludeExamples(value: boolean) {
     updateExamples(examplesAvailable && value);
@@ -93,32 +105,28 @@ export function useSeekDiscovery() {
   }
   function selectLocation(next: DiscoveryLocation) {
     if (next.source === "manual") {
-      try { rememberManualLocation(next); setNotice(null); }
+      try { rememberManualLocation(next, actorId); setNotice(null); }
       catch { setNotice("A cidade foi selecionada, mas não pôde ser mantida ao sair desta tela."); }
     }
-    updateLocation(next);
+    setLocationSnapshot({ accountId: actorId, value: next });
     setLocationOpen(false);
   }
   function toggleSaved(id: string) {
     const item = items.find(candidate => candidate.id === id);
     if (!item) return;
-    const next = savedIds.includes(id) ? savedIds.filter(saved => saved !== id) : [...savedIds, id];
-    try {
-      if (item.kind === "event") sessionStorage.setItem(EVENT_SAVED_KEY, JSON.stringify(next.filter(saved => demoEventIds.has(saved))));
-      else localStorage.setItem(SAVED_KEY, JSON.stringify(next.filter(saved => !demoEventIds.has(saved))));
-      setSavedIds(next);
-    } catch { setNotice("Não foi possível atualizar os itens salvos. Verifique as permissões de armazenamento do navegador."); }
+    if (item.kind === "event") toggleSavedEvent(id);
+    else toggleSavedBusiness(id);
   }
   const queryHasCity = /\bem\s+\S+/i.test(state.query);
   return {
     items, results, state, setState,
-    clearFilters: () => updateState(previous => ({ ...defaultDiscoveryFilters, tab: previous.tab, list: previous.list })),
+    clearFilters: () => setState({ ...defaultDiscoveryFilters, tab: state.tab, list: state.list }),
     location, selectLocation, locationOpen, setLocationOpen, includeExamples, setIncludeExamples, examplesAvailable,
     offline, savedIds, toggleSaved,
     showAllExamples: () => {
       setIncludeExamples(true);
-      updateState({ ...defaultDiscoveryFilters });
-      updateLocation(null);
+      setState({ ...defaultDiscoveryFilters });
+      setLocationSnapshot({ accountId: actorId, value: null });
     },
     reviewBusiness: users.find(user => user.id === reviewBusinessId && user.accountType === "commercial") ?? null,
     openReviews: setReviewBusinessId, closeReviews: () => setReviewBusinessId(null),

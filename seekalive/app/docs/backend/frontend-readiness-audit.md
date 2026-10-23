@@ -28,11 +28,11 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 | Galeria | Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência | Parcial |
 | Relacionamentos e Círculo | O frontend calcula Círculo pelo seguimento recíproco; “deixar de seguir” remove a associação derivada | Regra alinhada; sem API |
 | Privacidade e bloqueio | Pedidos de seguimento e aprovação funcionam apenas no navegador; a autorização do servidor ainda não existe. Bloqueio não é modelado por relação ator-alvo e “Desbloquear” está desabilitado | Bloqueador para backend |
-| Mensagens e notificações | Estado local/demonstrativo. Não há API, entrega, sincronização entre aparelhos ou leitura por participante no servidor | Bloqueador |
-| Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros locais. Não há busca/avaliações/eventos reais no servidor | Parcial |
+| Mensagens e notificações | Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos | Bloqueador |
+| Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há busca/avaliações/eventos reais no servidor | Parcial |
 | Avaliações | Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500 | Parcial |
-| Shop | Catálogo ilustrativo e salvos no navegador; checkout é explicitamente indisponível | Parcial por escopo |
-| Configurações | Preferências de privacidade/notificações no navegador; recursos de segurança e ações sensíveis explicitamente indisponíveis | Parcial |
+| Shop | Catálogo ilustrativo e itens salvos separados por conta no navegador; checkout é explicitamente indisponível | Parcial por escopo |
+| Configurações | Preferências de privacidade, notificações e aparência separadas por conta no navegador; recursos de segurança e ações sensíveis explicitamente indisponíveis | Parcial |
 
 ## Bloqueios e falhas concretas
 
@@ -65,15 +65,17 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 
 **Frontend concluído para esta regra:** fixtures do produto só aparecem no desenvolvimento; produção não usa sementes fictícias. Antes de publicar com dados reais, conectar os estados vazios aos endpoints e testar o build de produção.
 
-### P1 — Estado relativo ao usuário está guardado em objetos globais
+### Estado relativo ao usuário — isolamento local concluído; integração com backend pendente
 
-- Likes e bookmarks são alternados por ID de publicação e alteram flags da própria publicação; não recebem consistentemente o ator. Em troca de conta no mesmo navegador, o estado pode parecer pertencer a todas as contas.
-- Notificações de exemplo são lidas em conjunto; a página marca todas como lidas automaticamente após três segundos. Isso não representa uma caixa de entrada por destinatário.
-- Preferências de notificação e salvos do Shop usam chaves globais no navegador, sem isolamento por conta.
+- Curtidas, curtidas em comentários, repostagens, publicações salvas e leituras de notificações/mensagens agora ficam registradas por ID da conta no navegador. Contagens compartilhadas são derivadas das ações locais de cada conta.
+- Notificações com destinatário só aparecem para essa conta; notificações de demonstração sem destinatário aparecem apenas na conta demo. A leitura automática após três segundos continua sendo uma regra de interface, mas agora é gravada para a conta ativa.
+- Preferências de notificação/aparência, filtros e cidade recente do Seek, estabelecimentos/eventos salvos e itens salvos do Shop usam escopo por conta. As preferências de privacidade e interesses já eram associadas à conta.
+- Relações, solicitações, publicações, comentários e avaliações continuam como conteúdo compartilhado local e identificado por autor/destinatário; não são preferências do visitante. Isso não substitui autorização no servidor.
+- Chaves globais antigas não são apagadas nem migradas automaticamente: não há como saber a qual conta os valores compartilhados pertenciam. Os novos escopos começam vazios, preservando os valores legados no navegador.
 - `onboarding/Suggestions.tsx` altera apenas um `Set` temporário de perfis mockados; o botão de concluir não persiste as relações de seguir escolhidas.
 - `settings/Account.tsx` atualiza o username no `AppContext`, mas não sincroniza essa alteração com `SocialContext`, podendo deixar o perfil/busca com o valor anterior.
 
-**Antes de integrar:** cada reação, favorito, leitura, relação e preferência precisa ser associada ao usuário autenticado; respostas da API devem devolver projeções do visitante, não flags globais persistidas em posts/contas.
+**Antes de integrar:** o servidor ainda precisa associar cada ação ao usuário autenticado e devolver projeções do visitante. O isolamento atual é apenas uma separação de interface no navegador; não é autorização nem proteção contra alteração do `localStorage`.
 
 ### P1 — Privacidade e segurança só existem parcialmente no frontend
 
@@ -135,9 +137,9 @@ Ainda é necessário validar esses contratos com testes de integração quando a
 
 ## Testes e verificações
 
-Na auditoria:
+Na auditoria e nesta correção:
 
-- `pnpm test:social`: **35 testes aprovados** para regras de conteúdo, privacidade, seguimento, validação, referências e erros do adaptador.
+- `pnpm test:social`: **36 testes aprovados** incluindo isolamento/persistência local de ações sociais por conta, além de regras de conteúdo, privacidade, seguimento, validação, referências e erros do adaptador.
 - `pnpm --filter @workspace/social run typecheck`: aprovado.
 - `pnpm --filter @workspace/social run build`: aprovado anteriormente; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.
 
@@ -147,7 +149,7 @@ Esses resultados comprovam compilação e um conjunto limitado de regras, não a
 
 1. **Concluído no frontend/documentação:** perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.
 2. **Direção escolhida; implementação adiada:** autenticação própria na API. Definir contrato de registro/login, credenciais, verificação, recuperação e sessão no início da fase de backend.
-3. **Fixtures de produção concluídos; isolamento por conta pendente:** separar curtidas, salvos, leituras, relações e preferências do estado de demonstração por usuário/visitante.
+3. **Concluído no frontend:** fixtures de exemplo ficam no desenvolvimento; curtidas, repostagens, salvos, leituras, filtros e preferências locais são separados por conta. Não migrar automaticamente os valores das chaves antigas sem identificar seu dono.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
 5. Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.
 6. Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.

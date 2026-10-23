@@ -19,6 +19,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { BusinessReviewsDialog } from "@/components/seek/BusinessReviewsDialog";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
+import { localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
 import type { User } from "@/data/mockData";
 import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/services/contentValidation";
@@ -36,16 +37,6 @@ const serviceOptions = [
   { key: "appointments", label: "Agendamento", description: "Atendimento com horário marcado." },
   { key: "takeout", label: "Retirada no local", description: "Pedidos podem ser retirados no estabelecimento." },
 ] as const;
-
-function readSavedIds() {
-  if (typeof window === "undefined") return [];
-  try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(savedBusinessStorageKey) ?? "[]");
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
-  } catch {
-    return [];
-  }
-}
 
 function priceLabel(level?: number) {
   return level ? "$".repeat(level) : "";
@@ -130,6 +121,10 @@ export function CommercialProfilePage({
 }) {
   const { currentUser } = useAppContext();
   const { posts, reviews, repostEntries, getUserById, toggleFollow } = useSocial();
+  const { ids: savedIds, toggle: toggleSavedBusiness } = useAccountScopedIds(
+    savedBusinessStorageKey,
+    localActorId(currentUser?.id),
+  );
   const commercial = user.commercialProfile;
   const openingHoursSummary = commercial?.weeklyHours
     ? formatWeeklyHours(commercial.weeklyHours)
@@ -139,7 +134,6 @@ export function CommercialProfilePage({
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
-  const [savedIds, setSavedIds] = useState<string[]>(readSavedIds);
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -181,20 +175,8 @@ export function CommercialProfilePage({
     setSelectedPhoto(0);
   }, [user.id]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(savedBusinessStorageKey, JSON.stringify(savedIds));
-    } catch {
-      console.warn("Could not save Seek businesses in this browser.");
-    }
-  }, [savedIds]);
-
   function toggleSaved() {
-    setSavedIds((current) =>
-      current.includes(user.id)
-        ? current.filter((id) => id !== user.id)
-        : [...current, user.id],
-    );
+    toggleSavedBusiness(user.id);
   }
 
   function jumpToPhotos() {

@@ -64,10 +64,16 @@ function privacyKey(accountId?: string) {
 
 export const getPrivacyPreferences = (accountId?: string) => read(privacyKey(accountId), defaultPrivacyPreferences);
 export const savePrivacyPreferences = (value: PrivacyPreferences, accountId?: string) => write(privacyKey(accountId), value);
-export const getNotificationPreferences = () => read(NOTIFICATIONS_KEY, defaultNotificationPreferences);
-export const saveNotificationPreferences = (value: NotificationPreferences) => write(NOTIFICATIONS_KEY, value);
-export const getAppearancePreferences = () => read(APPEARANCE_KEY, defaultAppearancePreferences);
-export const saveAppearancePreferences = (value: AppearancePreferences) => write(APPEARANCE_KEY, value);
+function notificationKey(accountId?: string) {
+  return accountId ? `${NOTIFICATIONS_KEY}:${accountId}` : NOTIFICATIONS_KEY;
+}
+export const getNotificationPreferences = (accountId?: string) => read(notificationKey(accountId), defaultNotificationPreferences);
+export const saveNotificationPreferences = (value: NotificationPreferences, accountId?: string) => write(notificationKey(accountId), value);
+function appearanceKey(accountId?: string) {
+  return accountId ? `${APPEARANCE_KEY}:${accountId}` : APPEARANCE_KEY;
+}
+export const getAppearancePreferences = (accountId?: string) => read(appearanceKey(accountId), defaultAppearancePreferences);
+export const saveAppearancePreferences = (value: AppearancePreferences, accountId?: string) => write(appearanceKey(accountId), value);
 
 const INTERESTS_PREFIX = "seekalive-onboarding-interests:";
 export function saveAccountInterests(accountId: string, interests: string[], skipped: boolean) {

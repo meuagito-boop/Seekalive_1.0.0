@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Clock, LocateFixed, Loader2, MapPin, RotateCcw, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAppContext } from "@/context/AppContext";
+import { localActorId } from "@/data/accountScopedStorage";
 import type { DiscoveryLocation } from "@/lib/seekDiscovery";
 import { locationErrorMessage, readRecentLocations, requestDeviceLocation, searchCities } from "@/services/seekLocationService";
 
@@ -16,6 +18,8 @@ interface Props {
 type Status = "idle" | "loading" | "error" | "done";
 
 export function DiscoveryLocationDialog({ open, onOpenChange, current, onSelect, offline, allowDevice = true }: Props) {
+  const { currentUser } = useAppContext();
+  const accountId = localActorId(currentUser?.id);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DiscoveryLocation[]>([]);
   const [status, setStatus] = useState<Status>("idle");
@@ -32,8 +36,8 @@ export function DiscoveryLocationDialog({ open, onOpenChange, current, onSelect,
       setQuery(""); setGpsState("idle"); setGpsError("");
       return;
     }
-    try { setRecent(readRecentLocations()); } catch { setRecent([]); }
-  }, [open]);
+    try { setRecent(readRecentLocations(accountId)); } catch { setRecent([]); }
+  }, [open, accountId]);
 
   useEffect(() => {
     if (!open) return;

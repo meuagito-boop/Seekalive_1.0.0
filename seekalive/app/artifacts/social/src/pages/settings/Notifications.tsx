@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { SettingsSubheader } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
 import { getNotificationPreferences, saveNotificationPreferences } from "@/data/appPreferences";
+import { useAppContext } from "@/context/AppContext";
+import { localActorId } from "@/data/accountScopedStorage";
 
 interface ToggleItem {
   label: string;
@@ -40,12 +42,18 @@ const groups: { title: string; items: ToggleItem[] }[] = [
 ];
 
 export default function SettingsNotifications() {
-  const [prefs, setPrefs] = useState(getNotificationPreferences);
+  const { currentUser } = useAppContext();
+  const accountId = localActorId(currentUser?.id);
+  const [prefs, setPrefs] = useState(() => getNotificationPreferences(accountId));
+
+  useEffect(() => {
+    setPrefs(getNotificationPreferences(accountId));
+  }, [accountId]);
 
   function toggle(key: string) {
     setPrefs(prev => {
       const next = { ...prev, categories: { ...prev.categories, [key]: !prev.categories[key] } };
-      saveNotificationPreferences(next);
+      saveNotificationPreferences(next, accountId);
       return next;
     });
   }
@@ -53,7 +61,7 @@ export default function SettingsNotifications() {
   function toggleChannel(channel: "pushEnabled" | "emailEnabled") {
     setPrefs(prev => {
       const next = { ...prev, [channel]: !prev[channel] };
-      saveNotificationPreferences(next);
+      saveNotificationPreferences(next, accountId);
       return next;
     });
   }
