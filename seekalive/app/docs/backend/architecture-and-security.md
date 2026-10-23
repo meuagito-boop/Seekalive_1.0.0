@@ -129,7 +129,7 @@ Uploads sem vínculo podem expirar, proposta inicial 24 horas. Um ativo ainda us
 | Repost/curtir/salvar | Unique de par; retry não duplica; contador derivado ou atualizado na mesma transação |
 | Comentário/resposta | Permissão do post + pai no mesmo post + conteúdo + evento de notificação |
 | Seguir/Círculo | Persistir somente arestas de seguir. Círculo é uma projeção de duas arestas aceitas em sentidos opostos; desfazer qualquer uma remove o resultado derivado. Não há transição própria de convite/aceite de Círculo |
-| Bloquear | Impedir leitura e novas interações entre as duas contas em ambos os sentidos; manter os seguimentos aceitos armazenados, porém sem efeito enquanto houver bloqueio. Só o iniciador remove sua relação de bloqueio |
+| Bloquear | Em transação, remover seguimentos aceitos e solicitações pendentes entre as contas; ocultar perfis/conteúdo e impedir interação nos dois sentidos. Mensagens existentes ficam inacessíveis durante o bloqueio, sem apagamento. Só o iniciador pode desbloquear; relações removidas não são recriadas |
 | Avaliação | Sessão do avaliador + conta comercial distinta + unique negócio/avaliador; média coerente com moderação |
 | Resposta comercial | Apenas dono do negócio vinculado à avaliação; nenhum `businessAccountId` arbitrário |
 | Mensagem | Participação + permissão de contato + clientMessageId único + mensagem + outbox |

@@ -47,7 +47,7 @@ export function BusinessReviewsDialog({
 
   const businessReviews = business
     ? reviews
-        .filter((review) => review.businessAccountId === business.id)
+        .filter((review) => review.businessAccountId === business.id && !getUserById(review.reviewerId)?.isBlocked)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     : [];
   const myReview = business

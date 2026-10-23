@@ -25,6 +25,9 @@ export default function ShopItemDetail() {
     );
   }
   const seller = item.sellerId ? getUserById(item.sellerId) : undefined;
+  if (seller?.isBlocked) {
+    return <UnavailableState title="Item indisponível" description="O perfil responsável por este item está bloqueado para esta conta." />;
+  }
   const saved = isSaved(item.id);
 
   return (

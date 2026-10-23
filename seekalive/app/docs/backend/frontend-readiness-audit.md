@@ -70,7 +70,7 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 - Curtidas, curtidas em comentários, repostagens, publicações salvas e leituras de notificações/mensagens agora ficam registradas por ID da conta no navegador. Contagens compartilhadas são derivadas das ações locais de cada conta.
 - Notificações com destinatário só aparecem para essa conta; notificações de demonstração sem destinatário aparecem apenas na conta demo. A leitura automática após três segundos continua sendo uma regra de interface, mas agora é gravada para a conta ativa.
 - Preferências de notificação/aparência, filtros e cidade recente do Seek, estabelecimentos/eventos salvos e itens salvos do Shop usam escopo por conta. As preferências de privacidade e interesses já eram associadas à conta.
-- Bloqueios agora são relações locais da conta ativa para um perfil alvo; os filtros do app ocultam os perfis e interações nos dois sentidos. Só quem iniciou o bloqueio pode removê-lo; a opção está em Configurações > Usuários bloqueados ou na página bloqueada do perfil. Seguimentos existentes são mantidos.
+- Bloqueios agora são relações locais da conta ativa para um perfil alvo; os filtros do app ocultam perfis e interações nos dois sentidos. Bloquear remove seguimentos e solicitações entre as contas; mensagens antigas ficam ocultas e voltam após desbloquear. Publicações, comentários e avaliações não são apagados. Só quem iniciou pode desbloquear; relações removidas não são restauradas automaticamente.
 - Relações, solicitações, publicações, comentários e avaliações continuam como conteúdo compartilhado local e identificado por autor/destinatário; não são preferências do visitante. Isso não substitui autorização no servidor.
 - Chaves globais antigas não são apagadas nem migradas automaticamente: não há como saber a qual conta os valores compartilhados pertenciam. Os novos escopos começam vazios, preservando os valores legados no navegador.
 - Em `onboarding/Suggestions.tsx`, cada toque em “Seguir” aplica a relação imediatamente: contas públicas são atualizadas no armazenamento local da conta ativa; perfis privados criam uma solicitação pendente, também local. “Concluir e entrar” e “Pular por agora” apenas navegam; não há lote de escolhas a salvar nessa etapa. Não exige API nesta fase.
@@ -83,7 +83,7 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 - `canReadPost` e filtros de tela são úteis para UX, mas não protegem dados. Feed, busca, perfil, comentário, notificações, mensagens, referência e arquivo precisam da mesma autorização no servidor.
 - Em perfil público, seguir é imediato. Em perfil privado, o frontend cria solicitação pendente; o dono pode aceitar ou recusar em Configurações > Privacidade. O pedido pendente não conta como seguidor. Isso ainda é estado local, sem API/autorização de servidor.
 - Após a aprovação, o seguidor vê publicações com audiência pública do perfil privado. Publicações destinadas ao Círculo continuam exigindo seguimento aceito nos dois sentidos. A regra de Círculo permanece derivada: A segue B e B segue A; a remoção de qualquer seguimento encerra o Círculo.
-- O bloqueio bilateral existe apenas no frontend/localStorage. O backend ainda deve impor a mesma regra de acesso e interação em todas as rotas, conversas, feed, busca, seguimento e solicitações.
+- O bloqueio e a remoção de relações existem apenas no frontend/localStorage. O backend ainda deve aplicar a mudança dos dois grafos e dos pedidos em transação, esconder mensagens durante bloqueio e impor a regra em todas as rotas e interações.
 - As opções para receber mensagens e confirmações de leitura são preferências locais; precisam ser verificadas em cada envio/leitura no backend.
 
 **Frontend concluído para esta regra:** estados de solicitação, cancelamento, aprovação/recusa, acesso a publicações aprovadas e separação do Círculo. O backend ainda precisa aplicar a mesma regra em cada rota e arquivo privado.
@@ -140,7 +140,7 @@ Ainda é necessário validar esses contratos com testes de integração quando a
 
 Na auditoria e nesta correção:
 
-- `pnpm test:social`: **40 testes aprovados** incluindo isolamento/persistência local de ações sociais, seguimentos e bloqueios bilaterais por conta, desbloqueio ativo, sincronização de nome de usuário entre conta e Social, além de regras de conteúdo, privacidade, validação, referências e erros do adaptador.
+- `pnpm test:social`: **41 testes aprovados** incluindo isolamento/persistência local de ações sociais, seguimentos e bloqueios bilaterais por conta, remoção das relações entre contas, desbloqueio ativo, sincronização de nome de usuário entre conta e Social, além de regras de conteúdo, privacidade, validação, referências e erros do adaptador.
 - `pnpm --filter @workspace/social run typecheck`: aprovado.
 - `pnpm --filter @workspace/social run build`: aprovado nesta revisão; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.
 

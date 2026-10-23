@@ -142,7 +142,7 @@ export function CommercialProfilePage({
   const [shareOpen, setShareOpen] = useState(false);
 
   const businessReviews = reviews
-    .filter((review) => review.businessAccountId === user.id)
+    .filter((review) => review.businessAccountId === user.id && !getUserById(review.reviewerId)?.isBlocked)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const rating = businessReviews.length
     ? businessReviews.reduce((total, review) => total + review.rating, 0) / businessReviews.length
@@ -238,7 +238,10 @@ export function CommercialProfilePage({
                     onClick={() => {
                       setShowProfileMenu(false);
                       blockUser(user.id);
-                      toast({ title: "Perfil bloqueado", description: "Você não verá o conteúdo deste perfil." });
+                      toast({
+                        title: "Perfil bloqueado",
+                        description: "Os seguimentos e solicitações entre vocês foram removidos.",
+                      });
                     }}
                     className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-muted/50"
                     data-testid="action-block-commercial-profile"

@@ -26,7 +26,11 @@ import {
   updateSocialAccountActivity,
 } from "@/data/socialAccountActivityStorage";
 import type { SocialAccountActivity } from "@/data/socialAccountActivityStorage";
-import { areMutualFollowers, viewerFollowsUser } from "@/lib/followRelationships";
+import {
+  areMutualFollowers,
+  removeFollowEdgesForBlock,
+  viewerFollowsUser,
+} from "@/lib/followRelationships";
 
 // ── State shape ──────────────────────────────────────────────────────
 export interface SocialState {
@@ -574,8 +578,27 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "UPDATE_USER", user: updatedViewer });
     },
     blockUser: (userId) => {
-      if (!viewer || userId === viewer.id || !state.users.some(user => user.id === userId)) return;
-      if (!blockedUserIdSet.has(userId)) toggleBlockedUser(userId);
+      const target = state.users.find(user => user.id === userId);
+      if (!viewer || !target || userId === viewer.id || blockedUserIdSet.has(userId)) return;
+
+      const { actor: updatedViewer, target: updatedTarget, changed } =
+        removeFollowEdgesForBlock(viewer, target);
+      if (changed) {
+        if (currentUser) updateAccount(updatedViewer);
+        else saveSocialAccount(updatedViewer);
+        saveSocialAccount(updatedTarget);
+        dispatch({ type: "UPDATE_USER", user: updatedTarget });
+        if (state.users.some(user => user.id === viewer.id))
+          dispatch({ type: "UPDATE_USER", user: updatedViewer });
+      }
+
+      for (const request of state.followRequests.filter(request =>
+        (request.requesterId === viewer.id && request.targetId === userId)
+        || (request.requesterId === userId && request.targetId === viewer.id)
+      )) {
+        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId: request.id });
+      }
+      toggleBlockedUser(userId);
     },
     unblockUser: (userId) => {
       if (blockedUserIdSet.has(userId)) toggleBlockedUser(userId);

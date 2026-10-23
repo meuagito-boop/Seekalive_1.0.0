@@ -1,10 +1,10 @@
 ---
 name: Bloqueio por conta
-description: Política confirmada de bloqueio mútuo e sua implementação local antes do backend.
+description: Política confirmada de bloqueio bilateral e remoção de relações entre contas.
 ---
 
-O bloqueio é uma relação iniciada por uma conta contra outra. Enquanto a relação existir, ambas as contas deixam de ver os perfis e conteúdos uma da outra e não podem iniciar novas interações entre si. Só a conta que iniciou a relação pode removê-la. Bloquear não apaga seguimentos aceitos; ao desbloquear, esses seguimentos voltam a valer.
+Bloquear uma conta remove os seguimentos aceitos e solicitações pendentes entre as duas contas, nos dois sentidos; o Círculo deixa de existir porque é derivado de seguimento mútuo. Perfis, publicações, comentários, avaliações, conversas e interações ficam indisponíveis entre as contas enquanto o bloqueio durar. Mensagens antigas não são apagadas: ficam ocultas e reaparecem após desbloquear. Publicações, comentários e avaliações também não são apagados. Só a conta que iniciou o bloqueio pode removê-lo; desbloquear não restaura follows ou solicitações removidos.
 
-**Why:** o usuário confirmou que a conta bloqueada também deve deixar de ver ou interagir com quem bloqueou. Foi confirmado manter seguimentos existentes em vez de removê-los durante o bloqueio.
+**Why:** o usuário definiu que bloquear rompe os vínculos e faz cada conta desaparecer para a outra, com acesso de volta apenas pelo desbloqueio. Confirmou que conversas antigas devem ser ocultadas e restauradas, não apagadas.
 
-**How to apply:** no frontend atual, manter as relações isoladas por conta no navegador e derivar a indisponibilidade para os dois lados. Ao criar o backend, aplicar a mesma regra em leitura, busca, feed, comentários, mensagens, seguir e solicitações; somente o iniciador pode remover seu bloqueio.
+**How to apply:** no frontend atual, guardar a relação no navegador por conta, remover ambos os follows e pedidos no momento do bloqueio, esconder conteúdo e histórico de mensagens nas duas direções, e mostrar um controle de desbloqueio apenas para o iniciador. No backend, fazer alterações relacionadas em transação e validar todos os endpoints.

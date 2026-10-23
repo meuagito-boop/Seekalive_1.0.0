@@ -16,8 +16,8 @@ export default function SettingsBlocked() {
     toast({
       title: "Seu bloqueio foi removido",
       description: remainsBlockedByOther
-        ? "Este perfil também bloqueou você e pode continuar indisponível."
-        : "A alteração foi salva neste navegador.",
+        ? "Este perfil também bloqueou você; os seguimentos removidos não serão restaurados."
+        : "Os seguimentos removidos não serão restaurados automaticamente.",
     });
   }
 

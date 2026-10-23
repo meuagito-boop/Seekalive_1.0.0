@@ -50,7 +50,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Seek | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância |
 | Dados demonstrativos | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API |
 | Shop | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real |
-| Configurações | Preferências e bloqueios ficam locais. Bloqueios por conta ocultam perfis e interações nos dois sentidos; quem iniciou o bloqueio pode desfazê-lo em Usuários bloqueados |
+| Configurações | Preferências e bloqueios ficam locais. Bloquear remove seguimentos e pedidos entre as contas, oculta conteúdo/interações nos dois sentidos e deixa o desbloqueio apenas para quem iniciou |
 
 O frontend e a API têm processos separados. O Vite auditado não possui proxy `/api` configurado. Antes de ligar os adaptadores, configurar roteamento de mesma origem; caso contrário uma URL de API pode devolver HTML da SPA.
 
@@ -85,7 +85,7 @@ O frontend tem verificações parciais; esta é a política segura proposta, que
 3. Conteúdo público: visível conforme o estado da conta. Conta privada requer relação de seguimento aceita para conteúdo destinado ao perfil; bloqueio prevalece sobre relações anteriores.
 4. Aplicar a mesma política a feed, busca, perfil, comentários, contadores, galeria, notificações, referências e download dos arquivos.
 5. Recursos privados ou não existentes devem produzir resposta indistinguível para terceiros, normalmente `404`. Ações negadas em recurso que o usuário pode conhecer podem retornar `403`.
-6. Silenciar é um filtro pessoal de distribuição. Bloquear é bilateral para acesso e novas interações: A bloqueia B e ambos deixam de ver perfis/conteúdo um do outro, seguir ou enviar mensagens. O bloqueio não apaga seguimentos já aceitos; somente quem iniciou o bloqueio pode removê-lo.
+6. Silenciar é um filtro pessoal de distribuição. Bloquear é bilateral: remove os seguimentos e solicitações pendentes entre as contas; ambas deixam de ver perfis/conteúdo e iniciar interações. Mensagens antigas ficam ocultas e reaparecem após desbloquear. Publicações, comentários e avaliações não são apagados. Só quem iniciou o bloqueio pode removê-lo; seguimentos e solicitações não são restaurados automaticamente.
 
 A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou bloqueadas. A precisão de endereço de profissionais deve ser controlada: área de atendimento não deve publicar residência particular.
 

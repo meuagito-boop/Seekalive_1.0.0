@@ -23,6 +23,9 @@ export default function SeekEventDetail() {
     );
   }
   const organizer = event.organizerId ? getUserById(event.organizerId) : undefined;
+  if (organizer?.isBlocked) {
+    return <UnavailableState title="Evento indisponível" description="O perfil organizador está bloqueado para esta conta." />;
+  }
 
   return (
     <div className="mx-auto min-h-[100dvh] max-w-3xl pb-24">

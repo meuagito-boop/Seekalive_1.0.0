@@ -96,12 +96,15 @@ export default function Profile() {
       toast({
         title: "Seu bloqueio foi removido",
         description: user.blocksViewer
-          ? "Esta conta também bloqueou você e pode continuar indisponível."
-          : "A alteração foi salva neste navegador.",
+          ? "Esta conta também bloqueou você; os seguimentos removidos não serão restaurados."
+          : "Os seguimentos removidos não serão restaurados automaticamente.",
       });
     } else {
       blockUser(user.id);
-      toast({ title: "Perfil bloqueado", description: "Você não verá o conteúdo deste perfil." });
+      toast({
+        title: "Perfil bloqueado",
+        description: "Os seguimentos e solicitações entre vocês foram removidos.",
+      });
     }
     setShowMenu(false);
   }
@@ -119,7 +122,7 @@ export default function Profile() {
           : "Esta conta bloqueou o seu perfil. Perfis, conteúdos e interações entre vocês estão indisponíveis."}
         action={blockedByViewer
           ? <Button variant="outline" onClick={handleBlockToggle}>{mutualBlock ? "Remover meu bloqueio" : "Desbloquear perfil"}</Button>
-          : <Button variant="outline" onClick={handleBlockToggle}>Bloquear também</Button>}
+          : undefined}
       />
     );
   }
@@ -147,7 +150,10 @@ export default function Profile() {
             className="mt-2 rounded-full"
             onClick={() => {
               blockUser(user.id);
-              toast({ title: "Perfil bloqueado", description: "Você não verá o conteúdo deste perfil." });
+              toast({
+                title: "Perfil bloqueado",
+                description: "Os seguimentos e solicitações entre vocês foram removidos.",
+              });
             }}
             data-testid="button-block-private-profile"
           >

@@ -7,6 +7,7 @@ import { makeDemoPost, makeDemoComment, makeDemoMessage, extractSocialTokens, va
 import { apiRequest, restContentAdapter } from "../src/services/contentService";
 import { resolveReference } from "../src/services/referenceResolver";
 import { socialReducer, type SocialState } from "../src/context/SocialContext";
+import { removeFollowEdgesForBlock } from "../src/lib/followRelationships";
 import { mockUsers, mockNotifications, currentUser, formatCount, formatTimeAgo } from "../src/data/mockData";
 import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/services/mediaService";
@@ -146,6 +147,26 @@ test("bloqueios locais são relações isoladas entre conta e perfil alvo", () =
     if (previous) Object.defineProperty(globalThis, "window", previous);
     else Reflect.deleteProperty(globalThis, "window");
   }
+});
+test("bloquear rompe seguimentos e Círculo nos dois sentidos sem afetar outras relações", () => {
+  const actor = {
+    ...currentUser,
+    id: "conta-a",
+    followingIds: ["conta-b", "conta-c"],
+    stats: { posts: 0, followers: 3, following: 2, circles: 1 },
+  };
+  const target = {
+    ...mockUsers[0],
+    id: "conta-b",
+    followingIds: ["conta-a"],
+    stats: { posts: 0, followers: 1, following: 1, circles: 1 },
+  };
+  const result = removeFollowEdgesForBlock(actor, target);
+  assert.deepEqual(result.actor.followingIds, ["conta-c"]);
+  assert.deepEqual(result.target.followingIds, []);
+  assert.deepEqual(result.actor.stats, { posts: 0, followers: 2, following: 1, circles: 0 });
+  assert.deepEqual(result.target.stats, { posts: 0, followers: 0, following: 0, circles: 0 });
+  assert.equal(result.changed, true);
 });
 test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
   const socialSource = readFileSync(
