@@ -1,6 +1,6 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **130 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **130 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
 > Rotas marcadas **ATIVA** já têm handler no servidor atual. Rotas **PROPOSTA** ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.
 

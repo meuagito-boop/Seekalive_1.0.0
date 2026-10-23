@@ -31,7 +31,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Consultar <code>external-services-and-operations.md</code>: serviços, links oficiais, configuração, implantação e monitoramento.</li>
 <li>Seguir <code>implementation-and-tests.md</code>: ordem de implementação, critérios de aceite e funcionalidades futuras.</li>
 </ol>
-<p>O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é <strong>separado</strong> de <code>lib/api-spec/openapi.yaml</code>, que permanece intacto e descreve a API pública deste artefato.</p>
+<p>O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é <strong>separado</strong> de <code>shared/api-spec/openapi.yaml</code>, que permanece intacto e descreve a API pública do App.</p>
 <h2>1. Produto</h2>
 <p>Seekalive reúne três módulos conectados por uma identidade única:</p>
 <div class="table-wrap"><table>
@@ -46,9 +46,9 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>2. O que existe de verdade hoje</h2>
 <div class="table-wrap"><table>
 <tr><th>Área</th><th>Situação auditada</th></tr>
-<tr><td>Servidor</td><td>Express/TypeScript em <code>artifacts/api-server</code>; saúde e rotas de autenticação/onboarding estão implementadas</td></tr>
+<tr><td>Servidor</td><td>Express/TypeScript em <code>Aplicativo/back</code>; saúde, autenticação, onboarding, perfis e relações estão implementados</td></tr>
 <tr><td>Banco</td><td>Drizzle/PostgreSQL com schema de identidade, perfil básico, privacidade e relações aplicado somente ao banco de desenvolvimento; produção não foi alterada</td></tr>
-<tr><td>Especificação</td><td><code>lib/api-spec/openapi.yaml</code> mantém o contrato público existente; <code>docs/backend/openapi.json</code> distingue endpoints ativos dos propostos</td></tr>
+<tr><td>Especificação</td><td><code>shared/api-spec/openapi.yaml</code> mantém o contrato público existente; <code>docs/api/backend/openapi.json</code> distingue endpoints ativos dos propostos</td></tr>
 <tr><td>Login</td><td>API própria com senha protegida, cookie de sessão HttpOnly, CSRF e bloqueio de contas sem e-mail confirmado</td></tr>
 <tr><td>Cadastro</td><td>A rota de cadastro/verificação está implementada, mas a criação real permanece bloqueada com <code>503</code> até configurar o envio de e-mail; nenhuma conta sem confirmação recebe sessão</td></tr>
 <tr><td>Recuperação/verificação</td><td>Confirmação de e-mail tem rotas; recuperação de senha ainda não está implementada. Sem provedor de e-mail, cadastro e reenvio não concluem</td></tr>
@@ -212,9 +212,9 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <p>O backend foi iniciado. O próximo trabalho de frontend é consumir somente os endpoints ativos e manter a demonstração de desenvolvimento separada da conta real; não conectar telas a contratos que ainda estejam marcados como propostos.</p>
 <h2>Como a análise foi feita</h2>
 <ul>
-<li>Inventário das rotas e dos módulos de produto em <code>artifacts/social/src</code> (159 arquivos de origem, sendo 158 TypeScript/TSX), incluindo pontos de entrada, contextos, serviços, persistência local, telas de conta, perfis, Social, Seek, Shop e configurações.</li>
+<li>Inventário das rotas e dos módulos de produto em <code>Aplicativo/front/src</code> (159 arquivos de origem, sendo 158 TypeScript/TSX), incluindo pontos de entrada, contextos, serviços, persistência local, telas de conta, perfis, Social, Seek, Shop e configurações.</li>
 <li>Leitura focalizada das regras de negócio e fluxos de maior risco; busca estática por chamadas de rede, armazenamento, fixtures, controles desabilitados e contratos.</li>
-<li>Conferência do esqueleto API em <code>artifacts/api-server</code>, dos contratos OpenAPI/SQL propostos e dos testes disponíveis.</li>
+<li>Conferência da API em <code>Aplicativo/back</code>, dos contratos OpenAPI/SQL propostos e dos testes disponíveis.</li>
 <li>A leitura não inclui dependências, bundles, arquivos gerados ou primitivas genéricas de UI como uma auditoria de segurança de cada byte. O resultado é uma revisão funcional/de integração do código próprio, não uma certificação de segurança ou revisão de produção.</li>
 </ul>
 <h2>Resultado por área</h2>
@@ -249,7 +249,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <p>O contrato limita senhas a 128 caracteres; os formulários atuais ainda não definem limite máximo. Alinhar validação visual e mensagens de erro antes de ligar registro/login à API.</p>
 <h3>P0 — O frontend ainda não consome perfil e relações da API</h3>
 <ul>
-<li><code>artifacts/api-server/src</code> implementa saúde, autenticação, onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações, recuperação de senha e gestão de sessões continuam sem handlers.</li>
+<li><code>Aplicativo/back/src</code> implementa saúde, autenticação, onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações, recuperação de senha e gestão de sessões continuam sem handlers.</li>
 <li>A autenticação e o onboarding usam a API. As telas de perfil, privacidade, seguir, pedidos, Círculo e bloqueio ainda não consomem os endpoints ativos. <code>services/contentService.ts</code> continua apontando para <code>demoContentAdapter</code>.</li>
 <li>A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.</li>
 <li>O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.</li>
@@ -500,7 +500,7 @@ GET /accounts/{id}/media
 <p>Não guardar GPS físico por padrão. Histórico de busca/visitas deve ser opt-in ou ter finalidade claramente informada e ação para limpar. Minimizar IP/user-agent e evitar rastreamento persistente desnecessário.</p>
 <p>Exclusão deve tratar conta, identidade, sessões, mídia, busca, caches, notificações, mensagens, avaliações, jobs e backups. Mensagens/conteúdo de interação podem exigir anonimização ou tombstone em vez de cascade cego; a política deve ser documentada e testada.</p></section>
 <section id="frontend-integration"><h1>Inventário de telas, rotas e pontos de integração</h1>
-<p>Todos os caminhos de código abaixo são relativos a <code>artifacts/social/src</code>, salvo indicação contrária. Rotas da UI são links relativos do aplicativo, <strong>não endpoints de API</strong>.</p>
+<p>Todos os caminhos de código abaixo são relativos a <code>Aplicativo/front/src</code>, salvo indicação contrária. Rotas da UI são links relativos do aplicativo, <strong>não endpoints de API</strong>.</p>
 <h2>1. Rotas auditadas</h2>
 <div class="table-wrap"><table>
 <tr><th>Rotas da interface</th><th>Código / comportamento atual</th><th>Integração necessária</th></tr>
@@ -558,10 +558,10 @@ GET /accounts/{id}/media
 <tr><td><code>hooks/use-saved-shop-items.ts</code>, salvos comerciais</td><td>API única de salvos tipados, compartilhada entre perfil e módulos</td></tr>
 <tr><td><code>data/mockData.ts</code>, <code>demoCatalog.ts</code>, <code>demoSeek*.ts</code>, <code>demoIntegrationPosts.ts</code></td><td>Fixtures exclusivamente de testes/preview; não seeds automáticos de produção</td></tr>
 <tr><td><code>components/profile/CommercialProfilePage.tsx</code></td><td>Dados da mesma conta comercial, avaliações e resposta; galeria deve combinar mídias publicadas e mídia de perfil de forma explícita e sem duplicação</td></tr>
-<tr><td><code>lib/api-spec/openapi.yaml</code> (raiz do projeto)</td><td>Evoluir contrato vigente após aprovação; preservar título <code>Api</code> exigido pelo código gerado</td></tr>
-<tr><td><code>lib/api-client-react</code>, <code>lib/api-zod</code></td><td>Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente</td></tr>
-<tr><td><code>lib/db/src/schema</code></td><td>Implementar Drizzle a partir do modelo revisado; criar migrações versionadas</td></tr>
-<tr><td><code>artifacts/api-server/src/app.ts</code></td><td>Ordem de middleware, autenticação, CSRF, limites, routers, erros e logs seguros</td></tr>
+<tr><td><code>shared/api-spec/openapi.yaml</code></td><td>Evoluir contrato vigente após aprovação; preservar título <code>Api</code> exigido pelo código gerado</td></tr>
+<tr><td><code>shared/api-client-react</code>, <code>shared/contracts</code></td><td>Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente</td></tr>
+<tr><td><code>infra/database/src/schema</code></td><td>Implementar Drizzle a partir do modelo revisado; criar migrações versionadas</td></tr>
+<tr><td><code>Aplicativo/back/src/app.ts</code></td><td>Ordem de middleware, autenticação, CSRF, limites, módulos, erros e logs seguros</td></tr>
 </table></div>
 <h3>Atenção aos contratos atuais</h3>
 <p>O adaptador existente não envia CSRF nem <code>Idempotency-Key</code> e não trata <code>412</code>, <code>413</code>, <code>415</code>, <code>429</code> de forma específica. Acrescentar essas respostas à experiência de erro. Consultas devem suportar cancelamento, e um resultado antigo não deve sobrescrever a cidade/filtro novo.</p>
@@ -625,7 +625,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td>Exportação/exclusão</td><td>Próprio titular reautenticado</td><td>Worker autorizado, com trilha e estados</td></tr>
 </table></div></section>
 <section id="endpoints"><h1>Endpoints e contrato OpenAPI</h1>
-<p>Gerado por <code>node docs/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>130 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
+<p>Gerado por <code>node docs/api/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>130 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
 <blockquote>Rotas marcadas <strong>ATIVA</strong> já têm handler no servidor atual. Rotas <strong>PROPOSTA</strong> ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.</blockquote>
 <h2>Respostas, paginação e autenticação</h2>
 <ul>
@@ -847,7 +847,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td><code>account_follow_requests</code></td><td>Pedidos pendentes direcionados a perfis privados; a aprovação cria o follow aceito.</td></tr>
 <tr><td><code>account_blocks</code></td><td>Bloqueio iniciado por uma conta; bloquear remove follows e pedidos pendentes em ambas as direções.</td></tr>
 </table></div>
-<p>O schema Drizzle completo e seus índices/constraints ficam em <code>lib/db/src/schema/</code>. Campos de avatar/capa por mídia, posts, galeria, avaliações, serviços comerciais completos, conversas, mensagens, busca e moderação ainda não têm armazenamento/API ativa.</p>
+<p>O schema Drizzle atual e seus índices/constraints ficam em <code>infra/database/src/schema/</code>. Campos de avatar/capa por mídia, posts, galeria, avaliações, serviços comerciais completos, conversas, mensagens, busca e moderação ainda não têm armazenamento/API ativa.</p>
 <p>Frontend DTOs use <strong>camelCase</strong>, SQL uses <strong>snake_case</strong>. Serializers, not accidental ORM field exposure, must bridge them:</p>
 <div class="table-wrap"><table>
 <tr><th>Frontend field or behavior</th><th>Proposed storage / response rule</th></tr>
@@ -1002,7 +1002,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <tr><td>Deploy e secrets</td><td>Usar Secrets para valores sensíveis e deployments do Replit para publicação; não registrar valores em arquivos</td><td><a href="https://docs.replit.com/core-concepts/project-editor/app-setup/secrets" rel="noopener noreferrer">Secrets</a> · <a href="https://docs.replit.com/learn/projects-and-artifacts/replit-deployments" rel="noopener noreferrer">Deployments</a></td></tr>
 </table></div>
 <h2>Catálogo municipal</h2>
-<p>O frontend já contém uma cópia versionada em <code>artifacts/social/public/data/ibge-cities-20261022.json</code>, com código oficial IBGE de sete dígitos, nome e UF; não contém geolocalização precisa. Foi obtida da API pública do IBGE em 22/10/2026. O SQL proposto em <code>schema-core.sql</code> trata município como referência para negócios, eventos e busca. O pacote ZIP inclui esse arquivo para auxiliar a implementação do seed.</p>
+<p>O frontend já contém uma cópia versionada em <code>Aplicativo/front/public/data/ibge-cities-20261022.json</code>, com código oficial IBGE de sete dígitos, nome e UF; não contém geolocalização precisa. Foi obtida da API pública do IBGE em 22/10/2026. O SQL proposto em <code>schema-core.sql</code> trata município como referência para negócios, eventos e busca. O pacote ZIP inclui esse arquivo para auxiliar a implementação do seed.</p>
 <p>Para atualizar: baixar de novo a fonte oficial, validar unicidade do código, quantidade e UF, comparar diff, e importar por migration/seed idempotente. Não apagar código antigo sem estratégia para FKs. O frontend pode manter seleção manual quando GPS ou geocodificação não estiver disponível.</p>
 <h2>Configuração (nomes, nunca valores)</h2>
 <p>Os nomes a seguir são inventário de proposta para deployment; não afirmam que já existam:</p>
@@ -1113,4 +1113,4 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <li>Regras de moderação, retenção/legal hold e prazos de exclusão.</li>
 </ul>
 <h2>Estado inicial do contrato</h2>
-<p>O gerador (<code>node docs/backend/generate-contracts.mjs</code>) escreve <code>openapi.json</code> e <code>endpoints.md</code>, marcando rotas ativas e propostas. A conexão do frontend deve ser incremental; não remover o modo de demonstração de desenvolvimento nem relaxar a regra de e-mail confirmado.</p></section></main></body></html>
+<p>O gerador (<code>node docs/api/backend/generate-contracts.mjs</code>) escreve <code>openapi.json</code> e <code>endpoints.md</code>, marcando rotas ativas e propostas. A conexão do frontend deve ser incremental; não remover o modo de demonstração de desenvolvimento nem relaxar a regra de e-mail confirmado.</p></section></main></body></html>

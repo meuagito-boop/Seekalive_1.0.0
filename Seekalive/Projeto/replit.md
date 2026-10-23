@@ -1,6 +1,6 @@
-# [Project name]
+# Seekalive
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Aplicativo social e de descoberta local com perfis pessoais e comerciais conectados.
 
 ## Run & Operate
 
@@ -18,7 +18,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Build da API: esbuild (bundle ESM)
 
 ## Where things live
 
@@ -35,11 +35,12 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- O backend do Aplicativo permanece um monólito modular até existir uma necessidade concreta de separação em serviços.
+- Gestor e Painel são scaffolds sem funcionalidades; definir escopo e permissões antes de implementar.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+O Aplicativo reúne Social, Seek e Shop sob a mesma conta. Contas comerciais são contas do Social e alimentam a descoberta no Seek.
 
 ## User preferences
 

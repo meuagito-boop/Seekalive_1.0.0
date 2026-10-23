@@ -1,6 +1,6 @@
 /**
  * Builds a portable, self-contained HTML reader for the backend documentation.
- * Run: node docs/backend/render-docs.mjs
+ * Run: node docs/api/backend/render-docs.mjs
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
