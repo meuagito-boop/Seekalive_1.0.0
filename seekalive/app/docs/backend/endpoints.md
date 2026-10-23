@@ -6,7 +6,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 
 ## Respostas, paginação e autenticação
 
-- A maioria dos GET responde `200`; POST de recurso `201`; POST de job `202`; alterações em relação existente `200`/`204`. O fluxo OIDC listado abaixo é legado e não foi selecionado; os endpoints de cadastro/login da API própria precisam ser especificados antes do backend.
+- GET normalmente responde `200`; cadastro cria a conta e responde `201`; login e alterações de autenticação respondem `200`; solicitações assíncronas respondem `202`; remoções sem corpo podem responder `204`.
 - Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.
 - Erro: `{error:{code,message,requestId,fields?}}`. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.
 - Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.
@@ -23,23 +23,23 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `Session` | **PROPOSTA** |
+| GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **PROPOSTA** |
 | GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **PROPOSTA** |
-| GET | `/v1/auth/authorize` | Público | — | 302 redirect | **NÃO SELECIONADA — legado** |
-| GET | `/v1/auth/callback` | Público | — | 302 redirect | **NÃO SELECIONADA — legado** |
+| POST | `/v1/auth/register` | Público | `RegisterRequest` | `AuthResult` | **PROPOSTA** |
+| POST | `/v1/auth/login` | Público | `LoginRequest` | `AuthResult` | **PROPOSTA** |
 | POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **PROPOSTA** |
 | DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | POST | `/v1/auth/recovery` | Público | `RecoveryRequest` | `Accepted` | **PROPOSTA**; assíncrona |
+| POST | `/v1/auth/recovery/confirm` | Público | `RecoveryConfirm` | `Empty` | **PROPOSTA** |
 | POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **PROPOSTA**; assíncrona |
-| POST | `/v1/auth/verification/confirm` | Sessão autenticada | `VerificationConfirm` | `Account` | **PROPOSTA** |
+| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `AuthResult` | **PROPOSTA** |
 
 ## Accounts
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
 | GET | `/v1/accounts/me` | Sessão autenticada | — | `Account` | **PROPOSTA** |
-| POST | `/v1/accounts` | Sessão autenticada | `AccountCreate` | `Account` | **PROPOSTA** |
 | PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `Account` | **PROPOSTA** |
 | DELETE | `/v1/accounts/me` | Sessão autenticada | — | `Accepted` | **PROPOSTA**; assíncrona |
 | GET | `/v1/accounts/availability` | Público | — | `Availability` | **PROPOSTA** |

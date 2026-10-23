@@ -8,7 +8,12 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  username text NOT NULL CHECK (char_length(username) BETWEEN 1 AND 50),
+  username text NOT NULL CHECK (username = lower(btrim(username)) AND username ~ '^[a-z0-9_]{3,20}$'),
+  first_name text,
+  last_name text,
+  age smallint NOT NULL CHECK (age BETWEEN 1 AND 120),
+  accepted_terms_version text NOT NULL CHECK (btrim(accepted_terms_version) <> ''),
+  terms_accepted_at timestamptz NOT NULL DEFAULT now(),
   display_name text NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 100),
   account_type text NOT NULL CHECK (account_type IN ('personal', 'commercial')),
   bio text NOT NULL DEFAULT '' CHECK (char_length(bio) <= 2000),
@@ -19,36 +24,61 @@ CREATE TABLE accounts (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   deleted_at timestamptz,
+  CHECK (account_type <> 'personal' OR
+    (first_name IS NOT NULL AND last_name IS NOT NULL AND
+     char_length(btrim(first_name)) BETWEEN 2 AND 80 AND char_length(btrim(last_name)) BETWEEN 2 AND 80)),
   UNIQUE (id, account_type)
 );
 CREATE UNIQUE INDEX accounts_username_ci ON accounts (lower(username));
 
--- LEGACY OIDC DRAFT, NOT SELECTED. Replace with the custom API credential model
--- before any migration; this table is documentation-only and must not be applied.
-CREATE TABLE auth_identities (
+-- Email is private account data, never part of the public Account DTO.
+CREATE TABLE account_emails (
+  account_id uuid PRIMARY KEY REFERENCES accounts(id),
+  email_normalized text NOT NULL UNIQUE
+    CHECK (email_normalized = lower(btrim(email_normalized)) AND char_length(email_normalized) <= 254),
+  verified_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX account_emails_verified ON account_emails(verified_at) WHERE verified_at IS NOT NULL;
+
+-- Store only an encoded Argon2id hash. Plain passwords and confirmation values
+-- are transient request data and must never be inserted, logged, or returned.
+CREATE TABLE password_credentials (
+  account_id uuid PRIMARY KEY REFERENCES accounts(id),
+  password_hash text NOT NULL CHECK (btrim(password_hash) <> ''),
+  password_changed_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- One-time email verification and password recovery challenges. Only a digest
+-- of each opaque random token is stored. The service consumes/revokes active
+-- challenges transactionally and applies rate limits outside this table.
+CREATE TABLE auth_challenges (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES accounts(id),
-  provider text NOT NULL CHECK (btrim(provider) <> ''),
-  subject text NOT NULL CHECK (btrim(subject) <> ''),
-  verified_email text,
+  purpose text NOT NULL CHECK (purpose IN ('verify_email', 'password_recovery')),
+  token_hash bytea NOT NULL UNIQUE CHECK (octet_length(token_hash) = 32),
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (provider, subject),
-  UNIQUE (id, account_id)
+  expires_at timestamptz NOT NULL,
+  consumed_at timestamptz,
+  CHECK (expires_at > created_at),
+  CHECK (consumed_at IS NULL OR consumed_at >= created_at)
 );
-CREATE INDEX auth_identities_account ON auth_identities(account_id);
+CREATE INDEX auth_challenges_account_purpose ON auth_challenges(account_id, purpose, created_at DESC);
+CREATE INDEX auth_challenges_expiry ON auth_challenges(expires_at) WHERE consumed_at IS NULL;
 
--- This session FK currently binds to the legacy OIDC draft above. Revise it to
--- bind directly to custom API credentials/account before any migration.
+-- Opaque API-owned sessions; the raw cookie value is never persisted.
 CREATE TABLE sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES accounts(id),
-  auth_identity_id uuid NOT NULL REFERENCES auth_identities(id),
   token_hash bytea NOT NULL UNIQUE CHECK (octet_length(token_hash) = 32),
+  csrf_token_hash bytea NOT NULL CHECK (octet_length(csrf_token_hash) = 32),
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL,
   revoked_at timestamptz,
   CHECK (expires_at > created_at),
-  FOREIGN KEY (auth_identity_id, account_id) REFERENCES auth_identities(id, account_id)
+  CHECK (revoked_at IS NULL OR revoked_at >= created_at)
 );
 CREATE INDEX sessions_account ON sessions(account_id);
 CREATE INDEX sessions_expiry ON sessions(expires_at);
@@ -88,6 +118,8 @@ CREATE TABLE business_profiles (
   city_id varchar(7) NOT NULL REFERENCES cities(ibge_id),
   discovery_kind text NOT NULL CHECK (discovery_kind IN ('place', 'provider')),
   address text,
+  postal_code text,
+  country_code char(2) NOT NULL DEFAULT 'BR' CHECK (country_code ~ '^[A-Z]{2}$'),
   timezone text NOT NULL DEFAULT 'America/Sao_Paulo',
   price_level smallint CHECK (price_level BETWEEN 1 AND 4),
   amenities text[] NOT NULL DEFAULT '{}',
@@ -247,6 +279,11 @@ CREATE INDEX follows_inbound ON follows(followed_id, status, follower_id);
 -- Círculo não é persistido como relação própria: a associação existe somente
 -- quando há dois seguimentos aceitos, um em cada direção. Remover qualquer
 -- uma das duas linhas de follows remove a associação derivada.
+-- Bloquear deve ser uma transação do serviço: inserir a relação de bloqueio,
+-- apagar follows aceitos e pedidos pendentes entre os dois IDs em ambos os
+-- sentidos, e manter conversas/mensagens intactas. A ACL oculta mensagens
+-- enquanto houver bloqueio. Excluir a linha de blocks só é permitido ao
+-- blocker_id; follows e pedidos apagados não são reconstruídos no desbloqueio.
 CREATE TABLE blocks (
   blocker_id uuid NOT NULL REFERENCES accounts(id),
   blocked_id uuid NOT NULL REFERENCES accounts(id),

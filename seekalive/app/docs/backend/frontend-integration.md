@@ -32,7 +32,7 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 
-O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. A autenticação própria pela API foi escolhida para a fase de backend, não está sendo implementada agora. As rotas OIDC atuais são rascunhos não selecionados. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.
+O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. A autenticação própria pela API foi escolhida para a fase de backend e já possui contrato OpenAPI/SQL proposto, ainda sem handlers, migrations ou banco. Registro retorna sessão para permitir o onboarding; login aceita username ou e-mail. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.
 
 Hoje a interface não usa o adaptador REST de conteúdo: `contentService` aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints `/api/v1` propostos.
 

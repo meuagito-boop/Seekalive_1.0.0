@@ -75,18 +75,19 @@ Status principais: `200`, `201`, `202` para tarefa realmente aceita, `204` sem c
 
 ## 3. Autenticação e ciclo de conta
 
-**Direção escolhida:** autenticação própria pela API, a implementar somente quando começar o backend. Até lá, login, cadastro, verificação e recuperação permanecem demonstrativos no frontend; não conectar Clerk nem OIDC.
+**Direção escolhida:** autenticação própria pela API, a implementar somente quando começar o backend. Até lá, login, cadastro, verificação e recuperação permanecem demonstrativos no frontend. O contrato OpenAPI e o esquema SQL descrevem agora uma proposta customizada; ainda não há handlers, sessão real, migração ou banco.
 
 Requisitos para a futura implementação:
 
-1. Um registro cria uma única identidade Social, pessoal ou comercial; a conta comercial recebe extensão comercial na mesma transação. `username` e e-mail precisam de normalização e unicidade com respostas que não exponham dados de terceiros.
-2. O login aceita o identificador já definido pela interface: nome de usuário ou e-mail, mais senha. Falhas usam resposta genérica, limite de tentativas e auditoria sem registrar credenciais.
-3. Armazenar senha somente com hash forte Argon2id e parâmetros versionados; nunca persistir senha no browser, logs, eventos ou telemetria.
-4. Emitir sessão opaca aleatória em cookie `Secure`, `HttpOnly`, `SameSite=Lax`; persistir somente hash, aplicar CSRF, expiração, rotação e revogação pelo servidor.
-5. Verificação de e-mail e recuperação usam tokens de uso único, expirados e armazenados como hash. Respostas de recuperação são anti-enumeração; o provedor de envio de e-mail continua por escolher.
-6. Logout revoga a sessão no servidor e limpa caches privados. O estado ativo do navegador não é prova de autenticação.
+1. `POST /v1/auth/register` aceita os campos atuais de cadastro pessoal ou comercial. Cria uma única identidade Social; conta comercial e extensão comercial são gravadas na mesma transação. Inicia sessão para o onboarding opcional e informa `emailVerificationStatus`. Senha e confirmação são entrada transitória; confirmação nunca é armazenada. Para comércio, o nome da empresa vira o nome público da conta; cidade/estado/país informados no cadastro devem ser normalizados para o catálogo de municípios, sem converter endereço em coordenada.
+2. `POST /v1/auth/login` aceita o identificador já usado pela interface — nome de usuário ou e-mail — e senha. Falhas usam resposta genérica; aplicar limite de tentativas e auditoria sem registrar credenciais.
+3. E-mail normalizado é privado e único. Nunca incluí-lo, nome civil, idade ou senha no DTO público de perfil. Armazenar senha somente como hash Argon2id codificado e versionado; nunca persistir senha em browser, logs, eventos ou telemetria.
+4. Emitir sessão opaca aleatória em cookie `__Host-seekalive_session` com `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`; persistir somente hash. `GET /v1/auth/csrf` emite também cookie pré-autenticação opaco e curto mais token de CSRF. Cadastro/login/recuperação exigem o cookie pré-autenticação e `X-CSRF-Token`; mutações autenticadas exigem sessão e CSRF. Aplicar validação de origem, expiração, rotação e revogação.
+5. Verificação de e-mail e recuperação usam tokens opacos de uso único, expirados e persistidos como hash. Recuperação responde `202` sem revelar se a conta existe; confirmar nova senha consome o desafio e revoga todas as sessões na mesma transação. Provedor de envio de e-mail continua por escolher.
+6. `GET /v1/auth/session` retorna estado autenticado ou anônimo; `GET /v1/auth/sessions` lista somente sessões da própria conta. Logout revoga a sessão no servidor e limpa caches privados. O estado no navegador não prova autenticação.
+7. O contrato ainda não define quais ações ficam limitadas enquanto `emailVerificationStatus` está `pending`; decidir essa política antes de implementar os handlers.
 
-**Aviso de contrato:** os endpoints `authorize/callback` e as tabelas `auth_identities`/FK correspondente são rascunhos OIDC legados e não selecionados. Revisar o OpenAPI e o modelo SQL para a API própria antes de implementar ou migrar. Nenhuma alteração de backend, segredo ou banco foi feita nesta etapa.
+**Regra de bloqueio no contrato:** bloquear grava a relação do iniciador e, na mesma transação, remove follows aceitos e solicitações pendentes nos dois sentidos. Mensagens e conteúdo não são apagados; conversas ficam ocultas durante o bloqueio e podem voltar após desbloquear. Só o iniciador remove seu bloqueio; follows e pedidos não são recriados. A API deve aplicar isso em toda leitura, escrita e entrega de mídia/notificação.
 
 ### Contas e consentimento
 

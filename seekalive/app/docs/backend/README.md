@@ -46,7 +46,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Publicações/comentários | `contentService` seleciona `demoContentAdapter`; existe adaptador REST proposto, mas desativado |
 | Fotos/vídeos | `URL.createObjectURL`, memória e URLs `blob:`. Não são uploads e deixam de funcionar após recarga |
 | Contas/avaliações | Dados de exemplo e registros no `localStorage`; não são dados compartilhados entre dispositivos |
-| Relacionamentos/mensagens | Estado React; Círculo é derivado de seguimentos recíprocos no frontend. Aprovação de seguidores em perfis privados não tem fluxo de interface |
+| Relacionamentos/mensagens | Estado local; Círculo é derivado de seguimentos recíprocos. Perfis privados têm pedido, aprovação/recusa e controle de privacidade, mas sem persistência compartilhada ou API |
 | Seek | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância |
 | Dados demonstrativos | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API |
 | Shop | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real |
@@ -116,7 +116,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 
 **Extensões ainda sujeitas a decisão:** checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.
 
-**Direção já escolhida:** autenticação própria pela API, adiada até começar o backend; até lá, login e cadastro permanecem demonstrativos e não haverá integração Clerk/OIDC. **Demais decisões ainda propostas:** PostgreSQL aproveitando Drizzle, API REST versionada em Express, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados. O OpenAPI e o SQL ainda contêm rascunhos OIDC explicitamente não selecionados.
+**Direção já escolhida:** autenticação própria pela API; login e cadastro continuam demonstrativos até a implementação do backend. O contrato OpenAPI e o esquema SQL abaixo agora descrevem essa direção, mas continuam propostas e não foram implementados nem aplicados. O registro cria a identidade Social pessoal/comercial e inicia sessão para permitir onboarding; verificação de e-mail fica explícita no estado da conta. **Demais decisões ainda propostas:** PostgreSQL aproveitando Drizzle, API REST versionada em Express, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados.
 
 ## 5. Links e versões
 

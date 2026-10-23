@@ -44,9 +44,11 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 - `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
 - O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
 
-**Decisão registrada:** a autenticação será própria pela API; não integrar Clerk/OIDC agora. O login e cadastro demonstrativos permanecem até a fase de backend. Antes de implementar essa fase, definir os endpoints de registro/login, armazenamento seguro de credenciais, sessão, verificação e recuperação; nunca tratar `localStorage` como identidade ou autorização.
+**Decisão registrada:** a autenticação será própria pela API; login e cadastro demonstrativos permanecem até a fase de backend. O contrato proposto agora define registro/login, credenciais, sessão, verificação e recuperação; o OpenAPI e o SQL continuam documentação, sem handlers ou migração. Nunca tratar `localStorage` como identidade ou autorização.
 
-**Atenção documental:** `openapi.json` e `schema-core.sql` ainda contêm rascunhos OIDC. Estão marcados como não selecionados e precisam ser substituídos/revistos antes de qualquer implementação ou migração.
+**Atenção restante:** a política de acesso de contas com e-mail ainda pendente precisa ser definida antes de implementar handlers. Também devem ser aprovados provedor de e-mail, política de retenção/expiração de sessão e origem final da API. Nenhuma dessas definições autoriza aplicar o SQL ou iniciar a autenticação real.
+
+O contrato limita senhas a 128 caracteres; os formulários atuais ainda não definem limite máximo. Alinhar validação visual e mensagens de erro antes de ligar registro/login à API.
 
 ### P0 — Nenhum caminho frontend → API está ligado
 
@@ -149,7 +151,7 @@ Esses resultados comprovam compilação e um conjunto limitado de regras, não a
 ## Ordem recomendada para fechar a prontidão
 
 1. **Concluído no frontend/documentação:** perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.
-2. **Direção escolhida; implementação adiada:** autenticação própria na API. Definir contrato de registro/login, credenciais, verificação, recuperação e sessão no início da fase de backend.
+2. **Contrato proposto; implementação adiada:** autenticação própria na API com registro pessoal/comercial, login por usuário/e-mail, sessão segura, verificação e recuperação. Antes dos handlers, aprovar acesso de conta não verificada, provedor de e-mail e expiração/retention de sessão.
 3. **Concluído no frontend:** fixtures de exemplo ficam no desenvolvimento; curtidas, repostagens, salvos, leituras, filtros e preferências locais são separados por conta. Não migrar automaticamente os valores das chaves antigas sem identificar seu dono.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
 5. Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.

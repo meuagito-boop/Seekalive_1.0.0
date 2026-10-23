@@ -4,7 +4,7 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 
 ## Antes de implementar
 
-1. Autenticação própria pela API já foi escolhida; definir o contrato de registro/login, credenciais, sessão, e-mail e regras de conta/consentimento. Não implementar o rascunho OIDC atual.
+1. Autenticação própria pela API já foi escolhida e o contrato proposto está em `openapi.json` e `schema-core.sql`; revisar e aprovar política de acesso antes da verificação de e-mail, serviço de envio e duração/retention de sessões antes dos handlers.
 2. Confirmar PostgreSQL por ambiente e política de backup/retention.
 3. Confirmar armazenamento de mídia, limites, formatos e retenção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.

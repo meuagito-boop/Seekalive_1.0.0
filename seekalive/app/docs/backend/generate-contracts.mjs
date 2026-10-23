@@ -21,19 +21,84 @@ const del = (tag, p, s, o, x) => add(tag, "delete", p, s, null, o, x);
 const P = "PagePost", A = "Account", C = "Comment", N = "Notification";
 
 g("health", "/healthz", "Verificar servidor (rota existente)", "Health", null, { status: "live", auth: "none" });
-g("auth", "/v1/auth/session", "Consultar sessão atual", "Session", null, { auth: "optional" });
-g("auth", "/v1/auth/csrf", "Obter token CSRF da sessão", "Csrf", null, { auth: "optional" });
-g("auth", "/v1/auth/authorize", "Fluxo OIDC legado; não selecionado", null, null, { auth: "none", redirect: true, notSelected: true, query: ["state"], requiredQuery: ["state"] });
-g("auth", "/v1/auth/callback", "Callback OIDC legado; não selecionado", null, null, { auth: "none", redirect: true, notSelected: true, query: ["code", "state"], requiredQuery: ["code", "state"] });
-post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Empty", { status: "proposed" });
+g("auth", "/v1/auth/session", "Consultar sessão atual sem revelar credenciais", "CurrentSession", null, { auth: "optional" });
+g("auth", "/v1/auth/csrf", "Emitir desafio CSRF para a origem atual", "Csrf", null, {
+  auth: "optional",
+  contractDescription: "Retorna token CSRF legível pelo cliente e emite cookie pré-autenticação opaco, Secure/HttpOnly/SameSite; o token deve ser validado contra esse contexto ou sessão.",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Cookie pré-autenticação opaco, limitado à origem, curto e sem permissões de sessão.",
+      schema: { type: "string" },
+    },
+  },
+});
+post("auth", "/v1/auth/register", "Criar uma conta Social pessoal ou comercial e iniciar sessão", "RegisterRequest", "AuthResult", {
+  auth: "none",
+  csrfOnly: true,
+  successCode: "201",
+  contractDescription: "Cria uma única identidade Social e, para conta comercial, sua extensão comercial na mesma transação. Valida senha e confirmação, descarta a confirmação, dispara verificação de e-mail e inicia sessão para permitir o onboarding opcional. A resposta informa se o e-mail ainda está pendente.",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
+      schema: { type: "string" },
+    },
+  },
+});
+post("auth", "/v1/auth/login", "Autenticar por nome de usuário ou e-mail e senha", "LoginRequest", "AuthResult", {
+  auth: "none",
+  csrfOnly: true,
+  successCode: "200",
+  contractDescription: "Normaliza o identificador e retorna erro genérico para credencial inválida, conta inexistente ou senha incorreta. Nunca retorna hash, senha ou token de sessão no corpo.",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
+      schema: { type: "string" },
+    },
+  },
+});
+post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Empty", {
+  successCode: "200",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Expira __Host-seekalive_session no mesmo Path e atributos do cookie emitido no login.",
+      schema: { type: "string" },
+    },
+  },
+});
 g("auth", "/v1/auth/sessions", "Listar sessões próprias", "PageSession", null);
 del("auth", "/v1/auth/sessions/{sessionId}", "Revogar sessão própria", "Empty");
-post("auth", "/v1/auth/recovery", "Solicitar recuperação pela API; resposta anti-enumeração 202", "RecoveryRequest", "Accepted", { auth: "none", accepted: true });
-post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação por e-mail", "VerificationRequest", "Accepted", { auth: "optional", accepted: true });
-post("auth", "/v1/auth/verification/confirm", "Confirmar desafio emitido pela API", "VerificationConfirm", "Account");
+post("auth", "/v1/auth/recovery", "Solicitar recuperação de senha com resposta anti-enumeração", "RecoveryRequest", "Accepted", {
+  auth: "none",
+  csrfOnly: true,
+  accepted: true,
+  contractDescription: "Retorna sempre a mesma resposta 202, independentemente de existir conta para o identificador; envia desafio de uso único ao e-mail da conta quando elegível.",
+});
+post("auth", "/v1/auth/recovery/confirm", "Redefinir senha com desafio de recuperação válido", "RecoveryConfirm", "Empty", {
+  auth: "none",
+  csrfOnly: true,
+  successCode: "200",
+  contractDescription: "Consome o desafio uma única vez, substitui o hash da senha e revoga todas as sessões da conta na mesma transação.",
+});
+post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação de e-mail", "VerificationRequest", "Accepted", {
+  auth: "optional",
+  csrfOnly: true,
+  accepted: true,
+  contractDescription: "Com sessão, usa somente o e-mail da própria conta; sem sessão, aceita o e-mail informado e responde sem confirmar se existe conta.",
+});
+post("auth", "/v1/auth/verification/confirm", "Confirmar desafio de e-mail de uso único", "VerificationConfirm", "AuthResult", {
+  auth: "none",
+  csrfOnly: true,
+  successCode: "200",
+  contractDescription: "Consome o desafio de verificação e atualiza o status do e-mail. Emite sessão segura para permitir continuar o fluxo de conta.",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Sessão opaca criada/rotacionada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
+      schema: { type: "string" },
+    },
+  },
+});
 
 g("accounts", "/v1/accounts/me", "Consultar conta e projeções do visitante", A);
-post("accounts", "/v1/accounts", "Criar perfil da conta já autenticada", "AccountCreate", A);
 patch("accounts", "/v1/accounts/me", "Editar perfil; não aceita papéis administrativos", "AccountPatch", A);
 del("accounts", "/v1/accounts/me", "Solicitar exclusão segura", "Accepted", { accepted: true });
 g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability", null, { query: ["username"], requiredQuery: ["username"], auth: "none" });
@@ -86,8 +151,12 @@ post("relations", "/v1/social/follow-requests/{accountId}/accept", "Aceitar pedi
 post("relations", "/v1/social/follow-requests/{accountId}/decline", "Recusar pedido de seguimento recebido", null, "Empty");
 g("relations", "/v1/social/circles", "Listar contas seguidas mutuamente; Círculo é derivado, sem convite próprio", "PageCircle", null, { query: ["cursor", "limit"] });
 g("relations", "/v1/social/blocks", "Listar bloqueios próprios", "PageAccount");
-put("relations", "/v1/social/blocks/{accountId}", "Bloquear conta e revogar interações incompatíveis", "Empty", "Empty");
-del("relations", "/v1/social/blocks/{accountId}", "Desbloquear sem recriar relações", "Empty");
+put("relations", "/v1/social/blocks/{accountId}", "Bloquear conta e romper vínculos bilaterais", "Empty", "Empty", {
+  contractDescription: "Na mesma transação, grava o bloqueio iniciado pelo ator, remove follows aceitos e pedidos pendentes entre as duas contas nos dois sentidos e preserva conversas/mensagens para ocultá-las. Bloqueio de qualquer lado impede visibilidade e interação para ambos; somente o iniciador pode desbloquear.",
+});
+del("relations", "/v1/social/blocks/{accountId}", "Desbloquear sem recriar seguimentos ou pedidos", "Empty", {
+  contractDescription: "Somente o iniciador pode remover seu bloqueio. Não recria follows nem pedidos removidos; mensagens antigas voltam a ser legíveis se não houver outro bloqueio ou regra de privacidade aplicável.",
+});
 g("relations", "/v1/social/mutes", "Listar silenciamentos próprios", "PageAccount");
 put("relations", "/v1/social/mutes/{accountId}", "Silenciar conta", null, "Empty");
 del("relations", "/v1/social/mutes/{accountId}", "Remover silenciamento", "Empty");
@@ -175,8 +244,66 @@ const schemas = {
   Health: model({ status: { type: "string", const: "ok" } }, ["status"]),
   Readiness: model({ status: { type: "string", enum: ["ready", "degraded"] }, checks: { type: "object", additionalProperties: { type: "string" } } }, ["status", "checks"]),
   Csrf: model({ csrfToken: string, expiresAt: { type: "string", format: "date-time" } }, ["csrfToken", "expiresAt"]),
-  Session: model({ id: uuid, createdAt: { type: "string", format: "date-time" }, lastSeenAt: { type: "string", format: "date-time" }, isCurrent: { type: "boolean" } }, ["id", "createdAt", "lastSeenAt", "isCurrent"]),
+  Session: model({ id: uuid, createdAt: { type: "string", format: "date-time" }, lastSeenAt: { type: "string", format: "date-time" }, expiresAt: { type: "string", format: "date-time" }, isCurrent: { type: "boolean" } }, ["id", "createdAt", "lastSeenAt", "expiresAt", "isCurrent"]),
   PageSession: page("Session"),
+  CurrentSession: model({
+    authenticated: { type: "boolean" },
+    account: { oneOf: [ref("Account"), { type: "null" }] },
+    session: { oneOf: [ref("Session"), { type: "null" }] },
+  }, ["authenticated", "account", "session"]),
+  AuthResult: model({
+    account: ref("Account"),
+    session: ref("Session"),
+    csrfToken: string,
+    emailVerificationStatus: { type: "string", enum: ["pending", "verified"] },
+  }, ["account", "session", "csrfToken", "emailVerificationStatus"]),
+  PersonalRegistration: model({
+    accountType: { type: "string", const: "personal" },
+    firstName: { type: "string", minLength: 2, maxLength: 80 },
+    lastName: { type: "string", minLength: 2, maxLength: 80 },
+    age: { type: "integer", minimum: 1, maximum: 120 },
+    username: { type: "string", minLength: 3, maxLength: 20, pattern: "^[a-z0-9_]+$" },
+    email: { type: "string", format: "email", maxLength: 254 },
+    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    acceptedTermsVersion: { type: "string", minLength: 1, maxLength: 50 },
+  }, ["accountType", "firstName", "lastName", "age", "username", "email", "password", "passwordConfirmation", "acceptedTermsVersion"]),
+  CommercialRegistration: model({
+    accountType: { type: "string", const: "commercial" },
+    businessName: { type: "string", minLength: 2, maxLength: 100 },
+    age: { type: "integer", minimum: 1, maximum: 120, description: "Idade informada pelo responsável pela conta comercial; dado privado." },
+    username: { type: "string", minLength: 3, maxLength: 20, pattern: "^[a-z0-9_]+$" },
+    email: { type: "string", format: "email", maxLength: 254 },
+    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    categoryKey: { type: "string", enum: ["restaurantes", "bares", "cafes", "servicos", "compras", "saude", "lazer"] },
+    discoveryKind: { type: "string", enum: ["place", "provider"] },
+    address: { type: "string", minLength: 3, maxLength: 250 },
+    postalCode: { type: "string", minLength: 5, maxLength: 20 },
+    city: { type: "string", minLength: 2, maxLength: 120 },
+    state: { type: "string", minLength: 2, maxLength: 100 },
+    country: { type: "string", minLength: 2, maxLength: 100 },
+    acceptedTermsVersion: { type: "string", minLength: 1, maxLength: 50 },
+  }, ["accountType", "businessName", "age", "username", "email", "password", "passwordConfirmation", "categoryKey", "discoveryKind", "address", "postalCode", "city", "state", "country", "acceptedTermsVersion"]),
+  RegisterRequest: {
+    oneOf: [ref("PersonalRegistration"), ref("CommercialRegistration")],
+    discriminator: {
+      propertyName: "accountType",
+      mapping: { personal: "#/components/schemas/PersonalRegistration", commercial: "#/components/schemas/CommercialRegistration" },
+    },
+  },
+  LoginRequest: model({
+    identifier: { type: "string", minLength: 3, maxLength: 254, description: "Nome de usuário ou e-mail; aceita @ inicial no nome de usuário." },
+    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+  }, ["identifier", "password"]),
+  RecoveryRequest: model({ identifier: { type: "string", minLength: 3, maxLength: 254 } }, ["identifier"]),
+  RecoveryConfirm: model({
+    token: { type: "string", minLength: 32, maxLength: 512, writeOnly: true },
+    newPassword: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+  }, ["token", "newPassword", "passwordConfirmation"]),
+  VerificationRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }),
+  VerificationConfirm: model({ token: { type: "string", minLength: 32, maxLength: 512, writeOnly: true } }, ["token"]),
   Account: model({
     id: uuid, username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", maxLength: 80 },
     bio: { type: "string", maxLength: 500 }, avatarUrl: { type: ["string", "null"] }, coverUrl: { type: ["string", "null"] },
@@ -186,8 +313,13 @@ const schemas = {
     relationship: ref("RelationshipView"), stats: ref("AccountStats"), version: { type: "integer" },
   }, ["id", "username", "displayName", "accountType", "joinedAt", "relationship", "stats", "version"]),
   AccountStats: model({ posts: { type: "integer", minimum: 0 }, followers: { type: "integer", minimum: 0 }, following: { type: "integer", minimum: 0 }, circles: { type: "integer", minimum: 0 } }, ["posts", "followers", "following", "circles"]),
-  RelationshipView: model({ following: { type: "string", enum: ["none", "pending", "accepted"] }, inCircle: { type: "boolean", description: "Derivado de seguimentos aceitos nos dois sentidos; não é uma relação independente." }, blockedByMe: { type: "boolean" }, blockedByThem: { type: "boolean" }, mutedByMe: { type: "boolean" } }, ["following", "inCircle", "blockedByMe", "blockedByThem", "mutedByMe"]),
-  AccountCreate: model({ username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", minLength: 2, maxLength: 80 }, bio: { type: "string", maxLength: 500 }, accountType: { type: "string", enum: ["personal", "commercial"] }, acceptedTermsVersion: { type: "string" }, businessProfile: ref("BusinessWrite") }, ["username", "displayName", "accountType", "acceptedTermsVersion"]),
+  RelationshipView: model({
+    following: { type: "string", enum: ["none", "pending", "accepted"] },
+    inCircle: { type: "boolean", description: "Derivado somente de follows aceitos nos dois sentidos; não é uma relação independente." },
+    blockedByMe: { type: "boolean", description: "O visitante iniciou o bloqueio e é o único que pode removê-lo." },
+    blockedByThem: { type: "boolean", description: "O perfil alvo iniciou o bloqueio; o visitante não pode removê-lo." },
+    mutedByMe: { type: "boolean" },
+  }, ["following", "inCircle", "blockedByMe", "blockedByThem", "mutedByMe"]),
   AccountPatch: model({ username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", minLength: 2, maxLength: 80 }, bio: { type: "string", maxLength: 500 }, avatarMediaId: uuid, coverMediaId: uuid, location: { type: ["string", "null"], maxLength: 160 }, website: { type: ["string", "null"], format: "uri" }, version: { type: "integer" } }, ["version"]),
   Profile: model({ account: ref("Account"), posts: page("Post"), articles: page("Post"), media: page("MediaAsset") }, ["account"]),
   BusinessProfile: model({
@@ -302,11 +434,11 @@ for (const route of R) {
   paths[path] ??= {};
   const name = `${route.tag}_${method}_${path.replaceAll(/[{}]/g, "").replaceAll("/", "_").replaceAll("-", "_")}`.replaceAll(/_+/g, "_");
   const operationId = `${name}_${Object.keys(paths[path]).length + 1}`;
-  const successCode = route.redirect ? "302" : route.accepted ? "202" : method === "post" && route.status !== "live" ? "201" : method === "delete" && route.response === "Empty" ? "204" : "200";
-  const responses = route.redirect ? { "302": { description: "Redirecionamento do rascunho OIDC legado; fluxo não selecionado para autenticação." } }
-    : { [successCode]: route.contentResponse ? { description: "Bytes de mídia aprovados após a checagem de autorização.", content: { "image/*": { schema: { type: "string", format: "binary" } }, "video/*": { schema: { type: "string", format: "binary" } } } }
+  const successCode = route.successCode ?? (route.accepted ? "202" : method === "post" && route.status !== "live" ? "201" : method === "delete" && route.response === "Empty" ? "204" : "200");
+  const responses = { [successCode]: route.contentResponse ? { description: "Bytes de mídia aprovados após a checagem de autorização.", content: { "image/*": { schema: { type: "string", format: "binary" } }, "video/*": { schema: { type: "string", format: "binary" } } } }
       : route.stream ? { description: "SSE autenticado; eventos são apenas notificações de recursos que precisam ser reconsultados.", content: { "text/event-stream": { schema: { type: "string" } } } }
       : { description: route.status === "live" ? "Endpoint implementado e observado no servidor atual." : "Contrato proposto; handler ainda não existe.", ...(route.response ? { content: { "application/json": { schema: ref(route.response) } } } : {}) }, ...errorResponses };
+  if (route.responseHeaders) responses[successCode].headers = route.responseHeaders;
   const parameters = [];
   for (const match of path.matchAll(/\{([^}]+)\}/g)) parameters.push({
     name: match[1], in: "path", required: true,
@@ -317,15 +449,21 @@ for (const route of R) {
   if (route.request && schemas[route.request]) route.request = route.request;
   paths[path][method] = {
     operationId, tags: [route.tag], summary: route.summary,
-    description: route.notSelected
-      ? "NOT SELECTED. Legacy OIDC draft conflicts with the approved direction of custom API authentication; do not implement."
-      : route.status === "live" ? "LIVE on the audited API server." : `PROPOSED ONLY; not currently implemented.${route.accepted ? " Async job and request ID; no synchronous-success simulation." : ""}`,
+    description: route.contractDescription ?? (route.status === "live" ? "LIVE on the audited API server." : `PROPOSED ONLY; not currently implemented.${route.accepted ? " Async job and request ID; no synchronous-success simulation." : ""}`),
     ...(route.query?.includes("q") && !parameters.some(p => p.name === "q") ? { parameters: [{ name: "q", in: "query", required: true, schema: { type: "string", maxLength: 160 } }] } : {}),
     ...(parameters.length ? { parameters } : {}),
-    ...(route.redirect ? { parameters: [...parameters, ...((route.query ?? []).includes("state") ? [] : [{ name: "state", in: "query", required: true, schema: string }]), ...((route.query ?? []).includes("code") ? [] : [{ name: "code", in: "query", required: false, schema: string }])] } : {}),
-    ...(["get", "head", "options"].includes(method) || route.redirect ? {} : { security: [{ SessionCookie: [], CsrfHeader: [] }], ...(route.request ? { requestBody: { required: method !== "delete", content: { "application/json": { schema: schemas[route.request] ? ref(route.request) : model({}) } } } } : {}) }),
-    ...(route.auth === "optional" || route.auth === "none" ? { security: [] } : {}),
-    ...(!route.auth && !route.redirect && route.status !== "live" && ["get"].includes(method) ? { security: [{ SessionCookie: [] }] } : {}),
+    ...(["get", "head", "options"].includes(method) ? {} : { security: [{ SessionCookie: [], CsrfHeader: [] }], ...(route.request ? { requestBody: { required: method !== "delete", content: { "application/json": { schema: schemas[route.request] ? ref(route.request) : model({}) } } } } : {}) }),
+    ...(route.auth === "optional"
+      ? { security: ["get", "head", "options"].includes(method)
+        ? [{ SessionCookie: [] }, {}]
+        : [{ SessionCookie: [], CsrfHeader: [] }, { CsrfHeader: [] }] }
+      : route.auth === "none" ? { security: [] } : {}),
+    ...(!route.auth && route.status !== "live" && ["get"].includes(method) ? { security: [{ SessionCookie: [] }] } : {}),
+    ...(route.csrfOnly
+      ? { security: route.auth === "optional"
+        ? [{ SessionCookie: [], CsrfHeader: [] }, { PreAuthCookie: [], CsrfHeader: [] }]
+        : [{ PreAuthCookie: [], CsrfHeader: [] }] }
+      : {}),
     responses: responses,
   };
   if (route.status === "live") paths[path][method].security = [];
@@ -336,7 +474,7 @@ const spec = {
   info: {
     title: "Seekalive API (proposta; uma rota ativa)",
     version: "0.1.0-proposed",
-    description: "Contrato de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. A direção escolhida é autenticação própria pela API, adiada até a fase de backend; as rotas OIDC são rascunhos não selecionados. Revise identidade e sessão antes de implementar. Nenhum contrato aqui provisiona banco ou integrações.",
+    description: "Contrato proposto de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. A autenticação própria pela API está especificada como proposta; nenhuma rota, banco ou integração deste documento foi implementada.",
     contact: { name: "Seekalive API" },
   },
   servers: [{ url: "/api", description: "Prefixo de mesma origem proposto. Roteador do frontend ainda precisa ser conectado." }],
@@ -348,8 +486,9 @@ const spec = {
   paths,
   components: {
     securitySchemes: {
-      SessionCookie: { type: "apiKey", in: "cookie", name: "__Host-seekalive_session", description: "Proposta de cookie Secure/HttpOnly/SameSite criado pela API própria após autenticação; nunca token em localStorage." },
-      CsrfHeader: { type: "apiKey", in: "header", name: "X-CSRF-Token", description: "Obrigatório nas alterações autenticadas; emissão/validação de mesma origem ainda a implementar." },
+      SessionCookie: { type: "apiKey", in: "cookie", name: "__Host-seekalive_session", description: "Cookie de sessão opaca da API própria: Secure, HttpOnly, SameSite=Lax, Path=/; somente o hash do token é persistido." },
+      PreAuthCookie: { type: "apiKey", in: "cookie", name: "__Host-seekalive_pre_auth", description: "Cookie opaco temporário criado pelo endpoint CSRF para proteger cadastro, login e recuperação; Secure, HttpOnly, SameSite=Lax, Path=/, sem permissão de sessão." },
+      CsrfHeader: { type: "apiKey", in: "header", name: "X-CSRF-Token", description: "Token de curta duração vinculado ao cookie pré-autenticação ou à sessão; obrigatório em toda operação de escrita." },
     },
     schemas,
     parameters: { Cursor: { name: "cursor", in: "query", required: false, schema: string }, IfMatch: { name: "If-Match", in: "header", required: true, schema: string } },
@@ -377,7 +516,7 @@ const lines = [
   "",
   "## Respostas, paginação e autenticação",
   "",
-  "- A maioria dos GET responde `200`; POST de recurso `201`; POST de job `202`; alterações em relação existente `200`/`204`. O fluxo OIDC listado abaixo é legado e não foi selecionado; os endpoints de cadastro/login da API própria precisam ser especificados antes do backend.",
+  "- GET normalmente responde `200`; cadastro cria a conta e responde `201`; login e alterações de autenticação respondem `200`; solicitações assíncronas respondem `202`; remoções sem corpo podem responder `204`.",
   "- Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.",
   "- Erro: `{error:{code,message,requestId,fields?}}`. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.",
   "- Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.",
@@ -388,8 +527,8 @@ for (const tag of [...new Set(R.map(r => r.tag))]) {
   lines.push(`## ${tag[0].toUpperCase()}${tag.slice(1)}`, "", "| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |", "|---|---|---|---|---|---|");
   for (const r of R.filter(x => x.tag === tag)) {
     const access = r.auth === "none" ? "Público" : r.auth === "optional" ? "Público/sessão; ACL no servidor" : "Sessão autenticada";
-    const state = r.notSelected ? "NÃO SELECIONADA — legado" : r.status === "live" ? "ATIVA" : "PROPOSTA";
-    lines.push(`| ${r.method.toUpperCase()} | \`${r.path}\` | ${access} | ${r.request ? `\`${r.request}\`` : "—"} | ${r.response ? `\`${r.response}\`` : r.redirect ? "302 redirect" : "bytes/SSE"} | **${state}**${r.accepted ? "; assíncrona" : ""}${r.stream ? "; Server-Sent Events" : ""} |`);
+    const state = r.status === "live" ? "ATIVA" : "PROPOSTA";
+    lines.push(`| ${r.method.toUpperCase()} | \`${r.path}\` | ${access} | ${r.request ? `\`${r.request}\`` : "—"} | ${r.response ? `\`${r.response}\`` : "bytes/SSE"} | **${state}**${r.accepted ? "; assíncrona" : ""}${r.stream ? "; Server-Sent Events" : ""} |`);
   }
   lines.push("");
 }

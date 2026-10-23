@@ -3,7 +3,7 @@
   "info": {
     "title": "Seekalive API (proposta; uma rota ativa)",
     "version": "0.1.0-proposed",
-    "description": "Contrato de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. A direção escolhida é autenticação própria pela API, adiada até a fase de backend; as rotas OIDC são rascunhos não selecionados. Revise identidade e sessão antes de implementar. Nenhum contrato aqui provisiona banco ou integrações.",
+    "description": "Contrato proposto de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. A autenticação própria pela API está especificada como proposta; nenhuma rota, banco ou integração deste documento foi implementada.",
     "contact": {
       "name": "Seekalive API"
     }
@@ -212,16 +212,21 @@
         "tags": [
           "auth"
         ],
-        "summary": "Consultar sessão atual",
+        "summary": "Consultar sessão atual sem revelar credenciais",
         "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Session"
+                  "$ref": "#/components/schemas/CurrentSession"
                 }
               }
             }
@@ -365,9 +370,14 @@
         "tags": [
           "auth"
         ],
-        "summary": "Obter token CSRF da sessão",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [],
+        "summary": "Emitir desafio CSRF para a origem atual",
+        "description": "Retorna token CSRF legível pelo cliente e emite cookie pré-autenticação opaco, Secure/HttpOnly/SameSite; o token deve ser validado contra esse contexto ou sessão.",
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -375,6 +385,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Csrf"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Cookie pré-autenticação opaco, limitado à origem, curto e sem permissões de sessão.",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -512,70 +530,354 @@
         }
       }
     },
-    "/v1/auth/authorize": {
-      "get": {
-        "operationId": "auth_get_v1_auth_authorize_1",
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "auth_post_v1_auth_register_1",
         "tags": [
           "auth"
         ],
-        "summary": "Fluxo OIDC legado; não selecionado",
-        "description": "NOT SELECTED. Legacy OIDC draft conflicts with the approved direction of custom API authentication; do not implement.",
-        "parameters": [
+        "summary": "Criar uma conta Social pessoal ou comercial e iniciar sessão",
+        "description": "Cria uma única identidade Social e, para conta comercial, sua extensão comercial na mesma transação. Valida senha e confirmação, descarta a confirmação, dispara verificação de e-mail e inicia sessão para permitir o onboarding opcional. A resposta informa se o e-mail ainda está pendente.",
+        "security": [
           {
-            "name": "state",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "code",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
+            "PreAuthCookie": [],
+            "CsrfHeader": []
           }
         ],
-        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "302": {
-            "description": "Redirecionamento do rascunho OIDC legado; fluxo não selecionado para autenticação."
+          "201": {
+            "description": "Contrato proposto; handler ainda não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResult"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/v1/auth/callback": {
-      "get": {
-        "operationId": "auth_get_v1_auth_callback_1",
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "auth_post_v1_auth_login_1",
         "tags": [
           "auth"
         ],
-        "summary": "Callback OIDC legado; não selecionado",
-        "description": "NOT SELECTED. Legacy OIDC draft conflicts with the approved direction of custom API authentication; do not implement.",
-        "parameters": [
+        "summary": "Autenticar por nome de usuário ou e-mail e senha",
+        "description": "Normaliza o identificador e retorna erro genérico para credencial inválida, conta inexistente ou senha incorreta. Nunca retorna hash, senha ou token de sessão no corpo.",
+        "security": [
           {
-            "name": "code",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "PreAuthCookie": [],
+            "CsrfHeader": []
           }
         ],
-        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "302": {
-            "description": "Redirecionamento do rascunho OIDC legado; fluxo não selecionado para autenticação."
+          "200": {
+            "description": "Contrato proposto; handler ainda não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResult"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -595,12 +897,20 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Empty"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Expira __Host-seekalive_session no mesmo Path e atributos do cookie emitido no login.",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -1070,9 +1380,14 @@
         "tags": [
           "auth"
         ],
-        "summary": "Solicitar recuperação pela API; resposta anti-enumeração 202",
-        "description": "PROPOSED ONLY; not currently implemented. Async job and request ID; no synchronous-success simulation.",
-        "security": [],
+        "summary": "Solicitar recuperação de senha com resposta anti-enumeração",
+        "description": "Retorna sempre a mesma resposta 202, independentemente de existir conta para o identificador; envia desafio de uso único ao e-mail da conta quando elegível.",
+        "security": [
+          {
+            "PreAuthCookie": [],
+            "CsrfHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1227,15 +1542,192 @@
         }
       }
     },
+    "/v1/auth/recovery/confirm": {
+      "post": {
+        "operationId": "auth_post_v1_auth_recovery_confirm_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Redefinir senha com desafio de recuperação válido",
+        "description": "Consome o desafio uma única vez, substitui o hash da senha e revoga todas as sessões da conta na mesma transação.",
+        "security": [
+          {
+            "PreAuthCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryConfirm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contrato proposto; handler ainda não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Empty"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/verification": {
       "post": {
         "operationId": "auth_post_v1_auth_verification_1",
         "tags": [
           "auth"
         ],
-        "summary": "Solicitar ou reenviar verificação por e-mail",
-        "description": "PROPOSED ONLY; not currently implemented. Async job and request ID; no synchronous-success simulation.",
-        "security": [],
+        "summary": "Solicitar ou reenviar verificação de e-mail",
+        "description": "Com sessão, usa somente o e-mail da própria conta; sem sessão, aceita o e-mail informado e responde sem confirmar se existe conta.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          },
+          {
+            "PreAuthCookie": [],
+            "CsrfHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1396,11 +1888,11 @@
         "tags": [
           "auth"
         ],
-        "summary": "Confirmar desafio emitido pela API",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Confirmar desafio de e-mail de uso único",
+        "description": "Consome o desafio de verificação e atualiza o status do e-mail. Emite sessão segura para permitir continuar o fluxo de conta.",
         "security": [
           {
-            "SessionCookie": [],
+            "PreAuthCookie": [],
             "CsrfHeader": []
           }
         ],
@@ -1415,12 +1907,20 @@
           }
         },
         "responses": {
-          "201": {
+          "200": {
             "description": "Contrato proposto; handler ainda não existe.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Account"
+                  "$ref": "#/components/schemas/AuthResult"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sessão opaca criada/rotacionada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -2037,174 +2537,6 @@
         }
       }
     },
-    "/v1/accounts": {
-      "post": {
-        "operationId": "accounts_post_v1_accounts_1",
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Criar perfil da conta já autenticada",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountCreate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Account"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/accounts/availability": {
       "get": {
         "operationId": "accounts_get_v1_accounts_availability_1",
@@ -2387,7 +2719,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -2550,7 +2887,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -3541,7 +3883,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -3705,7 +4052,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -4870,7 +5222,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -5546,7 +5903,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -7605,7 +7967,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -7788,7 +8155,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -7979,7 +8351,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -8161,7 +8538,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -8332,7 +8714,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -8859,7 +9246,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -9042,7 +9434,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -10369,8 +10766,8 @@
         "tags": [
           "relations"
         ],
-        "summary": "Bloquear conta e revogar interações incompatíveis",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Bloquear conta e romper vínculos bilaterais",
+        "description": "Na mesma transação, grava o bloqueio iniciado pelo ator, remove follows aceitos e pedidos pendentes entre as duas contas nos dois sentidos e preserva conversas/mensagens para ocultá-las. Bloqueio de qualquer lado impede visibilidade e interação para ambos; somente o iniciador pode desbloquear.",
         "parameters": [
           {
             "name": "accountId",
@@ -10546,8 +10943,8 @@
         "tags": [
           "relations"
         ],
-        "summary": "Desbloquear sem recriar relações",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Desbloquear sem recriar seguimentos ou pedidos",
+        "description": "Somente o iniciador pode remover seu bloqueio. Não recria follows nem pedidos removidos; mensagens antigas voltam a ser legíveis se não houver outro bloqueio ou regra de privacidade aplicável.",
         "parameters": [
           {
             "name": "accountId",
@@ -12617,7 +13014,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -12781,7 +13183,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -12952,7 +13359,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -13199,7 +13611,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -13363,7 +13780,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -13562,7 +13984,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -14487,7 +14914,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -14817,7 +15249,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -16210,7 +16647,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -16374,7 +16816,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -16909,7 +17356,12 @@
             }
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -17062,7 +17514,12 @@
         ],
         "summary": "Listar categorias com itens ativos",
         "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
         "responses": {
           "200": {
             "description": "Contrato proposto; handler ainda não existe.",
@@ -21768,13 +22225,19 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "__Host-seekalive_session",
-        "description": "Proposta de cookie Secure/HttpOnly/SameSite criado pela API própria após autenticação; nunca token em localStorage."
+        "description": "Cookie de sessão opaca da API própria: Secure, HttpOnly, SameSite=Lax, Path=/; somente o hash do token é persistido."
+      },
+      "PreAuthCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-seekalive_pre_auth",
+        "description": "Cookie opaco temporário criado pelo endpoint CSRF para proteger cadastro, login e recuperação; Secure, HttpOnly, SameSite=Lax, Path=/, sem permissão de sessão."
       },
       "CsrfHeader": {
         "type": "apiKey",
         "in": "header",
         "name": "X-CSRF-Token",
-        "description": "Obrigatório nas alterações autenticadas; emissão/validação de mesma origem ainda a implementar."
+        "description": "Token de curta duração vinculado ao cookie pré-autenticação ou à sessão; obrigatório em toda operação de escrita."
       }
     },
     "schemas": {
@@ -21922,6 +22385,10 @@
             "type": "string",
             "format": "date-time"
           },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "isCurrent": {
             "type": "boolean"
           }
@@ -21930,6 +22397,7 @@
           "id",
           "createdAt",
           "lastSeenAt",
+          "expiresAt",
           "isCurrent"
         ]
       },
@@ -21952,6 +22420,364 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "CurrentSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "authenticated": {
+            "type": "boolean"
+          },
+          "account": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Account"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Session"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "authenticated",
+          "account",
+          "session"
+        ]
+      },
+      "AuthResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Account"
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "csrfToken": {
+            "type": "string"
+          },
+          "emailVerificationStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified"
+            ]
+          }
+        },
+        "required": [
+          "account",
+          "session",
+          "csrfToken",
+          "emailVerificationStatus"
+        ]
+      },
+      "PersonalRegistration": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accountType": {
+            "type": "string",
+            "const": "personal"
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 20,
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "acceptedTermsVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "accountType",
+          "firstName",
+          "lastName",
+          "age",
+          "username",
+          "email",
+          "password",
+          "passwordConfirmation",
+          "acceptedTermsVersion"
+        ]
+      },
+      "CommercialRegistration": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accountType": {
+            "type": "string",
+            "const": "commercial"
+          },
+          "businessName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120,
+            "description": "Idade informada pelo responsável pela conta comercial; dado privado."
+          },
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 20,
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "categoryKey": {
+            "type": "string",
+            "enum": [
+              "restaurantes",
+              "bares",
+              "cafes",
+              "servicos",
+              "compras",
+              "saude",
+              "lazer"
+            ]
+          },
+          "discoveryKind": {
+            "type": "string",
+            "enum": [
+              "place",
+              "provider"
+            ]
+          },
+          "address": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 250
+          },
+          "postalCode": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 20
+          },
+          "city": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "state": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "country": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "acceptedTermsVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "accountType",
+          "businessName",
+          "age",
+          "username",
+          "email",
+          "password",
+          "passwordConfirmation",
+          "categoryKey",
+          "discoveryKind",
+          "address",
+          "postalCode",
+          "city",
+          "state",
+          "country",
+          "acceptedTermsVersion"
+        ]
+      },
+      "RegisterRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PersonalRegistration"
+          },
+          {
+            "$ref": "#/components/schemas/CommercialRegistration"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "accountType",
+          "mapping": {
+            "personal": "#/components/schemas/PersonalRegistration",
+            "commercial": "#/components/schemas/CommercialRegistration"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254,
+            "description": "Nome de usuário ou e-mail; aceita @ inicial no nome de usuário."
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ]
+      },
+      "RecoveryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "RecoveryConfirm": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 512,
+            "writeOnly": true
+          },
+          "newPassword": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "token",
+          "newPassword",
+          "passwordConfirmation"
+        ]
+      },
+      "VerificationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "VerificationConfirm": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 12
+          }
+        },
+        "required": [
+          "challengeId",
+          "code"
         ]
       },
       "Account": {
@@ -22089,13 +22915,15 @@
           },
           "inCircle": {
             "type": "boolean",
-            "description": "Derivado de seguimentos aceitos nos dois sentidos; não é uma relação independente."
+            "description": "Derivado somente de follows aceitos nos dois sentidos; não é uma relação independente."
           },
           "blockedByMe": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "O visitante iniciou o bloqueio e é o único que pode removê-lo."
           },
           "blockedByThem": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "O perfil alvo iniciou o bloqueio; o visitante não pode removê-lo."
           },
           "mutedByMe": {
             "type": "boolean"
@@ -22107,44 +22935,6 @@
           "blockedByMe",
           "blockedByThem",
           "mutedByMe"
-        ]
-      },
-      "AccountCreate": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "username": {
-            "type": "string",
-            "pattern": "^[a-z0-9_]{3,20}$"
-          },
-          "displayName": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 80
-          },
-          "bio": {
-            "type": "string",
-            "maxLength": 500
-          },
-          "accountType": {
-            "type": "string",
-            "enum": [
-              "personal",
-              "commercial"
-            ]
-          },
-          "acceptedTermsVersion": {
-            "type": "string"
-          },
-          "businessProfile": {
-            "$ref": "#/components/schemas/BusinessWrite"
-          }
-        },
-        "required": [
-          "username",
-          "displayName",
-          "accountType",
-          "acceptedTermsVersion"
         ]
       },
       "AccountPatch": {
@@ -25078,53 +25868,6 @@
         "required": [
           "interests",
           "version"
-        ]
-      },
-      "RecoveryRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          }
-        },
-        "required": [
-          "email"
-        ]
-      },
-      "VerificationRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          }
-        },
-        "required": [
-          "email"
-        ]
-      },
-      "VerificationConfirm": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "challengeId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "code": {
-            "type": "string",
-            "minLength": 6,
-            "maxLength": 12
-          }
-        },
-        "required": [
-          "challengeId",
-          "code"
         ]
       },
       "Availability": {
