@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Seekalive API",
-    "version": "0.2.0-auth-slice",
-    "description": "A rota de saúde e a primeira fatia de autenticação/onboarding estão implementadas. O envio de e-mail ainda não está configurado; cadastro e reenvio respondem 503 até haver um provedor. Os demais contratos seguem como proposta.",
+    "version": "0.3.0-social-relations",
+    "description": "Autenticação, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados. O envio de e-mail continua sem provedor; cadastro e reenvio falham explicitamente até essa integração. Os demais contratos seguem como proposta.",
     "contact": {
       "name": "Seekalive API"
     }
@@ -2228,15 +2228,10 @@
           "accounts"
         ],
         "summary": "Consultar conta e projeções do visitante",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
+        "description": "LIVE on the audited API server.",
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2382,8 +2377,8 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Editar perfil; não aceita papéis administrativos",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Editar perfil com controle de versão; não aceita papéis administrativos",
+        "description": "LIVE on the audited API server.",
         "security": [
           {
             "SessionCookie": [],
@@ -2402,7 +2397,7 @@
         },
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2707,7 +2702,7 @@
           "accounts"
         ],
         "summary": "Verificar disponibilidade pública de username",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "username",
@@ -2721,7 +2716,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2869,8 +2864,8 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Consultar perfil por identificador respeitando privacidade",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Consultar perfil por identificador respeitando privacidade e bloqueios",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "accountId",
@@ -2890,7 +2885,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3038,8 +3033,8 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Resolver perfil por username respeitando privacidade",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Resolver perfil por username respeitando privacidade e bloqueios",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "username",
@@ -3058,7 +3053,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4695,8 +4690,8 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Atualizar nível de privacidade e contato",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Atualizar nível de privacidade, mensagens e confirmações de leitura",
+        "description": "LIVE on the audited API server.",
         "security": [
           {
             "SessionCookie": [],
@@ -4715,7 +4710,7 @@
         },
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4862,15 +4857,10 @@
           "accounts"
         ],
         "summary": "Consultar permissões e privacidade próprias",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
+        "description": "LIVE on the audited API server.",
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9378,7 +9368,7 @@
           "relations"
         ],
         "summary": "Listar seguidores visíveis",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "accountId",
@@ -9417,7 +9407,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9566,7 +9556,7 @@
           "relations"
         ],
         "summary": "Listar contas seguidas visíveis",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "accountId",
@@ -9605,7 +9595,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9753,8 +9743,8 @@
         "tags": [
           "relations"
         ],
-        "summary": "Seguir ou pedir para seguir",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Seguir ou pedir para seguir um perfil privado",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "accountId",
@@ -9784,7 +9774,7 @@
         },
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9930,8 +9920,8 @@
         "tags": [
           "relations"
         ],
-        "summary": "Deixar de seguir/cancelar pedido",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Deixar de seguir ou cancelar pedido",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "accountId",
@@ -9951,7 +9941,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10100,15 +10090,10 @@
           "relations"
         ],
         "summary": "Listar pedidos recebidos próprios",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
+        "description": "LIVE on the audited API server.",
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10257,7 +10242,7 @@
           "relations"
         ],
         "summary": "Aceitar pedido de seguimento recebido",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "accountId",
@@ -10276,8 +10261,8 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10426,7 +10411,7 @@
           "relations"
         ],
         "summary": "Recusar pedido de seguimento recebido",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "accountId",
@@ -10445,8 +10430,8 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10595,7 +10580,7 @@
           "relations"
         ],
         "summary": "Listar contas seguidas mutuamente; Círculo é derivado, sem convite próprio",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "cursor",
@@ -10617,14 +10602,9 @@
             }
           }
         ],
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10773,15 +10753,10 @@
           "relations"
         ],
         "summary": "Listar bloqueios próprios",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
+        "description": "LIVE on the audited API server.",
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10960,7 +10935,7 @@
         },
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -11127,7 +11102,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -23200,14 +23175,6 @@
             "type": "string",
             "maxLength": 500
           },
-          "avatarMediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "coverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
           "location": {
             "type": [
               "string",
@@ -23223,11 +23190,28 @@
             "format": "uri"
           },
           "version": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           }
         },
         "required": [
           "version"
+        ]
+      },
+      "ProfileVisibility": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "canViewPublicContent": {
+            "type": "boolean"
+          },
+          "canViewCircleContent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "canViewPublicContent",
+          "canViewCircleContent"
         ]
       },
       "Profile": {
@@ -23236,6 +23220,9 @@
         "properties": {
           "account": {
             "$ref": "#/components/schemas/Account"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
           },
           "posts": {
             "type": "object",
@@ -23302,7 +23289,11 @@
           }
         },
         "required": [
-          "account"
+          "account",
+          "visibility",
+          "posts",
+          "articles",
+          "media"
         ]
       },
       "BusinessProfile": {
@@ -23996,6 +23987,23 @@
           "updatedAt"
         ]
       },
+      "FollowRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Account"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "account",
+          "createdAt"
+        ]
+      },
       "Circle": {
         "type": "object",
         "additionalProperties": false,
@@ -24062,7 +24070,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Follow"
+              "$ref": "#/components/schemas/FollowRequest"
             }
           },
           "nextCursor": {
@@ -26065,13 +26073,6 @@
               "private"
             ]
           },
-          "followRequests": {
-            "type": "string",
-            "enum": [
-              "everyone",
-              "nobody"
-            ]
-          },
           "messages": {
             "type": "string",
             "enum": [
@@ -26084,11 +26085,14 @@
             "type": "boolean"
           },
           "version": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           }
         },
         "required": [
           "profileVisibility",
+          "messages",
+          "readReceipts",
           "version"
         ]
       },

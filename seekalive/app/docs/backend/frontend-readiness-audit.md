@@ -1,13 +1,13 @@
 # Auditoria de prontidão do frontend — Seekalive
 
-**Data:** 22/10/2026  
-**Escopo:** preparação do frontend para uma futura integração com backend. Esta auditoria é análise/documentação; não cria endpoints, banco, autenticação ou armazenamento remoto.
+**Data da auditoria:** 22/10/2026; atualização de estado: 23/10/2026  
+**Escopo:** prontidão do frontend para integração gradual. A auditoria original foi análise/documentação; desde então, autenticação, onboarding, perfil básico, privacidade e relações sociais essenciais receberam API e schema no desenvolvimento.
 
 ## Parecer
 
-**O frontend ainda não está pronto para receber o backend em produção.** Há componentes úteis — rotas, validações de interface, regras locais, telas de estados vazios/indisponíveis, modelos de domínio e contratos REST propostos — mas a aplicação continua sendo um protótipo local. A interface não consome os endpoints `/api/v1` documentados, não tem autenticação real, não envia mídia e mantém estado de demonstração/local no navegador; as fixtures pré-carregadas agora ficam apenas no desenvolvimento.
+**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API, e já existem endpoints para perfil básico, privacidade e relações; porém, as telas de perfil, configurações, seguir e bloquear ainda usam dados locais/demonstrativos. O envio de e-mail está desligado, então não é possível criar conta real nesta configuração. Posts, mídias, avaliações, mensagens, Seek e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
 
-O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqui. Conectar o servidor agora faria a interface aparentar sucesso com dados locais, perder conteúdo após recarga e aplicar permissões somente no navegador.
+O backend foi iniciado. O próximo trabalho de frontend é consumir somente os endpoints ativos e manter a demonstração de desenvolvimento separada da conta real; não conectar telas a contratos que ainda estejam marcados como propostos.
 
 ## Como a análise foi feita
 
@@ -22,12 +22,12 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
 | Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail e onboarding já chamam a API; recuperação de senha permanece demonstrativa | Envio de e-mail sem provedor; cadastro responde 503 |
-| Contas e perfis | Dados guardados em `localStorage`; edição local. Contextos de conta e Social podem divergir | Bloqueador |
+| Contas e perfis | A API já lê/edita perfil básico com versão; telas de perfil/edição ainda usam estado local e não chamam essa API | Parcial; falta integração de telas |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
 | Galeria | Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência | Parcial |
-| Relacionamentos e Círculo | O frontend calcula Círculo pelo seguimento recíproco; “deixar de seguir” remove a associação derivada | Regra alinhada; sem API |
-| Privacidade e bloqueio | Pedidos de seguimento, bloqueios por conta e desbloqueio funcionam apenas no navegador; a autorização do servidor ainda não existe | Bloqueador para backend |
+| Relacionamentos e Círculo | API persiste seguimentos, pedidos privados e Círculo derivado; telas ainda usam estado local | Regra no backend; falta integração de telas |
+| Privacidade e bloqueio | API aplica bloqueio em leitura de perfil/listas, remove follows/pedidos em transação e permite desbloqueio só pelo iniciador; interface ainda salva no navegador | Parcial; posts/mensagens ainda precisam de ACL quando tiverem API |
 | Mensagens e notificações | Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos | Bloqueador |
 | Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há busca/avaliações/eventos reais no servidor | Parcial |
 | Avaliações | Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500 | Parcial |

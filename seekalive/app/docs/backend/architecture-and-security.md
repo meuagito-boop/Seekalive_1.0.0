@@ -1,5 +1,11 @@
 # Arquitetura, segurança e fluxos
 
+## Escopo atualmente implementado
+
+A API Express com PostgreSQL/Drizzle implementa autenticação e onboarding, leitura/edição do próprio perfil, consulta pública de perfil, verificação de username, privacidade, seguimentos, pedidos de seguimento para perfil privado, Círculo derivado e bloqueios. As rotas usam sessão verificada e CSRF nas escritas. O schema correspondente está aplicado somente em desenvolvimento. O frontend continua em modo de demonstração/local para vários desses recursos; a presença de um endpoint não significa que todas as telas já o consumam.
+
+Permanecem fora desta fatia: posts e mídia, avaliações, perfil comercial completo/Seek, mensagens, notificações, silenciamentos, salvos, busca e moderação. Essas rotas e tabelas ainda são propostas. O provedor de e-mail não foi conectado; cadastro real permanece fechado enquanto o envio não estiver disponível.
+
 ## 1. Arquitetura de referência
 
 ```text

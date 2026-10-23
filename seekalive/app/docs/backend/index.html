@@ -18,20 +18,20 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <header><strong>SEEKALIVE · DOCUMENTAÇÃO TÉCNICA</strong><nav>
 <a href="#README">Visão geral</a><a href="#analysis-of-reference-documents">Análise dos PDFs</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
 </nav></header><main><section id="README"><h1>Seekalive — documentação do aplicativo e especificação do backend</h1>
-<p><strong>Data da auditoria:</strong> 22/10/2026. <strong>Natureza:</strong> documentação técnica e proposta de implementação, não backend entregue.</p>
-<blockquote>A primeira fatia do backend está implementada: sessão, CSRF, cadastro/login, confirmação de e-mail e onboarding. O banco de desenvolvimento tem sete tabelas da fatia de conta. Nenhum provedor de e-mail está conectado; cadastro e reenvio retornam <code>503</code> até o envio ser configurado. Os demais endpoints do produto continuam como contratos propostos.</blockquote>
+<p><strong>Data da auditoria:</strong> 23/10/2026. <strong>Natureza:</strong> documentação técnica do backend já implementado em fatias e contratos futuros do produto.</p>
+<blockquote>Implementados: sessão, CSRF, cadastro/login/verificação, onboarding, leitura/edição de perfil, privacidade, seguimento, pedidos de perfis privados, Círculo derivado e bloqueios. O schema atual foi aplicado somente ao banco de desenvolvimento. Nenhum provedor de e-mail está conectado; cadastro e reenvio retornam <code>503</code> até o envio ser configurado. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.</blockquote>
 <h2>Como utilizar este pacote</h2>
 <ol>
-<li>Ler este documento e <code>architecture-and-security.md</code>: escopo, regras e decisões propostas.</li>
+<li>Ler este documento e <code>architecture-and-security.md</code>: escopo atual, regras e decisões futuras.</li>
 <li>Ler <code>analysis-of-reference-documents.md</code>: comparação dos PDFs com o produto atual e decisões que ainda precisam de aprovação.</li>
 <li>Ler <code>frontend-readiness-audit.md</code>: resultado da revisão do estado atual e bloqueios antes da integração.</li>
 <li>Consultar <code>frontend-integration.md</code>: cada página e cada armazenamento temporário que precisam de integração.</li>
 <li>Usar <code>endpoints.md</code> e <code>openapi.json</code>: catálogo de métodos, permissões, corpos, respostas e erros.</li>
-<li>Revisar <code>data-dictionary.md</code> e <code>schema-core.sql</code>: modelo relacional proposto. <strong>Não executar o SQL automaticamente.</strong></li>
+<li>Revisar <code>data-dictionary.md</code> e <code>schema-core.sql</code>: distinguir o schema Drizzle atual do modelo relacional futuro. <strong>Não executar o SQL proposto automaticamente.</strong></li>
 <li>Consultar <code>external-services-and-operations.md</code>: serviços, links oficiais, configuração, implantação e monitoramento.</li>
 <li>Seguir <code>implementation-and-tests.md</code>: ordem de implementação, critérios de aceite e funcionalidades futuras.</li>
 </ol>
-<p>O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é <strong>separado</strong> de <code>lib/api-spec/openapi.yaml</code>, que permanece intacto e descreve somente a API atual.</p>
+<p>O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é <strong>separado</strong> de <code>lib/api-spec/openapi.yaml</code>, que permanece intacto e descreve a API pública deste artefato.</p>
 <h2>1. Produto</h2>
 <p>Seekalive reúne três módulos conectados por uma identidade única:</p>
 <div class="table-wrap"><table>
@@ -118,7 +118,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>4. Entregas de backend e limites</h2>
 <p><strong>Núcleo a implementar:</strong> identidade, conta/perfil, Social, mídias, relacionamentos, mensagens, notificações, Seek, avaliações, eventos, catálogo Shop, salvos, busca, preferências, moderação e privacidade.</p>
 <p><strong>Extensões ainda sujeitas a decisão:</strong> checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.</p>
-<p><strong>Direção implementada nesta etapa:</strong> autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio total de contas sem e-mail confirmado. O schema Drizzle da fatia de conta foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI documenta tanto as rotas ativas quanto as propostas. <strong>Bloqueio atual:</strong> o usuário dispensou a integração de e-mail; por isso, o servidor não cria a conta e responde <code>503</code> quando o envio não está configurado. O schema completo de produto continua proposto; não foi aplicado nem migrado para produção.</p>
+<p><strong>Direção implementada nesta etapa:</strong> autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio de contas sem e-mail confirmado; perfis, configurações de privacidade e relações sociais essenciais também usam a API. O schema Drizzle atualizado foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI separa rotas ativas das propostas. <strong>Bloqueio atual:</strong> o envio de e-mail não está integrado; por isso, o servidor não cria conta real e responde <code>503</code> quando não há envio configurado. O schema completo dos demais domínios continua proposto e não foi aplicado à produção.</p>
 <h2>5. Links e versões</h2>
 <ul>
 <li>Rotas da interface e URLs relativas da API estão em <code>frontend-integration.md</code> e <code>endpoints.md</code>.</li>
@@ -204,11 +204,11 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 </ol>
 <p>Depois dessas decisões, atualizar em uma única revisão coerente a documentação do produto, frontend, OpenAPI, dicionário de dados, SQL proposto e testes. <strong>Até lá, este relatório não muda os contratos existentes e nenhuma tecnologia ou funcionalidade deve ser migrada automaticamente a partir dos PDFs.</strong></p></section>
 <section id="frontend-readiness-audit"><h1>Auditoria de prontidão do frontend — Seekalive</h1>
-<p><strong>Data:</strong> 22/10/2026  </p>
-<p><strong>Escopo:</strong> preparação do frontend para uma futura integração com backend. Esta auditoria é análise/documentação; não cria endpoints, banco, autenticação ou armazenamento remoto.</p>
+<p><strong>Data da auditoria:</strong> 22/10/2026; atualização de estado: 23/10/2026  </p>
+<p><strong>Escopo:</strong> prontidão do frontend para integração gradual. A auditoria original foi análise/documentação; desde então, autenticação, onboarding, perfil básico, privacidade e relações sociais essenciais receberam API e schema no desenvolvimento.</p>
 <h2>Parecer</h2>
-<p><strong>O frontend ainda não está pronto para receber o backend em produção.</strong> Há componentes úteis — rotas, validações de interface, regras locais, telas de estados vazios/indisponíveis, modelos de domínio e contratos REST propostos — mas a aplicação continua sendo um protótipo local. A interface não consome os endpoints <code>/api/v1</code> documentados, não tem autenticação real, não envia mídia e mantém estado de demonstração/local no navegador; as fixtures pré-carregadas agora ficam apenas no desenvolvimento.</p>
-<p>O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqui. Conectar o servidor agora faria a interface aparentar sucesso com dados locais, perder conteúdo após recarga e aplicar permissões somente no navegador.</p>
+<p><strong>O frontend ainda não está pronto para usar todo o backend em produção.</strong> Login/sessão/onboarding consultam a API, e já existem endpoints para perfil básico, privacidade e relações; porém, as telas de perfil, configurações, seguir e bloquear ainda usam dados locais/demonstrativos. O envio de e-mail está desligado, então não é possível criar conta real nesta configuração. Posts, mídias, avaliações, mensagens, Seek e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.</p>
+<p>O backend foi iniciado. O próximo trabalho de frontend é consumir somente os endpoints ativos e manter a demonstração de desenvolvimento separada da conta real; não conectar telas a contratos que ainda estejam marcados como propostos.</p>
 <h2>Como a análise foi feita</h2>
 <ul>
 <li>Inventário das rotas e dos módulos de produto em <code>artifacts/social/src</code> (159 arquivos de origem, sendo 158 TypeScript/TSX), incluindo pontos de entrada, contextos, serviços, persistência local, telas de conta, perfis, Social, Seek, Shop e configurações.</li>
@@ -221,12 +221,12 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <tr><th>Área</th><th>Estado atual</th><th>Prontidão</th></tr>
 <tr><td>Rotas e navegação</td><td>Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente</td><td>Parcial</td></tr>
 <tr><td>Identidade e sessão</td><td>Login, cadastro, sessão, CSRF, confirmação de e-mail e onboarding já chamam a API; recuperação de senha permanece demonstrativa</td><td>Envio de e-mail sem provedor; cadastro responde 503</td></tr>
-<tr><td>Contas e perfis</td><td>Dados guardados em <code>localStorage</code>; edição local. Contextos de conta e Social podem divergir</td><td>Bloqueador</td></tr>
+<tr><td>Contas e perfis</td><td>A API já lê/edita perfil básico com versão; telas de perfil/edição ainda usam estado local e não chamam essa API</td><td>Parcial; falta integração de telas</td></tr>
 <tr><td>Publicações e comentários</td><td><code>SocialContext</code> com reducer; <code>contentService</code> usa <code>demoContentAdapter</code>; adaptador REST não está ativo</td><td>Bloqueador</td></tr>
 <tr><td>Fotos e vídeos</td><td>Prévia usa URL <code>blob:</code> do navegador; não há upload, ID de mídia ou persistência remota</td><td>Bloqueador</td></tr>
 <tr><td>Galeria</td><td>Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência</td><td>Parcial</td></tr>
-<tr><td>Relacionamentos e Círculo</td><td>O frontend calcula Círculo pelo seguimento recíproco; “deixar de seguir” remove a associação derivada</td><td>Regra alinhada; sem API</td></tr>
-<tr><td>Privacidade e bloqueio</td><td>Pedidos de seguimento, bloqueios por conta e desbloqueio funcionam apenas no navegador; a autorização do servidor ainda não existe</td><td>Bloqueador para backend</td></tr>
+<tr><td>Relacionamentos e Círculo</td><td>API persiste seguimentos, pedidos privados e Círculo derivado; telas ainda usam estado local</td><td>Regra no backend; falta integração de telas</td></tr>
+<tr><td>Privacidade e bloqueio</td><td>API aplica bloqueio em leitura de perfil/listas, remove follows/pedidos em transação e permite desbloqueio só pelo iniciador; interface ainda salva no navegador</td><td>Parcial; posts/mensagens ainda precisam de ACL quando tiverem API</td></tr>
 <tr><td>Mensagens e notificações</td><td>Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos</td><td>Bloqueador</td></tr>
 <tr><td>Seek</td><td>Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há busca/avaliações/eventos reais no servidor</td><td>Parcial</td></tr>
 <tr><td>Avaliações</td><td>Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500</td><td>Parcial</td></tr>
@@ -347,6 +347,9 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 </ol>
 <p><strong>Estado final desta auditoria:</strong> documentação atualizada; nenhum endpoint novo, banco ou serviço foi implementado.</p></section>
 <section id="architecture-and-security"><h1>Arquitetura, segurança e fluxos</h1>
+<h2>Escopo atualmente implementado</h2>
+<p>A API Express com PostgreSQL/Drizzle implementa autenticação e onboarding, leitura/edição do próprio perfil, consulta pública de perfil, verificação de username, privacidade, seguimentos, pedidos de seguimento para perfil privado, Círculo derivado e bloqueios. As rotas usam sessão verificada e CSRF nas escritas. O schema correspondente está aplicado somente em desenvolvimento. O frontend continua em modo de demonstração/local para vários desses recursos; a presença de um endpoint não significa que todas as telas já o consumam.</p>
+<p>Permanecem fora desta fatia: posts e mídia, avaliações, perfil comercial completo/Seek, mensagens, notificações, silenciamentos, salvos, busca e moderação. Essas rotas e tabelas ainda são propostas. O provedor de e-mail não foi conectado; cadastro real permanece fechado enquanto o envio não estiver disponível.</p>
 <h2>1. Arquitetura de referência</h2>
 <pre><code>Navegador / aplicativo web
   | mesma origem; cookie HttpOnly; token CSRF nas alterações
@@ -620,7 +623,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 </table></div></section>
 <section id="endpoints"><h1>Endpoints e contrato OpenAPI</h1>
 <p>Gerado por <code>node docs/backend/generate-contracts.mjs</code>. OpenAPI 3.1 em <code>openapi.json</code>: <strong>130 operações candidatas</strong>. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.</p>
-<blockquote>Salvo <code>GET /api/healthz</code>, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.</blockquote>
+<blockquote>Rotas marcadas <strong>ATIVA</strong> já têm handler no servidor atual. Rotas <strong>PROPOSTA</strong> ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.</blockquote>
 <h2>Respostas, paginação e autenticação</h2>
 <ul>
 <li>GET normalmente responde <code>200</code>; cadastro cria a conta e responde <code>201</code>; login e alterações de autenticação respondem <code>200</code>; solicitações assíncronas respondem <code>202</code>; remoções sem corpo podem responder <code>204</code>.</li>
@@ -658,12 +661,12 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h2>Accounts</h2>
 <div class="table-wrap"><table>
 <tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
-<tr><td>GET</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td>—</td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>PATCH</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td><code>AccountPatch</code></td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td>—</td><td><code>Account</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>PATCH</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td><code>AccountPatch</code></td><td><code>Account</code></td><td><strong>ATIVA</strong></td></tr>
 <tr><td>DELETE</td><td><code>/v1/accounts/me</code></td><td>Sessão autenticada</td><td>—</td><td><code>Accepted</code></td><td><strong>PROPOSTA</strong>; assíncrona</td></tr>
-<tr><td>GET</td><td><code>/v1/accounts/availability</code></td><td>Público</td><td>—</td><td><code>Availability</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/accounts/{accountId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Account</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/profiles/{username}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Profile</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/availability</code></td><td>Público</td><td>—</td><td><code>Availability</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/{accountId}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Account</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/profiles/{username}</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Profile</code></td><td><strong>ATIVA</strong></td></tr>
 <tr><td>PUT</td><td><code>/v1/accounts/me/preferences</code></td><td>Sessão autenticada</td><td><code>Preferences</code></td><td><code>Preferences</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>GET</td><td><code>/v1/accounts/me/preferences</code></td><td>Sessão autenticada</td><td>—</td><td><code>Preferences</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>PUT</td><td><code>/v1/accounts/me/onboarding</code></td><td>Sessão autenticada</td><td><code>Interests</code></td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
@@ -673,8 +676,8 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><td>GET</td><td><code>/v1/accounts/{accountId}/business</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>BusinessProfile</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>PUT</td><td><code>/v1/accounts/me/business</code></td><td>Sessão autenticada</td><td><code>BusinessWrite</code></td><td><code>BusinessProfile</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>DELETE</td><td><code>/v1/accounts/me/business</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>PUT</td><td><code>/v1/accounts/me/privacy</code></td><td>Sessão autenticada</td><td><code>PrivacyWrite</code></td><td><code>Privacy</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/accounts/me/privacy</code></td><td>Sessão autenticada</td><td>—</td><td><code>Privacy</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/accounts/me/privacy</code></td><td>Sessão autenticada</td><td><code>PrivacyWrite</code></td><td><code>Privacy</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/accounts/me/privacy</code></td><td>Sessão autenticada</td><td>—</td><td><code>Privacy</code></td><td><strong>ATIVA</strong></td></tr>
 </table></div>
 <h2>Social</h2>
 <div class="table-wrap"><table>
@@ -708,17 +711,17 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h2>Relations</h2>
 <div class="table-wrap"><table>
 <tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
-<tr><td>GET</td><td><code>/v1/social/accounts/{accountId}/followers</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/social/accounts/{accountId}/following</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>PUT</td><td><code>/v1/social/accounts/{accountId}/follow</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Follow</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>DELETE</td><td><code>/v1/social/accounts/{accountId}/follow</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/social/follow-requests</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageFollow</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/accept</code></td><td>Sessão autenticada</td><td>—</td><td><code>Follow</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/decline</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/social/circles</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageCircle</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/social/blocks</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>PUT</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>DELETE</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/accounts/{accountId}/followers</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageAccount</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/accounts/{accountId}/following</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>PageAccount</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/accounts/{accountId}/follow</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Follow</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/accounts/{accountId}/follow</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/follow-requests</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageFollow</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/accept</code></td><td>Sessão autenticada</td><td>—</td><td><code>Follow</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>POST</td><td><code>/v1/social/follow-requests/{accountId}/decline</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/circles</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageCircle</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/social/blocks</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageAccount</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>PUT</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td><code>Empty</code></td><td><code>Empty</code></td><td><strong>ATIVA</strong></td></tr>
+<tr><td>DELETE</td><td><code>/v1/social/blocks/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>ATIVA</strong></td></tr>
 <tr><td>GET</td><td><code>/v1/social/mutes</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageAccount</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>PUT</td><td><code>/v1/social/mutes/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>DELETE</td><td><code>/v1/social/mutes/{accountId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
@@ -814,19 +817,34 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h2>Rotas intencionalmente não prometidas</h2>
 <p>Checkout, pagamento, assinatura, pedido, entrega, reserva de mesa, agendamento confirmado, ingresso e localização por raio não aparecem como recursos prontos nesta especificação. Se aprovados, serão uma fase e contratos separados. O Shop atual desabilita compra e os eventos atuais não recebem inscrições pagas.</p></section>
 <section id="data-dictionary"><h1>Seekalive core data dictionary</h1>
-<p><strong>PROPOSED, NOT APPLIED. Documentation only.</strong> <code>schema-core.sql</code> is a proposed PostgreSQL design, not a migration, generated ORM schema, or claim of implemented backend behavior. The existing database library defines no application tables. No database connection, SQL execution, migration, application change, or package installation is part of this work.</p>
+<p><strong>Status:</strong> o schema Drizzle atual é a fonte de verdade das tabelas já implementadas e foi aplicado apenas ao banco de desenvolvimento. <code>schema-core.sql</code> permanece uma proposta de referência para domínios futuros; não é migration nem foi executado. Nenhuma alteração foi aplicada ao banco de produção.</p>
 <h2>Sources and boundaries</h2>
 <p>Reviewed frontend contracts in the account, profile, social, Seek, Shop, messaging and settings flows. The current commercial-review UI requires a 1–5 rating, a 10–500 character comment and a 3–500 character business reply. This document remains a proposal, not an implemented backend contract.</p>
 <ul>
 <li>One <code>accounts</code> identity is personal <strong>or</strong> commercial. A commercial profile extends that identity; it is not a separate login/account.</li>
 <li>Círculo exists only when two accounts follow one another and both follow edges are effective/accepted. It is derived from <code>follows</code>, not an independent request, invitation, membership, or table. One-way following is not Círculo; removing either edge removes the derived membership.</li>
 <li>Shuffle and Comunidades are out of product scope. There are no community/group entities, roles, memberships, invitations, or group posts.</li>
-<li>Privacy controls and follow requests currently save browser-local state. The UI supports incoming request acceptance/decline: a pending request grants no access; an accepted follower can view public-audience posts on a private profile, while Círculo-audience posts still require accepted follows in both directions. <code>canReadPost</code> is only a UX rule, not production authorization.</li>
-<li>As telas atuais de e-mail/senha são demonstrações no navegador, não autenticação real. A direção escolhida é autenticação própria pela API, adiada até a fase de backend. O modelo abaixo propõe credenciais e sessões próprias; nenhuma senha ou sessão real é armazenada pelo frontend e nenhum SQL foi aplicado.</li>
+<li>A API persiste privacidade, seguimentos, pedidos pendentes e bloqueios. Pedido pendente não concede acesso; após aprovação, a conta pode ver conteúdo público do perfil privado; conteúdo do Círculo exige seguimentos aceitos nos dois sentidos. Endpoints de publicações e mensagens ainda precisam aplicar essas decisões quando forem implementados.</li>
+<li>A autenticação própria pela API já existe, mas conta real só entra após confirmar e-mail. Como o provedor de envio continua desconectado, o cadastro real falha explicitamente. A demonstração de preview é fictícia, somente no desenvolvimento e não cria sessão de API.</li>
 <li>Event interest, product discovery, business hours, and advertised service options do not imply checkout, payments, delivery dispatch, reservations, or appointment booking.</li>
 </ul>
 <h2>Conventions and DTO mapping</h2>
 <p>All bare <code>id</code> columns are UUID primary keys generated by <code>gen_random_uuid()</code> (pgcrypto). Relationship tables use the explicitly listed composite keys. Foreign keys default to <code>NO ACTION</code> unless SQL specifies otherwise. <code>created_at</code>, <code>updated_at</code>, and operational timestamps are <code>timestamptz</code>; SQL defaults initialize timestamps but <strong>do not automatically maintain <code>updated_at</code></strong>. The server must update it. Local opening times use <code>time</code>, exceptions use <code>date</code>; weekday 0 is Sunday. Nullable columns are optional data, not empty-string sentinels. SQL is authoritative for individual types and CHECK expressions.</p>
+<h2>Tabelas implementadas no Drizzle</h2>
+<div class="table-wrap"><table>
+<tr><th>Tabela</th><th>Uso atual</th></tr>
+<tr><td><code>accounts</code></td><td>Identidade única pessoal/comercial, username, nome público, bio, local, site, privacidade, preferências de mensagens/leitura, versão e status de verificação.</td></tr>
+<tr><td><code>account_emails</code></td><td>E-mail normalizado e instante de confirmação.</td></tr>
+<tr><td><code>password_credentials</code></td><td>Hash Argon2id e instante de alteração da senha.</td></tr>
+<tr><td><code>business_profiles</code></td><td>Extensão comercial vinculada 1:1 à mesma conta Social.</td></tr>
+<tr><td><code>auth_challenges</code></td><td>Desafios de verificação, com token armazenado como hash.</td></tr>
+<tr><td><code>sessions</code></td><td>Sessões opacas com hashes do token de sessão e CSRF.</td></tr>
+<tr><td><code>account_interests</code></td><td>Interesses opcionais do onboarding, associados à conta.</td></tr>
+<tr><td><code>account_follows</code></td><td>Seguimentos aceitos; Círculo é calculado pela presença das duas direções.</td></tr>
+<tr><td><code>account_follow_requests</code></td><td>Pedidos pendentes direcionados a perfis privados; a aprovação cria o follow aceito.</td></tr>
+<tr><td><code>account_blocks</code></td><td>Bloqueio iniciado por uma conta; bloquear remove follows e pedidos pendentes em ambas as direções.</td></tr>
+</table></div>
+<p>O schema Drizzle completo e seus índices/constraints ficam em <code>lib/db/src/schema/</code>. Campos de avatar/capa por mídia, posts, galeria, avaliações, serviços comerciais completos, conversas, mensagens, busca e moderação ainda não têm armazenamento/API ativa.</p>
 <p>Frontend DTOs use <strong>camelCase</strong>, SQL uses <strong>snake_case</strong>. Serializers, not accidental ORM field exposure, must bridge them:</p>
 <div class="table-wrap"><table>
 <tr><th>Frontend field or behavior</th><th>Proposed storage / response rule</th></tr>
@@ -916,7 +934,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h2>Constraints SQL enforces, and what it does not</h2>
 <h3>Identity and commercial invariants</h3>
 <p>The commercial-only invariant does <strong>not</strong> depend on an unchecked comment: <code>business_profiles.account_type</code> is constrained to <code>commercial</code>, and <code>(account_id, account_type)</code> references the unique pair in <code>accounts</code>. The ordinary <code>account_id</code> PK/FK is also present. This is a declarative alternative to a constraint trigger; changing an account back to personal while a business profile remains is rejected. Seller/organizer/review target FKs refer to <code>business_profiles</code>, transitively enforcing commercial identity. Creating a commercial account/profile together, changing types safely, and requiring every active commercial account to have a profile are application transaction responsibilities. The schema allows a commercial account before profile completion.</p>
-<p>Na autenticação própria escolhida, a API deverá armazenar senhas somente com hash forte (Argon2id), emitir sessão opaca em cookie <strong>Secure, HttpOnly, SameSite</strong>, proteger escritas com CSRF e limitar tentativas. Tokens de verificação e recuperação são de uso único, expirados e armazenados como hash; respostas de recuperação evitam enumeração de contas. Nunca colocar senha ou token de sessão em <code>localStorage</code>. Os requisitos agora estão refletidos como proposta SQL, ainda sem migration e sem aprovação operacional.</p>
+<p>Na autenticação própria, a API armazena senha com Argon2id, emite sessão opaca em cookie <strong>Secure, HttpOnly, SameSite</strong>, protege escritas com CSRF e limita tentativas. Tokens de verificação são armazenados como hash; recuperação ainda é proposta. Nunca colocar senha ou token de sessão em <code>localStorage</code>. As tabelas implementadas estão no schema Drizzle e no banco de desenvolvimento; <code>schema-core.sql</code> permanece apenas como referência dos domínios futuros.</p>
 <h3>Required authorization transactions</h3>
 <ol>
 <li>Obtain actor from the authenticated session; check account active status and resource status. Service/database credentials never reach the browser. There are no implemented RLS policies or GRANTs in this proposal; SQL integrity is <strong>not</strong> app privacy.</li>
@@ -963,17 +981,17 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 </ul>
 <h2>Static review (not execution)</h2>
 <p>The core currently contains <strong>43 proposed tables</strong>, including custom email, password-credential, challenge, and session structures. The count describes this documentation draft only; no migration, live rows, or runtime validation are asserted.</p>
-<p>The SQL was reviewed as text only. No SQL parser/database execution was performed. Before adoption, convert into reviewed migrations, test CHECK/unique/FK rejection paths, concurrent authorization races, deletion ordering, Unicode limits, transaction rollback, and privacy behavior under real authenticated requests.</p></section>
+<p>The larger SQL design in <code>schema-core.sql</code> remains a reference proposal and was not run. The smaller current Drizzle schema was applied to development. Before adopting proposed domains, review their migrations and test CHECK/unique/FK rejection paths, concurrent authorization races, deletion ordering, Unicode limits, transaction rollback, and privacy behavior under real authenticated requests.</p></section>
 <section id="external-services-and-operations"><h1>Serviços externos, configuração e operação</h1>
 <h2>Situação da auditoria</h2>
-<p>Não há provedor de identidade, serviço de mapas/geocodificação, armazenamento de objetos, e-mail, push, pagamentos ou checkout conectado nesta auditoria. Não há domínio de produção confirmado neste pacote. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.</p>
-<p>O único endpoint ativo observado é <code>GET /api/healthz</code>. Os outros endpoints são contratos propostos. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.</p>
+<p>Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, e-mail, push, pagamentos ou checkout conectado nesta auditoria. A autenticação própria usa o servidor e PostgreSQL do projeto; o envio de e-mail permanece desligado, então cadastro real responde <code>503</code> sem criar conta. Não há domínio de produção confirmado neste pacote. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.</p>
+<p>Além de <code>GET /api/healthz</code>, estão ativas as rotas de autenticação/onboarding, perfil/privacidade e relações sociais essenciais listadas como <strong>ATIVA</strong> em <code>endpoints.md</code>. As outras rotas são propostas. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.</p>
 <h2>Serviços candidatos e documentação oficial</h2>
 <div class="table-wrap"><table>
 <tr><th>Necessidade</th><th>Opção / situação</th><th>Referência oficial</th></tr>
-<tr><td>Banco relacional</td><td>PostgreSQL é o destino proposto; Drizzle/driver já aparecem no projeto, mas não existe schema Drizzle ativo nem confirmação de banco provisionado</td><td><a href="https://docs.replit.com/features/data-and-storage/sql-database" rel="noopener noreferrer">Replit SQL Database</a></td></tr>
+<tr><td>Banco relacional</td><td>PostgreSQL com Drizzle; schema de autenticação, perfil básico e relações aplicado somente no desenvolvimento. Produção não foi alterada; Publish é o fluxo de schema para produção</td><td><a href="https://docs.replit.com/features/data-and-storage/sql-database" rel="noopener noreferrer">Replit SQL Database</a></td></tr>
 <tr><td>Fotos e vídeos</td><td>Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca <code>blob:</code> como URL de backend</td><td><a href="https://docs.replit.com/features/data-and-storage/object-storage" rel="noopener noreferrer">Replit Object Storage</a></td></tr>
-<tr><td>Autenticação</td><td>Direção escolhida: API própria, sem Clerk/OIDC. Ainda não implementada. Serviço de e-mail para verificação e recuperação continua por escolher</td><td>Definir e proteger o serviço de envio de e-mail antes da fase de backend</td></tr>
+<tr><td>Autenticação</td><td>API própria, sem Clerk/OIDC, com sessão/CSRF e confirmação de e-mail implementadas. Envio de verificação e recuperação continua desconectado</td><td>Escolher e proteger o serviço de envio antes de abrir cadastro real</td></tr>
 <tr><td>Cidades brasileiras</td><td>O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render</td><td><a href="https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&amp;orderBy=nome" rel="noopener noreferrer">API de localidades do IBGE</a></td></tr>
 <tr><td>Mapas/geocodificação</td><td>Nenhum fornecedor escolhido. A interface pode selecionar cidade manualmente. GPS só após consentimento; resolver cidade aproximada sem persistir coordenadas</td><td>Decidir provedor e termos antes de habilitar o endpoint proposto</td></tr>
 <tr><td>E-mail e notificações</td><td>Integrações não conectadas. Só adicionar após decidir provedor, consentimento, templates, retentativa e descadastro</td><td>Proposta em <code>architecture-and-security.md</code></td></tr>
@@ -1005,7 +1023,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 </ul>
 <p>Mais referências de plataforma: <a href="https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases" rel="noopener noreferrer">Storage e bancos no Replit</a> e <a href="https://docs.replit.com/build/troubleshooting" rel="noopener noreferrer">Troubleshooting</a>.</p></section>
 <section id="implementation-and-tests"><h1>Plano de implementação e testes</h1>
-<p>Este plano organiza o backend futuro; não autoriza nem executa migrações ou mudanças de produto. As fases dependem de decisões explícitas nos itens indicados.</p>
+<p>Este documento registra a implementação já existente e organiza as próximas fatias do backend. O schema de desenvolvimento já recebeu as tabelas atuais; produção permanece sem alteração e será atualizada pelo fluxo Publish do Replit.</p>
 <h2>Antes de implementar</h2>
 <ol>
 <li>Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail e interesses do onboarding. A conta só recebe sessão após confirmação; o envio de e-mail segue bloqueado sem provedor. O tempo de sessão atual é configurável por <code>SESSION_TTL_SECONDS</code> (padrão de 7 dias).</li>
@@ -1016,19 +1034,19 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <li>Aprovar e versionar o contrato OpenAPI proposto sem substituir o contrato atual até haver migração testada.</li>
 </ol>
 <h2>Fases sugeridas e critérios de aceite</h2>
-<h3>Fase 1 — Infraestrutura segura e identidade</h3>
+<h3>Fase 1 — Infraestrutura segura e identidade (núcleo implementado)</h3>
 <ul>
-<li>Configurar ambiente de desenvolvimento isolado e banco PostgreSQL.</li>
-<li>Implementar migrations versionadas, readiness, request IDs, validação, rate limits, sessão HttpOnly e CSRF.</li>
-<li>Criar fluxo real de autenticação, sessão, recuperação e encerramento; remover o falso estado autenticado.</li>
-<li>Aceite: visitante anônimo e conta sem e-mail verificado não leem/escrevem recursos protegidos; cadastro não emite sessão; confirmação de e-mail ativa a conta e então emite sessão; logout revoga a sessão; CSRF/expiração são testados; nenhum segredo aparece em logs.</li>
+<li>PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação e onboarding estão implementados. O e-mail não está conectado; não se deve contornar o bloqueio de cadastro real.</li>
+<li>Falta selecionar e configurar provedor de envio quando o usuário autorizar essa etapa; recuperação de senha ainda não está implementada.</li>
+<li>Aceite já verificado em código: visitante anônimo e conta sem e-mail verificado não acessam recursos protegidos; cadastro não emite sessão sem entrega; confirmação ativa e cria sessão; logout revoga a sessão.</li>
 <li>Aceite: build de produção não carrega registros fictícios de demonstração; páginas sem endpoint/dados mostram estados vazios, enquanto o preview de desenvolvimento mantém as fixtures para revisão visual.</li>
 </ul>
-<h3>Fase 2 — Conta única, perfil e relacionamentos</h3>
+<h3>Fase 2 — Conta única, perfil e relacionamentos (API essencial implementada; frontend parcial)</h3>
 <ul>
-<li>Conta pessoal/comercial é a mesma identidade Social; extensão comercial vinculada um-a-um à conta.</li>
-<li>Implementar perfil, privacidade, seguir, Círculo derivado, bloqueio/silenciamento e salvos.</li>
-<li>Aceite: toda consulta aplica ACL no servidor; Círculo só existe com dois seguimentos aceitos em sentidos opostos e desaparece quando qualquer lado deixa de seguir; pedidos para perfis privados ficam pendentes até o aceite, não concedem acesso antes disso e são testados para solicitante e dono; seguidores aceitos veem publicações públicas do perfil privado, mas audiência do Círculo continua mútua; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle ou Círculo.</li>
+<li>Perfil básico, privacidade, seguir, pedidos de perfis privados, Círculo derivado e bloquear/desbloquear já têm endpoints e tabelas próprias. O frontend ainda mantém vários desses controles no estado local da demonstração.</li>
+<li>Conta comercial continua sendo a mesma identidade Social; a edição/consulta do perfil comercial completo e a integração com Seek permanecem para a próxima fatia comercial.</li>
+<li>Regras: Círculo só existe com dois seguimentos aceitos em sentidos opostos; pedido pendente não dá acesso; após aprovação, o seguidor pode ver conteúdo público do perfil privado; conteúdo do Círculo continua exigindo mutualidade; bloqueio remove follows/pedidos em ambas as direções; só o iniciador remove o próprio bloqueio.</li>
+<li>Mensagens antigas ainda não podem ser ocultadas/restauradas pela API, pois o domínio de mensagens não foi implementado. Posts e outras leituras também precisarão aplicar a autorização quando entrarem no backend.</li>
 </ul>
 <h3>Fase 3 — Social e mídia</h3>
 <ul>
@@ -1084,4 +1102,4 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <li>Regras de moderação, retenção/legal hold e prazos de exclusão.</li>
 </ul>
 <h2>Estado inicial do contrato</h2>
-<p>O gerador (<code>node docs/backend/generate-contracts.mjs</code>) escreve <code>openapi.json</code> e <code>endpoints.md</code>. O contrato é uma proposta; somente <code>GET /api/healthz</code> é uma rota implementada confirmada. Antes de gerar clientes ou conectar o frontend, revisar as decisões acima e validar schemas/ref/operationIds.</p></section></main></body></html>
+<p>O gerador (<code>node docs/backend/generate-contracts.mjs</code>) escreve <code>openapi.json</code> e <code>endpoints.md</code>, marcando rotas ativas e propostas. A conexão do frontend deve ser incremental; não remover o modo de demonstração de desenvolvimento nem relaxar a regra de e-mail confirmado.</p></section></main></body></html>

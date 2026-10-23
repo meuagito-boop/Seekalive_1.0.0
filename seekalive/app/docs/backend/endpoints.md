@@ -2,7 +2,7 @@
 
 Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **130 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
-> Salvo `GET /api/healthz`, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.
+> Rotas marcadas **ATIVA** já têm handler no servidor atual. Rotas **PROPOSTA** ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.
 
 ## Respostas, paginação e autenticação
 
@@ -45,12 +45,12 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/accounts/me` | Sessão autenticada | — | `Account` | **PROPOSTA** |
-| PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `Account` | **PROPOSTA** |
+| GET | `/v1/accounts/me` | Sessão autenticada | — | `Account` | **ATIVA** |
+| PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `Account` | **ATIVA** |
 | DELETE | `/v1/accounts/me` | Sessão autenticada | — | `Accepted` | **PROPOSTA**; assíncrona |
-| GET | `/v1/accounts/availability` | Público | — | `Availability` | **PROPOSTA** |
-| GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **PROPOSTA** |
-| GET | `/v1/profiles/{username}` | Público/sessão; ACL no servidor | — | `Profile` | **PROPOSTA** |
+| GET | `/v1/accounts/availability` | Público | — | `Availability` | **ATIVA** |
+| GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **ATIVA** |
+| GET | `/v1/profiles/{username}` | Público/sessão; ACL no servidor | — | `Profile` | **ATIVA** |
 | PUT | `/v1/accounts/me/preferences` | Sessão autenticada | `Preferences` | `Preferences` | **PROPOSTA** |
 | GET | `/v1/accounts/me/preferences` | Sessão autenticada | — | `Preferences` | **PROPOSTA** |
 | PUT | `/v1/accounts/me/onboarding` | Sessão autenticada | `Interests` | `Empty` | **PROPOSTA** |
@@ -60,8 +60,8 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 | GET | `/v1/accounts/{accountId}/business` | Público/sessão; ACL no servidor | — | `BusinessProfile` | **PROPOSTA** |
 | PUT | `/v1/accounts/me/business` | Sessão autenticada | `BusinessWrite` | `BusinessProfile` | **PROPOSTA** |
 | DELETE | `/v1/accounts/me/business` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/accounts/me/privacy` | Sessão autenticada | `PrivacyWrite` | `Privacy` | **PROPOSTA** |
-| GET | `/v1/accounts/me/privacy` | Sessão autenticada | — | `Privacy` | **PROPOSTA** |
+| PUT | `/v1/accounts/me/privacy` | Sessão autenticada | `PrivacyWrite` | `Privacy` | **ATIVA** |
+| GET | `/v1/accounts/me/privacy` | Sessão autenticada | — | `Privacy` | **ATIVA** |
 
 ## Social
 
@@ -97,17 +97,17 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/social/accounts/{accountId}/followers` | Público/sessão; ACL no servidor | — | `PageAccount` | **PROPOSTA** |
-| GET | `/v1/social/accounts/{accountId}/following` | Público/sessão; ACL no servidor | — | `PageAccount` | **PROPOSTA** |
-| PUT | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | `Empty` | `Follow` | **PROPOSTA** |
-| DELETE | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| GET | `/v1/social/follow-requests` | Sessão autenticada | — | `PageFollow` | **PROPOSTA** |
-| POST | `/v1/social/follow-requests/{accountId}/accept` | Sessão autenticada | — | `Follow` | **PROPOSTA** |
-| POST | `/v1/social/follow-requests/{accountId}/decline` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| GET | `/v1/social/circles` | Sessão autenticada | — | `PageCircle` | **PROPOSTA** |
-| GET | `/v1/social/blocks` | Sessão autenticada | — | `PageAccount` | **PROPOSTA** |
-| PUT | `/v1/social/blocks/{accountId}` | Sessão autenticada | `Empty` | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/social/blocks/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
+| GET | `/v1/social/accounts/{accountId}/followers` | Público/sessão; ACL no servidor | — | `PageAccount` | **ATIVA** |
+| GET | `/v1/social/accounts/{accountId}/following` | Público/sessão; ACL no servidor | — | `PageAccount` | **ATIVA** |
+| PUT | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | `Empty` | `Follow` | **ATIVA** |
+| DELETE | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | — | `Empty` | **ATIVA** |
+| GET | `/v1/social/follow-requests` | Sessão autenticada | — | `PageFollow` | **ATIVA** |
+| POST | `/v1/social/follow-requests/{accountId}/accept` | Sessão autenticada | — | `Follow` | **ATIVA** |
+| POST | `/v1/social/follow-requests/{accountId}/decline` | Sessão autenticada | — | `Empty` | **ATIVA** |
+| GET | `/v1/social/circles` | Sessão autenticada | — | `PageCircle` | **ATIVA** |
+| GET | `/v1/social/blocks` | Sessão autenticada | — | `PageAccount` | **ATIVA** |
+| PUT | `/v1/social/blocks/{accountId}` | Sessão autenticada | `Empty` | `Empty` | **ATIVA** |
+| DELETE | `/v1/social/blocks/{accountId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
 | GET | `/v1/social/mutes` | Sessão autenticada | — | `PageAccount` | **PROPOSTA** |
 | PUT | `/v1/social/mutes/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | DELETE | `/v1/social/mutes/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |

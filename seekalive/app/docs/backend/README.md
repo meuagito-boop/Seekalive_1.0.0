@@ -1,21 +1,21 @@
 # Seekalive — documentação do aplicativo e especificação do backend
 
-**Data da auditoria:** 22/10/2026. **Natureza:** documentação técnica e proposta de implementação, não backend entregue.
+**Data da auditoria:** 23/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
 
-> A primeira fatia do backend está implementada: sessão, CSRF, cadastro/login, confirmação de e-mail e onboarding. O banco de desenvolvimento tem sete tabelas da fatia de conta. Nenhum provedor de e-mail está conectado; cadastro e reenvio retornam `503` até o envio ser configurado. Os demais endpoints do produto continuam como contratos propostos.
+> Implementados: sessão, CSRF, cadastro/login/verificação, onboarding, leitura/edição de perfil, privacidade, seguimento, pedidos de perfis privados, Círculo derivado e bloqueios. O schema atual foi aplicado somente ao banco de desenvolvimento. Nenhum provedor de e-mail está conectado; cadastro e reenvio retornam `503` até o envio ser configurado. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
 
 ## Como utilizar este pacote
 
-1. Ler este documento e `architecture-and-security.md`: escopo, regras e decisões propostas.
+1. Ler este documento e `architecture-and-security.md`: escopo atual, regras e decisões futuras.
 2. Ler `analysis-of-reference-documents.md`: comparação dos PDFs com o produto atual e decisões que ainda precisam de aprovação.
 3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
 4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
 5. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
-6. Revisar `data-dictionary.md` e `schema-core.sql`: modelo relacional proposto. **Não executar o SQL automaticamente.**
+6. Revisar `data-dictionary.md` e `schema-core.sql`: distinguir o schema Drizzle atual do modelo relacional futuro. **Não executar o SQL proposto automaticamente.**
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é **separado** de `lib/api-spec/openapi.yaml`, que permanece intacto e descreve somente a API atual.
+O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é **separado** de `lib/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública deste artefato.
 
 ## 1. Produto
 
@@ -116,7 +116,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 
 **Extensões ainda sujeitas a decisão:** checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.
 
-**Direção implementada nesta etapa:** autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio total de contas sem e-mail confirmado. O schema Drizzle da fatia de conta foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI documenta tanto as rotas ativas quanto as propostas. **Bloqueio atual:** o usuário dispensou a integração de e-mail; por isso, o servidor não cria a conta e responde `503` quando o envio não está configurado. O schema completo de produto continua proposto; não foi aplicado nem migrado para produção.
+**Direção implementada nesta etapa:** autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio de contas sem e-mail confirmado; perfis, configurações de privacidade e relações sociais essenciais também usam a API. O schema Drizzle atualizado foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI separa rotas ativas das propostas. **Bloqueio atual:** o envio de e-mail não está integrado; por isso, o servidor não cria conta real e responde `503` quando não há envio configurado. O schema completo dos demais domínios continua proposto e não foi aplicado à produção.
 
 ## 5. Links e versões
 

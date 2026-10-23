@@ -1,6 +1,6 @@
 # Plano de implementação e testes
 
-Este plano organiza o backend futuro; não autoriza nem executa migrações ou mudanças de produto. As fases dependem de decisões explícitas nos itens indicados.
+Este documento registra a implementação já existente e organiza as próximas fatias do backend. O schema de desenvolvimento já recebeu as tabelas atuais; produção permanece sem alteração e será atualizada pelo fluxo Publish do Replit.
 
 ## Antes de implementar
 
@@ -13,19 +13,19 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 
 ## Fases sugeridas e critérios de aceite
 
-### Fase 1 — Infraestrutura segura e identidade
+### Fase 1 — Infraestrutura segura e identidade (núcleo implementado)
 
-- Configurar ambiente de desenvolvimento isolado e banco PostgreSQL.
-- Implementar migrations versionadas, readiness, request IDs, validação, rate limits, sessão HttpOnly e CSRF.
-- Criar fluxo real de autenticação, sessão, recuperação e encerramento; remover o falso estado autenticado.
-- Aceite: visitante anônimo e conta sem e-mail verificado não leem/escrevem recursos protegidos; cadastro não emite sessão; confirmação de e-mail ativa a conta e então emite sessão; logout revoga a sessão; CSRF/expiração são testados; nenhum segredo aparece em logs.
+- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação e onboarding estão implementados. O e-mail não está conectado; não se deve contornar o bloqueio de cadastro real.
+- Falta selecionar e configurar provedor de envio quando o usuário autorizar essa etapa; recuperação de senha ainda não está implementada.
+- Aceite já verificado em código: visitante anônimo e conta sem e-mail verificado não acessam recursos protegidos; cadastro não emite sessão sem entrega; confirmação ativa e cria sessão; logout revoga a sessão.
 - Aceite: build de produção não carrega registros fictícios de demonstração; páginas sem endpoint/dados mostram estados vazios, enquanto o preview de desenvolvimento mantém as fixtures para revisão visual.
 
-### Fase 2 — Conta única, perfil e relacionamentos
+### Fase 2 — Conta única, perfil e relacionamentos (API essencial implementada; frontend parcial)
 
-- Conta pessoal/comercial é a mesma identidade Social; extensão comercial vinculada um-a-um à conta.
-- Implementar perfil, privacidade, seguir, Círculo derivado, bloqueio/silenciamento e salvos.
-- Aceite: toda consulta aplica ACL no servidor; Círculo só existe com dois seguimentos aceitos em sentidos opostos e desaparece quando qualquer lado deixa de seguir; pedidos para perfis privados ficam pendentes até o aceite, não concedem acesso antes disso e são testados para solicitante e dono; seguidores aceitos veem publicações públicas do perfil privado, mas audiência do Círculo continua mútua; não existe cadastro de comércio independente nem tabela de Comunidades/Shuffle ou Círculo.
+- Perfil básico, privacidade, seguir, pedidos de perfis privados, Círculo derivado e bloquear/desbloquear já têm endpoints e tabelas próprias. O frontend ainda mantém vários desses controles no estado local da demonstração.
+- Conta comercial continua sendo a mesma identidade Social; a edição/consulta do perfil comercial completo e a integração com Seek permanecem para a próxima fatia comercial.
+- Regras: Círculo só existe com dois seguimentos aceitos em sentidos opostos; pedido pendente não dá acesso; após aprovação, o seguidor pode ver conteúdo público do perfil privado; conteúdo do Círculo continua exigindo mutualidade; bloqueio remove follows/pedidos em ambas as direções; só o iniciador remove o próprio bloqueio.
+- Mensagens antigas ainda não podem ser ocultadas/restauradas pela API, pois o domínio de mensagens não foi implementado. Posts e outras leituras também precisarão aplicar a autorização quando entrarem no backend.
 
 ### Fase 3 — Social e mídia
 
@@ -83,4 +83,4 @@ Este plano organiza o backend futuro; não autoriza nem executa migrações ou m
 
 ## Estado inicial do contrato
 
-O gerador (`node docs/backend/generate-contracts.mjs`) escreve `openapi.json` e `endpoints.md`. O contrato é uma proposta; somente `GET /api/healthz` é uma rota implementada confirmada. Antes de gerar clientes ou conectar o frontend, revisar as decisões acima e validar schemas/ref/operationIds.
+O gerador (`node docs/backend/generate-contracts.mjs`) escreve `openapi.json` e `endpoints.md`, marcando rotas ativas e propostas. A conexão do frontend deve ser incremental; não remover o modo de demonstração de desenvolvimento nem relaxar a regra de e-mail confirmado.

@@ -102,12 +102,12 @@ post("onboarding", "/v1/onboarding/interests", "Salvar ou pular interesses do on
   contractDescription: "Requer sessão ativa e e-mail verificado. Substitui as escolhas anteriores e marca o onboarding como concluído; pular salva uma lista vazia, mas também conclui a etapa.",
 });
 
-g("accounts", "/v1/accounts/me", "Consultar conta e projeções do visitante", A);
-patch("accounts", "/v1/accounts/me", "Editar perfil; não aceita papéis administrativos", "AccountPatch", A);
+g("accounts", "/v1/accounts/me", "Consultar conta e projeções do visitante", A, null, { status: "live" });
+patch("accounts", "/v1/accounts/me", "Editar perfil com controle de versão; não aceita papéis administrativos", "AccountPatch", A, { status: "live" });
 del("accounts", "/v1/accounts/me", "Solicitar exclusão segura", "Accepted", { accepted: true });
-g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability", null, { query: ["username"], requiredQuery: ["username"], auth: "none" });
-g("accounts", "/v1/accounts/{accountId}", "Consultar perfil por identificador respeitando privacidade", A, null, { auth: "optional" });
-g("accounts", "/v1/profiles/{username}", "Resolver perfil por username respeitando privacidade", "Profile", null, { auth: "optional" });
+g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability", null, { query: ["username"], requiredQuery: ["username"], auth: "none", status: "live" });
+g("accounts", "/v1/accounts/{accountId}", "Consultar perfil por identificador respeitando privacidade e bloqueios", A, null, { auth: "optional", status: "live" });
+g("accounts", "/v1/profiles/{username}", "Resolver perfil por username respeitando privacidade e bloqueios", "Profile", null, { auth: "optional", status: "live" });
 put("accounts", "/v1/accounts/me/preferences", "Substituir preferências próprias", "Preferences", "Preferences");
 g("accounts", "/v1/accounts/me/preferences", "Consultar preferências próprias", "Preferences");
 put("accounts", "/v1/accounts/me/onboarding", "Salvar interesses e concluir onboarding", "Interests", "Empty");
@@ -117,8 +117,8 @@ g("accounts", "/v1/accounts/{accountId}/media", "Listar galeria derivada das mí
 g("accounts", "/v1/accounts/{accountId}/business", "Consultar extensão comercial pública", "BusinessProfile", null, { auth: "optional" });
 put("accounts", "/v1/accounts/me/business", "Criar ou atualizar extensão da mesma conta comercial", "BusinessWrite", "BusinessProfile");
 del("accounts", "/v1/accounts/me/business", "Arquivar extensão comercial própria", "Empty");
-put("accounts", "/v1/accounts/me/privacy", "Atualizar nível de privacidade e contato", "PrivacyWrite", "Privacy");
-g("accounts", "/v1/accounts/me/privacy", "Consultar permissões e privacidade próprias", "Privacy");
+put("accounts", "/v1/accounts/me/privacy", "Atualizar nível de privacidade, mensagens e confirmações de leitura", "PrivacyWrite", "Privacy", { status: "live" });
+g("accounts", "/v1/accounts/me/privacy", "Consultar permissões e privacidade próprias", "Privacy", null, { status: "live" });
 
 g("social", "/v1/social/feed", "Feed paginado e filtrado por visitante", P, null, { query: ["tab", "limit", "cursor"] });
 post("social", "/v1/social/posts", "Publicar texto ou mídia por IDs de uploads prontos", "PostCreate", "Post");
@@ -146,19 +146,21 @@ g("social", "/v1/references/{type}/{id}", "Resolver prévia autorizada preservan
 g("social", "/v1/social/activity", "Consultar atividade da conta atual", "PageActivity", null, { query: ["type", "limit", "cursor"] });
 del("social", "/v1/social/activity/history", "Limpar somente histórico de navegação/pesquisa próprio", "Empty");
 
-g("relations", "/v1/social/accounts/{accountId}/followers", "Listar seguidores visíveis", "PageAccount", null, { query: ["limit", "cursor"], auth: "optional" });
-g("relations", "/v1/social/accounts/{accountId}/following", "Listar contas seguidas visíveis", "PageAccount", null, { query: ["limit", "cursor"], auth: "optional" });
-put("relations", "/v1/social/accounts/{accountId}/follow", "Seguir ou pedir para seguir", "Empty", "Follow");
-del("relations", "/v1/social/accounts/{accountId}/follow", "Deixar de seguir/cancelar pedido", "Empty");
-g("relations", "/v1/social/follow-requests", "Listar pedidos recebidos próprios", "PageFollow");
-post("relations", "/v1/social/follow-requests/{accountId}/accept", "Aceitar pedido de seguimento recebido", null, "Follow");
-post("relations", "/v1/social/follow-requests/{accountId}/decline", "Recusar pedido de seguimento recebido", null, "Empty");
-g("relations", "/v1/social/circles", "Listar contas seguidas mutuamente; Círculo é derivado, sem convite próprio", "PageCircle", null, { query: ["cursor", "limit"] });
-g("relations", "/v1/social/blocks", "Listar bloqueios próprios", "PageAccount");
+g("relations", "/v1/social/accounts/{accountId}/followers", "Listar seguidores visíveis", "PageAccount", null, { query: ["limit", "cursor"], auth: "optional", status: "live" });
+g("relations", "/v1/social/accounts/{accountId}/following", "Listar contas seguidas visíveis", "PageAccount", null, { query: ["limit", "cursor"], auth: "optional", status: "live" });
+put("relations", "/v1/social/accounts/{accountId}/follow", "Seguir ou pedir para seguir um perfil privado", "Empty", "Follow", { status: "live" });
+del("relations", "/v1/social/accounts/{accountId}/follow", "Deixar de seguir ou cancelar pedido", "Empty", { status: "live" });
+g("relations", "/v1/social/follow-requests", "Listar pedidos recebidos próprios", "PageFollow", null, { status: "live" });
+post("relations", "/v1/social/follow-requests/{accountId}/accept", "Aceitar pedido de seguimento recebido", null, "Follow", { status: "live" });
+post("relations", "/v1/social/follow-requests/{accountId}/decline", "Recusar pedido de seguimento recebido", null, "Empty", { status: "live" });
+g("relations", "/v1/social/circles", "Listar contas seguidas mutuamente; Círculo é derivado, sem convite próprio", "PageCircle", null, { query: ["cursor", "limit"], status: "live" });
+g("relations", "/v1/social/blocks", "Listar bloqueios próprios", "PageAccount", null, { status: "live" });
 put("relations", "/v1/social/blocks/{accountId}", "Bloquear conta e romper vínculos bilaterais", "Empty", "Empty", {
+  status: "live",
   contractDescription: "Na mesma transação, grava o bloqueio iniciado pelo ator, remove follows aceitos e pedidos pendentes entre as duas contas nos dois sentidos e preserva conversas/mensagens para ocultá-las. Bloqueio de qualquer lado impede visibilidade e interação para ambos; somente o iniciador pode desbloquear.",
 });
 del("relations", "/v1/social/blocks/{accountId}", "Desbloquear sem recriar seguimentos ou pedidos", "Empty", {
+  status: "live",
   contractDescription: "Somente o iniciador pode remover seu bloqueio. Não recria follows nem pedidos removidos; mensagens antigas voltam a ser legíveis se não houver outro bloqueio ou regra de privacidade aplicável.",
 });
 g("relations", "/v1/social/mutes", "Listar silenciamentos próprios", "PageAccount");
@@ -347,8 +349,9 @@ const schemas = {
     blockedByThem: { type: "boolean", description: "O perfil alvo iniciou o bloqueio; o visitante não pode removê-lo." },
     mutedByMe: { type: "boolean" },
   }, ["following", "inCircle", "blockedByMe", "blockedByThem", "mutedByMe"]),
-  AccountPatch: model({ username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", minLength: 2, maxLength: 80 }, bio: { type: "string", maxLength: 500 }, avatarMediaId: uuid, coverMediaId: uuid, location: { type: ["string", "null"], maxLength: 160 }, website: { type: ["string", "null"], format: "uri" }, version: { type: "integer" } }, ["version"]),
-  Profile: model({ account: ref("Account"), posts: page("Post"), articles: page("Post"), media: page("MediaAsset") }, ["account"]),
+  AccountPatch: model({ username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", minLength: 2, maxLength: 80 }, bio: { type: "string", maxLength: 500 }, location: { type: ["string", "null"], maxLength: 160 }, website: { type: ["string", "null"], format: "uri" }, version: { type: "integer", minimum: 1 } }, ["version"]),
+  ProfileVisibility: model({ canViewPublicContent: { type: "boolean" }, canViewCircleContent: { type: "boolean" } }, ["canViewPublicContent", "canViewCircleContent"]),
+  Profile: model({ account: ref("Account"), visibility: ref("ProfileVisibility"), posts: page("Post"), articles: page("Post"), media: page("MediaAsset") }, ["account", "visibility", "posts", "articles", "media"]),
   BusinessProfile: model({
     accountId: uuid, discoveryKind: { type: "string", enum: ["place", "provider"] }, categoryKey: string, category: string,
     cityId: { type: "string", pattern: "^[0-9]{7}$" }, cityName: string, cityState: { type: "string", minLength: 2, maxLength: 2 },
@@ -376,10 +379,11 @@ const schemas = {
   CommentPatch: model({ content: { type: "string", minLength: 1, maxLength: 2000 }, version: { type: "integer" } }, ["content", "version"]),
   PageComment: page("Comment"),
   Follow: model({ status: { type: "string", enum: ["pending", "accepted"] }, updatedAt: { type: "string", format: "date-time" } }, ["status", "updatedAt"]),
+  FollowRequest: model({ account: ref("Account"), createdAt: { type: "string", format: "date-time" } }, ["account", "createdAt"]),
   Circle: model({ account: ref("Account"), isMutual: { type: "boolean", const: true } }, ["account", "isMutual"]),
   PageCircle: page("Circle"),
   PageAccount: page("Account"),
-  PageFollow: page("Follow"),
+  PageFollow: page("FollowRequest"),
   Repost: model({ id: uuid, postId: uuid, authorId: uuid, createdAt: { type: "string", format: "date-time" } }, ["id", "postId", "authorId", "createdAt"]),
   Trend: model({ tag: string, publicPostCount: { type: "integer", minimum: 0 } }, ["tag", "publicPostCount"]),
   PageTrend: page("Trend"),
@@ -440,7 +444,7 @@ const schemas = {
   PrivacyRequest: model({ kind: { type: "string", enum: ["access", "rectification", "erasure"] }, details: { type: "string", maxLength: 2000 } }, ["kind"]),
   PrivacyJob: model({ id: uuid, kind: { type: "string", enum: ["access", "erasure"] }, status: { type: "string", enum: ["received", "processing", "completed", "rejected"] }, createdAt: { type: "string", format: "date-time" } }, ["id", "kind", "status", "createdAt"]),
   Preferences: model({ language: string, theme: { type: "string", enum: ["dark"] }, fontScale: { type: "integer", enum: [16, 18, 20] }, version: { type: "integer" } }, ["language", "theme", "fontScale", "version"]),
-  PrivacyWrite: model({ profileVisibility: { type: "string", enum: ["public", "private"] }, followRequests: { type: "string", enum: ["everyone", "nobody"] }, messages: { type: "string", enum: ["everyone", "circle", "nobody"] }, readReceipts: { type: "boolean" }, version: { type: "integer" } }, ["profileVisibility", "version"]),
+  PrivacyWrite: model({ profileVisibility: { type: "string", enum: ["public", "private"] }, messages: { type: "string", enum: ["everyone", "circle", "nobody"] }, readReceipts: { type: "boolean" }, version: { type: "integer", minimum: 1 } }, ["profileVisibility", "messages", "readReceipts", "version"]),
   Privacy: ref("PrivacyWrite"),
   Interests: model({ interests: { type: "array", maxItems: 30, items: { type: "string", maxLength: 60 } }, version: { type: "integer" } }, ["interests", "version"]),
   RecoveryRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }, ["email"]),
@@ -499,8 +503,8 @@ const spec = {
   openapi: "3.1.0",
   info: {
     title: "Seekalive API",
-    version: "0.2.0-auth-slice",
-    description: "A rota de saúde e a primeira fatia de autenticação/onboarding estão implementadas. O envio de e-mail ainda não está configurado; cadastro e reenvio respondem 503 até haver um provedor. Os demais contratos seguem como proposta.",
+    version: "0.3.0-social-relations",
+    description: "Autenticação, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados. O envio de e-mail continua sem provedor; cadastro e reenvio falham explicitamente até essa integração. Os demais contratos seguem como proposta.",
     contact: { name: "Seekalive API" },
   },
   servers: [{ url: "/api", description: "Prefixo de mesma origem, encaminhado pelo proxy de desenvolvimento do frontend." }],
@@ -538,7 +542,7 @@ const lines = [
   "",
   `Gerado por \`node docs/backend/generate-contracts.mjs\`. OpenAPI 3.1 em \`openapi.json\`: **${R.length} operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
   "",
-  "> Salvo \`GET /api/healthz\`, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.",
+  "> Rotas marcadas **ATIVA** já têm handler no servidor atual. Rotas **PROPOSTA** ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.",
   "",
   "## Respostas, paginação e autenticação",
   "",

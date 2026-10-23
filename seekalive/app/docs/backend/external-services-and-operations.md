@@ -2,17 +2,17 @@
 
 ## Situação da auditoria
 
-Não há provedor de identidade, serviço de mapas/geocodificação, armazenamento de objetos, e-mail, push, pagamentos ou checkout conectado nesta auditoria. Não há domínio de produção confirmado neste pacote. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
+Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, e-mail, push, pagamentos ou checkout conectado nesta auditoria. A autenticação própria usa o servidor e PostgreSQL do projeto; o envio de e-mail permanece desligado, então cadastro real responde `503` sem criar conta. Não há domínio de produção confirmado neste pacote. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
 
-O único endpoint ativo observado é `GET /api/healthz`. Os outros endpoints são contratos propostos. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.
+Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding, perfil/privacidade e relações sociais essenciais listadas como **ATIVA** em `endpoints.md`. As outras rotas são propostas. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.
 
 ## Serviços candidatos e documentação oficial
 
 | Necessidade | Opção / situação | Referência oficial |
 |---|---|---|
-| Banco relacional | PostgreSQL é o destino proposto; Drizzle/driver já aparecem no projeto, mas não existe schema Drizzle ativo nem confirmação de banco provisionado | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
+| Banco relacional | PostgreSQL com Drizzle; schema de autenticação, perfil básico e relações aplicado somente no desenvolvimento. Produção não foi alterada; Publish é o fluxo de schema para produção | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
 | Fotos e vídeos | Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca `blob:` como URL de backend | [Replit Object Storage](https://docs.replit.com/features/data-and-storage/object-storage) |
-| Autenticação | Direção escolhida: API própria, sem Clerk/OIDC. Ainda não implementada. Serviço de e-mail para verificação e recuperação continua por escolher | Definir e proteger o serviço de envio de e-mail antes da fase de backend |
+| Autenticação | API própria, sem Clerk/OIDC, com sessão/CSRF e confirmação de e-mail implementadas. Envio de verificação e recuperação continua desconectado | Escolher e proteger o serviço de envio antes de abrir cadastro real |
 | Cidades brasileiras | O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render | [API de localidades do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&orderBy=nome) |
 | Mapas/geocodificação | Nenhum fornecedor escolhido. A interface pode selecionar cidade manualmente. GPS só após consentimento; resolver cidade aproximada sem persistir coordenadas | Decidir provedor e termos antes de habilitar o endpoint proposto |
 | E-mail e notificações | Integrações não conectadas. Só adicionar após decidir provedor, consentimento, templates, retentativa e descadastro | Proposta em `architecture-and-security.md` |

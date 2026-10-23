@@ -7,17 +7,17 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | Rotas da interface | Código / comportamento atual | Integração necessária |
 |---|---|---|
 | `/`, `/login`, `/register` | `App.tsx`, `Login`, `Register`, `AppContext`; sessão validada pela API, formulário conectado | Conta Social única; confirmação obrigatória do e-mail antes de emitir sessão |
-| `/forgot-password`, `/verify-email` | Sucesso local/código de demonstração | Fluxos da API própria, envio de e-mail, anti-enumeração, limite de tentativas, expiração e estados de erro |
-| `/onboarding/interests`, `/onboarding/suggestions` | Preferências locais; sugestões são fixtures e as escolhas de seguir não são persistidas; conclusão no-op | Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida |
+| `/forgot-password`, `/verify-email` | Confirmação tem API própria, mas o envio de e-mail não está configurado; recuperação segue demonstrativa | Conectar serviço de e-mail em etapa futura, sem liberar conta não verificada; implementar recuperação com anti-enumeração, limites e expiração |
+| `/onboarding/interests`, `/onboarding/suggestions` | Interesses concluem pela API; sugestões e escolhas de seguir continuam fixtures/locais | Catálogo e recomendações autorizadas; persistir ações de seguir quando telas forem ligadas à API |
 | `/feed` | Feed local: para você, seguindo, artigos, vídeos | `GET social/feed`, paginação, audiência, bloqueios, contadores e cache por visitante |
 | `/compose`, `/article/create` | `contentService` demo + mídias blob | Upload, criação transacional, validação, idempotência e publicação com referência |
 | `/post/:postId`, `/article/:postId` | Leitura e interação locais | Leitura autorizada, comentários/respostas, curtidas, reposts, remoção e edição proposta |
 | `/search` | Pessoas/publicações/tags e tendências locais | Busca paginada, índices, permissões e tendências calculadas |
-| `/profile`, `/profile/:username` | Perfil pessoal/comercial com posts/mídias/artigos | DTO de conta + relações do visitante + conteúdo autorizado + galeria derivada |
-| `/profile/edit` | Atualiza conta local e SocialContext | PATCH de conta, extensão comercial, mídia, município, horários, recursos, versão |
-| `/profile/:username/followers`, `/profile/:username/following` | Listas locais | Listas paginadas e permissões para perfis privados |
-| `/settings/privacy` | Privacidade local; aprova e recusa pedidos de seguimento pendentes no protótipo | `GET /v1/social/follow-requests`, `POST /v1/social/follow-requests/{accountId}/accept` e `/decline`; apenas o dono pode decidir |
-| `/profile/:username/circles`, `/circles` | Lista local já usa a projeção `isInCircle`; a ação “Deixar de seguir” remove uma das arestas e encerra o Círculo derivado | Conectar uma listagem paginada de seguimentos recíprocos efetivos; não criar convite, aceite, recusa ou remoção de Círculo |
+| `/profile`, `/profile/:username` | Perfil pessoal/comercial usa dados demonstrativos; API de conta/perfil está ativa, mas as telas ainda não a consomem. Posts/mídias/artigos seguem locais | Conectar DTO de conta e relações; depois adicionar conteúdo autorizado e galeria derivada |
+| `/profile/edit` | Atualiza conta local e SocialContext; API de perfil básico está ativa, mas sem integração visual | Conectar PATCH de conta; extensão comercial, mídia, município, horários e serviços são próxima fatia |
+| `/profile/:username/followers`, `/profile/:username/following` | Listas locais; API paginada e permissões para perfis privados já estão ativas | Conectar as listas ao backend com estados de carregamento/erro |
+| `/settings/privacy` | A API guarda privacidade, mensagens e confirmações de leitura; as telas ainda salvam no navegador. Pedidos são aceitos/recusados pela API | Conectar GET/PUT de privacidade e pedidos recebidos; apenas o dono decide |
+| `/profile/:username/circles`, `/circles` | Lista local; endpoint paginado de Círculo já ativo e derivado dos dois seguimentos aceitos | Conectar a listagem paginada; não criar convite, aceite, recusa ou remoção de Círculo |
 | `/social/activity` | Histórico, salvos, curtidas, comentários e publicações | Consultas do ator autenticado; limpar histórico sem apagar conteúdo original |
 | `/social/suggestions` | Sugestões locais | Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis |
 | `/notifications` | Eventos e leitura locais | Destinatário no servidor, paginação, marcar lida, preferências e entrega |
@@ -32,7 +32,7 @@ Todos os caminhos de código abaixo são relativos a `artifacts/social/src`, sal
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 
-O estado autenticado agora vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador guarda apenas perfil local auxiliar, não credenciais. O schema Drizzle da fatia de conta está aplicado no banco de desenvolvimento. Registro não cria sessão; só a confirmação do e-mail ativa a conta. Como o envio de e-mail não está conectado, o cadastro responde `503` explicitamente e não cria conta nesta configuração.
+O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador não guarda credenciais. O schema Drizzle de autenticação, perfil básico e relações está aplicado no banco de desenvolvimento. Registro não cria sessão; só a confirmação do e-mail ativa a conta. Como o envio de e-mail não está conectado, o cadastro responde `503` explicitamente e não cria conta nesta configuração.
 
 ### Fluxo de acesso proposto
 
@@ -44,7 +44,7 @@ O estado autenticado agora vem de `GET /api/v1/auth/session`, nunca de `localSto
 
 O proxy Vite encaminha `/api` à API local durante o desenvolvimento. As telas continuam acessíveis pelo app, mas a criação de contas reais depende do envio de e-mail.
 
-Hoje a interface não usa o adaptador REST de conteúdo: `contentService` aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints `/api/v1` propostos.
+Hoje a interface usa a API para autenticação, verificação e conclusão de interesses do onboarding. `contentService` ainda aponta para o adaptador de demonstração; telas de perfil, privacidade e relações ainda não consomem os novos endpoints ativos. As outras chamadas `/api/v1` ainda são contratos propostos.
 
 ## 2. Arquivos que precisam trocar de fonte
 
