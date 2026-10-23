@@ -38,21 +38,22 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Área | Situação auditada |
 |---|---|
 | Servidor | Express/TypeScript em `artifacts/api-server`; saúde e rotas de autenticação/onboarding estão implementadas |
-| Banco | Biblioteca Drizzle + driver PostgreSQL preparada em `lib/db`; `src/schema/index.ts` está vazio. Isso não comprova existência de banco provisionado ou conectado |
-| Especificação | `lib/api-spec/openapi.yaml` só descreve saúde; clientes gerados e Zod não significam API Social pronta |
-| Login | Não há autenticação real. O cadastro cria uma conta local e ativa a sessão só neste navegador; a tela de login não autentica nem restaura essa conta |
-| Cadastro | Cria perfil no navegador. Não cria identidade de autenticação, não verifica e-mail e não guarda credenciais de autenticação reais |
-| Recuperação/verificação | Telas e transições locais, sem envio de e-mail, token de recuperação ou validação real do código |
+| Banco | Drizzle/PostgreSQL com schema de identidade, perfil básico, privacidade e relações aplicado somente ao banco de desenvolvimento; produção não foi alterada |
+| Especificação | `lib/api-spec/openapi.yaml` mantém o contrato público existente; `docs/backend/openapi.json` distingue endpoints ativos dos propostos |
+| Login | API própria com senha protegida, cookie de sessão HttpOnly, CSRF e bloqueio de contas sem e-mail confirmado |
+| Cadastro | A rota de cadastro/verificação está implementada, mas a criação real permanece bloqueada com `503` até configurar o envio de e-mail; nenhuma conta sem confirmação recebe sessão |
+| Recuperação/verificação | Confirmação de e-mail tem rotas; recuperação de senha ainda não está implementada. Sem provedor de e-mail, cadastro e reenvio não concluem |
 | Publicações/comentários | `contentService` seleciona `demoContentAdapter`; existe adaptador REST proposto, mas desativado |
 | Fotos/vídeos | `URL.createObjectURL`, memória e URLs `blob:`. Não são uploads e deixam de funcionar após recarga |
 | Contas/avaliações | Dados de exemplo e registros no `localStorage`; não são dados compartilhados entre dispositivos |
-| Relacionamentos/mensagens | Estado local; Círculo é derivado de seguimentos recíprocos. Perfis privados têm pedido, aprovação/recusa e controle de privacidade, mas sem persistência compartilhada ou API |
+| Perfil e relações | API ativa para leitura/edição básica do perfil, privacidade, seguir, pedidos privados, Círculo derivado e bloquear/desbloquear; as telas ainda não consomem essa API |
+| Mensagens | Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio |
 | Seek | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância |
 | Dados demonstrativos | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API |
 | Shop | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real |
-| Configurações | Preferências e bloqueios ficam locais. Bloquear remove seguimentos e pedidos entre as contas, oculta conteúdo/interações nos dois sentidos e deixa o desbloqueio apenas para quem iniciou |
+| Configurações | A API já persiste privacidade básica e bloqueios; preferências restantes e a interface ainda usam estado local. Bloquear remove seguimentos/pedidos nas duas direções e só quem iniciou desbloqueia |
 
-O frontend e a API têm processos separados. O Vite auditado não possui proxy `/api` configurado. Antes de ligar os adaptadores, configurar roteamento de mesma origem; caso contrário uma URL de API pode devolver HTML da SPA.
+O frontend e a API têm processos separados. A autenticação está conectada à API; as telas de perfil e relações ainda não. Antes de conectá-las, validar roteamento de mesma origem e manter a separação entre sessão real e demonstração de desenvolvimento.
 
 ## 3. Regras de negócio obrigatórias
 
