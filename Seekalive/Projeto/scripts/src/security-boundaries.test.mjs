@@ -1,7 +1,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createTrustProxy } from "../../Aplicativo/back/src/security/trustProxy.ts";
 import { assertLocalReferences } from "../../shared/api-spec/orval.config.ts";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const backendRequire = createRequire(
+  path.resolve(here, "../../Aplicativo/back/package.json"),
+);
+
+test("Express resolves the patched proxy-addr version at runtime", () => {
+  const expressPath = backendRequire.resolve("express");
+  const expressRequire = createRequire(expressPath);
+  const proxyAddrPath = expressRequire.resolve("proxy-addr");
+  const packageJson = JSON.parse(
+    readFileSync(path.resolve(path.dirname(proxyAddrPath), "package.json"), "utf8"),
+  );
+
+  assert.equal(packageJson.version, "2.0.8");
+});
 
 test("proxy forwarding is ignored unless proxy CIDRs are explicitly configured", () => {
   assert.equal(createTrustProxy(), false);
