@@ -33,7 +33,7 @@ O bloqueio operacional mais claro é que **cadastros reais não podem ser conclu
 | `GET /api/v1/accounts/me`, sem cookie | `401 UNAUTHENTICATED` | Confirma que essa rota protegida exige sessão verificada. Não substitui testes de autorização entre duas contas. |
 | `git status --short` após verificações | Sem alterações de fonte antes deste relatório | Nenhuma alteração de aplicação foi feita durante a verificação. |
 
-**Não executado:** build integral de produção do frontend, E2E de navegador, suite HTTP automatizada do backend, teste de migração em banco limpo, teste multi-instância/rate limit, análise de dependências ou teste contra banco/produção. Os resultados documentados anteriormente em `docs/api/backend/frontend-readiness-audit.md` não são apresentados aqui como se tivessem sido reproduzidos nesta auditoria.
+**Não executado nesta rodada:** build integral de produção do frontend, E2E de navegador, suite HTTP automatizada do backend, teste de migração em banco limpo, teste multi-instância/rate limit, análise de dependências ou teste contra banco/produção. Existem scripts avulsos de auditoria de navegador (`scripts/audit-social-browser.mjs` e `scripts/audit-seek-browser.mjs`), mas não são chamados por um workflow de CI encontrado e não exercitam a integração HTTP real do backend. Resultados documentados anteriormente em `docs/api/backend/frontend-readiness-audit.md` não são apresentados como se tivessem sido reproduzidos nesta auditoria.
 
 ## 4. Estado real por área
 
@@ -76,17 +76,29 @@ O bloqueio operacional mais claro é que **cadastros reais não podem ser conclu
 **Impacto:** relações vistas em um navegador não são as relações canônicas da conta; autorização local não protege dados.  
 **Ação:** ligar as telas à API antes de considerar seguir, aprovar, remover follow ou bloquear como ações reais. Resolver loading, erro, repetição, conflitos e estados após recarga.
 
+**O bloqueio não é aplicado uniformemente na busca — confirmado.**  
+`Aplicativo/front/src/pages/Search.tsx:35,42-50` inclui contas em sugestões/resultados sem filtrar todas as relações bloqueadas; os posts também não descartam explicitamente o autor bloqueado. O contexto projeta o estado de bloqueio em usuários (`SocialContext.tsx:400-405`), mas a busca não aplica o filtro de forma consistente.
+
+**Impacto:** na demonstração local, uma conta bloqueada pode continuar aparecendo em busca, apesar da regra de desaparecimento bilateral.  
+**Ação:** filtrar sugestões, resultados de pessoas e publicações; testar busca e perfil após bloquear. A autorização final deve permanecer no servidor.
+
+**Corrida entre bloquear e aprovar/seguir pode recriar uma relação — risco confirmado pelo fluxo concorrente.**  
+Em `Aplicativo/back/src/modules/social/presentation/routes.ts:170-216`, a verificação de bloqueio ocorre antes de criar o follow. Em `:279-305`, aprovação lê pedido/bloqueio antes da transação e, dentro dela, insere o follow sem revalidar ambos. O bloqueio grava a relação e apaga follows/pedidos em outra transação (`:386-396`). Uma aprovação que já passou pelas verificações pode inserir o follow depois de o bloqueio ter apagado o pedido.
+
+**Impacto:** em concorrência, um vínculo pode existir após o bloqueio e sobreviver ao desbloqueio, contrariando a regra de não restaurar relações. A corrida foi deduzida pela ordem das operações; não foi reproduzida em execução.  
+**Ação:** serializar operações por par de contas e revalidar bloqueio/pedido dentro de transação/lock; adicionar teste concorrente.
+
 **O perfil comercial não está hidratado do backend no estado de usuário — confirmado.**  
 O cadastro comercial envia categoria e endereço (`front/src/pages/Register.tsx:129-147`) e o backend declara `business_profiles` (`infra/database/src/schema/auth.ts:62-73`). Porém, `front/src/services/authApi.ts:1-8` modela a conta sem esses dados; `AppContext.tsx:20-46` reconstrói usuário sem criar `commercialProfile` quando não há perfil local. `ProfileEdit.tsx:140-161` só atualiza o `commercialProfile` se ele já existir. O resultado de perfil básico do backend também não inclui o objeto comercial.
 
 **Impacto:** após autenticação real, o frontend pode não ter os dados necessários para exibir/editar o comerciante e alimentá-lo no Seek, apesar dos campos terem sido enviados no registro. Isso não significa que o backend descarte a linha comercial: significa que o fluxo atual não a devolve nem a reidrata no cliente.  
 **Ação:** buscar/retornar um DTO consistente de conta + extensão comercial após autenticação e permitir que o editor crie a extensão quando ainda não está hidratada. Validar que conta comercial continue sendo uma única identidade Social.
 
-**Contrato OpenAPI/codegen não acompanha a API — confirmado.**  
-`shared/api-spec/openapi.yaml:13-36` descreve somente `GET /healthz`; os clientes gerados refletem esse contrato mínimo. `shared/api-spec/orval.config.ts:4-6,24-26,43-55` aponta a saída para diretórios `lib/...`, enquanto os pacotes atuais residem em `shared/...`. O inventário `docs/api/backend/endpoints.md` descreve muito mais rotas, mas várias são explicitamente propostas.
+**OpenAPI/codegen não acompanha as rotas implementadas — confirmado.**  
+`shared/api-spec/openapi.yaml:13-36` descreve somente `GET /healthz`; os clientes gerados refletem esse contrato mínimo. `shared/api-spec/orval.config.ts:4-6,24-26,43-55` aponta a saída para diretórios `lib/...`, enquanto os pacotes atuais residem em `shared/...`. A documentação mantém deliberadamente um inventário distinto: `docs/api/backend/endpoints.md` tem 130 operações candidatas, marcadas individualmente como ativas ou propostas; esse total não representa 130 rotas existentes.
 
 **Impacto:** tipos/hooks gerados não representam as rotas reais; regenerar pode gravar em destinos inexistentes e deixar consumidores desatualizados. Há mais de uma fonte documental/gerada para o contrato.  
-**Ação:** escolher uma única fonte de contrato, alinhar rotas ativas com esquemas/respostas e corrigir os destinos de geração. Adicionar validação de drift ao pipeline.
+**Ação:** definir qual especificação alimenta o codegen, manter separado o inventário documental de propostas e corrigir os destinos de geração. Alinhar operações ativas com esquemas/respostas e verificar drift automaticamente.
 
 **Não há migrações versionadas nem testes automatizados de API identificados — confirmado no repositório inspecionado.**  
 `infra/database/package.json` oferece `push`/`push-force`; não foi localizado histórico versionado de migrações. `Aplicativo/back/package.json` não tem script de testes; os 42 testes atuais são do frontend. O script de typecheck/build não verifica transações, autorização, privacidade ou compatibilidade de banco.
