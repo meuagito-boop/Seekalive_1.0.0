@@ -3,7 +3,7 @@
   "info": {
     "title": "Seekalive API (proposta; uma rota ativa)",
     "version": "0.1.0-proposed",
-    "description": "Contrato de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. Prefira os DTOs e regras descritos em docs/backend/. Nenhum contrato aqui provisiona banco, identidade ou integrações.",
+    "description": "Contrato de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. A direção escolhida é autenticação própria pela API, adiada até a fase de backend; as rotas OIDC são rascunhos não selecionados. Revise identidade e sessão antes de implementar. Nenhum contrato aqui provisiona banco ou integrações.",
     "contact": {
       "name": "Seekalive API"
     }
@@ -518,8 +518,8 @@
         "tags": [
           "auth"
         ],
-        "summary": "Iniciar fluxo OIDC com state e PKCE",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Fluxo OIDC legado; não selecionado",
+        "description": "NOT SELECTED. Legacy OIDC draft conflicts with the approved direction of custom API authentication; do not implement.",
         "parameters": [
           {
             "name": "state",
@@ -541,7 +541,7 @@
         "security": [],
         "responses": {
           "302": {
-            "description": "Redirecionamento no fluxo OIDC; callback valida state/PKCE."
+            "description": "Redirecionamento do rascunho OIDC legado; fluxo não selecionado para autenticação."
           }
         }
       }
@@ -552,8 +552,8 @@
         "tags": [
           "auth"
         ],
-        "summary": "Validar callback OIDC e criar sessão",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Callback OIDC legado; não selecionado",
+        "description": "NOT SELECTED. Legacy OIDC draft conflicts with the approved direction of custom API authentication; do not implement.",
         "parameters": [
           {
             "name": "code",
@@ -575,7 +575,7 @@
         "security": [],
         "responses": {
           "302": {
-            "description": "Redirecionamento no fluxo OIDC; callback valida state/PKCE."
+            "description": "Redirecionamento do rascunho OIDC legado; fluxo não selecionado para autenticação."
           }
         }
       }
@@ -1070,7 +1070,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Solicitar recuperação via provedor; resposta anti-enumeração 202",
+        "summary": "Solicitar recuperação pela API; resposta anti-enumeração 202",
         "description": "PROPOSED ONLY; not currently implemented. Async job and request ID; no synchronous-success simulation.",
         "security": [],
         "requestBody": {
@@ -1233,7 +1233,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Solicitar ou reenviar verificação via provedor",
+        "summary": "Solicitar ou reenviar verificação por e-mail",
         "description": "PROPOSED ONLY; not currently implemented. Async job and request ID; no synchronous-success simulation.",
         "security": [],
         "requestBody": {
@@ -1396,7 +1396,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Confirmar desafio emitido pelo provedor",
+        "summary": "Confirmar desafio emitido pela API",
         "description": "PROPOSED ONLY; not currently implemented.",
         "security": [
           {
@@ -9194,7 +9194,7 @@
           "relations"
         ],
         "summary": "Seguir ou pedir para seguir",
-        "description": "PROPOSED ONLY; not currently implemented. Public accounts create an accepted follow. Private accounts create a pending request; pending requests grant no visibility.",
+        "description": "PROPOSED ONLY; not currently implemented.",
         "parameters": [
           {
             "name": "accountId",
@@ -9540,7 +9540,7 @@
           "relations"
         ],
         "summary": "Listar pedidos recebidos próprios",
-        "description": "PROPOSED ONLY; not currently implemented. Returns only pending requests addressed to the authenticated account.",
+        "description": "PROPOSED ONLY; not currently implemented.",
         "security": [
           {
             "SessionCookie": []
@@ -9697,7 +9697,7 @@
           "relations"
         ],
         "summary": "Aceitar pedido de seguimento recebido",
-        "description": "PROPOSED ONLY; not currently implemented. Only the target account may accept. Acceptance creates an effective follow and allows the follower to read public-audience posts on the private profile. Circle-audience posts still require effective follows in both directions.",
+        "description": "PROPOSED ONLY; not currently implemented.",
         "parameters": [
           {
             "name": "accountId",
@@ -9866,7 +9866,7 @@
           "relations"
         ],
         "summary": "Recusar pedido de seguimento recebido",
-        "description": "PROPOSED ONLY; not currently implemented. Only the target account may decline; the requester does not gain a follow or visibility.",
+        "description": "PROPOSED ONLY; not currently implemented.",
         "parameters": [
           {
             "name": "accountId",
@@ -21768,7 +21768,7 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "__Host-seekalive_session",
-        "description": "Proposta de cookie Secure/HttpOnly/SameSite, criado no callback do provedor; nunca token em localStorage."
+        "description": "Proposta de cookie Secure/HttpOnly/SameSite criado pela API própria após autenticação; nunca token em localStorage."
       },
       "CsrfHeader": {
         "type": "apiKey",

@@ -1,1 +1,2 @@
 - [Privacidade e seguimento](private-follow-approval.md) — perfis privados exigem aprovação; seguidores aceitos veem conteúdo público, enquanto Círculo continua mútuo.
+- [Autenticação Seekalive](seekalive-auth-strategy.md) — login próprio pela API foi escolhido para a fase de backend; até lá, login e cadastro continuam demonstrativos.

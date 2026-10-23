@@ -21,7 +21,7 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 | Área | Estado atual | Prontidão |
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
-| Identidade e sessão | Cadastro cria conta local e ativa-a no navegador; login não autentica; recuperação e verificação não enviam e-mail | Bloqueador |
+| Identidade e sessão | Login/cadastro continuam demonstrativos. Direção escolhida: autenticação própria na API quando começar o backend; recuperação e verificação reais também ficam para essa fase | Adiado por decisão até o backend |
 | Contas e perfis | Dados guardados em `localStorage`; edição local. Contextos de conta e Social podem divergir | Bloqueador |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
@@ -44,7 +44,9 @@ O backend pode ser iniciado depois de fechar as decisões e lacunas listadas aqu
 - `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
 - O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
 
-**Antes de integrar:** escolher e configurar o provedor de identidade; implementar criação de conta, sessão, logout, verificação e recuperação reais; parar de tratar dados de `localStorage` como identidade ou autorização.
+**Decisão registrada:** a autenticação será própria pela API; não integrar Clerk/OIDC agora. O login e cadastro demonstrativos permanecem até a fase de backend. Antes de implementar essa fase, definir os endpoints de registro/login, armazenamento seguro de credenciais, sessão, verificação e recuperação; nunca tratar `localStorage` como identidade ou autorização.
+
+**Atenção documental:** `openapi.json` e `schema-core.sql` ainda contêm rascunhos OIDC. Estão marcados como não selecionados e precisam ser substituídos/revistos antes de qualquer implementação ou migração.
 
 ### P0 — Nenhum caminho frontend → API está ligado
 
@@ -144,7 +146,7 @@ Esses resultados comprovam compilação e um conjunto limitado de regras, não a
 ## Ordem recomendada para fechar a prontidão
 
 1. **Concluído no frontend/documentação:** perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.
-2. Escolher autenticação e identidade; documentar sessão e como uma conta pessoal/comercial nasce.
+2. **Direção escolhida; implementação adiada:** autenticação própria na API. Definir contrato de registro/login, credenciais, verificação, recuperação e sessão no início da fase de backend.
 3. Remover/encapsular dados demo do estado de produção e separar estados viewer-specific por conta.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
 5. Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.

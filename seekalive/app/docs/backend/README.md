@@ -62,7 +62,7 @@ O frontend e a API têm processos separados. O Vite auditado não possui proxy `
 - `username` único sem diferenciação de maiúsculas; preservar a regra atual de 3–20 caracteres `[a-z0-9_]`. Definir lista reservada, política de troca e redirecionamento de links antigos.
 - `isFollowing`, `isInCircle`, `isBlocked`, `isMuted`, `isLiked` e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil. `isInCircle` é verdadeiro somente quando os dois seguimentos estão efetivos; não há `circleStatus`.
 - Selos de verificação e papéis administrativos não são editáveis pela API de perfil.
-- A verificação de e-mail vem do provedor de identidade. Um código digitado no frontend nunca basta para declarar a conta verificada.
+- A verificação de e-mail deverá ser concluída pela API; um código digitado no frontend nunca basta para declarar a conta verificada.
 
 ### Conteúdo Social
 
@@ -116,7 +116,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 
 **Extensões ainda sujeitas a decisão:** checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.
 
-**Decisões propostas, não escolhas já contratadas:** PostgreSQL aproveitando Drizzle, API REST versionada em Express, autenticação via provedor OIDC com sessão segura, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados.
+**Direção já escolhida:** autenticação própria pela API, adiada até começar o backend; até lá, login e cadastro permanecem demonstrativos e não haverá integração Clerk/OIDC. **Demais decisões ainda propostas:** PostgreSQL aproveitando Drizzle, API REST versionada em Express, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados. O OpenAPI e o SQL ainda contêm rascunhos OIDC explicitamente não selecionados.
 
 ## 5. Links e versões
 

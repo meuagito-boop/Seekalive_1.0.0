@@ -12,7 +12,7 @@ O único endpoint ativo observado é `GET /api/healthz`. Os outros endpoints sã
 |---|---|---|
 | Banco relacional | PostgreSQL é o destino proposto; Drizzle/driver já aparecem no projeto, mas não existe schema Drizzle ativo nem confirmação de banco provisionado | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
 | Fotos e vídeos | Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca `blob:` como URL de backend | [Replit Object Storage](https://docs.replit.com/features/data-and-storage/object-storage) |
-| Autenticação | Comparar provedor OIDC e Replit-managed Clerk antes de implementar. Nada está conectado. Confirmar impacto de tenants separados entre desenvolvimento e produção | [Replit Clerk Auth](https://docs.replit.com/features/auth-and-identity/clerk-auth) |
+| Autenticação | Direção escolhida: API própria, sem Clerk/OIDC. Ainda não implementada. Serviço de e-mail para verificação e recuperação continua por escolher | Definir e proteger o serviço de envio de e-mail antes da fase de backend |
 | Cidades brasileiras | O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render | [API de localidades do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&orderBy=nome) |
 | Mapas/geocodificação | Nenhum fornecedor escolhido. A interface pode selecionar cidade manualmente. GPS só após consentimento; resolver cidade aproximada sem persistir coordenadas | Decidir provedor e termos antes de habilitar o endpoint proposto |
 | E-mail e notificações | Integrações não conectadas. Só adicionar após decidir provedor, consentimento, templates, retentativa e descadastro | Proposta em `architecture-and-security.md` |
@@ -35,8 +35,6 @@ Os nomes a seguir são inventário de proposta para deployment; não afirmam que
 | `DATABASE_URL` | String de conexão do PostgreSQL; cadastrar somente pelo fluxo de Secrets. Não escrever em `.env` versionado ou log |
 | `SITE_ORIGIN` | Origem oficial para validação de redirecionamento/links; configurar por ambiente após confirmação do domínio de produção |
 | `OBJECT_STORAGE_BUCKET` | Identificador do bucket; credenciais ficam no serviço integrado, não no código |
-| `OIDC_ISSUER`, `OIDC_CLIENT_ID` | Identificadores do cliente/issuer, conforme provedor escolhido; segredo do cliente apenas em Secrets |
-| `OIDC_CLIENT_SECRET` | Sensível; somente Replit Secrets, nunca documentação, build output ou log |
 | `EMAIL_PROVIDER_*`, `MAPS_PROVIDER_*` | Só definir depois da escolha explícita do fornecedor e usando Secrets para credenciais |
 
 Segredos de desenvolvimento e produção devem ter escopos separados. Não reutilizar banco de desenvolvimento para dados de usuários reais. Nunca pedir ao usuário para colar senha, token ou chave no chat.
@@ -48,6 +46,6 @@ Segredos de desenvolvimento e produção devem ter escopos separados. Não reuti
 - Medir latência/erros por rota, filas de uploads, falhas de e-mail/push e atrasos de outbox; alertar sem incluir conteúdo do usuário.
 - Retentar tarefas externas com backoff e chave de idempotência; mensagens irrecuperáveis vão para fila de falhas monitorada.
 - Ter backup/retention e teste de restauração do banco antes de habilitar dados reais; planejar ciclo de vida/exclusão de mídia separadamente.
-- Antes de publicar, conferir origem/callbacks OIDC, variáveis do ambiente certo, migrações aplicadas deliberadamente e health/readiness.
+- Antes de publicar, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente certo, migrações aplicadas deliberadamente e health/readiness.
 
 Mais referências de plataforma: [Storage e bancos no Replit](https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases) e [Troubleshooting](https://docs.replit.com/build/troubleshooting).

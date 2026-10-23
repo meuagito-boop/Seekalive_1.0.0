@@ -23,6 +23,8 @@ CREATE TABLE accounts (
 );
 CREATE UNIQUE INDEX accounts_username_ci ON accounts (lower(username));
 
+-- LEGACY OIDC DRAFT, NOT SELECTED. Replace with the custom API credential model
+-- before any migration; this table is documentation-only and must not be applied.
 CREATE TABLE auth_identities (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES accounts(id),
@@ -35,6 +37,8 @@ CREATE TABLE auth_identities (
 );
 CREATE INDEX auth_identities_account ON auth_identities(account_id);
 
+-- This session FK currently binds to the legacy OIDC draft above. Revise it to
+-- bind directly to custom API credentials/account before any migration.
 CREATE TABLE sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES accounts(id),

@@ -6,7 +6,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 
 ## Respostas, paginação e autenticação
 
-- A maioria dos GET responde `200`; POST de recurso `201`; POST de job `202`; alterações em relação existente `200`/`204`; callback OIDC redireciona. Código exato por operação e schema estão em OpenAPI.
+- A maioria dos GET responde `200`; POST de recurso `201`; POST de job `202`; alterações em relação existente `200`/`204`. O fluxo OIDC listado abaixo é legado e não foi selecionado; os endpoints de cadastro/login da API própria precisam ser especificados antes do backend.
 - Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.
 - Erro: `{error:{code,message,requestId,fields?}}`. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.
 - Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.
@@ -16,7 +16,7 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/healthz` | Público | — | `Health` | **ACTIVA** |
+| GET | `/healthz` | Público | — | `Health` | **ATIVA** |
 | GET | `/v1/health/ready` | Sessão autenticada | — | `Readiness` | **PROPOSTA** |
 
 ## Auth
@@ -25,8 +25,8 @@ Gerado por `node docs/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.j
 |---|---|---|---|---|---|
 | GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `Session` | **PROPOSTA** |
 | GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **PROPOSTA** |
-| GET | `/v1/auth/authorize` | Público | — | 302 redirect | **PROPOSTA** |
-| GET | `/v1/auth/callback` | Público | — | 302 redirect | **PROPOSTA** |
+| GET | `/v1/auth/authorize` | Público | — | 302 redirect | **NÃO SELECIONADA — legado** |
+| GET | `/v1/auth/callback` | Público | — | 302 redirect | **NÃO SELECIONADA — legado** |
 | POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **PROPOSTA** |
 | DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |

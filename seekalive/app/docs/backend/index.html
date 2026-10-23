@@ -69,7 +69,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li><code>username</code> único sem diferenciação de maiúsculas; preservar a regra atual de 3–20 caracteres <code>[a-z0-9_]</code>. Definir lista reservada, política de troca e redirecionamento de links antigos.</li>
 <li><code>isFollowing</code>, <code>isInCircle</code>, <code>isBlocked</code>, <code>isMuted</code>, <code>isLiked</code> e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil. <code>isInCircle</code> é verdadeiro somente quando os dois seguimentos estão efetivos; não há <code>circleStatus</code>.</li>
 <li>Selos de verificação e papéis administrativos não são editáveis pela API de perfil.</li>
-<li>A verificação de e-mail vem do provedor de identidade. Um código digitado no frontend nunca basta para declarar a conta verificada.</li>
+<li>A verificação de e-mail deverá ser concluída pela API; um código digitado no frontend nunca basta para declarar a conta verificada.</li>
 </ul>
 <h3>Conteúdo Social</h3>
 <ul>
@@ -118,7 +118,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>4. Entregas de backend e limites</h2>
 <p><strong>Núcleo a implementar:</strong> identidade, conta/perfil, Social, mídias, relacionamentos, mensagens, notificações, Seek, avaliações, eventos, catálogo Shop, salvos, busca, preferências, moderação e privacidade.</p>
 <p><strong>Extensões ainda sujeitas a decisão:</strong> checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.</p>
-<p><strong>Decisões propostas, não escolhas já contratadas:</strong> PostgreSQL aproveitando Drizzle, API REST versionada em Express, autenticação via provedor OIDC com sessão segura, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados.</p>
+<p><strong>Direção já escolhida:</strong> autenticação própria pela API, adiada até começar o backend; até lá, login e cadastro permanecem demonstrativos e não haverá integração Clerk/OIDC. <strong>Demais decisões ainda propostas:</strong> PostgreSQL aproveitando Drizzle, API REST versionada em Express, armazenamento de objetos privado, processamento assíncrono por outbox e atualização em tempo real por SSE. Redis, PostGIS e motores de busca externos só entram quando houver necessidade e suporte confirmados. O OpenAPI e o SQL ainda contêm rascunhos OIDC explicitamente não selecionados.</p>
 <h2>5. Links e versões</h2>
 <ul>
 <li>Rotas da interface e URLs relativas da API estão em <code>frontend-integration.md</code> e <code>endpoints.md</code>.</li>
@@ -220,7 +220,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <div class="table-wrap"><table>
 <tr><th>Área</th><th>Estado atual</th><th>Prontidão</th></tr>
 <tr><td>Rotas e navegação</td><td>Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente</td><td>Parcial</td></tr>
-<tr><td>Identidade e sessão</td><td>Cadastro cria conta local e ativa-a no navegador; login não autentica; recuperação e verificação não enviam e-mail</td><td>Bloqueador</td></tr>
+<tr><td>Identidade e sessão</td><td>Login/cadastro continuam demonstrativos. Direção escolhida: autenticação própria na API quando começar o backend; recuperação e verificação reais também ficam para essa fase</td><td>Adiado por decisão até o backend</td></tr>
 <tr><td>Contas e perfis</td><td>Dados guardados em <code>localStorage</code>; edição local. Contextos de conta e Social podem divergir</td><td>Bloqueador</td></tr>
 <tr><td>Publicações e comentários</td><td><code>SocialContext</code> com reducer; <code>contentService</code> usa <code>demoContentAdapter</code>; adaptador REST não está ativo</td><td>Bloqueador</td></tr>
 <tr><td>Fotos e vídeos</td><td>Prévia usa URL <code>blob:</code> do navegador; não há upload, ID de mídia ou persistência remota</td><td>Bloqueador</td></tr>
@@ -242,7 +242,8 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li><code>AppContext</code> considera ativa a conta carregada do <code>localStorage</code>; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.</li>
 <li>O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.</li>
 </ul>
-<p><strong>Antes de integrar:</strong> escolher e configurar o provedor de identidade; implementar criação de conta, sessão, logout, verificação e recuperação reais; parar de tratar dados de <code>localStorage</code> como identidade ou autorização.</p>
+<p><strong>Decisão registrada:</strong> a autenticação será própria pela API; não integrar Clerk/OIDC agora. O login e cadastro demonstrativos permanecem até a fase de backend. Antes de implementar essa fase, definir os endpoints de registro/login, armazenamento seguro de credenciais, sessão, verificação e recuperação; nunca tratar <code>localStorage</code> como identidade ou autorização.</p>
+<p><strong>Atenção documental:</strong> <code>openapi.json</code> e <code>schema-core.sql</code> ainda contêm rascunhos OIDC. Estão marcados como não selecionados e precisam ser substituídos/revistos antes de qualquer implementação ou migração.</p>
 <h3>P0 — Nenhum caminho frontend → API está ligado</h3>
 <ul>
 <li><code>artifacts/api-server/src</code> confirma apenas <code>GET /api/healthz</code>; não há handlers de identidade, conteúdo, mídia, Seek, avaliações, Shop, mensagens ou notificações.</li>
@@ -332,7 +333,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <h2>Ordem recomendada para fechar a prontidão</h2>
 <ol>
 <li><strong>Concluído no frontend/documentação:</strong> perfis privados exigem aprovação do dono; seguidores aprovados veem publicações públicas; Círculo continua exigindo seguimento mútuo. Implementar a mesma regra no backend.</li>
-<li>Escolher autenticação e identidade; documentar sessão e como uma conta pessoal/comercial nasce.</li>
+<li><strong>Direção escolhida; implementação adiada:</strong> autenticação própria na API. Definir contrato de registro/login, credenciais, verificação, recuperação e sessão no início da fase de backend.</li>
 <li>Remover/encapsular dados demo do estado de produção e separar estados viewer-specific por conta.</li>
 <li>Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.</li>
 <li>Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.</li>
@@ -349,7 +350,7 @@ Roteador HTTP / Express
   | autenticação -&gt; autorização -&gt; validação -&gt; serviço de domínio
   +--&gt; PostgreSQL / Drizzle (transações, índices, constraints)
   +--&gt; Object Storage privado (upload autorizado / leitura com ACL)
-  +--&gt; Provedor OIDC (login, recuperação, verificação, MFA)
+  +--&gt; API própria de autenticação (login, recuperação, verificação e sessão)
   +--&gt; Provedor de e-mail e Web Push (quando habilitados)
   +--&gt; Adaptador de geocodificação (opcional e explícito)
   |
@@ -404,18 +405,17 @@ Roteador HTTP / Express
 <li>Referências públicas continuam <code>seek_entity|shop_item|social_post</code>. O legado <code>seek_entity</code> com <code>id=&quot;event:&lt;id&gt;&quot;</code> deve ser normalizado internamente para evento, com FK própria, sem criar entidade comercial fictícia.</li>
 </ul>
 <h2>3. Autenticação e ciclo de conta</h2>
-<p><strong>Proposta:</strong> provedor de identidade compatível com OIDC/OAuth, Authorization Code + PKCE, sessão de aplicação no servidor. A escolha/configuração do provedor é uma decisão anterior à implementação; não há provedor conectado na auditoria.</p>
+<p><strong>Direção escolhida:</strong> autenticação própria pela API, a implementar somente quando começar o backend. Até lá, login, cadastro, verificação e recuperação permanecem demonstrativos no frontend; não conectar Clerk nem OIDC.</p>
+<p>Requisitos para a futura implementação:</p>
 <ol>
-<li>O navegador inicia <code>/auth/authorize</code>; backend cria <code>state</code>, <code>nonce</code>, PKCE e intenção de cadastro com TTL.</li>
-<li>Callback valida estado, emissor, audiência, nonce, prazo e assinatura antes de vincular <code>provider + subject</code>.</li>
-<li>E-mail coincidente não autoriza vincular duas identidades automaticamente; exigir prova autenticada da conta existente.</li>
-<li>Conta Social é criada/completada em transação, com username único, tipo pessoal/comercial, aceite dos termos e identidade verificada.</li>
-<li>Rotacionar sessão no login e mudanças sensíveis. Cookie <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite=Lax</code>, caminho apropriado. Nunca usar token de acesso em <code>localStorage</code>.</li>
-<li>Senha, recuperação e MFA ficam com o provedor escolhido. As telas atuais de senha/código são demonstrações e precisarão usar seu SDK ou fluxo autorizado.</li>
-<li>Encerrar sessão revoga a sessão no servidor, fecha streams e limpa caches privados. Recarregar a página não autentica automaticamente.</li>
+<li>Um registro cria uma única identidade Social, pessoal ou comercial; a conta comercial recebe extensão comercial na mesma transação. <code>username</code> e e-mail precisam de normalização e unicidade com respostas que não exponham dados de terceiros.</li>
+<li>O login aceita o identificador já definido pela interface: nome de usuário ou e-mail, mais senha. Falhas usam resposta genérica, limite de tentativas e auditoria sem registrar credenciais.</li>
+<li>Armazenar senha somente com hash forte Argon2id e parâmetros versionados; nunca persistir senha no browser, logs, eventos ou telemetria.</li>
+<li>Emitir sessão opaca aleatória em cookie <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite=Lax</code>; persistir somente hash, aplicar CSRF, expiração, rotação e revogação pelo servidor.</li>
+<li>Verificação de e-mail e recuperação usam tokens de uso único, expirados e armazenados como hash. Respostas de recuperação são anti-enumeração; o provedor de envio de e-mail continua por escolher.</li>
+<li>Logout revoga a sessão no servidor e limpa caches privados. O estado ativo do navegador não é prova de autenticação.</li>
 </ol>
-<p>Os endpoints de recuperação/verificação/ações sensíveis do catálogo são fachadas propostas. Se o provedor exigir redirecionamento em vez de código de seis dígitos, adaptar a UI; não criar um “sucesso” local para manter a aparência atual.</p>
-<p><strong>Não implementar um segundo banco de senhas ao lado do OIDC.</strong> Caso o produto opte posteriormente por autenticação própria, será uma decisão separada: hashing Argon2id, tokens de uso único armazenados como hash, proteção contra enumeração, expiração e auditoria. Essa alternativa não faz parte do SQL principal.</p>
+<p><strong>Aviso de contrato:</strong> os endpoints <code>authorize/callback</code> e as tabelas <code>auth_identities</code>/FK correspondente são rascunhos OIDC legados e não selecionados. Revisar o OpenAPI e o modelo SQL para a API própria antes de implementar ou migrar. Nenhuma alteração de backend, segredo ou banco foi feita nesta etapa.</p>
 <h3>Contas e consentimento</h3>
 <ul>
 <li>Registrar versão de termos/política aceita e data. Separar consentimento de marketing e notificações do contrato necessário para operar a conta.</li>
@@ -492,8 +492,8 @@ GET /accounts/{id}/media
 <h2>1. Rotas auditadas</h2>
 <div class="table-wrap"><table>
 <tr><th>Rotas da interface</th><th>Código / comportamento atual</th><th>Integração necessária</th></tr>
-<tr><td><code>/</code>, <code>/login</code>, <code>/register</code></td><td><code>App.tsx</code>, <code>Login</code>, <code>Register</code>, <code>AppContext</code>; login demonstrativo</td><td>Sessão real, cadastro único, identidade, termos, username, retorno de autenticação</td></tr>
-<tr><td><code>/forgot-password</code>, <code>/verify-email</code></td><td>Sucesso local/código de demonstração</td><td>Fluxo real do provedor, rate limit, desafio com expiração e estados de erro</td></tr>
+<tr><td><code>/</code>, <code>/login</code>, <code>/register</code></td><td><code>App.tsx</code>, <code>Login</code>, <code>Register</code>, <code>AppContext</code>; login demonstrativo</td><td>Autenticação própria pela API, cadastro único, identidade, termos, username ou e-mail, sessão segura</td></tr>
+<tr><td><code>/forgot-password</code>, <code>/verify-email</code></td><td>Sucesso local/código de demonstração</td><td>Fluxos da API própria, envio de e-mail, anti-enumeração, limite de tentativas, expiração e estados de erro</td></tr>
 <tr><td><code>/onboarding/interests</code>, <code>/onboarding/suggestions</code></td><td>Preferências locais; sugestões são fixtures e as escolhas de seguir não são persistidas; conclusão no-op</td><td>Catálogo de interesses, escolhas da conta, recomendações autorizadas e conclusão persistida</td></tr>
 <tr><td><code>/feed</code></td><td>Feed local: para você, seguindo, artigos, vídeos</td><td><code>GET social/feed</code>, paginação, audiência, bloqueios, contadores e cache por visitante</td></tr>
 <tr><td><code>/compose</code>, <code>/article/create</code></td><td><code>contentService</code> demo + mídias blob</td><td>Upload, criação transacional, validação, idempotência e publicação com referência</td></tr>
@@ -518,7 +518,7 @@ GET /accounts/{id}/media
 <tr><td><code>/settings/appearance</code></td><td>Escuro; tamanho 16/18/20 local</td><td>Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render</td></tr>
 <tr><td><code>/styleguide</code>, página inexistente</td><td>Apoio visual e fallback</td><td>Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API</td></tr>
 </table></div>
-<p>O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.</p>
+<p>O estado “autenticado” do router é apenas UI. O cadastro ativa uma conta local no navegador; a tela de login não autentica. A autenticação própria pela API foi escolhida para a fase de backend, não está sendo implementada agora. As rotas OIDC atuais são rascunhos não selecionados. Todas as regras precisam existir no servidor, mesmo que a tela esteja atrás de uma rota protegida no React.</p>
 <p>Hoje a interface não usa o adaptador REST de conteúdo: <code>contentService</code> aponta para o adaptador de demonstração. A única chamada de rede encontrada no frontend consulta o catálogo público de municípios do IBGE; não existe consumo dos endpoints <code>/api/v1</code> propostos.</p>
 <h2>2. Arquivos que precisam trocar de fonte</h2>
 <div class="table-wrap"><table>
@@ -608,7 +608,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <blockquote>Salvo <code>GET /api/healthz</code>, rotas abaixo são PROPOSTAS, não handlers existentes. GET público continua sujeito à autorização de conta/audiência. Operações de alteração usam sessão, CSRF, limites e validação no backend.</blockquote>
 <h2>Respostas, paginação e autenticação</h2>
 <ul>
-<li>A maioria dos GET responde <code>200</code>; POST de recurso <code>201</code>; POST de job <code>202</code>; alterações em relação existente <code>200</code>/<code>204</code>; callback OIDC redireciona. Código exato por operação e schema estão em OpenAPI.</li>
+<li>A maioria dos GET responde <code>200</code>; POST de recurso <code>201</code>; POST de job <code>202</code>; alterações em relação existente <code>200</code>/<code>204</code>. O fluxo OIDC listado abaixo é legado e não foi selecionado; os endpoints de cadastro/login da API própria precisam ser especificados antes do backend.</li>
 <li>Página: <code>items</code> e <code>nextCursor</code> opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente <code>Page&lt;T&gt;</code>.</li>
 <li>Erro: <code>{error:{code,message,requestId,fields?}}</code>. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.</li>
 <li>Escritas autenticadas: cookie + <code>X-CSRF-Token</code>; POST com efeito recebe <code>Idempotency-Key</code> quando indicado na especificação de arquitetura.</li>
@@ -617,7 +617,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h2>Health</h2>
 <div class="table-wrap"><table>
 <tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
-<tr><td>GET</td><td><code>/healthz</code></td><td>Público</td><td>—</td><td><code>Health</code></td><td><strong>ACTIVA</strong></td></tr>
+<tr><td>GET</td><td><code>/healthz</code></td><td>Público</td><td>—</td><td><code>Health</code></td><td><strong>ATIVA</strong></td></tr>
 <tr><td>GET</td><td><code>/v1/health/ready</code></td><td>Sessão autenticada</td><td>—</td><td><code>Readiness</code></td><td><strong>PROPOSTA</strong></td></tr>
 </table></div>
 <h2>Auth</h2>
@@ -625,8 +625,8 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
 <tr><td>GET</td><td><code>/v1/auth/session</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Session</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>GET</td><td><code>/v1/auth/csrf</code></td><td>Público/sessão; ACL no servidor</td><td>—</td><td><code>Csrf</code></td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/auth/authorize</code></td><td>Público</td><td>—</td><td>302 redirect</td><td><strong>PROPOSTA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/auth/callback</code></td><td>Público</td><td>—</td><td>302 redirect</td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/authorize</code></td><td>Público</td><td>—</td><td>302 redirect</td><td><strong>NÃO SELECIONADA — legado</strong></td></tr>
+<tr><td>GET</td><td><code>/v1/auth/callback</code></td><td>Público</td><td>—</td><td>302 redirect</td><td><strong>NÃO SELECIONADA — legado</strong></td></tr>
 <tr><td>POST</td><td><code>/v1/auth/logout</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>GET</td><td><code>/v1/auth/sessions</code></td><td>Sessão autenticada</td><td>—</td><td><code>PageSession</code></td><td><strong>PROPOSTA</strong></td></tr>
 <tr><td>DELETE</td><td><code>/v1/auth/sessions/{sessionId}</code></td><td>Sessão autenticada</td><td>—</td><td><code>Empty</code></td><td><strong>PROPOSTA</strong></td></tr>
@@ -802,7 +802,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <li>Círculo exists only when two accounts follow one another and both follow edges are effective/accepted. It is derived from <code>follows</code>, not an independent request, invitation, membership, or table. One-way following is not Círculo; removing either edge removes the derived membership.</li>
 <li>Shuffle and Comunidades are out of product scope. There are no community/group entities, roles, memberships, invitations, or group posts.</li>
 <li>Privacy controls and follow requests currently save browser-local state. The UI supports incoming request acceptance/decline: a pending request grants no access; an accepted follower can view public-audience posts on a private profile, while Círculo-audience posts still require accepted follows in both directions. <code>canReadPost</code> is only a UX rule, not production authorization.</li>
-<li>Current email/password account screens are browser demos, not real authentication. Proposed authentication is an OIDC adapter with provider-owned credentials and recovery. There are no password hashes, password-reset tokens, or browser-managed production sessions in this model.</li>
+<li>As telas atuais de e-mail/senha são demonstrações no navegador, não autenticação real. A direção escolhida é autenticação própria pela API, adiada até a fase de backend. O modelo abaixo ainda contém estruturas OIDC legadas não selecionadas; elas não devem ser migradas sem revisão. Nenhuma senha ou sessão real é armazenada pelo frontend.</li>
 <li>Event interest, product discovery, business hours, and advertised service options do not imply checkout, payments, delivery dispatch, reservations, or appointment booking.</li>
 </ul>
 <h2>Conventions and DTO mapping</h2>
@@ -838,8 +838,8 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <div class="table-wrap"><table>
 <tr><th>Table / intent</th><th>Columns</th><th>Keys / indexes / invariants</th><th>Required access</th></tr>
 <tr><td><code>accounts</code> — canonical identity</td><td><code>id</code>, <code>username</code>, <code>display_name</code>, <code>account_type</code>, <code>bio</code>, <code>location_label</code>, <code>website_url</code>, <code>avatar_asset_id</code>, <code>cover_asset_id</code>, <code>is_verified</code>, <code>status</code>, <code>created_at</code>, <code>updated_at</code>, <code>deleted_at</code></td><td>PK id; unique lower(username), unique (id, account_type); type personal/commercial, active/suspended/deleted status; asset FKs added after assets exist.</td><td>Public-safe profile projection; self edits allowed fields; verification/status only trusted administrative operations. Never expose identity/session data through profile serialization.</td></tr>
-<tr><td><code>auth_identities</code> — OIDC links</td><td><code>id</code>, <code>account_id</code>, <code>provider</code>, <code>subject</code>, <code>verified_email</code>, <code>created_at</code></td><td>Unique provider+subject; unique id+account for session binding; account index. Provider is canonical issuer/adapter identifier; subject is case-sensitive. Email need not be globally unique and is not a login-linking key.</td><td>Auth service only; explicit reauthentication to link/unlink; never auto-link accounts by matching email.</td></tr>
-<tr><td><code>sessions</code> — server sessions</td><td><code>id</code>, <code>account_id</code>, <code>auth_identity_id</code>, <code>token_hash</code>, <code>created_at</code>, <code>expires_at</code>, <code>revoked_at</code></td><td>Unique 32-byte digest; account and expiry indexes; composite identity/account FK; expiry after creation.</td><td>Auth service only; owner may list sanitized active sessions and revoke. Store only hash of a cryptographically random opaque token.</td></tr>
+<tr><td><code>auth_identities</code> — rascunho OIDC não selecionado</td><td><code>id</code>, <code>account_id</code>, <code>provider</code>, <code>subject</code>, <code>verified_email</code>, <code>created_at</code></td><td>Estrutura legada da proposta OIDC; deve ser substituída por credenciais próprias antes de qualquer migração.</td><td>Não implementar na direção escolhida sem nova aprovação.</td></tr>
+<tr><td><code>sessions</code> — rascunho de sessão</td><td><code>id</code>, <code>account_id</code>, <code>auth_identity_id</code>, <code>token_hash</code>, <code>created_at</code>, <code>expires_at</code>, <code>revoked_at</code></td><td>Hash único de 32 bytes; a FK para <code>auth_identities</code> é legada e precisa ser revista para autenticação própria.</td><td>Direção futura: sessão gerida pela API, token opaco em cookie seguro e somente hash persistido; nenhuma sessão real no frontend.</td></tr>
 <tr><td><code>account_settings</code> — privacy/locale</td><td><code>account_id</code>, <code>private_profile</code>, <code>messages_from</code>, <code>read_receipts</code>, <code>locale</code>, <code>timezone</code>, <code>updated_at</code></td><td>Account PK/FK; message enum everyone/circles/nobody.</td><td>Self only; server consults settings for every relevant action. Validate locale and IANA zone. If private, new followers require owner approval. Do not create a separate Círculo-request setting.</td></tr>
 <tr><td><code>categories</code> — controlled taxonomy</td><td><code>key</code>, <code>label</code>, <code>domain</code>, <code>active</code></td><td>Text PK; domain business/event/shop.</td><td>Public read; curated admin write. Server validates the target table's category domain.</td></tr>
 <tr><td><code>cities</code> — Brazilian municipalities</td><td><code>ibge_id</code>, <code>name</code>, <code>state_code</code>, <code>timezone</code></td><td>Seven-digit text PK; two-uppercase-letter state shape; lower(name)+state index.</td><td>Public read; authoritative controlled imports only, no fabricated municipality seeds.</td></tr>
@@ -894,7 +894,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <h2>Constraints SQL enforces, and what it does not</h2>
 <h3>Identity and commercial invariants</h3>
 <p>The commercial-only invariant does <strong>not</strong> depend on an unchecked comment: <code>business_profiles.account_type</code> is constrained to <code>commercial</code>, and <code>(account_id, account_type)</code> references the unique pair in <code>accounts</code>. The ordinary <code>account_id</code> PK/FK is also present. This is a declarative alternative to a constraint trigger; changing an account back to personal while a business profile remains is rejected. Seller/organizer/review target FKs refer to <code>business_profiles</code>, transitively enforcing commercial identity. Creating a commercial account/profile together, changing types safely, and requiring every active commercial account to have a profile are application transaction responsibilities. The schema allows a commercial account before profile completion.</p>
-<p>OIDC adapter must validate issuer, audience, signature, expiry, nonce, PKCE and state; verified email is only a provider claim. Use a high-entropy opaque session token in a <strong>Secure, HttpOnly, SameSite cookie</strong>, appropriate cookie path/domain, CSRF defenses, rotation on privilege/auth changes and server-side expiry/revocation checks. Store a SHA-256-size token hash, not the bearer token. Do not put session tokens/passwords in localStorage. Recovery, MFA and credential changes belong to the identity provider. Provider tokens, if ever needed, require a separately reviewed encrypted storage design; they are not in this core.</p>
+<p>Na autenticação própria escolhida, a API deverá armazenar senhas somente com hash forte (Argon2id), emitir sessão opaca em cookie <strong>Secure, HttpOnly, SameSite</strong>, proteger escritas com CSRF e limitar tentativas. Tokens de verificação e recuperação devem ser de uso único, expirados e armazenados como hash; as respostas de recuperação devem evitar enumeração de contas. Nunca colocar senha ou token de sessão em <code>localStorage</code>. Esses pontos são requisitos futuros; a estrutura SQL OIDC atual não está aprovada para migração.</p>
 <h3>Required authorization transactions</h3>
 <ol>
 <li>Obtain actor from the authenticated session; check account active status and resource status. Service/database credentials never reach the browser. There are no implemented RLS policies or GRANTs in this proposal; SQL integrity is <strong>not</strong> app privacy.</li>
@@ -940,7 +940,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <li>Operational roles, RLS defense-in-depth, encryption key management, scheduler/worker implementation, migrations, rollback, backup/restore and performance/load tests remain implementation work.</li>
 </ul>
 <h2>Static review (not execution)</h2>
-<p>The core contains <strong>42 tables</strong>. Reviewed dependency order: accounts → OIDC/settings/taxonomies → commercial extensions → assets → deferred account asset FKs → posts/social graph → reviews/events/items → typed references/saves → conversations/participants/messages → notifications/safety/operations. Self-referential post/comment FKs reference their own declared keys; comments' <code>(id, post_id)</code> unique key supports same-post replies. Sessions bind the identity and account via composite FK. Assets break the account/avatar cycle via <code>ALTER TABLE</code>. Referenced tables are declared before external FKs; no applied migrations, live rows, or runtime validation are asserted.</p>
+<p>The core contains <strong>42 tables</strong> in the current OIDC draft. That count and dependency order are not the selected auth design: replace the OIDC identity/session relationship with the approved custom-API credential and session model before backend implementation. No migration, live rows, or runtime validation are asserted.</p>
 <p>The SQL was reviewed as text only. No SQL parser/database execution was performed. Before adoption, convert into reviewed migrations, test CHECK/unique/FK rejection paths, concurrent authorization races, deletion ordering, Unicode limits, transaction rollback, and privacy behavior under real authenticated requests.</p></section>
 <section id="external-services-and-operations"><h1>Serviços externos, configuração e operação</h1>
 <h2>Situação da auditoria</h2>
@@ -951,7 +951,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <tr><th>Necessidade</th><th>Opção / situação</th><th>Referência oficial</th></tr>
 <tr><td>Banco relacional</td><td>PostgreSQL é o destino proposto; Drizzle/driver já aparecem no projeto, mas não existe schema Drizzle ativo nem confirmação de banco provisionado</td><td><a href="https://docs.replit.com/features/data-and-storage/sql-database" rel="noopener noreferrer">Replit SQL Database</a></td></tr>
 <tr><td>Fotos e vídeos</td><td>Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca <code>blob:</code> como URL de backend</td><td><a href="https://docs.replit.com/features/data-and-storage/object-storage" rel="noopener noreferrer">Replit Object Storage</a></td></tr>
-<tr><td>Autenticação</td><td>Comparar provedor OIDC e Replit-managed Clerk antes de implementar. Nada está conectado. Confirmar impacto de tenants separados entre desenvolvimento e produção</td><td><a href="https://docs.replit.com/features/auth-and-identity/clerk-auth" rel="noopener noreferrer">Replit Clerk Auth</a></td></tr>
+<tr><td>Autenticação</td><td>Direção escolhida: API própria, sem Clerk/OIDC. Ainda não implementada. Serviço de e-mail para verificação e recuperação continua por escolher</td><td>Definir e proteger o serviço de envio de e-mail antes da fase de backend</td></tr>
 <tr><td>Cidades brasileiras</td><td>O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render</td><td><a href="https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&amp;orderBy=nome" rel="noopener noreferrer">API de localidades do IBGE</a></td></tr>
 <tr><td>Mapas/geocodificação</td><td>Nenhum fornecedor escolhido. A interface pode selecionar cidade manualmente. GPS só após consentimento; resolver cidade aproximada sem persistir coordenadas</td><td>Decidir provedor e termos antes de habilitar o endpoint proposto</td></tr>
 <tr><td>E-mail e notificações</td><td>Integrações não conectadas. Só adicionar após decidir provedor, consentimento, templates, retentativa e descadastro</td><td>Proposta em <code>architecture-and-security.md</code></td></tr>
@@ -969,8 +969,6 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <tr><td><code>DATABASE_URL</code></td><td>String de conexão do PostgreSQL; cadastrar somente pelo fluxo de Secrets. Não escrever em <code>.env</code> versionado ou log</td></tr>
 <tr><td><code>SITE_ORIGIN</code></td><td>Origem oficial para validação de redirecionamento/links; configurar por ambiente após confirmação do domínio de produção</td></tr>
 <tr><td><code>OBJECT_STORAGE_BUCKET</code></td><td>Identificador do bucket; credenciais ficam no serviço integrado, não no código</td></tr>
-<tr><td><code>OIDC_ISSUER</code>, <code>OIDC_CLIENT_ID</code></td><td>Identificadores do cliente/issuer, conforme provedor escolhido; segredo do cliente apenas em Secrets</td></tr>
-<tr><td><code>OIDC_CLIENT_SECRET</code></td><td>Sensível; somente Replit Secrets, nunca documentação, build output ou log</td></tr>
 <tr><td><code>EMAIL_PROVIDER_<em></code>, <code>MAPS_PROVIDER_</em></code></td><td>Só definir depois da escolha explícita do fornecedor e usando Secrets para credenciais</td></tr>
 </table></div>
 <p>Segredos de desenvolvimento e produção devem ter escopos separados. Não reutilizar banco de desenvolvimento para dados de usuários reais. Nunca pedir ao usuário para colar senha, token ou chave no chat.</p>
@@ -981,14 +979,14 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <li>Medir latência/erros por rota, filas de uploads, falhas de e-mail/push e atrasos de outbox; alertar sem incluir conteúdo do usuário.</li>
 <li>Retentar tarefas externas com backoff e chave de idempotência; mensagens irrecuperáveis vão para fila de falhas monitorada.</li>
 <li>Ter backup/retention e teste de restauração do banco antes de habilitar dados reais; planejar ciclo de vida/exclusão de mídia separadamente.</li>
-<li>Antes de publicar, conferir origem/callbacks OIDC, variáveis do ambiente certo, migrações aplicadas deliberadamente e health/readiness.</li>
+<li>Antes de publicar, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente certo, migrações aplicadas deliberadamente e health/readiness.</li>
 </ul>
 <p>Mais referências de plataforma: <a href="https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases" rel="noopener noreferrer">Storage e bancos no Replit</a> e <a href="https://docs.replit.com/build/troubleshooting" rel="noopener noreferrer">Troubleshooting</a>.</p></section>
 <section id="implementation-and-tests"><h1>Plano de implementação e testes</h1>
 <p>Este plano organiza o backend futuro; não autoriza nem executa migrações ou mudanças de produto. As fases dependem de decisões explícitas nos itens indicados.</p>
 <h2>Antes de implementar</h2>
 <ol>
-<li>Confirmar autenticação (provedor OIDC/Clerk ou alternativa) e regras de conta/consentimento.</li>
+<li>Autenticação própria pela API já foi escolhida; definir o contrato de registro/login, credenciais, sessão, e-mail e regras de conta/consentimento. Não implementar o rascunho OIDC atual.</li>
 <li>Confirmar PostgreSQL por ambiente e política de backup/retention.</li>
 <li>Confirmar armazenamento de mídia, limites, formatos e retenção.</li>
 <li>Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.</li>
@@ -1054,7 +1052,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 </table></div>
 <h2>Decisões que permanecem abertas</h2>
 <ul>
-<li>Provedor OIDC e UX final de cadastro/verificação/recuperação.</li>
+<li>Contrato detalhado da API própria e UX final de cadastro/verificação/recuperação.</li>
 <li>Região, ambiente e operação do PostgreSQL.</li>
 <li>Object Storage, política de URL pública/assinada e limites de vídeo.</li>
 <li>Fornecedor de geocodificação/mapas (se houver), consentimento e retenção.</li>

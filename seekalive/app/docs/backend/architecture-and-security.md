@@ -10,7 +10,7 @@ Roteador HTTP / Express
   | autenticação -> autorização -> validação -> serviço de domínio
   +--> PostgreSQL / Drizzle (transações, índices, constraints)
   +--> Object Storage privado (upload autorizado / leitura com ACL)
-  +--> Provedor OIDC (login, recuperação, verificação, MFA)
+  +--> API própria de autenticação (login, recuperação, verificação e sessão)
   +--> Provedor de e-mail e Web Push (quando habilitados)
   +--> Adaptador de geocodificação (opcional e explícito)
   |
@@ -75,19 +75,18 @@ Status principais: `200`, `201`, `202` para tarefa realmente aceita, `204` sem c
 
 ## 3. Autenticação e ciclo de conta
 
-**Proposta:** provedor de identidade compatível com OIDC/OAuth, Authorization Code + PKCE, sessão de aplicação no servidor. A escolha/configuração do provedor é uma decisão anterior à implementação; não há provedor conectado na auditoria.
+**Direção escolhida:** autenticação própria pela API, a implementar somente quando começar o backend. Até lá, login, cadastro, verificação e recuperação permanecem demonstrativos no frontend; não conectar Clerk nem OIDC.
 
-1. O navegador inicia `/auth/authorize`; backend cria `state`, `nonce`, PKCE e intenção de cadastro com TTL.
-2. Callback valida estado, emissor, audiência, nonce, prazo e assinatura antes de vincular `provider + subject`.
-3. E-mail coincidente não autoriza vincular duas identidades automaticamente; exigir prova autenticada da conta existente.
-4. Conta Social é criada/completada em transação, com username único, tipo pessoal/comercial, aceite dos termos e identidade verificada.
-5. Rotacionar sessão no login e mudanças sensíveis. Cookie `Secure`, `HttpOnly`, `SameSite=Lax`, caminho apropriado. Nunca usar token de acesso em `localStorage`.
-6. Senha, recuperação e MFA ficam com o provedor escolhido. As telas atuais de senha/código são demonstrações e precisarão usar seu SDK ou fluxo autorizado.
-7. Encerrar sessão revoga a sessão no servidor, fecha streams e limpa caches privados. Recarregar a página não autentica automaticamente.
+Requisitos para a futura implementação:
 
-Os endpoints de recuperação/verificação/ações sensíveis do catálogo são fachadas propostas. Se o provedor exigir redirecionamento em vez de código de seis dígitos, adaptar a UI; não criar um “sucesso” local para manter a aparência atual.
+1. Um registro cria uma única identidade Social, pessoal ou comercial; a conta comercial recebe extensão comercial na mesma transação. `username` e e-mail precisam de normalização e unicidade com respostas que não exponham dados de terceiros.
+2. O login aceita o identificador já definido pela interface: nome de usuário ou e-mail, mais senha. Falhas usam resposta genérica, limite de tentativas e auditoria sem registrar credenciais.
+3. Armazenar senha somente com hash forte Argon2id e parâmetros versionados; nunca persistir senha no browser, logs, eventos ou telemetria.
+4. Emitir sessão opaca aleatória em cookie `Secure`, `HttpOnly`, `SameSite=Lax`; persistir somente hash, aplicar CSRF, expiração, rotação e revogação pelo servidor.
+5. Verificação de e-mail e recuperação usam tokens de uso único, expirados e armazenados como hash. Respostas de recuperação são anti-enumeração; o provedor de envio de e-mail continua por escolher.
+6. Logout revoga a sessão no servidor e limpa caches privados. O estado ativo do navegador não é prova de autenticação.
 
-**Não implementar um segundo banco de senhas ao lado do OIDC.** Caso o produto opte posteriormente por autenticação própria, será uma decisão separada: hashing Argon2id, tokens de uso único armazenados como hash, proteção contra enumeração, expiração e auditoria. Essa alternativa não faz parte do SQL principal.
+**Aviso de contrato:** os endpoints `authorize/callback` e as tabelas `auth_identities`/FK correspondente são rascunhos OIDC legados e não selecionados. Revisar o OpenAPI e o modelo SQL para a API própria antes de implementar ou migrar. Nenhuma alteração de backend, segredo ou banco foi feita nesta etapa.
 
 ### Contas e consentimento
 

@@ -23,14 +23,14 @@ const P = "PagePost", A = "Account", C = "Comment", N = "Notification";
 g("health", "/healthz", "Verificar servidor (rota existente)", "Health", null, { status: "live", auth: "none" });
 g("auth", "/v1/auth/session", "Consultar sessão atual", "Session", null, { auth: "optional" });
 g("auth", "/v1/auth/csrf", "Obter token CSRF da sessão", "Csrf", null, { auth: "optional" });
-g("auth", "/v1/auth/authorize", "Iniciar fluxo OIDC com state e PKCE", null, null, { auth: "none", redirect: true, query: ["state"], requiredQuery: ["state"] });
-g("auth", "/v1/auth/callback", "Validar callback OIDC e criar sessão", null, null, { auth: "none", redirect: true, query: ["code", "state"], requiredQuery: ["code", "state"] });
+g("auth", "/v1/auth/authorize", "Fluxo OIDC legado; não selecionado", null, null, { auth: "none", redirect: true, notSelected: true, query: ["state"], requiredQuery: ["state"] });
+g("auth", "/v1/auth/callback", "Callback OIDC legado; não selecionado", null, null, { auth: "none", redirect: true, notSelected: true, query: ["code", "state"], requiredQuery: ["code", "state"] });
 post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Empty", { status: "proposed" });
 g("auth", "/v1/auth/sessions", "Listar sessões próprias", "PageSession", null);
 del("auth", "/v1/auth/sessions/{sessionId}", "Revogar sessão própria", "Empty");
-post("auth", "/v1/auth/recovery", "Solicitar recuperação via provedor; resposta anti-enumeração 202", "RecoveryRequest", "Accepted", { auth: "none", accepted: true });
-post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação via provedor", "VerificationRequest", "Accepted", { auth: "optional", accepted: true });
-post("auth", "/v1/auth/verification/confirm", "Confirmar desafio emitido pelo provedor", "VerificationConfirm", "Account");
+post("auth", "/v1/auth/recovery", "Solicitar recuperação pela API; resposta anti-enumeração 202", "RecoveryRequest", "Accepted", { auth: "none", accepted: true });
+post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação por e-mail", "VerificationRequest", "Accepted", { auth: "optional", accepted: true });
+post("auth", "/v1/auth/verification/confirm", "Confirmar desafio emitido pela API", "VerificationConfirm", "Account");
 
 g("accounts", "/v1/accounts/me", "Consultar conta e projeções do visitante", A);
 post("accounts", "/v1/accounts", "Criar perfil da conta já autenticada", "AccountCreate", A);
@@ -303,7 +303,7 @@ for (const route of R) {
   const name = `${route.tag}_${method}_${path.replaceAll(/[{}]/g, "").replaceAll("/", "_").replaceAll("-", "_")}`.replaceAll(/_+/g, "_");
   const operationId = `${name}_${Object.keys(paths[path]).length + 1}`;
   const successCode = route.redirect ? "302" : route.accepted ? "202" : method === "post" && route.status !== "live" ? "201" : method === "delete" && route.response === "Empty" ? "204" : "200";
-  const responses = route.redirect ? { "302": { description: "Redirecionamento no fluxo OIDC; callback valida state/PKCE." } }
+  const responses = route.redirect ? { "302": { description: "Redirecionamento do rascunho OIDC legado; fluxo não selecionado para autenticação." } }
     : { [successCode]: route.contentResponse ? { description: "Bytes de mídia aprovados após a checagem de autorização.", content: { "image/*": { schema: { type: "string", format: "binary" } }, "video/*": { schema: { type: "string", format: "binary" } } } }
       : route.stream ? { description: "SSE autenticado; eventos são apenas notificações de recursos que precisam ser reconsultados.", content: { "text/event-stream": { schema: { type: "string" } } } }
       : { description: route.status === "live" ? "Endpoint implementado e observado no servidor atual." : "Contrato proposto; handler ainda não existe.", ...(route.response ? { content: { "application/json": { schema: ref(route.response) } } } : {}) }, ...errorResponses };
@@ -317,7 +317,9 @@ for (const route of R) {
   if (route.request && schemas[route.request]) route.request = route.request;
   paths[path][method] = {
     operationId, tags: [route.tag], summary: route.summary,
-    description: route.status === "live" ? "LIVE on the audited API server." : `PROPOSED ONLY; not currently implemented.${route.accepted ? " Async job and request ID; no synchronous-success simulation." : ""}`,
+    description: route.notSelected
+      ? "NOT SELECTED. Legacy OIDC draft conflicts with the approved direction of custom API authentication; do not implement."
+      : route.status === "live" ? "LIVE on the audited API server." : `PROPOSED ONLY; not currently implemented.${route.accepted ? " Async job and request ID; no synchronous-success simulation." : ""}`,
     ...(route.query?.includes("q") && !parameters.some(p => p.name === "q") ? { parameters: [{ name: "q", in: "query", required: true, schema: { type: "string", maxLength: 160 } }] } : {}),
     ...(parameters.length ? { parameters } : {}),
     ...(route.redirect ? { parameters: [...parameters, ...((route.query ?? []).includes("state") ? [] : [{ name: "state", in: "query", required: true, schema: string }]), ...((route.query ?? []).includes("code") ? [] : [{ name: "code", in: "query", required: false, schema: string }])] } : {}),
@@ -334,7 +336,7 @@ const spec = {
   info: {
     title: "Seekalive API (proposta; uma rota ativa)",
     version: "0.1.0-proposed",
-    description: "Contrato de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. Prefira os DTOs e regras descritos em docs/backend/. Nenhum contrato aqui provisiona banco, identidade ou integrações.",
+    description: "Contrato de documentação, não implementação. Apenas GET /api/healthz foi confirmado ativo. A direção escolhida é autenticação própria pela API, adiada até a fase de backend; as rotas OIDC são rascunhos não selecionados. Revise identidade e sessão antes de implementar. Nenhum contrato aqui provisiona banco ou integrações.",
     contact: { name: "Seekalive API" },
   },
   servers: [{ url: "/api", description: "Prefixo de mesma origem proposto. Roteador do frontend ainda precisa ser conectado." }],
@@ -346,7 +348,7 @@ const spec = {
   paths,
   components: {
     securitySchemes: {
-      SessionCookie: { type: "apiKey", in: "cookie", name: "__Host-seekalive_session", description: "Proposta de cookie Secure/HttpOnly/SameSite, criado no callback do provedor; nunca token em localStorage." },
+      SessionCookie: { type: "apiKey", in: "cookie", name: "__Host-seekalive_session", description: "Proposta de cookie Secure/HttpOnly/SameSite criado pela API própria após autenticação; nunca token em localStorage." },
       CsrfHeader: { type: "apiKey", in: "header", name: "X-CSRF-Token", description: "Obrigatório nas alterações autenticadas; emissão/validação de mesma origem ainda a implementar." },
     },
     schemas,
@@ -375,7 +377,7 @@ const lines = [
   "",
   "## Respostas, paginação e autenticação",
   "",
-  "- A maioria dos GET responde `200`; POST de recurso `201`; POST de job `202`; alterações em relação existente `200`/`204`; callback OIDC redireciona. Código exato por operação e schema estão em OpenAPI.",
+  "- A maioria dos GET responde `200`; POST de recurso `201`; POST de job `202`; alterações em relação existente `200`/`204`. O fluxo OIDC listado abaixo é legado e não foi selecionado; os endpoints de cadastro/login da API própria precisam ser especificados antes do backend.",
   "- Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.",
   "- Erro: `{error:{code,message,requestId,fields?}}`. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.",
   "- Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.",
@@ -386,7 +388,8 @@ for (const tag of [...new Set(R.map(r => r.tag))]) {
   lines.push(`## ${tag[0].toUpperCase()}${tag.slice(1)}`, "", "| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |", "|---|---|---|---|---|---|");
   for (const r of R.filter(x => x.tag === tag)) {
     const access = r.auth === "none" ? "Público" : r.auth === "optional" ? "Público/sessão; ACL no servidor" : "Sessão autenticada";
-    lines.push(`| ${r.method.toUpperCase()} | \`${r.path}\` | ${access} | ${r.request ? `\`${r.request}\`` : "—"} | ${r.response ? `\`${r.response}\`` : r.redirect ? "302 redirect" : "bytes/SSE"} | **${r.status === "live" ? "ACTIVA" : "PROPOSTA"}**${r.accepted ? "; assíncrona" : ""}${r.stream ? "; Server-Sent Events" : ""} |`);
+    const state = r.notSelected ? "NÃO SELECIONADA — legado" : r.status === "live" ? "ATIVA" : "PROPOSTA";
+    lines.push(`| ${r.method.toUpperCase()} | \`${r.path}\` | ${access} | ${r.request ? `\`${r.request}\`` : "—"} | ${r.response ? `\`${r.response}\`` : r.redirect ? "302 redirect" : "bytes/SSE"} | **${state}**${r.accepted ? "; assíncrona" : ""}${r.stream ? "; Server-Sent Events" : ""} |`);
   }
   lines.push("");
 }
