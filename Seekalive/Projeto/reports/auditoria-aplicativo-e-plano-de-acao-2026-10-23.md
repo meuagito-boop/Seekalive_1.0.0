@@ -226,12 +226,12 @@ Esses pontos positivos não removem as lacunas de integração, testes ou persis
 
 Para a próxima etapa, seguir esta sequência, sem abrir trabalho no Gestor/Painel:
 
-1. DTO e persistência/hidratação do perfil comercial.
-2. Alinhamento OpenAPI/codegen/erros/status.
-3. Migrations versionadas e suíte de testes HTTP/DB da fatia já existente.
-4. Integração frontend de perfil, privacidade e relações às APIs existentes.
-5. Conteúdo e upload; depois Seek/avaliações/eventos.
-6. Mensagens/notificações/configurações e então preparação de staging.
+1. Corrigir a corrida entre bloqueio e aprovação/seguir e filtrar bloqueios também na busca; cobrir ambos com testes.
+2. Definir o DTO da conta e garantir que perfil comercial seja reidratado após login e utilizável no Seek.
+3. Alinhar contrato OpenAPI, codegen, formatos de erro e respostas.
+4. Criar migrations versionadas e testes HTTP/DB para a fatia existente.
+5. Conectar perfil, privacidade e relações às APIs atuais.
+6. Implementar conteúdo/mídia e então Seek/avaliações/eventos; mensagens, notificações e Shop vêm depois.
 
 O envio real de e-mail fica como dependência explícita quando a etapa de provedores for autorizada. Até lá, o comportamento correto é mostrar indisponibilidade e não permitir entrada de conta não verificada.
 
