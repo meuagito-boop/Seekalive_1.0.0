@@ -7,4 +7,4 @@ Autenticação própria pela API, sem Clerk/OIDC. O login aceita nome de usuári
 
 **Why:** o usuário definiu a verificação de e-mail como requisito de segurança para contas reais e depois autorizou um modo separado para visualizar o frontend durante o desenvolvimento.
 
-**How to apply:** aplicar a regra no servidor em todas as rotas protegidas; o modo fictício deve ser somente frontend, não persistir sessão e estar ausente em produção. Se o envio de e-mail estiver indisponível, falhar explicitamente em vez de criar conta real acessível sem confirmação.
+**How to apply:** aplicar a regra no servidor em todas as rotas protegidas; o modo fictício deve ser somente frontend, não persistir sessão e estar ausente em produção. Deixar integrações com provedores para uma etapa futura: preparar interfaces neutras, sem conectar serviços ou pedir credenciais agora. Se o envio estiver indisponível, falhar explicitamente em vez de criar conta real acessível sem confirmação.
