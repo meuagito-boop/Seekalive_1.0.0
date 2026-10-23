@@ -238,3 +238,17 @@ mtime_ms = 1792733485502
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/4f136cf7-e691-4e7d-bcd1-be55677ef7b8/ab358785-a1fe-438b-aa36-ecbd3b667c5b"
 storage_version_token = "1792733524240852"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "X5TS5SNABC0LtRzHLvY-b"
+uri = "file://Seekalive/Projeto/reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md"
+type = "text"
+title = "Auditoria técnica do Aplicativo Seekalive"
+description = "Relatório aprofundado do frontend e backend, evidências priorizadas, limites de verificação e plano de ação por fases. Gestor e Painel ficaram fora do escopo."
+logical_id = "ccace8f7-8599-4c5d-9761-64034e43b5b2"
+content_hash = "sha256:bb2292a1e0b085d87a626bfe1e9ebce336cf2e2733c88e76db0632cf5a6ddaf9"
+size = 32952
+mtime_ms = 1792780602658
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/ccace8f7-8599-4c5d-9761-64034e43b5b2/69e0e980-7bf5-45c1-9334-339e3d537ccb"
+storage_version_token = "1792780622197070"
+content_type = "text/markdown"
