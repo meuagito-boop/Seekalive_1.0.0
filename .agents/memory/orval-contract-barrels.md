@@ -1,10 +1,10 @@
 ---
 name: Geração de contratos Orval
-description: Compatibilidade entre Orval, Zod 3 e os exports de tipos gerados da API.
+description: Alinhamento de Orval, Zod 4 e exports de tipos gerados da API.
 ---
 
-No workspace, o codegen Orval 8.22 com Zod 3 gerou helpers `zod.uuid()` e `zod.url()` indisponíveis na versão instalada e produziu nomes duplicados para tipos de query e schemas Zod ao exportar ambos por estrela. O fluxo agora usa padrões OpenAPI compatíveis e normaliza o barrel do pacote depois da geração, mantendo os tipos auxiliares no namespace `GeneratedTypes`.
+O workspace usa Orval 8.44 e Zod 4.6, alinhados com o código Zod 4 que Orval gera para `format: uuid` e `format: uri`. O pacote do cliente precisa incluir `DOM.Iterable` porque a saída do Orval usa `Headers.entries()`. Orval também acrescenta um export por estrela para `generated/types`; esses DTOs podem compartilhar nomes com schemas Zod em `generated/api`, então o barrel público mantém os DTOs no namespace `GeneratedTypes`. A normalização verifica os exports recebidos e falha se o gerador mudar o formato de saída.
 
-**Why:** a geração dos contratos sociais falhou no typecheck até as incompatibilidades de versão e exports serem corrigidas.
+**Why:** a geração anterior combinava código Zod 4 com Zod 3, e exports redundantes provocavam colisão real de nomes no typecheck.
 
-**How to apply:** depois de alterar `openapi.yaml`, executar o script `codegen` do pacote api-spec; manter `normalize-contract-exports.mjs` ligado ao comando e validar typecheck das bibliotecas. Não editar arquivos gerados manualmente.
+**How to apply:** depois de alterar `openapi.yaml`, executar o script `codegen` do pacote api-spec; manter as versões compatíveis, a validação estrita do barrel e `DOM.Iterable`. Não substituir `format` por regex apenas para contornar uma dependência incompatível nem editar arquivos gerados manualmente.

@@ -1,8 +1,8 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.0
-**Status:** A01 implementado, mas parcialmente validado. A02 começou: endpoints de liveness/readiness, 404 JSON, request ID, encerramento gracioso e testes HTTP básicos adicionados. A suíte isolada de fluxos autenticados foi implementada, mas não executada: a proteção detectou o ambiente marcado como produção e interrompeu o teste antes de conectar ou criar schema. O backend agora aceita configuração explícita de um PostgreSQL externo, mas o banco ainda não foi provisionado nem conectado. A configuração explícita de confiança em proxy permanece adiada por decisão do usuário.
+**Versão do documento:** 2.3
+**Status:** O Repl está em desenvolvimento. A suíte autenticada passou em schema temporário no banco de desenvolvimento, e a primeira subetapa Social (contratos de perfil e relações) foi concluída. O backend aceita configuração explícita de PostgreSQL externo, mas esse banco ainda não foi provisionado nem conectado. A configuração explícita de confiança em proxy permanece adiada por decisão do usuário.
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
@@ -11,7 +11,7 @@
 
 **O Aplicativo está em um estado funcional de desenvolvimento, mas ainda não está pronto para produção nem para conectar todas as telas ao backend.** O projeto compila, a API sobe, o login consulta a API e uma primeira fatia de autenticação, onboarding, perfil básico, privacidade e relações sociais já existe. Isso é progresso real; não equivale a um backend completo.
 
-O envio de e-mail via Resend foi habilitado somente no desenvolvimento e um e-mail de teste foi recebido. Isso não valida o fluxo completo de cadastro/confirmação; em produção, o envio continua desativado. Além disso, o frontend ainda executa muitas ações sociais e de conteúdo no próprio navegador, enquanto as APIs correspondentes não existem ou não são consumidas. Em especial, publicação/mídia, mensagens, avaliações, Seek, notificações e Shop ainda não têm integração completa.
+O envio direto de teste via Resend foi recebido, e cadastro/confirmação/onboarding foram exercitados em uma suíte autenticada no banco de desenvolvimento, usando entrega de e-mail em memória. Isso ainda não equivale a E2E de navegador nem testa cadastro real pela integração Resend. O frontend ainda executa muitas ações sociais e de conteúdo no navegador; publicação/mídia, mensagens, avaliações, Seek, notificações e Shop não têm integração completa.
 
 **Decisão de prontidão:** pode-se continuar a implementação incremental no ambiente de desenvolvimento; **não se deve declarar o produto pronto para lançamento ou tratar as telas atuais como persistência real compartilhada**. Antes do lançamento são necessários, no mínimo, cadastro operacional, contratos confiáveis, migrações reproduzíveis, autorização testada no servidor e cobertura automatizada da API.
 
@@ -20,7 +20,7 @@ O envio de e-mail via Resend foi habilitado somente no desenvolvimento e um e-ma
 - Oito agentes fizeram revisões independentes e somente de leitura em três passagens: três na auditoria inicial, três para cobrir as lacunas declaradas e dois para revisar os wrappers de interface restantes. As frentes foram interface, backend/segurança e contratos/documentação/integração. O agente principal conferiu diretamente os achados mais importantes e executou verificações não destrutivas.
 - Foram examinados os pontos de entrada, serviços, contextos de estado, persistência local, telas de conta/perfil/Social/Seek/Shop/configurações, rotas da API, esquemas Drizzle, contratos compartilhados, scripts e documentação de backend.
 - O repositório contém um número significativo de arquivos de UI e componentes genéricos. **Não afirmo que cada byte, implementação interna das dependências de terceiros, bundle ou cada linha de todos os arquivos tenha sido revisado manualmente.** Esta é uma auditoria profunda de código próprio e lógica prioritária, com análise estática, scanners automatizados de dependências/SAST/privacidade e verificações de compilação/teste; não é certificação, pentest nem prova do estado de produção. Os limites e escopo dos scanners estão detalhados na seção 10.9.
-- Na auditoria inicial não foram criadas contas, alterados dados, executadas migrações ou conectados provedores. Na atualização A02, a configuração do pós-merge foi ajustada, mas nenhum schema/dado foi escrito: os testes só fazem `SELECT 1` e chamadas HTTP sem mutação.
+- Na auditoria inicial não foram criadas contas, alterados dados, executadas migrações ou conectados provedores. Na validação posterior, a suíte autorizada criou um schema aleatório no banco de desenvolvimento, executou os fluxos de teste, verificou o fingerprint de `public` e removeu o schema. Não houve escrita em produção.
 - Achados estão classificados como **confirmados** quando observáveis no código ou em verificações executadas. Pontos que dependem de uma decisão de produto ou topologia estão explicitamente identificados como **risco/decisão pendente**.
 
 ## 3. Verificações executadas nesta auditoria
@@ -30,24 +30,25 @@ O envio de e-mail via Resend foi habilitado somente no desenvolvimento e um e-ma
 | `pnpm run typecheck` na raiz do projeto | Aprovado | Os pacotes incluídos no script passam no TypeScript. Não comprova comportamento correto nem cobertura de API. |
 | `pnpm run test:social` | **42/42 testes aprovados** | Testa regras locais de conteúdo, descoberta, privacidade e relações no frontend. Não é uma suíte HTTP/backend nem teste de navegador. |
 | `pnpm --filter @workspace/api-server run build` | Aprovado | O bundle do servidor é gerado. Não comprova cadastro operacional, banco saudável, segurança ou deploy. |
-| `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/social run build` | Aprovado com avisos | Gera o bundle de produção. O JS principal tem 951,26 kB (277,86 kB gzip), excede o aviso de 500 kB e inclui avisos de sourcemap/importação mista. Sem essas variáveis, o Vite config encerra o build com erro. |
+| `PORT=8081 BASE_PATH=/ pnpm run build` | Aprovado com avisos | Typecheck e build dos pacotes passaram. O JS principal do frontend tem 987,54 kB (291,42 kB gzip), excede o aviso de 500 kB e ainda há avisos de sourcemap/importação mista. |
 | Busca de marcadores demonstrativos no bundle de produção | Marcadores pesquisados não encontrados | Foram pesquisados nomes/valores específicos das fixtures; isso não prova exaustivamente que nenhum dado fictício possa ser empacotado ou renderizado em qualquer caminho. |
 | `GET /api/healthz` | `200 {"status":"ok"}` | Liveness HTTP independente do banco. |
 | `GET /api/readyz` | `200 {"status":"ready"}` no ambiente de desenvolvimento | Confirma `SELECT 1` no PostgreSQL gerenciado; não altera dados. |
 | `GET /api/v1/auth/session`, sem cookie | `200`, sessão não autenticada | Confirma a resposta pública do estado de sessão. |
 | `GET /api/v1/accounts/me`, sem cookie | `401 UNAUTHENTICATED` | Confirma que essa rota protegida exige sessão verificada. Não substitui testes de autorização entre duas contas. |
-| `pnpm --filter @workspace/scripts run test:backend` | **10/10 testes aprovados** | Cinco testes de limites de segurança e cinco testes HTTP de runtime; não exercitam jornadas autenticadas com escrita. |
+| `pnpm --filter @workspace/scripts run test:backend` | **17/17 testes aprovados** | Seis testes de limites de segurança, seis de seleção de conexão e cinco de runtime HTTP. |
+| `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 ... test:api-isolated-db` | **1/1 aprovado** | Cadastro, e-mail não verificado, confirmação, onboarding, privacidade, seguimento privado, Círculo mútuo e bloqueio foram testados em schema aleatório no banco dev `heliumdb`; o schema foi removido e `public` permaneceu inalterado. |
 | `pnpm --filter @workspace/api-server run typecheck` e `build` | Aprovados | Confirma compilação/typecheck da API, não cobertura dos fluxos comerciais. |
-| Script pós-merge | Sintaxe aprovada; guard de produção bloqueia ambiente explicitamente marcado como produção | Configurado, mas não executado neste pacote; portanto nenhum `db push` ocorreu. |
+| Script pós-merge | Guard atualizado para `NODE_ENV=production` ou `REPLIT_DEPLOYMENT` definido; teste de regressão aprovado | O script não foi executado; nenhum push global foi feito. |
 | SIGTERM da API | Smoke test aprovado em porta isolada | O processo drenou/fechou o servidor HTTP e o pool do PostgreSQL; não testa interrupção de uma solicitação longa. |
 
-**Ainda não executado:** E2E de navegador; testes de escrita contra banco descartável para cadastro, confirmação, sessão válida, onboarding e relações entre duas contas; comparação de schema em banco vazio; teste multi-instância/rate limit; qualquer teste contra produção. A análise automatizada de dependências está registrada na seção 10.9. Existem scripts avulsos de auditoria de navegador (`scripts/audit-social-browser.mjs` e `scripts/audit-seek-browser.mjs`), mas não são chamados por um workflow de CI e não exercitam a integração HTTP real do backend. O build frontend só funciona quando `PORT` e `BASE_PATH` são definidos; o aviso de chunk grande e os avisos de sourcemap/importação mista precisam ser tratados ou aceitos explicitamente.
+**Ainda não executado:** E2E de navegador; envio/reenviado/expiração de código pelo fluxo real do Resend; comparação de schema em banco vazio; teste multi-instância/rate limit; qualquer teste contra produção. A análise automatizada de dependências está registrada na seção 10.9 e atualizada na seção 11.7. Existem scripts avulsos de auditoria de navegador (`scripts/audit-social-browser.mjs` e `scripts/audit-seek-browser.mjs`), mas não são chamados por um workflow de CI e não exercitam a integração HTTP real do backend. O build frontend ainda excede o aviso de chunk de 500 kB.
 
 ## 4. Estado real por área
 
 | Área | Situação observada |
 |---|---|
-| Acesso e sessão | Login, consulta de sessão, CSRF, confirmação e logout têm cliente e rotas de API. Resend funciona apenas no desenvolvimento; cadastro/confirmação não foram validados ponta a ponta e produção permanece desativada. Recuperação de senha continua sem implementação real. |
+| Acesso e sessão | Cadastro, confirmação, sessão após confirmação e bloqueio de login antes da verificação foram exercitados no schema isolado de desenvolvimento; o cliente e as rotas de sessão, CSRF e logout existem. O teste usa e-mail em memória, não Resend. Recuperação de senha continua sem implementação real. |
 | Cadastro pessoal/comercial | O formulário envia os campos pessoais/comerciais. O backend tem tabelas para conta e perfil comercial, mas a resposta de sessão e o modelo de conta que o frontend hidrata não transportam os dados completos do perfil comercial para as telas. |
 | Onboarding | A API contém a operação de salvar interesses. Sugestões e interações com perfis no onboarding ainda incluem dados/estado demonstrativo. |
 | Perfil e privacidade | Backend tem leitura/edição básica e preferências de privacidade. As telas correspondentes ainda dependem de dados locais; os formatos apresentados pelo cliente não estão integrados de forma completa aos DTOs da API. |
@@ -62,13 +63,13 @@ O envio de e-mail via Resend foi habilitado somente no desenvolvimento e um e-ma
 
 ## 5. Achados priorizados
 
-### P0 — Impede o fluxo real de cadastro
+### P1 — Validação de cadastro em desenvolvimento não substitui preparação para lançamento
 
-**Cadastro/verificação ainda não têm validação ponta a ponta — confirmado.**
-Desde 24/10/2026, Resend está habilitado somente no ambiente de desenvolvimento. Um envio direto de teste foi aceito pela API e o usuário confirmou o recebimento. Ainda não foi testado o fluxo de cadastro pendente, reenvio e confirmação do código com banco de teste. O envio em produção continua desativado.
+**O fluxo de cadastro foi exercitado em desenvolvimento, mas não em E2E/browser ou produção — confirmado.**
+Em 24/10/2026, a suíte de schema isolado cadastrou e confirmou duas contas, validou que login antes da confirmação é recusado e testou onboarding e relações. A suíte usa entrega de e-mail em memória. Um envio direto de teste pelo Resend foi recebido separadamente; o fluxo de cadastro via Resend e o envio em produção não foram habilitados.
 
-**Impacto:** a integração do provedor foi comprovada, mas não se pode afirmar que o fluxo completo de conta esteja aprovado nem que o cadastro funcione em produção.
-**Ação:** testar cadastro, reenvio, expiração, uso único, tentativas inválidas e emissão de sessão após confirmação em ambiente de desenvolvimento/teste. Não substituir por bypass de verificação.
+**Impacto:** os fluxos centrais passaram no banco de desenvolvimento, mas entrega real de e-mail, navegação no navegador, recuperação de senha e configuração de lançamento ainda não foram validadas.
+**Ação:** manter a verificação de e-mail obrigatória; acrescentar E2E de navegador e testar reenvio/expiração/uso único antes de considerar o fluxo pronto para lançamento.
 
 ### P1 — Frontend e backend ainda não representam uma aplicação integrada
 
