@@ -11,17 +11,15 @@ import { eq } from "drizzle-orm";
 const schemaName = `seekalive_test_${randomUUID().replaceAll("-", "")}`;
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const expectedDatabase = process.env.SEEKALIVE_EXPECTED_DATABASE?.trim();
-const productionMarkers = [
-  process.env.NODE_ENV,
-  process.env.REPLIT_ENVIRONMENT,
-  process.env.REPLIT_DEPLOYMENT,
-].map((value) => value?.trim().toLowerCase());
+const isProductionRuntime =
+  process.env.NODE_ENV?.trim().toLowerCase() === "production" ||
+  Boolean(process.env.REPLIT_DEPLOYMENT?.trim());
 
 if (process.env.SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS !== "1") {
   throw new Error("Set SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 to authorize this isolated write test.");
 }
-if (productionMarkers.includes("production") || productionMarkers.includes("prod")) {
-  throw new Error("Isolated database tests are not allowed in production.");
+if (isProductionRuntime) {
+  throw new Error("Isolated database tests are not allowed in a production runtime.");
 }
 if (!process.env.DATABASE_URL || !expectedDatabase) {
   throw new Error("DATABASE_URL and SEEKALIVE_EXPECTED_DATABASE are required.");

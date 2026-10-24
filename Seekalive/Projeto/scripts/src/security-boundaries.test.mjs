@@ -28,6 +28,22 @@ test("Express keeps proxy trust disabled by default", () => {
   assert.equal(app.get("trust proxy"), false);
 });
 
+test("database write guards use Replit's published-runtime marker", () => {
+  const isolatedTest = readFileSync(
+    path.resolve(here, "../../Aplicativo/back/test/api-isolated-db.test.mjs"),
+    "utf8",
+  );
+  const postMergeScript = readFileSync(
+    path.resolve(here, "../post-merge.sh"),
+    "utf8",
+  );
+
+  assert.match(isolatedTest, /REPLIT_DEPLOYMENT/);
+  assert.match(postMergeScript, /REPLIT_DEPLOYMENT/);
+  assert.doesNotMatch(isolatedTest, /REPLIT_ENVIRONMENT/);
+  assert.doesNotMatch(postMergeScript, /REPLIT_ENVIRONMENT/);
+});
+
 test("spoofed X-Forwarded-For cannot bypass the login IP rate limit", async () => {
   process.env.SESSION_SECRET ??= "isolated-security-test-secret-that-is-long-enough";
   process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:1/unused";
