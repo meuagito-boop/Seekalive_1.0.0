@@ -28,8 +28,8 @@ export default function SettingsAccount() {
   function submitProfile(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!currentUser) return;
-    if (displayName.trim().length < 2 || !Number.isInteger(Number(age)) || Number(age) < 1 || Number(age) > 120) {
-      setProfileError("Informe um nome e uma idade válida entre 1 e 120 anos.");
+    if (displayName.trim().length < 2 || !Number.isInteger(Number(age)) || Number(age) < 18 || Number(age) > 120) {
+      setProfileError("Informe um nome e uma idade válida entre 18 e 120 anos.");
       return;
     }
     if (currentUser.accountType === "commercial" &&
@@ -91,7 +91,7 @@ export default function SettingsAccount() {
         <SectionTitle>{currentUser?.accountType === "commercial" ? "Dados comerciais" : "Dados pessoais"}</SectionTitle>
         <form onSubmit={submitProfile} className="px-4 pt-2 space-y-3">
           <Input value={displayName} onChange={event => setDisplayName(event.target.value)} aria-label={currentUser?.accountType === "commercial" ? "Nome comercial" : "Nome completo"} placeholder={currentUser?.accountType === "commercial" ? "Nome da empresa ou prestador" : "Nome completo"} className="h-12 bg-card border-border rounded-xl" />
-          <Input value={age} onChange={event => setAge(event.target.value)} type="number" min={1} max={120} aria-label="Idade" placeholder="Idade" className="h-12 bg-card border-border rounded-xl" />
+          <Input value={age} onChange={event => setAge(event.target.value)} type="number" min={18} max={120} aria-label="Idade" placeholder="Idade" className="h-12 bg-card border-border rounded-xl" />
           {currentUser?.accountType === "commercial" && (
             <>
               <Input value={address} onChange={event => setAddress(event.target.value)} aria-label="Endereço" placeholder="Endereço" className="h-12 bg-card border-border rounded-xl" />

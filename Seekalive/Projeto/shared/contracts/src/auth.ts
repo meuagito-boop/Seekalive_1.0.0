@@ -6,7 +6,7 @@ const sharedRegistrationFields = {
   password: z.string().min(8).max(128),
   passwordConfirmation: z.string().min(8).max(128),
   acceptedTermsVersion: z.string().trim().min(1).max(50),
-  age: z.coerce.number().int().min(1).max(120),
+  age: z.coerce.number().int().min(18).max(120),
 };
 
 const personalRegistrationSchema = z.object({

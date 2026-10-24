@@ -275,13 +275,65 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   const suffix = randomUUID().slice(0, 8);
   const password = "A02_Isolated_Test_2026!";
   const preAuth = await createPreAuth();
+  const underageAccount = await request("/api/v1/auth/register", {
+    method: "POST",
+    body: {
+      accountType: "personal",
+      firstName: "Pessoa",
+      lastName: "Menor",
+      username: `u_${suffix}`,
+      email: `underage-${suffix}@example.com`,
+      age: 17,
+      password,
+      passwordConfirmation: password,
+      acceptedTermsVersion: "v1",
+    },
+    auth: preAuth,
+  });
+  assert.equal(underageAccount.response.status, 400);
+
+  const underageBusiness = await request("/api/v1/auth/register", {
+    method: "POST",
+    body: {
+      accountType: "commercial",
+      businessName: "Empresa Menor",
+      categoryKey: "cafes",
+      discoveryKind: "place",
+      address: "Rua de Teste, 100",
+      postalCode: "01001000",
+      city: "São Paulo",
+      state: "SP",
+      country: "Brasil",
+      username: `b_${suffix}`,
+      email: `underage-business-${suffix}@example.com`,
+      age: 17,
+      password,
+      passwordConfirmation: password,
+      acceptedTermsVersion: "v1",
+    },
+    auth: preAuth,
+  });
+  assert.equal(underageBusiness.response.status, 400);
+
+  const rejectedDatabaseInsert = await pool.query(
+    `INSERT INTO ${quoteGeneratedSchema(schemaName)}.accounts
+      (username, age, accepted_terms_version, display_name, account_type)
+     VALUES ($1, 17, 'v1', 'Menor de idade', 'personal')`,
+    [`db_${suffix}`],
+  ).then(
+    () => null,
+    (error) => error,
+  );
+  assert.equal(rejectedDatabaseInsert?.code, "23514");
+  assert.equal(rejectedDatabaseInsert?.constraint, "accounts_age_adult_range");
+
   const personalRegistration = {
     accountType: "personal",
     firstName: "Conta",
     lastName: "Isolada",
     username: `p_${suffix}`,
     email: `personal-${suffix}@example.com`,
-    age: 31,
+    age: 18,
     password,
     passwordConfirmation: password,
     acceptedTermsVersion: "v1",
@@ -303,7 +355,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(currentSession.body.authenticated, true);
   const personalOwnerProfile = await request("/api/v1/accounts/me", { auth: personal });
   assert.equal(personalOwnerProfile.response.status, 200, JSON.stringify(personalOwnerProfile.body));
-  assert.equal(personalOwnerProfile.body.age, 31);
+  assert.equal(personalOwnerProfile.body.age, 18);
   assert.equal(personalOwnerProfile.body.firstName, "Conta");
   assert.equal(personalOwnerProfile.body.lastName, "Isolada");
   assert.equal(personalOwnerProfile.body.commercialProfile, null);

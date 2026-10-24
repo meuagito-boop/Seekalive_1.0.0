@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   primaryKey,
@@ -37,7 +39,10 @@ export const accounts = applicationTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [uniqueIndex("accounts_username_unique").on(table.username)],
+  (table) => [
+    uniqueIndex("accounts_username_unique").on(table.username),
+    check("accounts_age_adult_range", sql`${table.age} >= 18 AND ${table.age} <= 120`),
+  ],
 );
 
 export const accountEmails = applicationTable(

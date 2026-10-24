@@ -28,7 +28,7 @@ const schema = z.object({
   lastName: z.string(),
   businessName: z.string(),
   age: z.string().trim().regex(/^\d{1,3}$/, "Informe uma idade válida")
-    .refine(value => Number(value) >= 1 && Number(value) <= 120, "A idade deve estar entre 1 e 120 anos"),
+    .refine(value => Number(value) >= 18 && Number(value) <= 120, "O cadastro está disponível para pessoas com 18 anos ou mais"),
   businessCategory: z.string(),
   discoveryKind: z.enum(["place", "provider"]),
   address: z.string(),
@@ -275,7 +275,7 @@ export default function Register() {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input {...field} type="number" min={1} max={120} inputMode="numeric" aria-label={accountType === "commercial" ? "Idade do responsável" : "Idade"} placeholder={accountType === "commercial" ? "Idade do responsável" : "Idade"} data-testid="input-age" className="h-12 bg-card border-border rounded-xl" />
+                    <Input {...field} type="number" min={18} max={120} inputMode="numeric" aria-label={accountType === "commercial" ? "Idade do responsável" : "Idade"} placeholder={accountType === "commercial" ? "Idade do responsável" : "Idade"} data-testid="input-age" className="h-12 bg-card border-border rounded-xl" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
