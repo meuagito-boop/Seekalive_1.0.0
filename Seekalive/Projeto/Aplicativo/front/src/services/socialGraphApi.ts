@@ -19,6 +19,7 @@ import {
 } from "@workspace/api-client-react";
 import type {
   AccountView,
+  MyAccountResponse,
   PrivacySettings,
   PrivacySettingsWrite,
   ProfileResponse,
@@ -108,6 +109,59 @@ export function accountViewToUser(account: AccountView): User {
 
 export function profileResponseToUser(profile: ProfileResponse): User {
   return accountViewToUser(profile.account);
+}
+
+const commercialCategoryLabels: Record<string, string> = {
+  restaurantes: "Restaurantes",
+  bares: "Bares",
+  cafes: "Cafés",
+  servicos: "Serviços",
+  compras: "Compras",
+  saude: "Saúde e beleza",
+  lazer: "Lazer",
+};
+
+export function myAccountToUser(response: MyAccountResponse): User {
+  const user = accountViewToUser(response.account);
+  const commercial = response.commercialProfile;
+  if (response.account.accountType === "commercial" && !commercial) {
+    throw new SocialGraphApiError(
+      "O perfil comercial da conta está incompleto. Os dados não foram substituídos por exemplos.",
+      500,
+      "ACCOUNT_PROFILE_INCOMPLETE",
+    );
+  }
+  if (!commercial || response.account.accountType !== "commercial") {
+    return {
+      ...user,
+      firstName: response.firstName ?? undefined,
+      lastName: response.lastName ?? undefined,
+      age: response.age,
+    };
+  }
+  const category = commercialCategoryLabels[commercial.categoryKey] ?? commercial.categoryKey;
+  const location = `${commercial.cityName}, ${commercial.stateName}`;
+  return {
+    ...user,
+    firstName: response.firstName ?? undefined,
+    lastName: response.lastName ?? undefined,
+    age: response.age,
+    address: commercial.address,
+    postalCode: commercial.postalCode,
+    city: commercial.cityName,
+    state: commercial.stateName,
+    country: commercial.countryName,
+    location,
+    commercialProfile: {
+      categoryKey: commercial.categoryKey,
+      category,
+      discoveryKind: commercial.discoveryKind,
+      address: commercial.address,
+      cityName: commercial.cityName,
+      cityState: commercial.stateName,
+      tags: [],
+    },
+  };
 }
 
 export function accountListToUsers(accounts: AccountView[]): User[] {

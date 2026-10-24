@@ -14,6 +14,7 @@ import { contentService, ContentServiceError } from "@/services/contentService";
 import {
   accountViewToUser,
   followRequestToModel,
+  myAccountToUser,
   SocialGraphApiError,
   socialGraphApi,
 } from "@/services/socialGraphApi";
@@ -437,11 +438,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       socialGraphApi.getMyAccount(),
       socialGraphApi.getIncomingFollowRequests(),
       socialGraphApi.getBlockedAccounts(),
-    ]).then(([account, requestsPage, blockedAccounts]) => {
+    ]).then(([ownerAccount, requestsPage, blockedAccounts]) => {
       if (!active) return;
-      const accountUser = accountViewToUser(account);
+      const accountUser = myAccountToUser(ownerAccount);
       const incoming = requestsPage.items.map((request) =>
-        followRequestToModel(request, account.id),
+        followRequestToModel(request, ownerAccount.account.id),
       );
       const blockedUsers = blockedAccounts.items.map(accountViewToUser);
       const remoteUsers = [
@@ -533,10 +534,10 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshRemoteAccount(accountId: string): Promise<User> {
-    const account = accountId === currentUser?.id
-      ? await socialGraphApi.getMyAccount()
-      : await socialGraphApi.getProfileByAccountId(accountId);
-    const user = accountViewToUser(account);
+    const isCurrentAccount = accountId === currentUser?.id;
+    const user = isCurrentAccount
+      ? myAccountToUser(await socialGraphApi.getMyAccount())
+      : accountViewToUser(await socialGraphApi.getProfileByAccountId(accountId));
     dispatch({ type: "ADD_USER", user });
     if (accountId === currentUser?.id) updateAccount(user);
     return user;
@@ -656,7 +657,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     };
 
     if (currentUser) updateAccount(updatedViewer);
-    saveSocialAccount(updatedTarget);
+    if (updatedTarget.source !== "server") saveSocialAccount(updatedTarget);
     dispatch({ type: "UPDATE_USER", user: updatedTarget });
     if (currentUser && state.users.some((user) => user.id === currentUser.id))
       dispatch({ type: "UPDATE_USER", user: updatedViewer });
@@ -713,8 +714,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       removeFollowEdgesForBlock(viewer, target);
     if (changed) {
       if (currentUser) updateAccount(updatedViewer);
-      else saveSocialAccount(updatedViewer);
-      saveSocialAccount(updatedTarget);
+      else if (updatedViewer.source !== "server") saveSocialAccount(updatedViewer);
+      if (updatedTarget.source !== "server") saveSocialAccount(updatedTarget);
       dispatch({ type: "UPDATE_USER", user: updatedTarget });
       if (state.users.some((user) => user.id === viewer.id))
         dispatch({ type: "UPDATE_USER", user: updatedViewer });
@@ -822,8 +823,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
 
     if (!requesterAlreadyFollows) {
       updateAccount(updatedViewer);
-      saveSocialAccount(updatedViewer);
-      saveSocialAccount(updatedRequester);
+      if (updatedViewer.source !== "server") saveSocialAccount(updatedViewer);
+      if (updatedRequester.source !== "server") saveSocialAccount(updatedRequester);
       dispatch({ type: "UPDATE_USER", user: updatedViewer });
       dispatch({ type: "UPDATE_USER", user: updatedRequester });
     }
@@ -954,11 +955,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     acceptFollowRequest: handleAcceptFollowRequest,
     declineFollowRequest: handleDeclineFollowRequest,
     addUser: (user) => {
-      saveSocialAccount(user);
+      if (user.source !== "server") saveSocialAccount(user);
       dispatch({ type: "ADD_USER", user });
     },
     updateUser: (user) => {
-      saveSocialAccount(user);
+      if (user.source !== "server") saveSocialAccount(user);
       dispatch({ type: "UPDATE_USER", user });
     },
     upsertSeekReview: (review) => {

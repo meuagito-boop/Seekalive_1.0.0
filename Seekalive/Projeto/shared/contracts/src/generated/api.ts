@@ -20,19 +20,39 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get the authenticated account profile
  */
-export const getMyAccountResponseWebsiteRegExp = new RegExp('^https?:/');
-export const getMyAccountResponseStatsPostsMin = 0;
+export const getMyAccountResponseAccountWebsiteRegExp = new RegExp('^https?:/');
+export const getMyAccountResponseAccountStatsPostsMin = 0;
 
-export const getMyAccountResponseStatsFollowersMin = 0;
+export const getMyAccountResponseAccountStatsFollowersMin = 0;
 
-export const getMyAccountResponseStatsFollowingMin = 0;
+export const getMyAccountResponseAccountStatsFollowingMin = 0;
 
-export const getMyAccountResponseStatsCirclesMin = 0;
+export const getMyAccountResponseAccountStatsCirclesMin = 0;
 
+
+export const getMyAccountResponseAgeMin = 0;
+export const getMyAccountResponseAgeMax = 120;
+
+export const getMyAccountResponseFirstNameMax = 80;
+
+export const getMyAccountResponseLastNameMax = 80;
+
+export const getMyAccountResponseCommercialProfileOneCategoryKeyMax = 40;
+
+export const getMyAccountResponseCommercialProfileOneAddressMax = 250;
+
+export const getMyAccountResponseCommercialProfileOnePostalCodeMax = 20;
+
+export const getMyAccountResponseCommercialProfileOneCityNameMax = 120;
+
+export const getMyAccountResponseCommercialProfileOneStateNameMax = 100;
+
+export const getMyAccountResponseCommercialProfileOneCountryNameMax = 100;
 
 
 
 export const GetMyAccountResponse = zod.object({
+  "account": zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
@@ -40,7 +60,7 @@ export const GetMyAccountResponse = zod.object({
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().regex(getMyAccountResponseWebsiteRegExp).nullable(),
+  "website": zod.url().regex(getMyAccountResponseAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -53,13 +73,26 @@ export const GetMyAccountResponse = zod.object({
   "mutedByMe": zod.boolean()
 }),
   "stats": zod.object({
-  "posts": zod.int().min(getMyAccountResponseStatsPostsMin),
-  "followers": zod.int().min(getMyAccountResponseStatsFollowersMin),
-  "following": zod.int().min(getMyAccountResponseStatsFollowingMin),
-  "circles": zod.int().min(getMyAccountResponseStatsCirclesMin)
+  "posts": zod.int().min(getMyAccountResponseAccountStatsPostsMin),
+  "followers": zod.int().min(getMyAccountResponseAccountStatsFollowersMin),
+  "following": zod.int().min(getMyAccountResponseAccountStatsFollowingMin),
+  "circles": zod.int().min(getMyAccountResponseAccountStatsCirclesMin)
 }),
   "version": zod.int().min(1)
-})
+}),
+  "age": zod.int().min(getMyAccountResponseAgeMin).max(getMyAccountResponseAgeMax),
+  "firstName": zod.string().max(getMyAccountResponseFirstNameMax).nullable(),
+  "lastName": zod.string().max(getMyAccountResponseLastNameMax).nullable(),
+  "commercialProfile": zod.union([zod.object({
+  "categoryKey": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneCategoryKeyMax),
+  "discoveryKind": zod.enum(['place', 'provider']),
+  "address": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneAddressMax),
+  "postalCode": zod.string().min(1).max(getMyAccountResponseCommercialProfileOnePostalCodeMax),
+  "cityName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneCityNameMax),
+  "stateName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneStateNameMax),
+  "countryName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneCountryNameMax)
+}).describe('Full commercial registration details returned only to the authenticated owner.'),zod.null()])
+}).describe('Private owner-only profile details; never returned by public profile or social-list endpoints.')
 
 
 /**

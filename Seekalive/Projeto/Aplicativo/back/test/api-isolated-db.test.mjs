@@ -301,6 +301,12 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   const currentSession = await request("/api/v1/auth/session", { auth: personal });
   assert.equal(currentSession.response.status, 200);
   assert.equal(currentSession.body.authenticated, true);
+  const personalOwnerProfile = await request("/api/v1/accounts/me", { auth: personal });
+  assert.equal(personalOwnerProfile.response.status, 200, JSON.stringify(personalOwnerProfile.body));
+  assert.equal(personalOwnerProfile.body.age, 31);
+  assert.equal(personalOwnerProfile.body.firstName, "Conta");
+  assert.equal(personalOwnerProfile.body.lastName, "Isolada");
+  assert.equal(personalOwnerProfile.body.commercialProfile, null);
 
   const onboarding = await request("/api/v1/onboarding/interests", {
     method: "POST",
@@ -342,6 +348,21 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(publicProfile.body.account.id, commercial.account.id);
   assert.equal(publicProfile.body.visibility.canViewPublicContent, true);
   assert.deepEqual(publicProfile.body.posts, { items: [], nextCursor: null });
+  assert.equal("commercialProfile" in publicProfile.body.account, false);
+  assert.equal("address" in publicProfile.body.account, false);
+  const commercialOwnerProfile = await request("/api/v1/accounts/me", { auth: commercial });
+  assert.equal(commercialOwnerProfile.response.status, 200, JSON.stringify(commercialOwnerProfile.body));
+  assert.equal(commercialOwnerProfile.body.account.id, commercial.account.id);
+  assert.equal(commercialOwnerProfile.body.age, 35);
+  assert.deepEqual(commercialOwnerProfile.body.commercialProfile, {
+    categoryKey: "cafes",
+    discoveryKind: "place",
+    address: "Rua de Teste, 100",
+    postalCode: "01001000",
+    cityName: "São Paulo",
+    stateName: "SP",
+    countryName: "Brasil",
+  });
 
   const accountSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
@@ -429,17 +450,65 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(profileAfterMutualFollow.body.visibility.canViewCircleContent, true);
 
-  const blocked = await request(`/api/v1/social/blocks/${commercial.account.id}`, {
-    method: "PUT",
+  await request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
+    method: "DELETE",
+    auth: commercial,
+  });
+  await request(`/api/v1/social/accounts/${commercial.account.id}/follow`, {
+    method: "DELETE",
     auth: personal,
   });
+  const [followDuringBlock, blocked] = await Promise.all([
+    request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
+      method: "PUT",
+      auth: commercial,
+    }),
+    request(`/api/v1/social/blocks/${commercial.account.id}`, {
+      method: "PUT",
+      auth: personal,
+    }),
+  ]);
   assert.equal(blocked.response.status, 204);
+  assert.ok([200, 404].includes(followDuringBlock.response.status));
+  const relationshipsAfterConcurrentBlock = await db
+    .select()
+    .from(accountFollows)
+    .where(eq(accountFollows.followerId, commercial.account.id));
+  assert.ok(!relationshipsAfterConcurrentBlock.some((row) => row.followedId === personal.account.id));
+  const requestsAfterConcurrentBlock = await db
+    .select()
+    .from(accountFollowRequests)
+    .where(eq(accountFollowRequests.requesterId, commercial.account.id));
+  assert.ok(!requestsAfterConcurrentBlock.some((row) => row.targetId === personal.account.id));
   const searchAfterBlock = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
     { auth: personal },
   );
   assert.equal(searchAfterBlock.response.status, 200);
   assert.ok(!searchAfterBlock.body.items.some((account) => account.id === commercial.account.id));
+  const reverseSearchAfterBlock = await request(
+    `/api/v1/social/accounts?q=${encodeURIComponent(personal.account.username)}`,
+    { auth: commercial },
+  );
+  assert.equal(reverseSearchAfterBlock.response.status, 200);
+  assert.ok(!reverseSearchAfterBlock.body.items.some((account) => account.id === personal.account.id));
+  const blockerCannotViewBlockedProfile = await request(
+    `/api/v1/profiles/${commercial.account.username}`,
+    { auth: personal },
+  );
+  assert.equal(blockerCannotViewBlockedProfile.response.status, 404);
+  const blockedCannotViewBlockerProfile = await request(
+    `/api/v1/profiles/${personal.account.username}`,
+    { auth: commercial },
+  );
+  assert.equal(blockedCannotViewBlockerProfile.response.status, 404);
+  const blockedCannotReadRelationshipList = await request(
+    `/api/v1/social/accounts/${personal.account.id}/followers`,
+    { auth: commercial },
+  );
+  assert.equal(blockedCannotReadRelationshipList.response.status, 404);
+  const blockedAccountCannotListBlocker = await request("/api/v1/social/blocks", { auth: commercial });
+  assert.deepEqual(blockedAccountCannotListBlocker.body.items, []);
   const blockedRelationship = await request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
     method: "PUT",
     auth: commercial,
@@ -468,11 +537,23 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(pendingAgain.response.status, 200);
   assert.equal(pendingAgain.body.status, "pending");
-  const reblocked = await request(`/api/v1/social/blocks/${commercial.account.id}`, {
-    method: "PUT",
-    auth: personal,
-  });
+  const [acceptDuringBlock, reblocked] = await Promise.all([
+    request(`/api/v1/social/follow-requests/${commercial.account.id}/accept`, {
+      method: "POST",
+      auth: personal,
+    }),
+    request(`/api/v1/social/blocks/${commercial.account.id}`, {
+      method: "PUT",
+      auth: personal,
+    }),
+  ]);
   assert.equal(reblocked.response.status, 204);
+  assert.ok([200, 404].includes(acceptDuringBlock.response.status));
+  const relationshipsAfterAcceptRace = await db
+    .select()
+    .from(accountFollows)
+    .where(eq(accountFollows.followerId, commercial.account.id));
+  assert.ok(!relationshipsAfterAcceptRace.some((row) => row.followedId === personal.account.id));
   const requestsAfterBlock = await request("/api/v1/social/follow-requests", { auth: personal });
   assert.deepEqual(requestsAfterBlock.body.items, []);
 

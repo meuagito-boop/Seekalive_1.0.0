@@ -41,11 +41,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AccountView"
+                $ref: "#/components/schemas/MyAccountResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
     patch:
       operationId: updateMyAccount
       tags: [profiles]
@@ -504,6 +506,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ApiError"
+    InternalError:
+      description: Profile data is inconsistent or the server could not complete the request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
   schemas:
     HealthStatus:
       type: object
@@ -642,6 +650,59 @@ components:
         - relationship
         - stats
         - version
+    MyAccountResponse:
+      type: object
+      description: Private owner-only profile details; never returned by public profile or social-list endpoints.
+      properties:
+        account:
+          $ref: "#/components/schemas/AccountView"
+        age:
+          type: integer
+          minimum: 0
+          maximum: 120
+        firstName:
+          type: [string, "null"]
+          maxLength: 80
+        lastName:
+          type: [string, "null"]
+          maxLength: 80
+        commercialProfile:
+          oneOf:
+            - $ref: "#/components/schemas/OwnerCommercialProfile"
+            - type: "null"
+      required: [account, age, firstName, lastName, commercialProfile]
+    OwnerCommercialProfile:
+      type: object
+      description: Full commercial registration details returned only to the authenticated owner.
+      properties:
+        categoryKey:
+          type: string
+          minLength: 1
+          maxLength: 40
+        discoveryKind:
+          type: string
+          enum: [place, provider]
+        address:
+          type: string
+          minLength: 1
+          maxLength: 250
+        postalCode:
+          type: string
+          minLength: 1
+          maxLength: 20
+        cityName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        stateName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        countryName:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required: [categoryKey, discoveryKind, address, postalCode, cityName, stateName, countryName]
     ProfileResponse:
       type: object
       properties:

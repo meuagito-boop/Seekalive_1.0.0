@@ -271,9 +271,11 @@ router.put(
     }
     const result = await db.transaction(async (tx) => {
       const lockedAccounts = await lockRelationshipAccounts(tx, actorId, targetId);
+      const actor = lockedAccounts.find((account) => account.id === actorId);
       const target = lockedAccounts.find((account) => account.id === targetId);
       if (
         lockedAccounts.length !== 2
+        || !await hasVerifiedActiveAccount(tx, actor)
         || !await hasVerifiedActiveAccount(tx, target)
         || await isBlockedInTransaction(tx, actorId, targetId)
       ) return null;
@@ -287,7 +289,7 @@ router.put(
         return { status: "accepted", updatedAt: existingFollow.createdAt.toISOString() };
       }
 
-      if (target.isPrivate) {
+      if (target?.isPrivate) {
         const [existingRequest] = await tx
           .select({ createdAt: accountFollowRequests.createdAt })
           .from(accountFollowRequests)
@@ -392,9 +394,11 @@ router.post("/follow-requests/:accountId/accept", requireCsrf, async (request, r
   }
   const accepted = await db.transaction(async (tx) => {
     const lockedAccounts = await lockRelationshipAccounts(tx, actorId, requesterId);
+    const actor = lockedAccounts.find((account) => account.id === actorId);
     const requester = lockedAccounts.find((account) => account.id === requesterId);
     if (
       lockedAccounts.length !== 2
+      || !await hasVerifiedActiveAccount(tx, actor)
       || !await hasVerifiedActiveAccount(tx, requester)
       || await isBlockedInTransaction(tx, actorId, requesterId)
     ) return false;
@@ -500,11 +504,19 @@ router.put(
       sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
       return;
     }
-    if (actorId === targetId || !await findActiveAccountById(targetId)) {
+    if (actorId === targetId) {
       sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
       return;
     }
-    await db.transaction(async (tx) => {
+    const blocked = await db.transaction(async (tx) => {
+      const lockedAccounts = await lockRelationshipAccounts(tx, actorId, targetId);
+      const actor = lockedAccounts.find((account) => account.id === actorId);
+      const target = lockedAccounts.find((account) => account.id === targetId);
+      if (
+        lockedAccounts.length !== 2
+        || !await hasVerifiedActiveAccount(tx, actor)
+        || !await hasVerifiedActiveAccount(tx, target)
+      ) return false;
       await tx.insert(accountBlocks).values({ blockerId: actorId, blockedId: targetId }).onConflictDoNothing();
       await tx.delete(accountFollows).where(sql`(
         (${accountFollows.followerId} = ${actorId} and ${accountFollows.followedId} = ${targetId})
@@ -514,7 +526,12 @@ router.put(
         (${accountFollowRequests.requesterId} = ${actorId} and ${accountFollowRequests.targetId} = ${targetId})
         or (${accountFollowRequests.requesterId} = ${targetId} and ${accountFollowRequests.targetId} = ${actorId})
       )`);
+      return true;
     });
+    if (!blocked) {
+      sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
+      return;
+    }
     response.status(204).end();
   },
 );
@@ -527,10 +544,13 @@ router.delete("/blocks/:accountId", requireCsrf, async (request, response) => {
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
     return;
   }
-  await db.delete(accountBlocks).where(and(
-    eq(accountBlocks.blockerId, actorId),
-    eq(accountBlocks.blockedId, targetId),
-  ));
+  await db.transaction(async (tx) => {
+    if ((await lockRelationshipAccounts(tx, actorId, targetId)).length !== 2) return;
+    await tx.delete(accountBlocks).where(and(
+      eq(accountBlocks.blockerId, actorId),
+      eq(accountBlocks.blockedId, targetId),
+    ));
+  });
   response.status(204).end();
 });
 

@@ -39,6 +39,8 @@ import type {
   GetFollowingParams,
   GetIncomingFollowRequestsParams,
   HealthStatus,
+  InternalErrorResponse,
+  MyAccountResponse,
   NotFoundResponse,
   PrivacySettings,
   PrivacySettingsWrite,
@@ -189,9 +191,9 @@ export const getGetMyAccountUrl = () => {
 /**
  * @summary Get the authenticated account profile
  */
-export const getMyAccount = async ( options?: Parameters<typeof customFetch>[1]): Promise<AccountView> => {
+export const getMyAccount = async ( options?: Parameters<typeof customFetch>[1]): Promise<MyAccountResponse> => {
 
-  return customFetch<AccountView>(getGetMyAccountUrl(),
+  return customFetch<MyAccountResponse>(getGetMyAccountUrl(),
   {
     ...options,
     method: 'GET'
@@ -211,7 +213,7 @@ export const getGetMyAccountQueryKey = () => {
     }
 
 
-export const getGetMyAccountQueryOptions = <TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetMyAccountQueryOptions = <TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse | InternalErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -230,10 +232,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetMyAccountQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAccount>>>
-export type GetMyAccountQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+export type GetMyAccountQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse | InternalErrorResponse>
 
 
-export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse | InternalErrorResponse>>(
   options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMyAccount>>,
@@ -243,7 +245,7 @@ export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse | InternalErrorResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMyAccount>>,
@@ -253,7 +255,7 @@ export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse | InternalErrorResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
@@ -261,7 +263,7 @@ export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>
  * @summary Get the authenticated account profile
  */
 
-export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse | InternalErrorResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {

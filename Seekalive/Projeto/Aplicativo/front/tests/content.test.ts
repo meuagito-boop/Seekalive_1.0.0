@@ -16,6 +16,8 @@ import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/services/mediaService";
 import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters";
 import { saveStoredSeekReviews } from "../src/data/reviewStorage";
+import { myAccountToUser } from "../src/services/socialGraphApi";
+import type { MyAccountResponse } from "@workspace/api-client-react";
 import {
   accountStorageKey,
   getAccountBlockProjection,
@@ -34,6 +36,55 @@ import {
 const input: PublishPostInput = { content: "Minha opinião #café", authorId: "me", audience: "public" };
 const post = makeDemoPost(input);
 const state = (): SocialState => ({ posts: [post], users: mockUsers, conversations: [], messages: [], notifications: [], reviews: [], postComments: [], repostEntries: [], followRequests: [] });
+test("perfil comercial autenticado é hidratado da resposta privada do proprietário", () => {
+  const ownerResponse: MyAccountResponse = {
+    account: {
+      id: "5d7e0d74-4fd2-4a78-9861-5113a70be8de",
+      username: "cafe_teste",
+      displayName: "Café Teste",
+      bio: "",
+      avatarUrl: null,
+      coverUrl: null,
+      location: null,
+      website: null,
+      accountType: "commercial",
+      isPrivate: false,
+      isVerified: true,
+      joinedAt: "2026-10-24T00:00:00.000Z",
+      relationship: {
+        following: "none",
+        inCircle: false,
+        blockedByMe: false,
+        blockedByThem: false,
+        mutedByMe: false,
+      },
+      stats: { posts: 0, followers: 0, following: 0, circles: 0 },
+      version: 1,
+    },
+    age: 35,
+    firstName: null,
+    lastName: null,
+    commercialProfile: {
+      categoryKey: "cafes",
+      discoveryKind: "place",
+      address: "Rua de Teste, 100",
+      postalCode: "01001000",
+      cityName: "São Paulo",
+      stateName: "SP",
+      countryName: "Brasil",
+    },
+  };
+  const user = myAccountToUser(ownerResponse);
+  assert.equal(user.accountType, "commercial");
+  assert.equal(user.age, 35);
+  assert.equal(user.address, "Rua de Teste, 100");
+  assert.equal(user.city, "São Paulo");
+  assert.equal(user.location, "São Paulo, SP");
+  assert.equal(user.commercialProfile?.category, "Cafés");
+  assert.equal(user.commercialProfile?.discoveryKind, "place");
+  assert.deepEqual(user.commercialProfile?.serviceOptions, undefined);
+});
+
 test("datas e contagens usam português e toleram valores inválidos", () => {
   assert.equal(formatTimeAgo(new Date(Date.now() - 90_000).toISOString()), "há 1 min");
   assert.equal(formatTimeAgo(new Date(Date.now() + 60_000).toISOString()), "agora");

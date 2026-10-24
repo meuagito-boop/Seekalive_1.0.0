@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User } from "../data/mockData";
-import { getStoredActiveAccount, saveSocialAccount, setStoredActiveAccount } from "../data/accountStorage";
+import { setStoredActiveAccount } from "../data/accountStorage";
 import { getCurrentSession, logoutAccount, type AuthAccount } from "../services/authApi";
 
 interface AppContextType {
@@ -18,19 +18,6 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 function toUser(account: AuthAccount): User {
-  const storedProfile = getStoredActiveAccount();
-  if (storedProfile?.id === account.id) {
-    return {
-      ...storedProfile,
-      id: account.id,
-      username: account.username,
-      displayName: account.displayName,
-      accountType: account.accountType,
-      joinedAt: account.joinedAt,
-      onboardingCompleted: account.onboardingCompleted,
-    };
-  }
-
   return {
     id: account.id,
     username: account.username,
@@ -73,7 +60,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const user = toUser(account);
     setIsDevelopmentPreview(false);
     setCurrentUser(user);
-    setStoredActiveAccount(user);
+    // Authenticated profile data is reloaded from the API and should not be
+    // resurrected from a stale browser snapshot.
+    setStoredActiveAccount(null);
   };
 
   const startDevelopmentPreview = async () => {
@@ -86,10 +75,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateAccount = (user: User) => {
     setCurrentUser((current) => current?.id === user.id ? user : current);
-    if (currentUser?.id === user.id && !isDevelopmentPreview) {
-      setStoredActiveAccount(user);
-      saveSocialAccount(user);
-    }
   };
 
   const logout = async () => {

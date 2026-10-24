@@ -1,6 +1,14 @@
 import { and, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { accountEmails, accountFollows, accountFollowRequests, accountBlocks, accounts, db } from "@workspace/db";
+import {
+  accountEmails,
+  accountFollows,
+  accountFollowRequests,
+  accountBlocks,
+  accounts,
+  commercialProfiles,
+  db,
+} from "@workspace/db";
 import { accountPatchSchema, privacyWriteSchema } from "@workspace/api-zod";
 import { createAuthRateLimit, loadActiveSession, requireCsrf } from "../../../security/session";
 
@@ -344,7 +352,67 @@ router.get("/accounts/me", async (request, response) => {
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
     return;
   }
-  response.json(await accountView(row, accountId));
+  const [ownerDetails] = await db
+    .select({
+      accountType: accounts.accountType,
+      age: accounts.age,
+      firstName: accounts.firstName,
+      lastName: accounts.lastName,
+      categoryKey: commercialProfiles.categoryKey,
+      discoveryKind: commercialProfiles.discoveryKind,
+      address: commercialProfiles.address,
+      postalCode: commercialProfiles.postalCode,
+      cityName: commercialProfiles.cityName,
+      stateName: commercialProfiles.stateName,
+      countryName: commercialProfiles.countryName,
+    })
+    .from(accounts)
+    .leftJoin(commercialProfiles, eq(commercialProfiles.accountId, accounts.id))
+    .where(eq(accounts.id, accountId))
+    .limit(1);
+  if (!ownerDetails) {
+    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
+    return;
+  }
+  const account = await accountView(row, accountId);
+  if (ownerDetails.accountType === "commercial") {
+    const {
+      categoryKey,
+      discoveryKind,
+      address,
+      postalCode,
+      cityName,
+      stateName,
+      countryName,
+    } = ownerDetails;
+    if (!categoryKey || !discoveryKind || !address || !postalCode || !cityName || !stateName || !countryName) {
+      sendError(response, 500, "ACCOUNT_PROFILE_INCOMPLETE", "Não foi possível carregar os dados comerciais desta conta.");
+      return;
+    }
+    response.json({
+      account,
+      age: ownerDetails.age,
+      firstName: ownerDetails.firstName,
+      lastName: ownerDetails.lastName,
+      commercialProfile: {
+        categoryKey,
+        discoveryKind,
+        address,
+        postalCode,
+        cityName,
+        stateName,
+        countryName,
+      },
+    });
+    return;
+  }
+  response.json({
+    account,
+    age: ownerDetails.age,
+    firstName: ownerDetails.firstName,
+    lastName: ownerDetails.lastName,
+    commercialProfile: null,
+  });
 });
 
 router.patch("/accounts/me", requireCsrf, async (request, response) => {

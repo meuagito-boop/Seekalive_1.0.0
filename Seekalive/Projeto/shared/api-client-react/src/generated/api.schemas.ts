@@ -103,6 +103,74 @@ export interface AccountView {
   version: number;
 }
 
+export type OwnerCommercialProfileDiscoveryKind = typeof OwnerCommercialProfileDiscoveryKind[keyof typeof OwnerCommercialProfileDiscoveryKind];
+
+
+export const OwnerCommercialProfileDiscoveryKind = {
+  place: 'place',
+  provider: 'provider',
+} as const;
+
+/**
+ * Full commercial registration details returned only to the authenticated owner.
+ */
+export interface OwnerCommercialProfile {
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  categoryKey: string;
+  discoveryKind: OwnerCommercialProfileDiscoveryKind;
+  /**
+     * @minLength 1
+     * @maxLength 250
+     */
+  address: string;
+  /**
+     * @minLength 1
+     * @maxLength 20
+     */
+  postalCode: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  cityName: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  stateName: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  countryName: string;
+}
+
+/**
+ * Private owner-only profile details; never returned by public profile or social-list endpoints.
+ */
+export interface MyAccountResponse {
+  account: AccountView;
+  /**
+     * @minimum 0
+     * @maximum 120
+     */
+  age: number;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  firstName: string | null;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  lastName: string | null;
+  commercialProfile: OwnerCommercialProfile | null;
+}
+
 export interface ProfileResponse {
   account: AccountView;
   visibility: ProfileVisibility;
@@ -250,6 +318,11 @@ export type ConflictResponse = ApiError;
  * Request limit exceeded; retry after the interval in Retry-After.
  */
 export type TooManyRequestsResponse = ApiError;
+
+/**
+ * Profile data is inconsistent or the server could not complete the request.
+ */
+export type InternalErrorResponse = ApiError;
 
 export type PageLimitParameter = number;
 
