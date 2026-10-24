@@ -10,7 +10,7 @@ const settingsGroups = [
   {
     title: "Conta",
     items: [
-      { icon: User, label: "Conta", desc: "Dados do perfil e nome de usuário", path: "/settings/account" },
+      { icon: User, label: "Conta", desc: "Dados pessoais ou comerciais e nome de usuário", path: "/settings/account" },
       { icon: Shield, label: "Privacidade", desc: "Visibilidade, pedidos para seguir e Círculo", path: "/settings/privacy" },
     ],
   },

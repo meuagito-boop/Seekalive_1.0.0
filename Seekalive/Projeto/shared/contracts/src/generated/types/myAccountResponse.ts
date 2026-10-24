@@ -14,7 +14,12 @@ import type { OwnerCommercialProfile } from './ownerCommercialProfile';
 export interface MyAccountResponse {
   account: AccountView;
   /**
-     * @minimum 0
+     * Verified email address visible only to the authenticated owner.
+     * @maxLength 254
+     */
+  email: string;
+  /**
+     * @minimum 18
      * @maximum 120
      */
   age: number;

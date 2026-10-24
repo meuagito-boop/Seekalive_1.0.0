@@ -41,7 +41,7 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 
 ## Product
 
-O Aplicativo reúne Social, Seek e Shop sob a mesma conta. Contas comerciais são contas do Social e alimentam a descoberta no Seek.
+O Aplicativo reúne Social, Seek e Shop sob a mesma conta. Contas comerciais são contas do Social e alimentam a descoberta no Seek. As telas de conta e perfil devem refletir o tipo da conta (pessoal ou comercial), sem criar uma identidade separada para o comércio.
 
 ## User preferences
 

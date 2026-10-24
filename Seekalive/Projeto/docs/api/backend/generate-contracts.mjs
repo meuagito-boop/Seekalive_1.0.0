@@ -134,8 +134,14 @@ post("onboarding", "/v1/onboarding/interests", "Salvar ou pular interesses do on
   contractDescription: "Requer sessão ativa e e-mail verificado. Substitui as escolhas anteriores e marca o onboarding como concluído; pular salva uma lista vazia, mas também conclui a etapa.",
 });
 
-g("accounts", "/v1/accounts/me", "Consultar conta e projeções do visitante", A, null, { status: "live" });
-patch("accounts", "/v1/accounts/me", "Editar perfil com controle de versão; não aceita papéis administrativos", "AccountPatch", A, { status: "live" });
+g("accounts", "/v1/accounts/me", "Consultar conta e dados privados do titular", "MyAccountResponse", null, {
+  status: "live",
+  contractDescription: "Retorna dados de cadastro e e-mail verificado somente para a sessão ativa da própria conta. E-mail, idade, nomes pessoais e endereço comercial não aparecem em perfis públicos.",
+});
+patch("accounts", "/v1/accounts/me", "Editar dados próprios conforme o tipo de conta, com controle de versão", "AccountPatch", "MyAccountResponse", {
+  status: "live",
+  contractDescription: "Atualiza username, idade e dados de perfil com controle de versão. Contas pessoais enviam nome e sobrenome juntos, com nome público total de até 100 caracteres; contas comerciais podem atualizar o nome público e o endereço completo. Conta e extensão comercial são atualizadas na mesma transação; campos de outro tipo de conta são rejeitados.",
+});
 del("accounts", "/v1/accounts/me", "Solicitar exclusão segura", "Accepted", { accepted: true });
 g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability", null, { query: ["username"], requiredQuery: ["username"], auth: "none", status: "live" });
 g("accounts", "/v1/accounts/{accountId}", "Consultar perfil por identificador respeitando privacidade e bloqueios", A, null, { auth: "optional", status: "live" });
@@ -392,7 +398,7 @@ const schemas = {
     code: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
   }, ["email", "code"]),
   Account: model({
-    id: uuid, username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", maxLength: 80 },
+    id: uuid, username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", maxLength: 100 },
     bio: { type: "string", maxLength: 500 }, avatarUrl: { type: ["string", "null"] }, coverUrl: { type: ["string", "null"] },
     location: { type: ["string", "null"] }, website: { type: ["string", "null"], format: "uri" },
     accountType: { type: "string", enum: ["personal", "commercial"] }, isPrivate: { type: "boolean" }, isVerified: { type: "boolean" },
@@ -407,7 +413,42 @@ const schemas = {
     blockedByThem: { type: "boolean", description: "O perfil alvo iniciou o bloqueio; o visitante não pode removê-lo." },
     mutedByMe: { type: "boolean" },
   }, ["following", "inCircle", "blockedByMe", "blockedByThem", "mutedByMe"]),
-  AccountPatch: model({ username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", minLength: 2, maxLength: 80 }, bio: { type: "string", maxLength: 500 }, location: { type: ["string", "null"], maxLength: 160 }, website: { type: ["string", "null"], format: "uri" }, version: { type: "integer", minimum: 1 } }, ["version"]),
+  OwnerCommercialProfile: model({
+    categoryKey: { type: "string", minLength: 1, maxLength: 40 },
+    discoveryKind: { type: "string", enum: ["place", "provider"] },
+    address: { type: "string", minLength: 1, maxLength: 250 },
+    postalCode: { type: "string", minLength: 1, maxLength: 20 },
+    cityName: { type: "string", minLength: 1, maxLength: 120 },
+    stateName: { type: "string", minLength: 1, maxLength: 100 },
+    countryName: { type: "string", minLength: 1, maxLength: 100 },
+  }, ["categoryKey", "discoveryKind", "address", "postalCode", "cityName", "stateName", "countryName"]),
+  MyAccountResponse: model({
+    account: ref("Account"),
+    email: { type: "string", format: "email", maxLength: 254 },
+    age: { type: "integer", minimum: 18, maximum: 120 },
+    firstName: { type: ["string", "null"], maxLength: 80 },
+    lastName: { type: ["string", "null"], maxLength: 80 },
+    commercialProfile: { oneOf: [ref("OwnerCommercialProfile"), { type: "null" }] },
+  }, ["account", "email", "age", "firstName", "lastName", "commercialProfile"]),
+  CommercialAccountPatch: model({
+    address: { type: "string", minLength: 5, maxLength: 250 },
+    postalCode: { type: "string", minLength: 5, maxLength: 20 },
+    cityName: { type: "string", minLength: 2, maxLength: 120 },
+    stateName: { type: "string", minLength: 2, maxLength: 100 },
+    countryName: { type: "string", minLength: 2, maxLength: 100 },
+  }, ["address", "postalCode", "cityName", "stateName", "countryName"]),
+  AccountPatch: model({
+    username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" },
+    displayName: { type: "string", minLength: 2, maxLength: 100 },
+    firstName: { type: "string", minLength: 2, maxLength: 80 },
+    lastName: { type: "string", minLength: 2, maxLength: 80 },
+    age: { type: "integer", minimum: 18, maximum: 120 },
+    commercialProfile: ref("CommercialAccountPatch"),
+    bio: { type: "string", maxLength: 500 },
+    location: { type: ["string", "null"], maxLength: 160 },
+    website: { type: ["string", "null"], format: "uri" },
+    version: { type: "integer", minimum: 1 },
+  }, ["version"]),
   ProfileVisibility: model({ canViewPublicContent: { type: "boolean" }, canViewCircleContent: { type: "boolean" } }, ["canViewPublicContent", "canViewCircleContent"]),
   Profile: model({ account: ref("Account"), visibility: ref("ProfileVisibility"), posts: page("Post"), articles: page("Post"), media: page("MediaAsset") }, ["account", "visibility", "posts", "articles", "media"]),
   BusinessProfile: model({

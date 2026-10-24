@@ -2716,15 +2716,15 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Consultar conta e projeções do visitante",
-        "description": "LIVE on the audited API server.",
+        "summary": "Consultar conta e dados privados do titular",
+        "description": "Retorna dados de cadastro e e-mail verificado somente para a sessão ativa da própria conta. E-mail, idade, nomes pessoais e endereço comercial não aparecem em perfis públicos.",
         "responses": {
           "200": {
             "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Account"
+                  "$ref": "#/components/schemas/MyAccountResponse"
                 }
               }
             }
@@ -2866,8 +2866,8 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Editar perfil com controle de versão; não aceita papéis administrativos",
-        "description": "LIVE on the audited API server.",
+        "summary": "Editar dados próprios conforme o tipo de conta, com controle de versão",
+        "description": "Atualiza username, idade e dados de perfil com controle de versão. Contas pessoais enviam nome e sobrenome juntos, com nome público total de até 100 caracteres; contas comerciais podem atualizar o nome público e o endereço completo. Conta e extensão comercial são atualizadas na mesma transação; campos de outro tipo de conta são rejeitados.",
         "security": [
           {
             "SessionCookie": [],
@@ -2890,7 +2890,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Account"
+                  "$ref": "#/components/schemas/MyAccountResponse"
                 }
               }
             }
@@ -23515,7 +23515,7 @@
           },
           "displayName": {
             "type": "string",
-            "maxLength": 80
+            "maxLength": 100
           },
           "bio": {
             "type": "string",
@@ -23658,6 +23658,147 @@
           "mutedByMe"
         ]
       },
+      "OwnerCommercialProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "categoryKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "discoveryKind": {
+            "type": "string",
+            "enum": [
+              "place",
+              "provider"
+            ]
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 250
+          },
+          "postalCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "cityName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "stateName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "countryName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "categoryKey",
+          "discoveryKind",
+          "address",
+          "postalCode",
+          "cityName",
+          "stateName",
+          "countryName"
+        ]
+      },
+      "MyAccountResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Account"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 18,
+            "maximum": 120
+          },
+          "firstName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 80
+          },
+          "lastName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 80
+          },
+          "commercialProfile": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/OwnerCommercialProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "account",
+          "email",
+          "age",
+          "firstName",
+          "lastName",
+          "commercialProfile"
+        ]
+      },
+      "CommercialAccountPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 250
+          },
+          "postalCode": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 20
+          },
+          "cityName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "stateName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "countryName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "address",
+          "postalCode",
+          "cityName",
+          "stateName",
+          "countryName"
+        ]
+      },
       "AccountPatch": {
         "type": "object",
         "additionalProperties": false,
@@ -23669,7 +23810,25 @@
           "displayName": {
             "type": "string",
             "minLength": 2,
+            "maxLength": 100
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 2,
             "maxLength": 80
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 18,
+            "maximum": 120
+          },
+          "commercialProfile": {
+            "$ref": "#/components/schemas/CommercialAccountPatch"
           },
           "bio": {
             "type": "string",

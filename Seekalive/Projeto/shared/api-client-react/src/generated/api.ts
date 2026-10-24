@@ -292,7 +292,7 @@ export const getUpdateMyAccountUrl = () => {
 /**
  * @summary Update the authenticated account profile
  */
-export const updateMyAccount = async (accountPatch: AccountPatch, options?: Parameters<typeof customFetch>[1]): Promise<AccountView> => {
+export const updateMyAccount = async (accountPatch: AccountPatch, options?: Parameters<typeof customFetch>[1]): Promise<MyAccountResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -308,7 +308,7 @@ export const updateMyAccount = async (accountPatch: AccountPatch, options?: Para
     }
     return headers;
   };
-return customFetch<AccountView>(getUpdateMyAccountUrl(),
+return customFetch<MyAccountResponse>(getUpdateMyAccountUrl(),
   {
     ...options,
     method: 'PATCH',

@@ -43,6 +43,17 @@ function sendError(response: Response, status: number, code: string, message: st
   });
 }
 
+function databaseErrorCode(error: unknown): string | undefined {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (!current || typeof current !== "object") return undefined;
+    const candidate = current as { code?: unknown; cause?: unknown };
+    if (typeof candidate.code === "string") return candidate.code;
+    current = candidate.cause;
+  }
+  return undefined;
+}
+
 async function activeAccountId(request: Request, response: Response): Promise<string | null> {
   const session = await loadActiveSession(request);
   if (!session) {
@@ -344,14 +355,17 @@ router.get("/accounts/availability", createAuthRateLimit("account-availability",
   response.json({ available: !match, normalizedUsername: username });
 });
 
-router.get("/accounts/me", async (request, response) => {
-  const accountId = await activeAccountId(request, response);
-  if (!accountId) return;
+async function loadOwnerAccount(accountId: string) {
   const row = await findActiveAccountById(accountId);
   if (!row) {
-    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
-    return;
+    return {
+      ok: false as const,
+      status: 404,
+      code: "ACCOUNT_NOT_FOUND",
+      message: "Conta não encontrada.",
+    };
   }
+
   const [ownerDetails] = await db
     .select({
       accountType: accounts.accountType,
@@ -370,10 +384,32 @@ router.get("/accounts/me", async (request, response) => {
     .leftJoin(commercialProfiles, eq(commercialProfiles.accountId, accounts.id))
     .where(eq(accounts.id, accountId))
     .limit(1);
+  const [verifiedEmail] = await db
+    .select({ email: accountEmails.emailNormalized })
+    .from(accountEmails)
+    .where(and(
+      eq(accountEmails.accountId, accountId),
+      isNotNull(accountEmails.verifiedAt),
+    ))
+    .limit(1);
+
   if (!ownerDetails) {
-    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
-    return;
+    return {
+      ok: false as const,
+      status: 404,
+      code: "ACCOUNT_NOT_FOUND",
+      message: "Conta não encontrada.",
+    };
   }
+  if (!verifiedEmail) {
+    return {
+      ok: false as const,
+      status: 500,
+      code: "ACCOUNT_EMAIL_MISSING",
+      message: "Não foi possível carregar o e-mail verificado desta conta.",
+    };
+  }
+
   const account = await accountView(row, accountId);
   if (ownerDetails.accountType === "commercial") {
     const {
@@ -386,83 +422,189 @@ router.get("/accounts/me", async (request, response) => {
       countryName,
     } = ownerDetails;
     if (!categoryKey || !discoveryKind || !address || !postalCode || !cityName || !stateName || !countryName) {
-      sendError(response, 500, "ACCOUNT_PROFILE_INCOMPLETE", "Não foi possível carregar os dados comerciais desta conta.");
-      return;
+      return {
+        ok: false as const,
+        status: 500,
+        code: "ACCOUNT_PROFILE_INCOMPLETE",
+        message: "Não foi possível carregar os dados comerciais desta conta.",
+      };
     }
-    response.json({
+    return {
+      ok: true as const,
+      data: {
+        account,
+        email: verifiedEmail.email,
+        age: ownerDetails.age,
+        firstName: ownerDetails.firstName,
+        lastName: ownerDetails.lastName,
+        commercialProfile: {
+          categoryKey,
+          discoveryKind,
+          address,
+          postalCode,
+          cityName,
+          stateName,
+          countryName,
+        },
+      },
+    };
+  }
+
+  return {
+    ok: true as const,
+    data: {
       account,
+      email: verifiedEmail.email,
       age: ownerDetails.age,
       firstName: ownerDetails.firstName,
       lastName: ownerDetails.lastName,
-      commercialProfile: {
-        categoryKey,
-        discoveryKind,
-        address,
-        postalCode,
-        cityName,
-        stateName,
-        countryName,
-      },
-    });
-    return;
-  }
-  response.json({
-    account,
-    age: ownerDetails.age,
-    firstName: ownerDetails.firstName,
-    lastName: ownerDetails.lastName,
-    commercialProfile: null,
-  });
-});
+      commercialProfile: null,
+    },
+  };
+}
 
-router.patch("/accounts/me", requireCsrf, async (request, response) => {
+router.get("/accounts/me", async (request, response) => {
   const accountId = await activeAccountId(request, response);
   if (!accountId) return;
-  const parsed = accountPatchSchema.safeParse(request.body);
-  if (!parsed.success) {
-    response.status(400).json({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Confira os campos do perfil.",
-        details: parsed.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
-        requestId: response.locals.requestId ?? "unknown",
-      },
-    });
+  const ownerAccount = await loadOwnerAccount(accountId);
+  if (!ownerAccount.ok) {
+    sendError(response, ownerAccount.status, ownerAccount.code, ownerAccount.message);
     return;
   }
-  const patch = parsed.data;
-  try {
-    const [updated] = await db
-      .update(accounts)
-      .set({
-        ...(patch.username === undefined ? {} : { username: patch.username }),
-        ...(patch.displayName === undefined ? {} : { displayName: patch.displayName }),
-        ...(patch.bio === undefined ? {} : { bio: patch.bio }),
-        ...(patch.location === undefined ? {} : { locationLabel: patch.location }),
-        ...(patch.website === undefined ? {} : { websiteUrl: patch.website }),
-        updatedAt: new Date(),
-        version: sql`${accounts.version} + 1`,
-      })
-      .where(and(eq(accounts.id, accountId), eq(accounts.version, patch.version), eq(accounts.status, "active")))
-      .returning({ id: accounts.id });
-    if (!updated) {
-      sendError(response, 409, "VERSION_CONFLICT", "O perfil mudou em outra solicitação. Atualize e tente novamente.");
-      return;
-    }
-  } catch (error) {
-    if ((error as { code?: string }).code === "23505") {
-      sendError(response, 409, "USERNAME_UNAVAILABLE", "Esse nome de usuário não está disponível.");
-      return;
-    }
-    throw error;
-  }
-  const row = await findActiveAccountById(accountId);
-  if (!row) {
-    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
-    return;
-  }
-  response.json(await accountView(row, accountId));
+  response.json(ownerAccount.data);
 });
+
+router.patch(
+  "/accounts/me",
+  createAuthRateLimit("account-profile-update", 30, 15 * 60 * 1000),
+  requireCsrf,
+  async (request, response) => {
+    const accountId = await activeAccountId(request, response);
+    if (!accountId) return;
+    const parsed = accountPatchSchema.safeParse(request.body);
+    if (!parsed.success) {
+      response.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Confira os campos do perfil.",
+          details: parsed.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
+          requestId: response.locals.requestId ?? "unknown",
+        },
+      });
+      return;
+    }
+    const patch = parsed.data;
+    const [owner] = await db
+      .select({ accountType: accounts.accountType })
+      .from(accounts)
+      .where(and(eq(accounts.id, accountId), eq(accounts.status, "active")))
+      .limit(1);
+    if (!owner) {
+      sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
+      return;
+    }
+
+    const hasPersonalNames = patch.firstName !== undefined || patch.lastName !== undefined;
+    if (
+      (owner.accountType === "personal" && (
+        patch.commercialProfile !== undefined
+        || (patch.displayName !== undefined && !hasPersonalNames)
+      ))
+      || (owner.accountType === "commercial" && hasPersonalNames)
+    ) {
+      sendError(response, 400, "ACCOUNT_FIELD_NOT_ALLOWED", "Os campos enviados não correspondem ao tipo desta conta.");
+      return;
+    }
+
+    const personalDisplayName = hasPersonalNames
+      ? `${patch.firstName} ${patch.lastName}`.trim()
+      : undefined;
+    if (
+      personalDisplayName !== undefined
+      && patch.displayName !== undefined
+      && patch.displayName !== personalDisplayName
+    ) {
+      sendError(response, 400, "ACCOUNT_NAME_MISMATCH", "O nome público deve corresponder ao nome e sobrenome.");
+      return;
+    }
+
+    try {
+      const result = await db.transaction(async (tx) => {
+        if (patch.commercialProfile) {
+          const [commercialProfile] = await tx
+            .select({ accountId: commercialProfiles.accountId })
+            .from(commercialProfiles)
+            .where(eq(commercialProfiles.accountId, accountId))
+            .limit(1);
+          if (!commercialProfile) return "commercial_profile_missing" as const;
+        }
+
+        const [updated] = await tx
+          .update(accounts)
+          .set({
+            ...(patch.username === undefined ? {} : { username: patch.username }),
+            ...(owner.accountType === "commercial" && patch.displayName !== undefined
+              ? { displayName: patch.displayName }
+              : {}),
+            ...(owner.accountType === "personal" && personalDisplayName !== undefined
+              ? {
+                  firstName: patch.firstName,
+                  lastName: patch.lastName,
+                  displayName: personalDisplayName,
+                }
+              : {}),
+            ...(patch.age === undefined ? {} : { age: patch.age }),
+            ...(patch.bio === undefined ? {} : { bio: patch.bio }),
+            ...(patch.location === undefined ? {} : { locationLabel: patch.location }),
+            ...(patch.website === undefined ? {} : { websiteUrl: patch.website }),
+            ...(owner.accountType === "commercial" && patch.commercialProfile
+              ? { locationLabel: `${patch.commercialProfile.cityName}, ${patch.commercialProfile.stateName}` }
+              : {}),
+            updatedAt: new Date(),
+            version: sql`${accounts.version} + 1`,
+          })
+          .where(and(
+            eq(accounts.id, accountId),
+            eq(accounts.version, patch.version),
+            eq(accounts.accountType, owner.accountType),
+            eq(accounts.status, "active"),
+          ))
+          .returning({ id: accounts.id });
+        if (!updated) return "version_conflict" as const;
+
+        if (owner.accountType === "commercial" && patch.commercialProfile) {
+          await tx
+            .update(commercialProfiles)
+            .set({ ...patch.commercialProfile, updatedAt: new Date() })
+            .where(eq(commercialProfiles.accountId, accountId));
+        }
+        return "updated" as const;
+      });
+
+      if (result === "version_conflict") {
+        sendError(response, 409, "VERSION_CONFLICT", "O perfil mudou em outra solicitação. Atualize e tente novamente.");
+        return;
+      }
+      if (result === "commercial_profile_missing") {
+        sendError(response, 409, "ACCOUNT_PROFILE_INCOMPLETE", "Os dados comerciais precisam ser revisados antes da edição.");
+        return;
+      }
+    } catch (error) {
+      if (databaseErrorCode(error) === "23505") {
+        sendError(response, 409, "USERNAME_UNAVAILABLE", "Esse nome de usuário não está disponível.");
+        return;
+      }
+      throw error;
+    }
+
+    const ownerAccount = await loadOwnerAccount(accountId);
+    if (!ownerAccount.ok) {
+      sendError(response, ownerAccount.status, ownerAccount.code, ownerAccount.message);
+      return;
+    }
+    response.json(ownerAccount.data);
+  },
+);
 
 router.get("/accounts/me/privacy", async (request, response) => {
   const accountId = await activeAccountId(request, response);

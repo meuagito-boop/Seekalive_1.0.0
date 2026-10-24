@@ -12,6 +12,7 @@ import type { RelationshipView } from './relationshipView';
 export interface AccountView {
   id: string;
   username: string;
+  /** @maxLength 100 */
   displayName: string;
   bio: string;
   /** @nullable */

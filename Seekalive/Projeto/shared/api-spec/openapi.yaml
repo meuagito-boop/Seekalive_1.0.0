@@ -63,11 +63,11 @@ paths:
               $ref: "#/components/schemas/AccountPatch"
       responses:
         "200":
-          description: Updated account view
+          description: Updated owner-only account profile, including private registration details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AccountView"
+                $ref: "#/components/schemas/MyAccountResponse"
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -605,6 +605,7 @@ components:
           type: string
         displayName:
           type: string
+          maxLength: 100
         bio:
           type: string
         avatarUrl:
@@ -656,9 +657,14 @@ components:
       properties:
         account:
           $ref: "#/components/schemas/AccountView"
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Verified email address visible only to the authenticated owner.
         age:
           type: integer
-          minimum: 0
+          minimum: 18
           maximum: 120
         firstName:
           type: [string, "null"]
@@ -670,7 +676,7 @@ components:
           oneOf:
             - $ref: "#/components/schemas/OwnerCommercialProfile"
             - type: "null"
-      required: [account, age, firstName, lastName, commercialProfile]
+      required: [account, email, age, firstName, lastName, commercialProfile]
     OwnerCommercialProfile:
       type: object
       description: Full commercial registration details returned only to the authenticated owner.
@@ -719,7 +725,13 @@ components:
       required: [account, visibility, posts, articles, media]
     AccountPatch:
       type: object
-      description: version is required; provide at least one other editable field. A version-only patch is rejected.
+      description: >
+        Version is required and at least one editable field must be provided.
+        Account type is never changed by this endpoint. Personal accounts use
+        firstName and lastName together; their combined public name cannot
+        exceed 100 characters. Commercial accounts use displayName and the
+        complete commercialProfile object. The server rejects fields
+        that do not match the authenticated account type.
       properties:
         username:
           type: string
@@ -729,7 +741,25 @@ components:
         displayName:
           type: string
           minLength: 2
+          maxLength: 100
+          description: For commercial accounts, the public business or service-provider name.
+        firstName:
+          type: string
+          minLength: 2
           maxLength: 80
+          description: Personal account only; must be paired with lastName.
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: Personal account only; must be paired with firstName.
+        age:
+          type: integer
+          minimum: 18
+          maximum: 120
+          description: Private, self-declared age; applies to both account types.
+        commercialProfile:
+          $ref: "#/components/schemas/CommercialAccountPatch"
         bio:
           type: string
           maxLength: 500
@@ -746,6 +776,32 @@ components:
           type: integer
           minimum: 1
       required: [version]
+      additionalProperties: false
+    CommercialAccountPatch:
+      type: object
+      description: Full owner-editable commercial address. Only accepted for commercial accounts.
+      properties:
+        address:
+          type: string
+          minLength: 5
+          maxLength: 250
+        postalCode:
+          type: string
+          minLength: 5
+          maxLength: 20
+        cityName:
+          type: string
+          minLength: 2
+          maxLength: 120
+        stateName:
+          type: string
+          minLength: 2
+          maxLength: 100
+        countryName:
+          type: string
+          minLength: 2
+          maxLength: 100
+      required: [address, postalCode, cityName, stateName, countryName]
       additionalProperties: false
     PrivacySettings:
       type: object

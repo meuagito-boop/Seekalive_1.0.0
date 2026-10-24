@@ -3,11 +3,11 @@
 **Auditoria-base:** 22/10/2026; última atualização de estado: 24/10/2026
 **Escopo:** prontidão do frontend para integração gradual. A auditoria original foi análise/documentação; desde então, autenticação, onboarding, perfil básico, privacidade e relações sociais essenciais receberam API e schema no desenvolvimento.
 
-> Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.11).
+> Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.15).
 
 ## Parecer
 
-**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API, e já existem endpoints para perfil básico, privacidade e relações; porém, as telas de perfil, configurações, seguir e bloquear ainda usam dados locais/demonstrativos. O envio de e-mail está desligado, então não é possível criar conta real nesta configuração. Posts, mídias, avaliações, mensagens, Seek e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
+**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API. Configurações > Conta diferencia conta pessoal e comercial e lê/salva por `/v1/accounts/me` em sessão real; Privacidade e Segurança também usam APIs no fluxo autenticado. O preview de demonstração permanece local. As páginas públicas, conteúdo e várias áreas sociais ainda não estão integradas integralmente. O envio de e-mail está desligado, então não é possível criar conta real nesta configuração. Posts, mídias, avaliações, mensagens, Seek e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
 
 O backend foi iniciado. O próximo trabalho de frontend é consumir somente os endpoints ativos e manter a demonstração de desenvolvimento separada da conta real; não conectar telas a contratos que ainda estejam marcados como propostos.
 
@@ -24,12 +24,12 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
 | Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação de senha e gestão de sessões chamam a API | Entrega Resend dos fluxos de e-mail ainda precisa de E2E no navegador; API de e-mail permanece habilitada somente em desenvolvimento |
-| Contas e perfis | A API já lê/edita perfil básico com versão; telas de perfil/edição ainda usam estado local e não chamam essa API | Parcial; falta integração de telas |
+| Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados, idade privada e e-mail somente para o titular; `/profile/edit` e conteúdo do perfil público ainda não estão ligados a essa edição | Parcial; falta E2E autenticado e integração das páginas públicas |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
 | Galeria | Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência | Parcial |
 | Relacionamentos e Círculo | API persiste seguimentos, pedidos privados e Círculo derivado; telas ainda usam estado local | Regra no backend; falta integração de telas |
-| Privacidade e bloqueio | API aplica bloqueio em leitura de perfil/listas, remove follows/pedidos em transação e permite desbloqueio só pelo iniciador; interface ainda salva no navegador | Parcial; posts/mensagens ainda precisam de ACL quando tiverem API |
+| Privacidade e bloqueio | A tela Privacidade usa GET/PUT da API na sessão real; o estado de bloqueio usa o SocialContext remoto. O servidor aplica o bloqueio, remove follows/pedidos em transação e permite desbloqueio só pelo iniciador | Parcial; posts/mensagens ainda precisam de ACL quando tiverem API |
 | Mensagens e notificações | Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos | Bloqueador |
 | Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há busca/avaliações/eventos reais no servidor | Parcial |
 | Avaliações | Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500 | Parcial |
@@ -137,7 +137,7 @@ Os contratos de domínio comercial e avaliação ainda são propostas e precisam
 | Acesso e cadastro | `/`, `/login`, `/register`, `/forgot-password`, `/verify-email` | `AppContext`, `accountStorage`, validação local |
 | Onboarding | `/onboarding/interests`, `/onboarding/suggestions` | preferências locais e sugestões mock |
 | Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | `SocialContext`, fixtures restritas ao desenvolvimento, reducer; `contentService` demo |
-| Perfis e relações | `/profile`, `/profile/:username`, `/profile/edit`, seguidores/seguindo, `/circles` | conta local, `SocialContext`, relações derivadas |
+| Perfis e relações | `/profile`, `/profile/:username`, `/profile/edit`, seguidores/seguindo, `/circles` | dados públicos/conteúdo ainda usam estado local em partes; `/profile/edit` não substitui os dados privados de Configurações > Conta |
 | Seek | `/seek`, `/seek/event/:id` | dados locais, catálogo IBGE, preferências de busca; eventos de exemplo |
 | Shop | `/shop`, `/shop/item/:id` | catálogo ilustrativo restrito ao desenvolvimento; salvos em localStorage |
 | Comunicação | `/messages`, `/messages/:conversationId`, `/notifications` | objetos em memória/contexto; sem entrega externa |
@@ -157,7 +157,7 @@ Esses resultados comprovam esta fatia, não a prontidão integral do backend. N�
 
 ## Ordem recomendada para fechar a prontidão
 
-1. **Concluído no backend:** perfil básico, privacidade, pedidos/aceitação de seguimento, Círculo mútuo e bloqueio/desbloqueio. Próximo passo: ligar essas telas à API, mantendo o preview de demonstração separado.
+1. **Concluído nesta etapa:** edição de dados pessoais/comerciais em Configurações > Conta ligada à API owner-only, mantendo o preview de demonstração separado. Próximo: validar a tela em navegador autenticado e fechar as decisões/controles de conta que ainda faltam antes de iniciar páginas públicas.
 2. **Fatia de identidade implementada:** registro pessoal/comercial, login por usuário/e-mail, sessão, CSRF, verificação obrigatória, gravação das escolhas de onboarding e recuperação de senha. O fluxo de recuperação tem teste integrado com e-mail em memória; validar o envio no navegador e a entrega real no ambiente de desenvolvimento segue como aceite separado.
 3. **Concluído no frontend:** fixtures de exemplo ficam no desenvolvimento; curtidas, repostagens, salvos, leituras, filtros e preferências locais são separados por conta. Não migrar automaticamente os valores das chaves antigas sem identificar seu dono.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
@@ -165,4 +165,4 @@ Esses resultados comprovam esta fatia, não a prontidão integral do backend. N�
 6. Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.
 7. Criar testes de API e navegador que cubram autorização entre contas, privacidade, Círculo, publicação/galeria, avaliações, mensagens e ações de configuração.
 
-**Estado final desta auditoria:** backend de perfil, privacidade e relações atualizado e testado somente em desenvolvimento. A integração visual dessas telas e as demais áreas continuam pendentes; produção e provedores externos não foram alterados.
+**Estado final desta auditoria:** perfil owner-only, privacidade e relações atualizados/testados em desenvolvimento; Configurações > Conta já está integrada por tipo de conta. E2E visual autenticado, páginas públicas, conteúdo e demais áreas continuam pendentes; produção e provedores externos não foram alterados.

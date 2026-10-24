@@ -47,8 +47,8 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/accounts/me` | Sessão autenticada | — | `Account` | **ATIVA** |
-| PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `Account` | **ATIVA** |
+| GET | `/v1/accounts/me` | Sessão autenticada | — | `MyAccountResponse` | **ATIVA** |
+| PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `MyAccountResponse` | **ATIVA** |
 | DELETE | `/v1/accounts/me` | Sessão autenticada | — | `Accepted` | **PROPOSTA**; assíncrona |
 | GET | `/v1/accounts/availability` | Público | — | `Availability` | **ATIVA** |
 | GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **ATIVA** |

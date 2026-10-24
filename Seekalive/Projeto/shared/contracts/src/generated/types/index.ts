@@ -17,6 +17,7 @@ export * from './apiErrorError';
 export * from './apiErrorErrorDetailsItem';
 export * from './circleMember';
 export * from './circlePage';
+export * from './commercialAccountPatch';
 export * from './conflictResponse';
 export * from './followRequest';
 export * from './followRequestPage';

@@ -590,10 +590,61 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(currentSession.body.authenticated, true);
   const personalOwnerProfile = await request("/api/v1/accounts/me", { auth: personal });
   assert.equal(personalOwnerProfile.response.status, 200, JSON.stringify(personalOwnerProfile.body));
+  assert.equal(personalOwnerProfile.body.email, personalRegistration.email.toLowerCase());
   assert.equal(personalOwnerProfile.body.age, 18);
   assert.equal(personalOwnerProfile.body.firstName, "Conta");
   assert.equal(personalOwnerProfile.body.lastName, "Isolada");
   assert.equal(personalOwnerProfile.body.commercialProfile, null);
+  assert.equal("email" in personalOwnerProfile.body.account, false);
+  assert.equal("age" in personalOwnerProfile.body.account, false);
+
+  const updatedPersonalProfile = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: {
+      firstName: "Conta Revisada",
+      lastName: "Isolada",
+      age: 19,
+      version: personalOwnerProfile.body.account.version,
+    },
+  });
+  assert.equal(updatedPersonalProfile.response.status, 200, JSON.stringify(updatedPersonalProfile.body));
+  assert.equal(updatedPersonalProfile.body.account.displayName, "Conta Revisada Isolada");
+  assert.equal(updatedPersonalProfile.body.firstName, "Conta Revisada");
+  assert.equal(updatedPersonalProfile.body.age, 19);
+  assert.equal(updatedPersonalProfile.body.email, personalRegistration.email.toLowerCase());
+
+  const personalCommercialFieldAttempt = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: {
+      commercialProfile: {
+        address: "Rua de Teste, 200",
+        postalCode: "01001000",
+        cityName: "São Paulo",
+        stateName: "SP",
+        countryName: "Brasil",
+      },
+      version: updatedPersonalProfile.body.account.version,
+    },
+  });
+  assert.equal(personalCommercialFieldAttempt.response.status, 400);
+  assert.equal(personalCommercialFieldAttempt.body.error.code, "ACCOUNT_FIELD_NOT_ALLOWED");
+
+  const personalUnderageAttempt = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: { age: 17, version: updatedPersonalProfile.body.account.version },
+  });
+  assert.equal(personalUnderageAttempt.response.status, 400);
+
+  const personalStaleVersionAttempt = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: { age: 20, version: personalOwnerProfile.body.account.version },
+  });
+  assert.equal(personalStaleVersionAttempt.response.status, 409);
+  assert.equal(personalStaleVersionAttempt.body.error.code, "VERSION_CONFLICT");
 
   const onboarding = await request("/api/v1/onboarding/interests", {
     method: "POST",
@@ -757,9 +808,12 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.deepEqual(publicProfile.body.posts, { items: [], nextCursor: null });
   assert.equal("commercialProfile" in publicProfile.body.account, false);
   assert.equal("address" in publicProfile.body.account, false);
+  assert.equal("email" in publicProfile.body.account, false);
+  assert.equal("age" in publicProfile.body.account, false);
   const commercialOwnerProfile = await request("/api/v1/accounts/me", { auth: commercial });
   assert.equal(commercialOwnerProfile.response.status, 200, JSON.stringify(commercialOwnerProfile.body));
   assert.equal(commercialOwnerProfile.body.account.id, commercial.account.id);
+  assert.equal(commercialOwnerProfile.body.email, commercialRegistration.email.toLowerCase());
   assert.equal(commercialOwnerProfile.body.age, 35);
   assert.deepEqual(commercialOwnerProfile.body.commercialProfile, {
     categoryKey: "cafes",
@@ -770,6 +824,67 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     stateName: "SP",
     countryName: "Brasil",
   });
+
+  const usernameAlreadyTaken = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: {
+      username: commercial.account.username,
+      version: updatedPersonalProfile.body.account.version,
+    },
+  });
+  assert.equal(usernameAlreadyTaken.response.status, 409);
+  assert.equal(usernameAlreadyTaken.body.error.code, "USERNAME_UNAVAILABLE");
+
+  const updatedCommercialProfile = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: commercial,
+    body: {
+      displayName: "Comércio Revisado A02",
+      age: 36,
+      commercialProfile: {
+        address: "Avenida de Teste, 200",
+        postalCode: "04567000",
+        cityName: "Campinas",
+        stateName: "Rio de Janeiro",
+        countryName: "Brasil",
+      },
+      version: commercialOwnerProfile.body.account.version,
+    },
+  });
+  assert.equal(updatedCommercialProfile.response.status, 200, JSON.stringify(updatedCommercialProfile.body));
+  assert.equal(updatedCommercialProfile.body.account.displayName, "Comércio Revisado A02");
+  assert.equal(updatedCommercialProfile.body.age, 36);
+  assert.deepEqual(updatedCommercialProfile.body.commercialProfile, {
+    categoryKey: "cafes",
+    discoveryKind: "place",
+    address: "Avenida de Teste, 200",
+    postalCode: "04567000",
+    cityName: "Campinas",
+    stateName: "Rio de Janeiro",
+    countryName: "Brasil",
+  });
+
+  const commercialPersonalFieldAttempt = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: commercial,
+    body: {
+      firstName: "Nome",
+      lastName: "Inválido",
+      version: updatedCommercialProfile.body.account.version,
+    },
+  });
+  assert.equal(commercialPersonalFieldAttempt.response.status, 400);
+  assert.equal(commercialPersonalFieldAttempt.body.error.code, "ACCOUNT_FIELD_NOT_ALLOWED");
+
+  const publicProfileAfterCommercialEdit = await request(
+    `/api/v1/profiles/${commercial.account.username}`,
+    { auth: personal },
+  );
+  assert.equal(publicProfileAfterCommercialEdit.response.status, 200);
+  assert.equal(publicProfileAfterCommercialEdit.body.account.displayName, "Comércio Revisado A02");
+  assert.equal("email" in publicProfileAfterCommercialEdit.body.account, false);
+  assert.equal("age" in publicProfileAfterCommercialEdit.body.account, false);
 
   const accountSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
@@ -791,7 +906,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     .select({ cityName: commercialProfiles.cityName, categoryKey: commercialProfiles.categoryKey })
     .from(commercialProfiles)
     .where(eq(commercialProfiles.accountId, commercial.account.id));
-  assert.deepEqual(businessProfile, { cityName: "São Paulo", categoryKey: "cafes" });
+  assert.deepEqual(businessProfile, { cityName: "Campinas", categoryKey: "cafes" });
 
   const privacy = await request("/api/v1/accounts/me/privacy", { auth: personal });
   assert.equal(privacy.response.status, 200);

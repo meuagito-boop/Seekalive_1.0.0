@@ -293,9 +293,11 @@ test("alteração de nome de usuário sincroniza as fontes da conta e do Social"
     join(process.cwd(), "Aplicativo/front/src/pages/settings/Account.tsx"),
     "utf8",
   );
-  const usernameHandler = source.split("function submitUsername")[1]?.split("const disabledField")[0] ?? "";
-  assert.match(usernameHandler, /const updated = \{\s*\.\.\.currentUser,\s*username:\s*next\s*\};/);
-  assert.match(usernameHandler, /updateAccount\(updated\);\s*updateUser\(updated\);/);
+  const usernameHandler = source.split("async function submitUsername")[1]?.split("const disabled =")[0] ?? "";
+  const syncHandler = source.split("function syncUpdatedUser")[1]?.split("async function submitProfile")[0] ?? "";
+  assert.match(usernameHandler, /socialGraphApi\.updateMyAccount\(\{\s*username: nextUsername,\s*version: remoteProfile\.account\.version,/s);
+  assert.match(usernameHandler, /syncUpdatedUser\(\{\s*\.\.\.currentUser,\s*username: nextUsername\s*\}\);/);
+  assert.match(syncHandler, /updateAccount\(user\);\s*updateUser\(user\);/);
 });
 test("Seek busca sem acentos e combina categoria, nota, status, distância e ordenação", () => {
   assert.ok(matchesSeekSearch(["Café Central", "São Paulo"], " cafe  sao "));

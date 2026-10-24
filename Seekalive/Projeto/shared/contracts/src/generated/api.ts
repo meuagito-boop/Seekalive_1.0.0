@@ -20,6 +20,8 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get the authenticated account profile
  */
+export const getMyAccountResponseAccountDisplayNameMax = 100;
+
 export const getMyAccountResponseAccountWebsiteRegExp = new RegExp('^https?:/');
 export const getMyAccountResponseAccountStatsPostsMin = 0;
 
@@ -30,7 +32,9 @@ export const getMyAccountResponseAccountStatsFollowingMin = 0;
 export const getMyAccountResponseAccountStatsCirclesMin = 0;
 
 
-export const getMyAccountResponseAgeMin = 0;
+export const getMyAccountResponseEmailMax = 254;
+
+export const getMyAccountResponseAgeMin = 18;
 export const getMyAccountResponseAgeMax = 120;
 
 export const getMyAccountResponseFirstNameMax = 80;
@@ -55,7 +59,7 @@ export const GetMyAccountResponse = zod.object({
   "account": zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getMyAccountResponseAccountDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -80,6 +84,7 @@ export const GetMyAccountResponse = zod.object({
 }),
   "version": zod.int().min(1)
 }),
+  "email": zod.email().max(getMyAccountResponseEmailMax).describe('Verified email address visible only to the authenticated owner.'),
   "age": zod.int().min(getMyAccountResponseAgeMin).max(getMyAccountResponseAgeMax),
   "firstName": zod.string().max(getMyAccountResponseFirstNameMax).nullable(),
   "lastName": zod.string().max(getMyAccountResponseLastNameMax).nullable(),
@@ -102,7 +107,31 @@ export const updateMyAccountBodyUsernameMin = 3;
 export const updateMyAccountBodyUsernameMax = 20;
 
 export const updateMyAccountBodyDisplayNameMin = 2;
-export const updateMyAccountBodyDisplayNameMax = 80;
+export const updateMyAccountBodyDisplayNameMax = 100;
+
+export const updateMyAccountBodyFirstNameMin = 2;
+export const updateMyAccountBodyFirstNameMax = 80;
+
+export const updateMyAccountBodyLastNameMin = 2;
+export const updateMyAccountBodyLastNameMax = 80;
+
+export const updateMyAccountBodyAgeMin = 18;
+export const updateMyAccountBodyAgeMax = 120;
+
+export const updateMyAccountBodyCommercialProfileAddressMin = 5;
+export const updateMyAccountBodyCommercialProfileAddressMax = 250;
+
+export const updateMyAccountBodyCommercialProfilePostalCodeMin = 5;
+export const updateMyAccountBodyCommercialProfilePostalCodeMax = 20;
+
+export const updateMyAccountBodyCommercialProfileCityNameMin = 2;
+export const updateMyAccountBodyCommercialProfileCityNameMax = 120;
+
+export const updateMyAccountBodyCommercialProfileStateNameMin = 2;
+export const updateMyAccountBodyCommercialProfileStateNameMax = 100;
+
+export const updateMyAccountBodyCommercialProfileCountryNameMin = 2;
+export const updateMyAccountBodyCommercialProfileCountryNameMax = 100;
 
 export const updateMyAccountBodyBioMax = 500;
 
@@ -117,34 +146,68 @@ export const updateMyAccountBodyWebsiteRegExp = new RegExp('^https?:/');
 
 export const UpdateMyAccountBody = zod.object({
   "username": zod.string().min(updateMyAccountBodyUsernameMin).max(updateMyAccountBodyUsernameMax).optional().describe('Username is trimmed and normalized to lowercase before validation.'),
-  "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional(),
+  "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional().describe('For commercial accounts, the public business or service-provider name.'),
+  "firstName": zod.string().min(updateMyAccountBodyFirstNameMin).max(updateMyAccountBodyFirstNameMax).optional().describe('Personal account only; must be paired with lastName.'),
+  "lastName": zod.string().min(updateMyAccountBodyLastNameMin).max(updateMyAccountBodyLastNameMax).optional().describe('Personal account only; must be paired with firstName.'),
+  "age": zod.int().min(updateMyAccountBodyAgeMin).max(updateMyAccountBodyAgeMax).optional().describe('Private, self-declared age; applies to both account types.'),
+  "commercialProfile": zod.object({
+  "address": zod.string().min(updateMyAccountBodyCommercialProfileAddressMin).max(updateMyAccountBodyCommercialProfileAddressMax),
+  "postalCode": zod.string().min(updateMyAccountBodyCommercialProfilePostalCodeMin).max(updateMyAccountBodyCommercialProfilePostalCodeMax),
+  "cityName": zod.string().min(updateMyAccountBodyCommercialProfileCityNameMin).max(updateMyAccountBodyCommercialProfileCityNameMax),
+  "stateName": zod.string().min(updateMyAccountBodyCommercialProfileStateNameMin).max(updateMyAccountBodyCommercialProfileStateNameMax),
+  "countryName": zod.string().min(updateMyAccountBodyCommercialProfileCountryNameMin).max(updateMyAccountBodyCommercialProfileCountryNameMax)
+}).optional().describe('Full owner-editable commercial address. Only accepted for commercial accounts.'),
   "bio": zod.string().max(updateMyAccountBodyBioMax).optional(),
   "location": zod.string().max(updateMyAccountBodyLocationMax).nullish(),
   "website": zod.url().max(updateMyAccountBodyWebsiteMax).regex(updateMyAccountBodyWebsiteRegExp).nullish().describe('When provided, the URL must use HTTP or HTTPS.'),
   "version": zod.int().min(1)
-}).describe('version is required; provide at least one other editable field. A version-only patch is rejected.')
+}).describe('Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. The server rejects fields that do not match the authenticated account type.\n')
 
-export const updateMyAccountResponseWebsiteRegExp = new RegExp('^https?:/');
-export const updateMyAccountResponseStatsPostsMin = 0;
+export const updateMyAccountResponseAccountDisplayNameMax = 100;
 
-export const updateMyAccountResponseStatsFollowersMin = 0;
+export const updateMyAccountResponseAccountWebsiteRegExp = new RegExp('^https?:/');
+export const updateMyAccountResponseAccountStatsPostsMin = 0;
 
-export const updateMyAccountResponseStatsFollowingMin = 0;
+export const updateMyAccountResponseAccountStatsFollowersMin = 0;
 
-export const updateMyAccountResponseStatsCirclesMin = 0;
+export const updateMyAccountResponseAccountStatsFollowingMin = 0;
 
+export const updateMyAccountResponseAccountStatsCirclesMin = 0;
+
+
+export const updateMyAccountResponseEmailMax = 254;
+
+export const updateMyAccountResponseAgeMin = 18;
+export const updateMyAccountResponseAgeMax = 120;
+
+export const updateMyAccountResponseFirstNameMax = 80;
+
+export const updateMyAccountResponseLastNameMax = 80;
+
+export const updateMyAccountResponseCommercialProfileOneCategoryKeyMax = 40;
+
+export const updateMyAccountResponseCommercialProfileOneAddressMax = 250;
+
+export const updateMyAccountResponseCommercialProfileOnePostalCodeMax = 20;
+
+export const updateMyAccountResponseCommercialProfileOneCityNameMax = 120;
+
+export const updateMyAccountResponseCommercialProfileOneStateNameMax = 100;
+
+export const updateMyAccountResponseCommercialProfileOneCountryNameMax = 100;
 
 
 
 export const UpdateMyAccountResponse = zod.object({
+  "account": zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(updateMyAccountResponseAccountDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().regex(updateMyAccountResponseWebsiteRegExp).nullable(),
+  "website": zod.url().regex(updateMyAccountResponseAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -157,13 +220,27 @@ export const UpdateMyAccountResponse = zod.object({
   "mutedByMe": zod.boolean()
 }),
   "stats": zod.object({
-  "posts": zod.int().min(updateMyAccountResponseStatsPostsMin),
-  "followers": zod.int().min(updateMyAccountResponseStatsFollowersMin),
-  "following": zod.int().min(updateMyAccountResponseStatsFollowingMin),
-  "circles": zod.int().min(updateMyAccountResponseStatsCirclesMin)
+  "posts": zod.int().min(updateMyAccountResponseAccountStatsPostsMin),
+  "followers": zod.int().min(updateMyAccountResponseAccountStatsFollowersMin),
+  "following": zod.int().min(updateMyAccountResponseAccountStatsFollowingMin),
+  "circles": zod.int().min(updateMyAccountResponseAccountStatsCirclesMin)
 }),
   "version": zod.int().min(1)
-})
+}),
+  "email": zod.email().max(updateMyAccountResponseEmailMax).describe('Verified email address visible only to the authenticated owner.'),
+  "age": zod.int().min(updateMyAccountResponseAgeMin).max(updateMyAccountResponseAgeMax),
+  "firstName": zod.string().max(updateMyAccountResponseFirstNameMax).nullable(),
+  "lastName": zod.string().max(updateMyAccountResponseLastNameMax).nullable(),
+  "commercialProfile": zod.union([zod.object({
+  "categoryKey": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneCategoryKeyMax),
+  "discoveryKind": zod.enum(['place', 'provider']),
+  "address": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneAddressMax),
+  "postalCode": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOnePostalCodeMax),
+  "cityName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneCityNameMax),
+  "stateName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneStateNameMax),
+  "countryName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneCountryNameMax)
+}).describe('Full commercial registration details returned only to the authenticated owner.'),zod.null()])
+}).describe('Private owner-only profile details; never returned by public profile or social-list endpoints.')
 
 
 /**
@@ -217,6 +294,8 @@ export const GetProfileByUsernameParams = zod.object({
   "username": zod.coerce.string().min(getProfileByUsernamePathUsernameMin).max(getProfileByUsernamePathUsernameMax)
 })
 
+export const getProfileByUsernameResponseAccountDisplayNameMax = 100;
+
 export const getProfileByUsernameResponseAccountWebsiteRegExp = new RegExp('^https?:/');
 export const getProfileByUsernameResponseAccountStatsPostsMin = 0;
 
@@ -233,7 +312,7 @@ export const GetProfileByUsernameResponse = zod.object({
   "account": zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getProfileByUsernameResponseAccountDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -285,6 +364,8 @@ export const GetProfileByAccountIdParams = zod.object({
   "accountId": zod.uuid()
 })
 
+export const getProfileByAccountIdResponseDisplayNameMax = 100;
+
 export const getProfileByAccountIdResponseWebsiteRegExp = new RegExp('^https?:/');
 export const getProfileByAccountIdResponseStatsPostsMin = 0;
 
@@ -300,7 +381,7 @@ export const getProfileByAccountIdResponseStatsCirclesMin = 0;
 export const GetProfileByAccountIdResponse = zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getProfileByAccountIdResponseDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -347,6 +428,8 @@ export const SearchAccountsQueryParams = zod.object({
   "cursor": zod.coerce.string().max(searchAccountsQueryCursorMax).optional()
 })
 
+export const searchAccountsResponseItemsItemDisplayNameMax = 100;
+
 export const searchAccountsResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
 export const searchAccountsResponseItemsItemStatsPostsMin = 0;
 
@@ -363,7 +446,7 @@ export const SearchAccountsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(searchAccountsResponseItemsItemDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -412,6 +495,8 @@ export const GetFollowersQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getFollowersQueryCursorMax).optional()
 })
 
+export const getFollowersResponseItemsItemDisplayNameMax = 100;
+
 export const getFollowersResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
 export const getFollowersResponseItemsItemStatsPostsMin = 0;
 
@@ -428,7 +513,7 @@ export const GetFollowersResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getFollowersResponseItemsItemDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -477,6 +562,8 @@ export const GetFollowingQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getFollowingQueryCursorMax).optional()
 })
 
+export const getFollowingResponseItemsItemDisplayNameMax = 100;
+
 export const getFollowingResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
 export const getFollowingResponseItemsItemStatsPostsMin = 0;
 
@@ -493,7 +580,7 @@ export const GetFollowingResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getFollowingResponseItemsItemDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -560,6 +647,8 @@ export const GetIncomingFollowRequestsQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getIncomingFollowRequestsQueryCursorMax).optional()
 })
 
+export const getIncomingFollowRequestsResponseItemsItemAccountDisplayNameMax = 100;
+
 export const getIncomingFollowRequestsResponseItemsItemAccountWebsiteRegExp = new RegExp('^https?:/');
 export const getIncomingFollowRequestsResponseItemsItemAccountStatsPostsMin = 0;
 
@@ -577,7 +666,7 @@ export const GetIncomingFollowRequestsResponse = zod.object({
   "account": zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getIncomingFollowRequestsResponseItemsItemAccountDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -647,6 +736,8 @@ export const GetCircleQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getCircleQueryCursorMax).optional()
 })
 
+export const getCircleResponseItemsItemAccountDisplayNameMax = 100;
+
 export const getCircleResponseItemsItemAccountWebsiteRegExp = new RegExp('^https?:/');
 export const getCircleResponseItemsItemAccountStatsPostsMin = 0;
 
@@ -664,7 +755,7 @@ export const GetCircleResponse = zod.object({
   "account": zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getCircleResponseItemsItemAccountDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
@@ -698,6 +789,8 @@ export const GetCircleResponse = zod.object({
 /**
  * @summary List accounts blocked by the authenticated account
  */
+export const getBlockedAccountsResponseItemsItemDisplayNameMax = 100;
+
 export const getBlockedAccountsResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
 export const getBlockedAccountsResponseItemsItemStatsPostsMin = 0;
 
@@ -714,7 +807,7 @@ export const GetBlockedAccountsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
-  "displayName": zod.string(),
+  "displayName": zod.string().max(getBlockedAccountsResponseItemsItemDisplayNameMax),
   "bio": zod.string(),
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),

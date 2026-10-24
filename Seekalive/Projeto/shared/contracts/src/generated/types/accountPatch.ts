@@ -5,9 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CommercialAccountPatch } from './commercialAccountPatch';
 
 /**
- * version is required; provide at least one other editable field. A version-only patch is rejected.
+ * Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. The server rejects fields that do not match the authenticated account type.
  */
 export interface AccountPatch {
   /**
@@ -17,10 +18,30 @@ export interface AccountPatch {
      */
   username?: string;
   /**
+     * For commercial accounts, the public business or service-provider name.
+     * @minLength 2
+     * @maxLength 100
+     */
+  displayName?: string;
+  /**
+     * Personal account only; must be paired with lastName.
      * @minLength 2
      * @maxLength 80
      */
-  displayName?: string;
+  firstName?: string;
+  /**
+     * Personal account only; must be paired with firstName.
+     * @minLength 2
+     * @maxLength 80
+     */
+  lastName?: string;
+  /**
+     * Private, self-declared age; applies to both account types.
+     * @minimum 18
+     * @maximum 120
+     */
+  age?: number;
+  commercialProfile?: CommercialAccountPatch;
   /** @maxLength 500 */
   bio?: string;
   /**

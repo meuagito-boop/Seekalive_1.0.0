@@ -13,12 +13,14 @@ import {
   getProfileByAccountId,
   getProfileByUsername,
   searchAccounts,
+  updateMyAccount as updateMyAccountRequest,
   unblockAccount,
   unfollowAccount,
   updateMyPrivacySettings,
 } from "@workspace/api-client-react";
 import type {
   AccountView,
+  AccountPatch,
   MyAccountResponse,
   PrivacySettings,
   PrivacySettingsWrite,
@@ -134,6 +136,7 @@ export function myAccountToUser(response: MyAccountResponse): User {
   if (!commercial || response.account.accountType !== "commercial") {
     return {
       ...user,
+      email: response.email,
       firstName: response.firstName ?? undefined,
       lastName: response.lastName ?? undefined,
       age: response.age,
@@ -143,6 +146,7 @@ export function myAccountToUser(response: MyAccountResponse): User {
   const location = `${commercial.cityName}, ${commercial.stateName}`;
   return {
     ...user,
+    email: response.email,
     firstName: response.firstName ?? undefined,
     lastName: response.lastName ?? undefined,
     age: response.age,
@@ -182,6 +186,8 @@ export function followRequestToModel(
 
 export const socialGraphApi = {
   getMyAccount: () => request(() => getMyAccount(readOptions)),
+  updateMyAccount: (patch: AccountPatch) =>
+    write((options) => updateMyAccountRequest(patch, options)),
   getProfileByAccountId: (accountId: string) =>
     request(() => getProfileByAccountId(accountId, readOptions)),
   getProfileByUsername: (username: string) =>
