@@ -28,6 +28,7 @@ export interface AccountPatch {
   /**
      * @maxLength 2048
      * @nullable
+     * @pattern ^https?://
      */
   website?: string | null;
   /** @minimum 1 */

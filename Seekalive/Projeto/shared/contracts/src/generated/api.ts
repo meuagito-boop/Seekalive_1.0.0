@@ -20,6 +20,10 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get the authenticated account profile
  */
+export const getMyAccountResponseIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getMyAccountResponseAvatarUrlRegExp = new RegExp('^https?:/');
+export const getMyAccountResponseCoverUrlRegExp = new RegExp('^https?:/');
+export const getMyAccountResponseWebsiteRegExp = new RegExp('^https?:/');
 export const getMyAccountResponseStatsPostsMin = 0;
 
 export const getMyAccountResponseStatsFollowersMin = 0;
@@ -32,14 +36,14 @@ export const getMyAccountResponseStatsCirclesMin = 0;
 
 
 export const GetMyAccountResponse = zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getMyAccountResponseIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getMyAccountResponseAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getMyAccountResponseCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getMyAccountResponseWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -79,6 +83,8 @@ export const updateMyAccountBodyLocationMax = 160;
 export const updateMyAccountBodyWebsiteMax = 2048;
 
 
+export const updateMyAccountBodyWebsiteRegExp = new RegExp('^https?:/');
+
 
 
 export const UpdateMyAccountBody = zod.object({
@@ -86,10 +92,14 @@ export const UpdateMyAccountBody = zod.object({
   "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional(),
   "bio": zod.string().max(updateMyAccountBodyBioMax).optional(),
   "location": zod.string().max(updateMyAccountBodyLocationMax).nullish(),
-  "website": zod.url().max(updateMyAccountBodyWebsiteMax).nullish(),
+  "website": zod.string().max(updateMyAccountBodyWebsiteMax).regex(updateMyAccountBodyWebsiteRegExp).nullish(),
   "version": zod.number().min(1)
 })
 
+export const updateMyAccountResponseIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const updateMyAccountResponseAvatarUrlRegExp = new RegExp('^https?:/');
+export const updateMyAccountResponseCoverUrlRegExp = new RegExp('^https?:/');
+export const updateMyAccountResponseWebsiteRegExp = new RegExp('^https?:/');
 export const updateMyAccountResponseStatsPostsMin = 0;
 
 export const updateMyAccountResponseStatsFollowersMin = 0;
@@ -102,14 +112,14 @@ export const updateMyAccountResponseStatsCirclesMin = 0;
 
 
 export const UpdateMyAccountResponse = zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(updateMyAccountResponseIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(updateMyAccountResponseAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(updateMyAccountResponseCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(updateMyAccountResponseWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -184,6 +194,10 @@ export const GetProfileByUsernameParams = zod.object({
   "username": zod.coerce.string().min(getProfileByUsernamePathUsernameMin).max(getProfileByUsernamePathUsernameMax).regex(getProfileByUsernamePathUsernameRegExp)
 })
 
+export const getProfileByUsernameResponseIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getProfileByUsernameResponseAvatarUrlRegExp = new RegExp('^https?:/');
+export const getProfileByUsernameResponseCoverUrlRegExp = new RegExp('^https?:/');
+export const getProfileByUsernameResponseWebsiteRegExp = new RegExp('^https?:/');
 export const getProfileByUsernameResponseStatsPostsMin = 0;
 
 export const getProfileByUsernameResponseStatsFollowersMin = 0;
@@ -196,14 +210,14 @@ export const getProfileByUsernameResponseStatsCirclesMin = 0;
 
 
 export const GetProfileByUsernameResponse = zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getProfileByUsernameResponseIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getProfileByUsernameResponseAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getProfileByUsernameResponseCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getProfileByUsernameResponseWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -229,10 +243,17 @@ export const GetProfileByUsernameResponse = zod.object({
  * Authentication is optional. Blocked accounts are not disclosed.
  * @summary Get a visible profile by account ID
  */
+export const getProfileByAccountIdPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const GetProfileByAccountIdParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(getProfileByAccountIdPathAccountIdRegExp)
 })
 
+export const getProfileByAccountIdResponseIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getProfileByAccountIdResponseAvatarUrlRegExp = new RegExp('^https?:/');
+export const getProfileByAccountIdResponseCoverUrlRegExp = new RegExp('^https?:/');
+export const getProfileByAccountIdResponseWebsiteRegExp = new RegExp('^https?:/');
 export const getProfileByAccountIdResponseStatsPostsMin = 0;
 
 export const getProfileByAccountIdResponseStatsFollowersMin = 0;
@@ -245,14 +266,14 @@ export const getProfileByAccountIdResponseStatsCirclesMin = 0;
 
 
 export const GetProfileByAccountIdResponse = zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getProfileByAccountIdResponseIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getProfileByAccountIdResponseAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getProfileByAccountIdResponseCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getProfileByAccountIdResponseWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -278,8 +299,11 @@ export const GetProfileByAccountIdResponse = zod.object({
  * Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
  * @summary List visible followers
  */
+export const getFollowersPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const GetFollowersParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(getFollowersPathAccountIdRegExp)
 })
 
 export const getFollowersQueryLimitDefault = 20;
@@ -294,6 +318,10 @@ export const GetFollowersQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getFollowersQueryCursorMax).optional()
 })
 
+export const getFollowersResponseItemsItemIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getFollowersResponseItemsItemAvatarUrlRegExp = new RegExp('^https?:/');
+export const getFollowersResponseItemsItemCoverUrlRegExp = new RegExp('^https?:/');
+export const getFollowersResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
 export const getFollowersResponseItemsItemStatsPostsMin = 0;
 
 export const getFollowersResponseItemsItemStatsFollowersMin = 0;
@@ -307,14 +335,14 @@ export const getFollowersResponseItemsItemStatsCirclesMin = 0;
 
 export const GetFollowersResponse = zod.object({
   "items": zod.array(zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getFollowersResponseItemsItemIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getFollowersResponseItemsItemAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getFollowersResponseItemsItemCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getFollowersResponseItemsItemWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -342,8 +370,11 @@ export const GetFollowersResponse = zod.object({
  * Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
  * @summary List visible followed accounts
  */
+export const getFollowingPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const GetFollowingParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(getFollowingPathAccountIdRegExp)
 })
 
 export const getFollowingQueryLimitDefault = 20;
@@ -358,6 +389,10 @@ export const GetFollowingQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getFollowingQueryCursorMax).optional()
 })
 
+export const getFollowingResponseItemsItemIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getFollowingResponseItemsItemAvatarUrlRegExp = new RegExp('^https?:/');
+export const getFollowingResponseItemsItemCoverUrlRegExp = new RegExp('^https?:/');
+export const getFollowingResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
 export const getFollowingResponseItemsItemStatsPostsMin = 0;
 
 export const getFollowingResponseItemsItemStatsFollowersMin = 0;
@@ -371,14 +406,14 @@ export const getFollowingResponseItemsItemStatsCirclesMin = 0;
 
 export const GetFollowingResponse = zod.object({
   "items": zod.array(zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getFollowingResponseItemsItemIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getFollowingResponseItemsItemAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getFollowingResponseItemsItemCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getFollowingResponseItemsItemWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -405,8 +440,11 @@ export const GetFollowingResponse = zod.object({
 /**
  * @summary Follow a public account or request to follow a private account
  */
+export const followAccountPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const FollowAccountParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(followAccountPathAccountIdRegExp)
 })
 
 export const FollowAccountResponse = zod.object({
@@ -418,8 +456,11 @@ export const FollowAccountResponse = zod.object({
 /**
  * @summary Unfollow an account or withdraw a pending request
  */
+export const unfollowAccountPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const UnfollowAccountParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(unfollowAccountPathAccountIdRegExp)
 })
 
 export const UnfollowAccountResponse = zod.void()
@@ -440,6 +481,10 @@ export const GetIncomingFollowRequestsQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getIncomingFollowRequestsQueryCursorMax).optional()
 })
 
+export const getIncomingFollowRequestsResponseItemsItemAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getIncomingFollowRequestsResponseItemsItemAccountAvatarUrlRegExp = new RegExp('^https?:/');
+export const getIncomingFollowRequestsResponseItemsItemAccountCoverUrlRegExp = new RegExp('^https?:/');
+export const getIncomingFollowRequestsResponseItemsItemAccountWebsiteRegExp = new RegExp('^https?:/');
 export const getIncomingFollowRequestsResponseItemsItemAccountStatsPostsMin = 0;
 
 export const getIncomingFollowRequestsResponseItemsItemAccountStatsFollowersMin = 0;
@@ -454,14 +499,14 @@ export const getIncomingFollowRequestsResponseItemsItemAccountStatsCirclesMin = 
 export const GetIncomingFollowRequestsResponse = zod.object({
   "items": zod.array(zod.object({
   "account": zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getIncomingFollowRequestsResponseItemsItemAccountIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getIncomingFollowRequestsResponseItemsItemAccountAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getIncomingFollowRequestsResponseItemsItemAccountCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getIncomingFollowRequestsResponseItemsItemAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -490,8 +535,11 @@ export const GetIncomingFollowRequestsResponse = zod.object({
 /**
  * @summary Approve a pending follow request
  */
+export const acceptFollowRequestPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const AcceptFollowRequestParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(acceptFollowRequestPathAccountIdRegExp)
 })
 
 export const AcceptFollowRequestResponse = zod.object({
@@ -503,8 +551,11 @@ export const AcceptFollowRequestResponse = zod.object({
 /**
  * @summary Decline a pending follow request
  */
+export const declineFollowRequestPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const DeclineFollowRequestParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(declineFollowRequestPathAccountIdRegExp)
 })
 
 export const DeclineFollowRequestResponse = zod.void()
@@ -526,6 +577,10 @@ export const GetCircleQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getCircleQueryCursorMax).optional()
 })
 
+export const getCircleResponseItemsItemAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getCircleResponseItemsItemAccountAvatarUrlRegExp = new RegExp('^https?:/');
+export const getCircleResponseItemsItemAccountCoverUrlRegExp = new RegExp('^https?:/');
+export const getCircleResponseItemsItemAccountWebsiteRegExp = new RegExp('^https?:/');
 export const getCircleResponseItemsItemAccountStatsPostsMin = 0;
 
 export const getCircleResponseItemsItemAccountStatsFollowersMin = 0;
@@ -540,14 +595,14 @@ export const getCircleResponseItemsItemAccountStatsCirclesMin = 0;
 export const GetCircleResponse = zod.object({
   "items": zod.array(zod.object({
   "account": zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getCircleResponseItemsItemAccountIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getCircleResponseItemsItemAccountAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getCircleResponseItemsItemAccountCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getCircleResponseItemsItemAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -576,6 +631,10 @@ export const GetCircleResponse = zod.object({
 /**
  * @summary List accounts blocked by the authenticated account
  */
+export const getBlockedAccountsResponseItemsItemIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getBlockedAccountsResponseItemsItemAvatarUrlRegExp = new RegExp('^https?:/');
+export const getBlockedAccountsResponseItemsItemCoverUrlRegExp = new RegExp('^https?:/');
+export const getBlockedAccountsResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
 export const getBlockedAccountsResponseItemsItemStatsPostsMin = 0;
 
 export const getBlockedAccountsResponseItemsItemStatsFollowersMin = 0;
@@ -589,14 +648,14 @@ export const getBlockedAccountsResponseItemsItemStatsCirclesMin = 0;
 
 export const GetBlockedAccountsResponse = zod.object({
   "items": zod.array(zod.object({
-  "id": zod.uuid(),
+  "id": zod.string().regex(getBlockedAccountsResponseItemsItemIdRegExp),
   "username": zod.string(),
   "displayName": zod.string(),
   "bio": zod.string(),
-  "avatarUrl": zod.url().nullable(),
-  "coverUrl": zod.url().nullable(),
+  "avatarUrl": zod.string().regex(getBlockedAccountsResponseItemsItemAvatarUrlRegExp).nullable(),
+  "coverUrl": zod.string().regex(getBlockedAccountsResponseItemsItemCoverUrlRegExp).nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().nullable(),
+  "website": zod.string().regex(getBlockedAccountsResponseItemsItemWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -623,8 +682,11 @@ export const GetBlockedAccountsResponse = zod.object({
 /**
  * @summary Block an account and remove follow edges and pending requests in both directions
  */
+export const blockAccountPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const BlockAccountParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(blockAccountPathAccountIdRegExp)
 })
 
 export const BlockAccountResponse = zod.void()
@@ -634,8 +696,11 @@ export const BlockAccountResponse = zod.void()
  * Previously removed follow edges and requests are not restored.
  * @summary Remove a block initiated by the authenticated account
  */
+export const unblockAccountPathAccountIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const UnblockAccountParams = zod.object({
-  "accountId": zod.uuid()
+  "accountId": zod.coerce.string().regex(unblockAccountPathAccountIdRegExp)
 })
 
 export const UnblockAccountResponse = zod.void()

@@ -10,17 +10,27 @@ import type { AccountViewAccountType } from './accountViewAccountType';
 import type { RelationshipView } from './relationshipView';
 
 export interface AccountView {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   id: string;
   username: string;
   displayName: string;
   bio: string;
-  /** @nullable */
+  /**
+     * @nullable
+     * @pattern ^https?://
+     */
   avatarUrl: string | null;
-  /** @nullable */
+  /**
+     * @nullable
+     * @pattern ^https?://
+     */
   coverUrl: string | null;
   /** @nullable */
   location: string | null;
-  /** @nullable */
+  /**
+     * @nullable
+     * @pattern ^https?://
+     */
   website: string | null;
   accountType: AccountViewAccountType;
   isPrivate: boolean;
