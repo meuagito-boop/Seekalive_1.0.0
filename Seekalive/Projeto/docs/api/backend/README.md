@@ -125,5 +125,6 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 - A análise e os bloqueios verificados no frontend estão em `frontend-readiness-audit.md`.
 - Links oficiais das integrações estão em `external-services-and-operations.md`.
 - URL pública definitiva do app/API: **não definida por esta auditoria**. Não inferir domínio de produção a partir do endereço de desenvolvimento.
-- Base proposta de mesma origem: `/api/v1`; saúde existente: `/api/healthz`.
+- Base proposta de mesma origem: `/api/v1`; liveness: `/api/healthz`; readiness do banco: `/api/readyz`.
+- O PostgreSQL gerenciado usa `drizzle-kit push` apenas no desenvolvimento pelo pós-merge; mudanças de produção seguem o fluxo oficial de publicação da Replit. Não usar `push-force` nem DDL no startup.
 - Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.

@@ -21,6 +21,11 @@ const del = (tag, p, s, o, x) => add(tag, "delete", p, s, null, o, x);
 const P = "PagePost", A = "Account", C = "Comment", N = "Notification";
 
 g("health", "/healthz", "Verificar servidor (rota existente)", "Health", null, { status: "live", auth: "none" });
+g("health", "/readyz", "Verificar disponibilidade do banco para atender solicitações", "Readiness", null, {
+  status: "live",
+  auth: "none",
+  contractDescription: "Consulta SELECT 1 sem mutação; retorna 200 quando o banco está disponível e 503 quando não está.",
+});
 g("auth", "/v1/auth/session", "Consultar sessão atual sem revelar credenciais", "CurrentSession", null, { auth: "optional", status: "live" });
 g("auth", "/v1/auth/csrf", "Emitir desafio CSRF para a origem atual", "Csrf", null, {
   auth: "optional",
@@ -232,8 +237,6 @@ post("moderation", "/v1/moderation/reports/{reportId}/actions", "Executar decis�
 g("moderation", "/v1/moderation/audit", "Consultar trilha para equipe autorizada", "PageAudit", null, { query: ["cursor", "limit"] });
 post("privacy", "/v1/privacy/requests", "Solicitar acesso ou exclusão de dados", "PrivacyRequest", "Accepted", { accepted: true });
 g("privacy", "/v1/privacy/requests/{requestId}", "Consultar estado de solicitação própria", "PrivacyJob");
-g("health", "/v1/health/ready", "Verificar dependências críticas do serviço", "Readiness");
-
 function getQuery(tag, path, summary, response) { return g(tag, path, summary, response); }
 
 const model = (props, required = []) => ({ type: "object", additionalProperties: false, properties: props, required });

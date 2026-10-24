@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import express, { type Express } from "express";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
@@ -9,6 +10,7 @@ const app: Express = express();
 app.use(
   pinoHttp({
     logger,
+    genReqId: () => randomUUID(),
     serializers: {
       req(req) {
         return {
@@ -25,11 +27,27 @@ app.use(
     },
   }),
 );
+app.use((request, response, next) => {
+  const requestId = String(request.id);
+  response.locals.requestId = requestId;
+  response.setHeader("X-Request-Id", requestId);
+  next();
+});
 app.use(cookieParser());
 app.use(express.json({ limit: "32kb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+app.use((_request, response) => {
+  response.status(404).json({
+    error: {
+      code: "NOT_FOUND",
+      message: "Recurso não encontrado.",
+      requestId: response.locals.requestId ?? "unknown",
+    },
+  });
+});
 
 app.use((error: unknown, _request: express.Request, response: express.Response, next: express.NextFunction) => {
   if (response.headersSent) {
@@ -50,6 +68,7 @@ app.use((error: unknown, _request: express.Request, response: express.Response, 
     error: {
       code: status === 400 ? "INVALID_REQUEST" : status === 413 ? "PAYLOAD_TOO_LARGE" : "INTERNAL_ERROR",
       message: status === 500 ? "Não foi possível concluir a solicitação." : "Solicitação inválida.",
+      requestId: response.locals.requestId ?? "unknown",
     },
   });
 });

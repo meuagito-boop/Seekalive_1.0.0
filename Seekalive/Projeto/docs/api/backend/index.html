@@ -126,7 +126,8 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>A análise e os bloqueios verificados no frontend estão em <code>frontend-readiness-audit.md</code>.</li>
 <li>Links oficiais das integrações estão em <code>external-services-and-operations.md</code>.</li>
 <li>URL pública definitiva do app/API: <strong>não definida por esta auditoria</strong>. Não inferir domínio de produção a partir do endereço de desenvolvimento.</li>
-<li>Base proposta de mesma origem: <code>/api/v1</code>; saúde existente: <code>/api/healthz</code>.</li>
+<li>Base proposta de mesma origem: <code>/api/v1</code>; liveness: <code>/api/healthz</code>; readiness do banco: <code>/api/readyz</code>.</li>
+<li>O PostgreSQL gerenciado usa <code>drizzle-kit push</code> apenas no desenvolvimento pelo pós-merge; mudanças de produção seguem o fluxo oficial de publicação da Replit. Não usar <code>push-force</code> nem DDL no startup.</li>
 <li>Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.</li>
 </ul></section>
 <section id="analysis-of-reference-documents"><h1>Análise dos documentos de referência do Seekalive</h1>
@@ -560,7 +561,7 @@ GET /accounts/{id}/media
 <tr><td><code>components/profile/CommercialProfilePage.tsx</code></td><td>Dados da mesma conta comercial, avaliações e resposta; galeria deve combinar mídias publicadas e mídia de perfil de forma explícita e sem duplicação</td></tr>
 <tr><td><code>shared/api-spec/openapi.yaml</code></td><td>Evoluir contrato vigente após aprovação; preservar título <code>Api</code> exigido pelo código gerado</td></tr>
 <tr><td><code>shared/api-client-react</code>, <code>shared/contracts</code></td><td>Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente</td></tr>
-<tr><td><code>infra/database/src/schema</code></td><td>Implementar Drizzle a partir do modelo revisado; criar migrações versionadas</td></tr>
+<tr><td><code>infra/database/src/schema</code></td><td>Drizzle é a fonte do schema atual; sincronizar desenvolvimento no pós-merge e promover alterações de produção pelo fluxo oficial de publicação da Replit. Não criar migrador de produção paralelo</td></tr>
 <tr><td><code>Aplicativo/back/src/app.ts</code></td><td>Ordem de middleware, autenticação, CSRF, limites, módulos, erros e logs seguros</td></tr>
 </table></div>
 <h3>Atenção aos contratos atuais</h3>
@@ -639,7 +640,7 @@ X-CSRF-Token: &lt;token-da-sessao&gt;
 <div class="table-wrap"><table>
 <tr><th>Método</th><th>Endpoint</th><th>Acesso</th><th>Corpo</th><th>Resposta</th><th>Estado / notas</th></tr>
 <tr><td>GET</td><td><code>/healthz</code></td><td>Público</td><td>—</td><td><code>Health</code></td><td><strong>ATIVA</strong></td></tr>
-<tr><td>GET</td><td><code>/v1/health/ready</code></td><td>Sessão autenticada</td><td>—</td><td><code>Readiness</code></td><td><strong>PROPOSTA</strong></td></tr>
+<tr><td>GET</td><td><code>/readyz</code></td><td>Público</td><td>—</td><td><code>Readiness</code></td><td><strong>ATIVA</strong></td></tr>
 </table></div>
 <h2>Auth</h2>
 <div class="table-wrap"><table>
@@ -1093,7 +1094,7 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <tr><th>Camada</th><th>Cobertura obrigatória</th></tr>
 <tr><td>Validação/contratos</td><td>DTO Zod/OpenAPI, limites, enum, códigos e respostas; gerar spec reproduzível</td></tr>
 <tr><td>Unidade</td><td>Políticas de leitura/ação, normalização username, status, audiência, transições de evento e tipos de conta</td></tr>
-<tr><td>PostgreSQL</td><td>Migrations up/down em banco descartável, FKs, unicidade concorrente, constraints e isolamento transacional</td></tr>
+<tr><td>PostgreSQL</td><td>Schema do desenvolvimento aplicado com Drizzle pelo pós-merge Replit; alterações de produção promovidas pelo fluxo de publicação da Replit. Para testes com escrita, usar banco isolado, FKs, unicidade concorrente, constraints e isolamento transacional</td></tr>
 <tr><td>Integração HTTP</td><td>Sessão anônima/autenticada, CSRF, paginação, idempotência, erros, rate limits e ACL por recurso</td></tr>
 <tr><td>Segurança</td><td>IDOR entre contas, perfil privado, bloqueio mútuo, mídia privada, brute force e enumeração, XSS/links, SSRF em URLs, upload poliglota e CSRF</td></tr>
 <tr><td>Concorrência</td><td>Duas avaliações simultâneas, like/repost repetidos, edição com versão antiga, upload duplicado e outbox reprocessada</td></tr>
@@ -1102,6 +1103,8 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL;</code></pre>
 <tr><td>Frontend por conta</td><td>Likes, salvos, leituras, bloqueios, notificações e recomendações precisam ser isolados por ator; fixtures não podem entrar no build/estado de produção</td></tr>
 <tr><td>Operação</td><td>Health/readiness, logs sem PII/segredos, backup/restauração, job retry/failure queue e alertas</td></tr>
 </table></div>
+<h3>Fluxo de schema neste projeto</h3>
+<p>O PostgreSQL atual é gerenciado pela Replit. <code>pnpm --filter @workspace/db run push</code> é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. A produção deve receber alterações pelo diff de schema do fluxo oficial de publicação. Não executar DDL no startup, não usar <code>push-force</code> e não criar um migrador de produção paralelo. Os testes HTTP atuais não fazem mutações; os testes de jornadas que criam contas/relacionamentos exigem um banco de teste isolado antes de serem executados.</p>
 <h2>Decisões que permanecem abertas</h2>
 <ul>
 <li>Contrato detalhado da API própria e UX final de cadastro/verificação/recuperação.</li>

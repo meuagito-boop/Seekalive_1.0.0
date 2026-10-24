@@ -209,6 +209,159 @@
         }
       }
     },
+    "/readyz": {
+      "get": {
+        "operationId": "health_get_readyz_1",
+        "tags": [
+          "health"
+        ],
+        "summary": "Verificar disponibilidade do banco para atender solicitações",
+        "description": "Consulta SELECT 1 sem mutação; retorna 200 quando o banco está disponível e 503 quando não está.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/session": {
       "get": {
         "operationId": "auth_get_v1_auth_session_1",
@@ -22062,163 +22215,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PrivacyJob"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/health/ready": {
-      "get": {
-        "operationId": "health_get_v1_health_ready_1",
-        "tags": [
-          "health"
-        ],
-        "summary": "Verificar dependências críticas do serviço",
-        "description": "PROPOSED ONLY; not currently implemented.",
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Readiness"
                 }
               }
             }

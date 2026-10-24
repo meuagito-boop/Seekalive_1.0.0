@@ -1,8 +1,8 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 1.4
-**Status:** A01 implementado, mas parcialmente validado; a configuração explícita de confiança em proxy foi retirada e adiada por decisão do usuário. A02 é o próximo pacote.
+**Versão do documento:** 1.5
+**Status:** A01 implementado, mas parcialmente validado. A02 começou: fluxo de schema alinhado ao PostgreSQL gerenciado da Replit, endpoints de liveness/readiness, 404 JSON, request ID, encerramento gracioso e testes HTTP básicos adicionados. A suíte completa de fluxos autenticados e relacionamentos ainda não foi executada em banco de teste isolado. A configuração explícita de confiança em proxy permanece adiada por decisão do usuário.
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
@@ -20,7 +20,7 @@ O envio de e-mail via Resend foi habilitado somente no desenvolvimento e um e-ma
 - Oito agentes fizeram revisões independentes e somente de leitura em três passagens: três na auditoria inicial, três para cobrir as lacunas declaradas e dois para revisar os wrappers de interface restantes. As frentes foram interface, backend/segurança e contratos/documentação/integração. O agente principal conferiu diretamente os achados mais importantes e executou verificações não destrutivas.
 - Foram examinados os pontos de entrada, serviços, contextos de estado, persistência local, telas de conta/perfil/Social/Seek/Shop/configurações, rotas da API, esquemas Drizzle, contratos compartilhados, scripts e documentação de backend.
 - O repositório contém um número significativo de arquivos de UI e componentes genéricos. **Não afirmo que cada byte, implementação interna das dependências de terceiros, bundle ou cada linha de todos os arquivos tenha sido revisado manualmente.** Esta é uma auditoria profunda de código próprio e lógica prioritária, com análise estática, scanners automatizados de dependências/SAST/privacidade e verificações de compilação/teste; não é certificação, pentest nem prova do estado de produção. Os limites e escopo dos scanners estão detalhados na seção 10.9.
-- Não foram criadas contas, alterados dados, executadas migrações, conectados provedores ou modificadas configurações/segredos. A API foi consultada apenas em endpoints GET de saúde, sessão sem autenticação e conta protegida sem sessão.
+- Na auditoria inicial não foram criadas contas, alterados dados, executadas migrações ou conectados provedores. Na atualização A02, a configuração do pós-merge foi ajustada, mas nenhum schema/dado foi escrito: os testes só fazem `SELECT 1` e chamadas HTTP sem mutação.
 - Achados estão classificados como **confirmados** quando observáveis no código ou em verificações executadas. Pontos que dependem de uma decisão de produto ou topologia estão explicitamente identificados como **risco/decisão pendente**.
 
 ## 3. Verificações executadas nesta auditoria
@@ -32,12 +32,15 @@ O envio de e-mail via Resend foi habilitado somente no desenvolvimento e um e-ma
 | `pnpm --filter @workspace/api-server run build` | Aprovado | O bundle do servidor é gerado. Não comprova cadastro operacional, banco saudável, segurança ou deploy. |
 | `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/social run build` | Aprovado com avisos | Gera o bundle de produção. O JS principal tem 951,26 kB (277,86 kB gzip), excede o aviso de 500 kB e inclui avisos de sourcemap/importação mista. Sem essas variáveis, o Vite config encerra o build com erro. |
 | Busca de marcadores demonstrativos no bundle de produção | Marcadores pesquisados não encontrados | Foram pesquisados nomes/valores específicos das fixtures; isso não prova exaustivamente que nenhum dado fictício possa ser empacotado ou renderizado em qualquer caminho. |
-| `GET /api/healthz` | `200 {"status":"ok"}` | Confirma liveness HTTP. A rota é estática e não verifica se o banco está pronto. |
+| `GET /api/healthz` | `200 {"status":"ok"}` | Liveness HTTP independente do banco. |
+| `GET /api/readyz` | `200 {"status":"ready"}` no ambiente de desenvolvimento | Confirma `SELECT 1` no PostgreSQL gerenciado; não altera dados. |
 | `GET /api/v1/auth/session`, sem cookie | `200`, sessão não autenticada | Confirma a resposta pública do estado de sessão. |
 | `GET /api/v1/accounts/me`, sem cookie | `401 UNAUTHENTICATED` | Confirma que essa rota protegida exige sessão verificada. Não substitui testes de autorização entre duas contas. |
-| `git status --short` após verificações | Sem alterações de fonte antes deste relatório | Nenhuma alteração de aplicação foi feita durante a verificação. |
+| `pnpm --filter @workspace/scripts run test:backend` | **10/10 testes aprovados** | Cinco testes de limites de segurança e cinco testes HTTP de runtime; não exercitam jornadas autenticadas com escrita. |
+| `pnpm --filter @workspace/api-server run typecheck` e `build` | Aprovados | Confirma compilação/typecheck da API, não cobertura dos fluxos comerciais. |
+| Script pós-merge | Sintaxe aprovada; guard de produção bloqueia ambiente explicitamente marcado como produção | Configurado, mas não executado neste pacote; portanto nenhum `db push` ocorreu. |
 
-**Ainda não executado:** E2E de navegador, suíte HTTP automatizada do backend, teste de migração em banco limpo, teste multi-instância/rate limit ou teste contra banco/produção. A análise automatizada de dependências foi realizada posteriormente e está registrada na seção 10.9. Existem scripts avulsos de auditoria de navegador (`scripts/audit-social-browser.mjs` e `scripts/audit-seek-browser.mjs`), mas não são chamados por um workflow de CI encontrado e não exercitam a integração HTTP real do backend. O build só funciona quando `PORT` e `BASE_PATH` são definidos; o aviso de chunk grande e os avisos de sourcemap/importação mista precisam ser tratados ou aceitos explicitamente. A busca no bundle foi limitada a marcadores escolhidos e não substitui teste visual/runtime em produção. Resultados documentados anteriormente em `docs/api/backend/frontend-readiness-audit.md` não são apresentados como se tivessem sido reproduzidos nesta auditoria.
+**Ainda não executado:** E2E de navegador; testes de escrita contra banco descartável para cadastro, confirmação, sessão válida, onboarding e relações entre duas contas; comparação de schema em banco vazio; teste multi-instância/rate limit; qualquer teste contra produção. A análise automatizada de dependências está registrada na seção 10.9. Existem scripts avulsos de auditoria de navegador (`scripts/audit-social-browser.mjs` e `scripts/audit-seek-browser.mjs`), mas não são chamados por um workflow de CI e não exercitam a integração HTTP real do backend. O build frontend só funciona quando `PORT` e `BASE_PATH` são definidos; o aviso de chunk grande e os avisos de sourcemap/importação mista precisam ser tratados ou aceitos explicitamente.
 
 ## 4. Estado real por área
 
@@ -104,11 +107,11 @@ O cadastro comercial envia categoria e endereço (`front/src/pages/Register.tsx:
 **Impacto:** tipos/hooks gerados não representam as rotas reais; regenerar pode gravar em destinos inexistentes e deixar consumidores desatualizados. Há mais de uma fonte documental/gerada para o contrato.  
 **Ação:** definir qual especificação alimenta o codegen, manter separado o inventário documental de propostas e corrigir os destinos de geração. Alinhar operações ativas com esquemas/respostas e verificar drift automaticamente.
 
-**Não há migrações versionadas nem testes automatizados de API identificados — confirmado no repositório inspecionado.**  
-`infra/database/package.json` oferece `push`/`push-force`; não foi localizado histórico versionado de migrações. `Aplicativo/back/package.json` não tem script de testes; os 42 testes atuais são do frontend. O script de typecheck/build não verifica transações, autorização, privacidade ou compatibilidade de banco.
+**Achado do estado inicial (23/10): não havia testes automatizados de API nem fluxo de schema configurado — confirmado no repositório inspecionado.**
+Naquele estado, `infra/database/package.json` oferecia `push`/`push-force`, sem histórico versionado; o script pós-merge não estava configurado. A API não tinha suíte HTTP. No A02, o comando forçado foi removido, o pós-merge foi configurado para desenvolvimento e agora há testes HTTP de runtime sem escrita.
 
-**Impacto:** não há procedimento reprodutível e revisável para promover o schema a outro ambiente, nem regressão automatizada de autorização no servidor.  
-**Ação:** criar migrações incrementais revisáveis e testes de integração HTTP/DB em ambiente descartável/desenvolvimento; planejar rollback. Não aplicar mudanças em produção nesta auditoria.
+**Impacto remanescente:** ainda não foi testado o primeiro schema num banco vazio nem as regras de autorização entre contas por uma suíte autenticada.
+**Ação atual:** usar o fluxo nativo Replit — `push` somente no desenvolvimento e Publish para o diff de produção — e completar a suíte em banco isolado. Não houve alteração de schema em produção.
 
 ### P1 — Regras confirmadas precisam de cobertura server-side de todos os domínios
 
@@ -170,14 +173,14 @@ Esses pontos positivos não removem as lacunas de integração, testes ou persis
 
 ### Fase 2 — Tornar a primeira fatia do backend reproduzível e testável
 
-5. Criar migrations versionadas e um procedimento de instalação em banco vazio; evitar `push-force` como procedimento de produção.
-6. Criar testes HTTP e de banco para registro pendente, login antes/depois da confirmação, CSRF, expiração/reuso de código, onboarding, perfil, privacidade, follows, aprovação, Círculo, bloqueio e desbloqueio.
+5. Para o PostgreSQL gerenciado da Replit, usar `drizzle-kit push` somente no desenvolvimento pelo pós-merge e o fluxo oficial de publicação para promover o diff de schema; não criar um executor próprio de migrations para produção nem usar `push-force`.
+6. Completar testes HTTP/DB em banco de teste isolado para registro pendente, login antes/depois da confirmação, CSRF, expiração/reuso de código, onboarding, perfil, privacidade, follows, aprovação, Círculo, bloqueio e desbloqueio. O pacote A02 adiciona agora testes HTTP sem mutação para liveness, readiness, request ID, 404 e rota protegida.
 7. Adicionar testes negativos entre contas: perfil privado, follow não aprovado, dados bloqueados, tentativa de desbloqueio por quem não iniciou e isolamento de sessão.
-8. Corrigir o contrato de erros e adicionar identificador de requisição consistente; criar readiness separado de liveness.
-9. Definir política de proxy/origem, rate limiting e armazenamento dos contadores compatíveis com a topologia alvo.
+8. A02 adicionou 404 JSON, request ID no formato de erro, readiness dependente de `SELECT 1` e encerramento gracioso. Alinhar contrato/codegen ainda está pendente.
+9. A confiança em proxy fica adiada até existir topologia concreta. O limitador atual é local ao processo; documentar/decidir uma solução compartilhada antes de executar múltiplas instâncias.
 10. Corrigir operações concorrentes por par de contas para que bloqueio prevaleça sobre follow/aprovação; corrigir CSRF entre abas, contador de tentativas e `joinedAt`.
 
-**Critério de saída:** banco novo recebe o schema por migrações revisáveis; a suíte de API prova regras de autorização sem depender de testes manuais; saúde e prontidão reportam estados diferentes.
+**Critério de saída:** o schema de desenvolvimento é aplicado pelo fluxo Replit configurado, produção recebe alterações pelo fluxo oficial de publicação e a suíte isolada de API prova as regras de autorização sem testes manuais. Saúde e prontidão já reportam estados diferentes; os demais critérios continuam pendentes.
 
 ### Fase 3 — Integrar telas que já têm endpoints
 
@@ -232,8 +235,8 @@ Para a próxima etapa, seguir esta sequência, sem abrir trabalho no Gestor/Pain
 
 1. Corrigir a corrida entre bloqueio e aprovação/seguir e filtrar bloqueios também na busca; cobrir ambos com testes.
 2. Definir o DTO da conta e garantir que perfil comercial seja reidratado após login e utilizável no Seek.
-3. Alinhar contrato OpenAPI, codegen, formatos de erro e respostas.
-4. Criar migrations versionadas e testes HTTP/DB para a fatia existente.
+3. Alinhar contrato OpenAPI, codegen, formatos de erro e respostas; o runtime já devolve request ID e os dois health checks, mas os clientes públicos continuam defasados.
+4. Completar testes autenticados HTTP/DB em banco isolado, sem utilizar produção.
 5. Conectar perfil, privacidade e relações às APIs atuais.
 6. Implementar conteúdo/mídia e então Seek/avaliações/eventos; mensagens, notificações e Shop vêm depois.
 
@@ -303,7 +306,7 @@ O envio real de e-mail fica como dependência explícita quando a etapa de prove
 
 2. **P1 antes de ativar — O adapter REST de conteúdo não envia CSRF e os DTOs propostos divergem. Confirmado, adapter atualmente desativado.** `Aplicativo/front/src/services/contentService.ts:31-48` não envia `X-CSRF-Token`, mas mutações do servidor exigem `requireCsrf` (`back/src/security/session.ts:116-143`). `front/src/services/restContracts.ts:41-46` espera arrays para resultados de busca enquanto o gerador descreve envelopes paginados. Como as rotas de conteúdo ainda não existem e o adapter está desligado (`contentService.ts:55-68`), isto é bloqueio futuro de ativação, não falha de uma chamada atualmente usada. **Ação:** unificar cliente para sessão/CSRF/erro/DTO antes de ligar esse adapter.
 
-3. **P1 operacional — O caminho de atualização de schema não está protegido nem é reproduzível como migration. Confirmado no repositório; não foi executado.** `infra/database/package.json:10-12` oferece `push` e `push-force`, sem histórico versionado. `scripts/post-merge.sh:1-4` chama `push` usando o `DATABASE_URL` do ambiente, sem guarda de ambiente; não foi encontrado neste passe um chamador que permita afirmar quando ele roda. A documentação diz que o schema de produção será atualizado pelo Publish (`docs/api/backend/implementation-and-tests.md:3`), mas o artefato do backend configura build/start, não uma etapa explícita de migration (`Aplicativo/back/.replit-artifact/artifact.toml:15-31`). **Ação:** migrations revisáveis e etapa deliberada, protegida e documentada; corrigir a afirmação sobre Publish. Nenhuma migration ou push foi executado nesta auditoria.
+3. **P1 operacional — achado inicial parcialmente resolvido pelo A02.** No estado inicial, havia `push`/`push-force`, sem pós-merge configurado. O projeto usa PostgreSQL gerenciado da Replit; o A02 removeu o comando forçado, configurou `Seekalive/Projeto/scripts/post-merge.sh` para sincronizar somente o desenvolvimento e acrescentou recusa de ambientes explicitamente marcados como produção. O script não foi executado nesta etapa, então nenhum `push` ocorreu. **Ação restante:** testar a criação do schema em banco isolado; produção permanece no fluxo oficial Publish, sem runner próprio ou DDL no startup.
 
 4. **P2 — Instruções de ambiente/runtime não correspondem totalmente ao código. Confirmado.** `Seekalive/Projeto/replit.md:12,16` lista apenas `DATABASE_URL` como variável obrigatória e afirma Node 24; `Aplicativo/back/src/security/session.ts:9-11` exige `SESSION_SECRET` com ao menos 32 bytes, e `.replit:1` configura `nodejs-20`. Não se verificou se a plataforma injeta ou substitui a versão; o achado é a inconsistência documental/configurada, não que o serviço necessariamente esteja rodando Node 20. **Ação:** confirmar runtime suportado e atualizar instruções com nomes de variáveis necessárias, sem expor valores.
 
@@ -416,7 +419,7 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 
 ### 11.3 Roteiro Now / Next / Later
 
-- **NOW — Base segura e contratos:** A01–A05. Corrigir dependências com caminho de risco demonstrado, migrations/testes, contratos e regras de autenticação/privacidade. E-mail está funcional apenas no desenvolvimento; produção continua desativada.
+- **NOW — Base segura e contratos:** A01–A05. A02 estabeleceu o fluxo de schema do PostgreSQL gerenciado e testes HTTP básicos; concluir os testes de jornadas em banco isolado, contratos e regras de autenticação/privacidade. E-mail está funcional apenas no desenvolvimento; produção continua desativada.
 - **NEXT — Integrar o que já tem modelo e endpoints:** A06–A08. Conectar contas e relações, depois publicação/mídia e Seek. Não declarar como persistente qualquer recurso que dependa de provider ainda não conectado.
 - **LATER — Completar domínios e preparar release:** A09–A12. Mensagens, notificações, Shop, qualidade de interface e staging. Checkout e integrações de terceiros continuam condicionados a decisão explícita.
 
@@ -424,9 +427,9 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 
 1. Executar um pacote por vez quando houver dependência; pacotes sem dependência podem ser paralelizados somente depois de confirmar limites e arquivos envolvidos.
 2. Antes de começar, registrar no documento o pacote, executor, data, dependência e testes de entrada; ao terminar, marcar evidência, testes e pendências residuais. Não transformar achado em “resolvido” só porque o código foi alterado.
-3. Toda etapa de backend inclui contrato, migration quando necessária, teste HTTP/DB e estado de erro do frontend. Toda regra de bloqueio/privacidade precisa de teste negativo entre duas contas.
-4. Nenhum dado ou segredo de produção, migration de produção, provider externo, publicação ou alteração em Gestor/Painel entra no plano de execução sem autorização separada.
-5. **Sequência após A01:** A02 é o próximo pacote recomendado, restrito ao banco de desenvolvimento/descartável. Não configurar proxy nesta etapa; manter `trust proxy = false` e decidir a topologia antes de staging/produção. Os resultados condicionais de Zod/Orval/Vite não devem ser descritos como exploração confirmada.
+3. Toda etapa de backend inclui contrato, teste HTTP/DB e estado de erro do frontend; alterações de schema seguem o fluxo gerenciado da Replit. Toda regra de bloqueio/privacidade precisa de teste negativo entre duas contas.
+4. Nenhum dado ou segredo de produção, alteração de schema em produção, provider externo, publicação ou alteração em Gestor/Painel entra no plano de execução sem autorização separada.
+5. **Sequência após A01:** A02 está em andamento; concluir testes de jornadas em ambiente isolado antes de avançar à integração visual. Não configurar proxy nesta etapa; manter `trust proxy = false` e decidir a topologia antes de staging/produção.
 
 ### 11.5 Execução do pacote A01
 
@@ -439,9 +442,17 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Verificações aprovadas:** `pnpm run typecheck`; `pnpm run test:social` (42/42); `pnpm --filter @workspace/scripts run test:security-boundaries` (5/5 após remoção); builds da API e frontend; codegen Orval seguido de `typecheck:libs`. Um pedido de login com credenciais fictícias inválidas no preview retornou `401 INVALID_CREDENTIALS`; `/api/healthz` retornou 200.
 - **Avisos que continuam:** build do frontend ainda emite avisos de sourcemap, importação mista de `mockData.ts` e bundle principal em torno de 953 kB. A geração/build passa, mas esses avisos não foram tratados no A01.
 - **Pendência de produção:** proxy foi deliberadamente adiado; manter `trust proxy = false` até a topologia real ser fornecida e aprovada. O limite por IP poderá agrupar usuários atrás do proxy compartilhado. O teste local confirma o default, não substitui validação HTTP pela infraestrutura publicada.
-- **Autenticação não validada integralmente:** não há suíte HTTP/DB nem conta descartável para login válido, email não verificado ou confirmação. O envio Resend em desenvolvimento foi aceito e o usuário confirmou recebimento; produção continua desativada. Não existe rota de recuperação de senha na API. O rate limit foi testado no middleware real em Express local, não por repetição no endpoint de login real.
+- **Autenticação não validada integralmente:** A02 agora testa os limites HTTP sem mutações, mas ainda não existe uma suíte em banco isolado para login válido, email não verificado ou confirmação. O envio Resend em desenvolvimento foi aceito e o usuário confirmou recebimento; produção continua desativada. Não existe rota de recuperação de senha na API. O rate limit foi testado no middleware real em Express local, não por repetição no endpoint de login real.
 - **Novas dependências altas na varredura atual do workspace:** `body-parser@2.2.2` (Express), `fast-uri@3.1.2` e `js-yaml@4.2.0` (grafo de Orval/Ajv), `browserslist@4.28.2`, `postcss@8.5.14`, `source-map-js@1.2.1` (toolchain) e `zod@3.25.76` (correção indicada é major). O scan contou 0 críticas, 16 altas, 10 moderadas e 6 baixas no workspace inteiro; SAST 0; HoundDog 1 baixo. Esses achados não foram tratados neste pacote de validação e precisam de triagem.
 - A alteração em `artifacts/mockup-sandbox` limita-se à versão de desenvolvimento do Vite, necessária para o typecheck do sandbox; ela está fora do limite estrito de “somente Social” indicado no prompt A01. Não foi revertida durante a validação. Gestor e Painel não foram modificados.
+
+### 11.6 Execução do pacote A02 — 24/10/2026
+
+- **Banco e publicação:** confirmado que este projeto usa PostgreSQL gerenciado da Replit. O script `Seekalive/Projeto/scripts/post-merge.sh` foi configurado no pós-merge, usa o `push` normal no desenvolvimento e recusa execução quando o ambiente está explicitamente identificado como produção. O comando `push-force` foi removido. O fluxo oficial de publicação da Replit continua responsável por promover o diff de schema para produção.
+- **Sem alteração de dados/schema:** o pós-merge foi configurado, mas não foi executado nesta etapa. Não houve migration, push, criação/remoção de conta ou consulta de produção; a readiness executa apenas `SELECT 1` no banco de desenvolvimento.
+- **API:** `/api/healthz` é liveness sem dependência do banco; `/api/readyz` verifica o banco e retorna 503 se indisponível. 404 e demais erros da API incluem `requestId` no objeto `error`, também enviado pelo header `X-Request-Id`. O encerramento por SIGTERM/SIGINT drena HTTP e fecha o pool, com limite de 10 segundos.
+- **Verificação:** typecheck e build da API aprovados; `pnpm --filter @workspace/scripts run test:backend` passou com 10/10 testes sem mutações; o guard contra execução explicitamente marcada como produção foi testado. Documentação Markdown, HTML e ZIP foram atualizados.
+- **Pendências A02:** testar o schema em banco limpo/isolado; cobrir escrita e autorização de cadastro, confirmação, onboarding, perfil, follows, Círculo e bloqueios entre duas contas. Não há cobertura de fluxos autenticados de ponta a ponta nesta entrega. A confiança em proxy continua desligada/adiada e o rate limit segue local ao processo.
 
 ### Histórico do documento
 
@@ -451,3 +462,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 1.2 | 2026-10-23 | Registra a execução do A01, as verificações aprovadas e a dependência ainda pendente da topologia real do proxy. |
 | 1.3 | 2026-10-23 | Registra a validação A01, o teste HTTP contra falsificação de IP, os limites de autenticação e os achados atuais de dependências. |
 | 1.4 | 2026-10-24 | Retira confiança explícita em proxy conforme decisão do usuário, registra Express em `trust proxy = false`, atualiza o teste e define A02 como próximo pacote. Atualiza o estado do Resend em desenvolvimento. |
+| 1.5 | 2026-10-24 | Registra a execução parcial do A02, o fluxo de schema do PostgreSQL gerenciado, health checks, erros com request ID, encerramento gracioso, testes HTTP básicos e lacunas de integração autenticada. |

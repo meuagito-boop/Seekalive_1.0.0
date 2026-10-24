@@ -49,3 +49,7 @@ externalPort = 3000
 
 [userenv.development]
 RESEND_ENABLED = "true"
+
+[postMerge]
+path = "Seekalive/Projeto/scripts/post-merge.sh"
+timeoutMs = 180000

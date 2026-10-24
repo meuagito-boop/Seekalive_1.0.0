@@ -66,7 +66,7 @@ Hoje a interface usa a API para autenticação, verificação e conclusão de in
 | `components/profile/CommercialProfilePage.tsx` | Dados da mesma conta comercial, avaliações e resposta; galeria deve combinar mídias publicadas e mídia de perfil de forma explícita e sem duplicação |
 | `shared/api-spec/openapi.yaml` | Evoluir contrato vigente após aprovação; preservar título `Api` exigido pelo código gerado |
 | `shared/api-client-react`, `shared/contracts` | Regenerar a partir do contrato aprovado, não editar artefatos gerados manualmente |
-| `infra/database/src/schema` | Implementar Drizzle a partir do modelo revisado; criar migrações versionadas |
+| `infra/database/src/schema` | Drizzle é a fonte do schema atual; sincronizar desenvolvimento no pós-merge e promover alterações de produção pelo fluxo oficial de publicação da Replit. Não criar migrador de produção paralelo |
 | `Aplicativo/back/src/app.ts` | Ordem de middleware, autenticação, CSRF, limites, módulos, erros e logs seguros |
 
 ### Atenção aos contratos atuais

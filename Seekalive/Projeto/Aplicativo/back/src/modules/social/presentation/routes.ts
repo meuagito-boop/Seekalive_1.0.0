@@ -14,7 +14,9 @@ import { accountView, accountViewsByIds, findActiveAccountById, isBlockedBetween
 const router: IRouter = Router();
 
 function sendError(response: Response, status: number, code: string, message: string): void {
-  response.status(status).json({ error: { code, message } });
+  response.status(status).json({
+    error: { code, message, requestId: response.locals.requestId ?? "unknown" },
+  });
 }
 
 async function activeAccountId(request: Request, response: Response): Promise<string | null> {

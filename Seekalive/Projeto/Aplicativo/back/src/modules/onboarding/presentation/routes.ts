@@ -9,7 +9,13 @@ const router: IRouter = Router();
 router.post("/interests", requireCsrf, async (request, response) => {
   const session = await loadActiveSession(request);
   if (!session) {
-    response.status(401).json({ error: { code: "UNAUTHENTICATED", message: "Entre para continuar." } });
+    response.status(401).json({
+      error: {
+        code: "UNAUTHENTICATED",
+        message: "Entre para continuar.",
+        requestId: response.locals.requestId ?? "unknown",
+      },
+    });
     return;
   }
 
@@ -20,6 +26,7 @@ router.post("/interests", requireCsrf, async (request, response) => {
         code: "VALIDATION_ERROR",
         message: "Confira os interesses selecionados.",
         details: parsed.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
+        requestId: response.locals.requestId ?? "unknown",
       },
     });
     return;

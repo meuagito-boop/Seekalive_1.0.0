@@ -8,7 +8,8 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — apply the database schema to development only
+- `pnpm --filter @workspace/db run push` — apply the database schema to development only; runs through the configured post-merge script
+- Production schema changes must go through Replit's Publish flow; do not run schema push or DDL from the production app
 - Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack

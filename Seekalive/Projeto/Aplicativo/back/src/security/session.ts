@@ -120,7 +120,13 @@ export const requireCsrf: RequestHandler = async (
 ) => {
   response.setHeader("Cache-Control", "no-store");
   if (!requestHasSameOrigin(request)) {
-    response.status(403).json({ error: { code: "CSRF_REJECTED", message: "Origem não permitida." } });
+    response.status(403).json({
+      error: {
+        code: "CSRF_REJECTED",
+        message: "Origem não permitida.",
+        requestId: response.locals.requestId ?? "unknown",
+      },
+    });
     return;
   }
 
@@ -139,7 +145,13 @@ export const requireCsrf: RequestHandler = async (
     }
   }
 
-  response.status(403).json({ error: { code: "CSRF_REJECTED", message: "A solicitação expirou. Atualize a página e tente novamente." } });
+  response.status(403).json({
+    error: {
+      code: "CSRF_REJECTED",
+      message: "A solicitação expirou. Atualize a página e tente novamente.",
+      requestId: response.locals.requestId ?? "unknown",
+    },
+  });
 };
 
 type RateLimitBucket = { count: number; resetAt: number };
@@ -163,7 +175,13 @@ export function createAuthRateLimit(name: string, maxRequests: number, windowMs:
     }
     if (bucket.count > maxRequests) {
       response.setHeader("Retry-After", Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)));
-      response.status(429).json({ error: { code: "RATE_LIMITED", message: "Muitas tentativas. Aguarde e tente novamente." } });
+      response.status(429).json({
+        error: {
+          code: "RATE_LIMITED",
+          message: "Muitas tentativas. Aguarde e tente novamente.",
+          requestId: response.locals.requestId ?? "unknown",
+        },
+      });
       return;
     }
     next();

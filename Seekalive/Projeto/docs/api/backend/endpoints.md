@@ -17,7 +17,7 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
 | GET | `/healthz` | Público | — | `Health` | **ATIVA** |
-| GET | `/v1/health/ready` | Sessão autenticada | — | `Readiness` | **PROPOSTA** |
+| GET | `/readyz` | Público | — | `Readiness` | **ATIVA** |
 
 ## Auth
 

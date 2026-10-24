@@ -58,7 +58,9 @@ router.use((_request, response, next) => {
 });
 
 function sendError(response: Response, status: number, code: string, message: string): void {
-  response.status(status).json({ error: { code, message } });
+  response.status(status).json({
+    error: { code, message, requestId: response.locals.requestId ?? "unknown" },
+  });
 }
 
 function sendValidationError(response: Response, issues: { path: PropertyKey[]; message: string }[]): void {
@@ -67,6 +69,7 @@ function sendValidationError(response: Response, issues: { path: PropertyKey[]; 
       code: "VALIDATION_ERROR",
       message: "Confira os dados informados.",
       details: issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
+      requestId: response.locals.requestId ?? "unknown",
     },
   });
 }

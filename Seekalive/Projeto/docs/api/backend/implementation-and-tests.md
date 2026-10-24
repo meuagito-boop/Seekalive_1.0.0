@@ -70,7 +70,7 @@ Este documento registra a implementação já existente e organiza as próximas 
 |---|---|
 | Validação/contratos | DTO Zod/OpenAPI, limites, enum, códigos e respostas; gerar spec reproduzível |
 | Unidade | Políticas de leitura/ação, normalização username, status, audiência, transições de evento e tipos de conta |
-| PostgreSQL | Migrations up/down em banco descartável, FKs, unicidade concorrente, constraints e isolamento transacional |
+| PostgreSQL | Schema do desenvolvimento aplicado com Drizzle pelo pós-merge Replit; alterações de produção promovidas pelo fluxo de publicação da Replit. Para testes com escrita, usar banco isolado, FKs, unicidade concorrente, constraints e isolamento transacional |
 | Integração HTTP | Sessão anônima/autenticada, CSRF, paginação, idempotência, erros, rate limits e ACL por recurso |
 | Segurança | IDOR entre contas, perfil privado, bloqueio mútuo, mídia privada, brute force e enumeração, XSS/links, SSRF em URLs, upload poliglota e CSRF |
 | Concorrência | Duas avaliações simultâneas, like/repost repetidos, edição com versão antiga, upload duplicado e outbox reprocessada |
@@ -78,6 +78,10 @@ Este documento registra a implementação já existente e organiza as próximas 
 | Frontend | Fluxos de perfil Social/comercial, abas de perfil, galeria, publicação/mídia, Seek e estados de erro sem regressão da navegação |
 | Frontend por conta | Likes, salvos, leituras, bloqueios, notificações e recomendações precisam ser isolados por ator; fixtures não podem entrar no build/estado de produção |
 | Operação | Health/readiness, logs sem PII/segredos, backup/restauração, job retry/failure queue e alertas |
+
+### Fluxo de schema neste projeto
+
+O PostgreSQL atual é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. A produção deve receber alterações pelo diff de schema do fluxo oficial de publicação. Não executar DDL no startup, não usar `push-force` e não criar um migrador de produção paralelo. Os testes HTTP atuais não fazem mutações; os testes de jornadas que criam contas/relacionamentos exigem um banco de teste isolado antes de serem executados.
 
 ## Decisões que permanecem abertas
 
