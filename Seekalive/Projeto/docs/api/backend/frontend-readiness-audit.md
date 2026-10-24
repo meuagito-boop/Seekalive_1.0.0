@@ -23,7 +23,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Área | Estado atual | Prontidão |
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
-| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding e recuperação de senha já chamam a API | Entrega Resend do fluxo de recuperação ainda precisa de E2E no navegador; API de e-mail permanece habilitada somente em desenvolvimento |
+| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação de senha e gestão de sessões chamam a API | Entrega Resend dos fluxos de e-mail ainda precisa de E2E no navegador; API de e-mail permanece habilitada somente em desenvolvimento |
 | Contas e perfis | A API já lê/edita perfil básico com versão; telas de perfil/edição ainda usam estado local e não chamam essa API | Parcial; falta integração de telas |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
@@ -43,6 +43,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 - `pages/Register.tsx` valida e cria um perfil local, usa ID baseado no nome de usuário e grava dados de conta no navegador. A senha não é armazenada — isso é correto para o protótipo, mas significa que não existe credencial utilizável no backend.
 - `pages/Login.tsx` não envia usuário/e-mail e senha para um serviço; a tela apresenta o fluxo como não conectado. Após sair, a conta local não pode ser autenticada novamente pelo login.
 - `ForgotPassword.tsx` solicita e confirma a redefinição pela API. A suíte isolada valida os casos principais; o fluxo visual completo e o recebimento de e-mail na tela ainda exigem E2E separado.
+- `SettingsSecurity.tsx` consulta sessões próprias e executa revogação individual ou em lote. A sessão atual fica marcada; a interface não inventa dados de dispositivo. 2FA, histórico detalhado e identificação de aparelho habitual continuam explicitamente indisponíveis.
 - `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
 - O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
 
@@ -50,13 +51,13 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 
 **Regras confirmadas:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão. Na confirmação, uma conta legada com política de senha antiga é ativada sem sessão e segue para login; senha legada compatível é promovida após validação, e senha incompatível exige atualização com a senha atual.
 
-**Atenção restante:** não havia sessões nem credenciais no banco quando a migração foi aplicada; portanto, nenhum usuário precisou entrar novamente por causa dela. A recuperação de senha agora está implementada por código de uso único, mas a entrega assíncrona não tem outbox durável nem tentativa persistente. Alteração voluntária na tela de configurações, sessões/dispositivos confiáveis e fatores adicionais continuam pendentes. Não há produção real nem mudança em produção.
+**Atenção restante:** não havia sessões nem credenciais no banco quando a migração foi aplicada; portanto, nenhum usuário precisou entrar novamente por causa dela. A recuperação de senha e a revogação de sessões estão implementadas; a entrega assíncrona ainda não tem outbox durável nem tentativa persistente. Reconhecimento de dispositivo habitual, autenticação em duas etapas e histórico de acesso não existem e não são simulados. Não há produção real nem mudança em produção.
 
 O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a regra de composição é aplicada a novas senhas e a atualizações obrigatórias. O campo de senha permanece apenas em memória durante o fluxo e não é salvo em `localStorage`.
 
 ### P0 — O frontend ainda não consome perfil e relações da API
 
-- `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha), onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações e gestão de sessões continuam sem handlers.
+- `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha e gestão de sessões), onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens e notificações continuam sem handlers.
 - A autenticação e o onboarding usam a API. As telas de perfil, privacidade, seguir, pedidos, Círculo e bloqueio ainda não consomem os endpoints ativos. `services/contentService.ts` continua apontando para `demoContentAdapter`.
 - A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.

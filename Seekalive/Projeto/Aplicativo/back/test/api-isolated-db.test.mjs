@@ -665,6 +665,86 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     csrfToken: commercialLogin.body.csrfToken,
   };
   assert.equal(commercial.account.accountType, "commercial");
+
+  const initialSessionPage = await request("/api/v1/auth/sessions", { auth: personal });
+  assert.equal(initialSessionPage.response.status, 200, JSON.stringify(initialSessionPage.body));
+  assert.ok(initialSessionPage.body.items.some((session) => session.isCurrent));
+  assert.equal(initialSessionPage.body.items.some((session) => session.id === commercialLogin.body.session.id), false);
+
+  const anonymousSessionList = await request("/api/v1/auth/sessions", { auth: await createPreAuth() });
+  assert.equal(anonymousSessionList.response.status, 401);
+  const invalidSessionCursor = await request("/api/v1/auth/sessions?cursor=not-valid!", { auth: personal });
+  assert.equal(invalidSessionCursor.response.status, 400);
+  const invalidSessionId = await request("/api/v1/auth/sessions/not-a-uuid", {
+    method: "DELETE",
+    auth: personal,
+  });
+  assert.equal(invalidSessionId.response.status, 400);
+  const revokeCurrentSession = await request(`/api/v1/auth/sessions/${resetPasswordLogin.body.session.id}`, {
+    method: "DELETE",
+    auth: personal,
+  });
+  assert.equal(revokeCurrentSession.response.status, 409);
+  const revokeWithoutCsrf = await request("/api/v1/auth/sessions/others", {
+    method: "DELETE",
+    auth: { cookie: personal.cookie },
+  });
+  assert.equal(revokeWithoutCsrf.response.status, 403);
+
+  const crossAccountSessionRevoke = await request(
+    `/api/v1/auth/sessions/${commercialLogin.body.session.id}`,
+    { method: "DELETE", auth: personal },
+  );
+  assert.equal(crossAccountSessionRevoke.response.status, 404, "A session ID from another account must not be accessible.");
+
+  const secondPersonalLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pendingPersonal.email, password: "C04_Recovered_Test_2026!" },
+    auth: await createPreAuth(),
+  });
+  assert.equal(secondPersonalLogin.response.status, 200, JSON.stringify(secondPersonalLogin.body));
+  const secondPersonalSession = {
+    cookie: cookieValue(secondPersonalLogin.response, "__Host-seekalive_session"),
+    csrfToken: secondPersonalLogin.body.csrfToken,
+  };
+  const sessionsWithTwoLogins = await request("/api/v1/auth/sessions", { auth: personal });
+  assert.equal(sessionsWithTwoLogins.response.status, 200);
+  assert.equal(sessionsWithTwoLogins.body.items.length, 2);
+  assert.equal(sessionsWithTwoLogins.body.items.filter((session) => session.isCurrent).length, 1);
+
+  const revokeOneSession = await request(`/api/v1/auth/sessions/${secondPersonalLogin.body.session.id}`, {
+    method: "DELETE",
+    auth: personal,
+  });
+  assert.equal(revokeOneSession.response.status, 204);
+  const revokedIndividualSession = await request("/api/v1/auth/session", { auth: secondPersonalSession });
+  assert.equal(revokedIndividualSession.body.authenticated, false);
+
+  const thirdPersonalLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pendingPersonal.email, password: "C04_Recovered_Test_2026!" },
+    auth: await createPreAuth(),
+  });
+  assert.equal(thirdPersonalLogin.response.status, 200, JSON.stringify(thirdPersonalLogin.body));
+  const thirdPersonalSession = {
+    cookie: cookieValue(thirdPersonalLogin.response, "__Host-seekalive_session"),
+    csrfToken: thirdPersonalLogin.body.csrfToken,
+  };
+  const revokeOtherSessions = await request("/api/v1/auth/sessions/others", {
+    method: "DELETE",
+    auth: personal,
+  });
+  assert.equal(revokeOtherSessions.response.status, 200, JSON.stringify(revokeOtherSessions.body));
+  assert.equal(revokeOtherSessions.body.revokedCount, 1);
+  assert.equal((await request("/api/v1/auth/session", { auth: personal })).body.authenticated, true);
+  assert.equal((await request("/api/v1/auth/session", { auth: thirdPersonalSession })).body.authenticated, false);
+  const repeatedRevokeOtherSessions = await request("/api/v1/auth/sessions/others", {
+    method: "DELETE",
+    auth: personal,
+  });
+  assert.equal(repeatedRevokeOtherSessions.response.status, 200);
+  assert.equal(repeatedRevokeOtherSessions.body.revokedCount, 0);
+
   const [upgradedCommercialCredential] = await db
     .select({ passwordPolicyVersion: passwordCredentials.passwordPolicyVersion })
     .from(passwordCredentials)

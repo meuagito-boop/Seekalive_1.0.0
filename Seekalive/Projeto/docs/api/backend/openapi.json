@@ -1370,8 +1370,18 @@
         "tags": [
           "auth"
         ],
-        "summary": "Listar sessões próprias",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Listar sessões próprias ativas",
+        "description": "Lista somente sessões ativas da conta autenticada, com página fixa de 20 itens e cursor opaco. Cada item informa ID, criação, expiração e se é a sessão atual. Não coleta IP, user-agent, impressão digital nem afirma reconhecer dispositivo habitual.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "SessionCookie": []
@@ -1379,11 +1389,169 @@
         ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PageSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/sessions/others": {
+      "delete": {
+        "operationId": "auth_delete_v1_auth_sessions_others_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Revogar todas as outras sessões",
+        "description": "Revoga atomicamente todas as sessões ativas da própria conta, preservando a sessão autenticada que fez o pedido. Repetir a operação é seguro e retorna zero quando não há outras sessões.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtherSessionsRevoked"
                 }
               }
             }
@@ -1527,8 +1695,8 @@
         "tags": [
           "auth"
         ],
-        "summary": "Revogar sessão própria",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "summary": "Revogar uma sessão própria",
+        "description": "Revoga somente uma sessão ativa pertencente à conta autenticada. IDs de outras contas são indistinguíveis de IDs inexistentes (404); a sessão atual deve ser encerrada pelo endpoint de logout.",
         "parameters": [
           {
             "name": "sessionId",
@@ -1548,7 +1716,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -22723,6 +22891,51 @@
           "expiresAt"
         ]
       },
+      "SessionListItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "expiresAt",
+          "isCurrent"
+        ]
+      },
+      "OtherSessionsRevoked": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "other_sessions_revoked"
+          },
+          "revokedCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "status",
+          "revokedCount"
+        ]
+      },
       "PasswordUpdated": {
         "type": "object",
         "additionalProperties": false,
@@ -22775,7 +22988,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Session"
+              "$ref": "#/components/schemas/SessionListItem"
             }
           },
           "nextCursor": {

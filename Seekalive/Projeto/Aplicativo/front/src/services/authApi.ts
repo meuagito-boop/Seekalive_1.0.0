@@ -22,6 +22,18 @@ export type CurrentSession =
   | { authenticated: false; account: null; session: null }
   | { authenticated: true; account: AuthAccount; session: { id: string; createdAt: string; expiresAt: string } };
 
+export type AuthSessionView = {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+};
+
+export type AuthSessionPage = {
+  items: AuthSessionView[];
+  nextCursor: string | null;
+};
+
 type ApiErrorPayload = {
   error?: {
     code?: string;
@@ -65,6 +77,17 @@ export async function getCurrentSession(): Promise<CurrentSession> {
   return parseResponse<CurrentSession>(response);
 }
 
+export async function getAuthSessions(cursor?: string): Promise<AuthSessionPage> {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  const response = await fetch(`/api/v1/auth/sessions${query}`, {
+    method: "GET",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  return parseResponse<AuthSessionPage>(response);
+}
+
 export async function getCsrfToken(): Promise<string> {
   const response = await fetch("/api/v1/auth/csrf", {
     method: "GET",
@@ -87,6 +110,19 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
       "X-CSRF-Token": csrfToken,
     },
     body: body === undefined ? "{}" : JSON.stringify(body),
+  });
+  return parseResponse<T>(response);
+}
+
+async function deleteJson<T>(path: string): Promise<T> {
+  const csrfToken = await getCsrfToken();
+  const response = await fetch(`/api/v1${path}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
   });
   return parseResponse<T>(response);
 }
@@ -167,4 +203,12 @@ export function completeOnboarding(payload: { interests: string[]; skipped: bool
 
 export async function logoutAccount(): Promise<void> {
   await postJson<void>("/auth/logout");
+}
+
+export function revokeAuthSession(sessionId: string): Promise<void> {
+  return deleteJson<void>(`/auth/sessions/${encodeURIComponent(sessionId)}`);
+}
+
+export function revokeOtherAuthSessions(): Promise<{ status: "other_sessions_revoked"; revokedCount: number }> {
+  return deleteJson<{ status: "other_sessions_revoked"; revokedCount: number }>("/auth/sessions/others");
 }

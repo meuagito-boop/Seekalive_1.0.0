@@ -24,7 +24,7 @@ const settingsGroups = [
   {
     title: "Segurança",
     items: [
-      { icon: Lock, label: "Segurança", desc: "Duas etapas e sessões · ainda indisponível", path: "/settings/security" },
+      { icon: Lock, label: "Segurança", desc: "Sessões e controle de acesso", path: "/settings/security" },
       { icon: Ban, label: "Usuários bloqueados", desc: "Contas que você bloqueou", path: "/settings/blocked" },
     ],
   },

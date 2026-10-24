@@ -1,6 +1,6 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **131 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **132 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
 > Rotas marcadas **ATIVA** já têm handler no servidor atual. Rotas **PROPOSTA** ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.
 
@@ -29,8 +29,9 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | POST | `/v1/auth/login` | Público | `LoginRequest` | `AuthResult` | **ATIVA** |
 | POST | `/v1/auth/password/update` | Público | `PasswordPolicyUpdateRequest` | `PasswordUpdated` | **ATIVA** |
 | POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **PROPOSTA** |
-| DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
+| GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **ATIVA** |
+| DELETE | `/v1/auth/sessions/others` | Sessão autenticada | — | `OtherSessionsRevoked` | **ATIVA** |
+| DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
 | POST | `/v1/auth/password/reset/request` | Público | `PasswordResetRequest` | `PasswordResetRequested` | **ATIVA**; assíncrona |
 | POST | `/v1/auth/password/reset/confirm` | Público | `PasswordResetConfirm` | `PasswordResetComplete` | **ATIVA** |
 | POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **ATIVA**; assíncrona |

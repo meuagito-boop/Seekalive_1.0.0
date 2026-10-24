@@ -102,6 +102,10 @@ export const passwordResetConfirmSchema = z
     }
   });
 
+export const sessionIdParamSchema = z.object({
+  sessionId: z.string().uuid(),
+});
+
 export const verificationRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
 });

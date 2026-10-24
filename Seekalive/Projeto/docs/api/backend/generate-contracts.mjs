@@ -75,8 +75,26 @@ post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Emp
     },
   },
 });
-g("auth", "/v1/auth/sessions", "Listar sessões próprias", "PageSession", null);
-del("auth", "/v1/auth/sessions/{sessionId}", "Revogar sessão própria", "Empty");
+g("auth", "/v1/auth/sessions", "Listar sessões próprias ativas", "PageSession", null, {
+  status: "live",
+  auth: "required",
+  query: ["cursor"],
+  contractDescription: "Lista somente sessões ativas da conta autenticada, com página fixa de 20 itens e cursor opaco. Cada item informa ID, criação, expiração e se é a sessão atual. Não coleta IP, user-agent, impressão digital nem afirma reconhecer dispositivo habitual.",
+});
+del("auth", "/v1/auth/sessions/others", "Revogar todas as outras sessões", "OtherSessionsRevoked", {
+  status: "live",
+  auth: "required",
+  csrfOnly: true,
+  successCode: "200",
+  contractDescription: "Revoga atomicamente todas as sessões ativas da própria conta, preservando a sessão autenticada que fez o pedido. Repetir a operação é seguro e retorna zero quando não há outras sessões.",
+});
+del("auth", "/v1/auth/sessions/{sessionId}", "Revogar uma sessão própria", "Empty", {
+  status: "live",
+  auth: "required",
+  csrfOnly: true,
+  successCode: "204",
+  contractDescription: "Revoga somente uma sessão ativa pertencente à conta autenticada. IDs de outras contas são indistinguíveis de IDs inexistentes (404); a sessão atual deve ser encerrada pelo endpoint de logout.",
+});
 post("auth", "/v1/auth/password/reset/request", "Solicitar código para redefinir a senha", "PasswordResetRequest", "PasswordResetRequested", {
   auth: "none",
   csrfOnly: true,
@@ -265,6 +283,16 @@ const schemas = {
   Readiness: model({ status: { type: "string", enum: ["ready", "degraded"] }, checks: { type: "object", additionalProperties: { type: "string" } } }, ["status", "checks"]),
   Csrf: model({ csrfToken: string }, ["csrfToken"]),
   Session: model({ id: uuid, createdAt: { type: "string", format: "date-time" }, expiresAt: { type: "string", format: "date-time" } }, ["id", "createdAt", "expiresAt"]),
+  SessionListItem: model({
+    id: uuid,
+    createdAt: { type: "string", format: "date-time" },
+    expiresAt: { type: "string", format: "date-time" },
+    isCurrent: { type: "boolean" },
+  }, ["id", "createdAt", "expiresAt", "isCurrent"]),
+  OtherSessionsRevoked: model({
+    status: { type: "string", const: "other_sessions_revoked" },
+    revokedCount: { type: "integer", minimum: 0 },
+  }, ["status", "revokedCount"]),
   PasswordUpdated: model({ status: { type: "string", const: "password_updated" } }, ["status"]),
   LegacyPasswordUpdateRequired: model({
     emailVerified: { type: "boolean", const: true },
@@ -274,7 +302,7 @@ const schemas = {
   VerificationConfirmation: {
     oneOf: [ref("AuthResult"), ref("LegacyPasswordUpdateRequired")],
   },
-  PageSession: page("Session"),
+  PageSession: page("SessionListItem"),
   AuthenticatedAccount: model({
     id: uuid,
     username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" },
@@ -524,12 +552,16 @@ for (const route of R) {
       ? { security: ["get", "head", "options"].includes(method)
         ? [{ SessionCookie: [] }, {}]
         : [{ SessionCookie: [], CsrfHeader: [] }, { CsrfHeader: [] }] }
+      : route.auth === "required"
+        ? { security: ["get", "head", "options"].includes(method) ? [{ SessionCookie: [] }] : [{ SessionCookie: [], CsrfHeader: [] }] }
       : route.auth === "none" ? { security: [] } : {}),
     ...(!route.auth && route.status !== "live" && ["get"].includes(method) ? { security: [{ SessionCookie: [] }] } : {}),
     ...(route.csrfOnly
       ? { security: route.auth === "optional"
         ? [{ SessionCookie: [], CsrfHeader: [] }, { PreAuthCookie: [], CsrfHeader: [] }]
-        : [{ PreAuthCookie: [], CsrfHeader: [] }] }
+        : route.auth === "required"
+          ? [{ SessionCookie: [], CsrfHeader: [] }]
+          : [{ PreAuthCookie: [], CsrfHeader: [] }] }
       : {}),
     responses: responses,
   };
