@@ -210,7 +210,7 @@ function responseCookies(response) {
 function cookieValue(response, name) {
   const cookie = responseCookies(response)
     .map((value) => value.split(";")[0])
-    .find((value) => value.startsWith(`${name}=`));
+    .findLast((value) => value.startsWith(`${name}=`));
   assert.ok(cookie, `Expected ${name} cookie.`);
   return cookie;
 }
