@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 1.9
+**Versão do documento:** 2.0
 **Status:** A01 implementado, mas parcialmente validado. A02 começou: endpoints de liveness/readiness, 404 JSON, request ID, encerramento gracioso e testes HTTP básicos adicionados. A suíte isolada de fluxos autenticados foi implementada, mas não executada: a proteção detectou o ambiente marcado como produção e interrompeu o teste antes de conectar ou criar schema. O backend agora aceita configuração explícita de um PostgreSQL externo, mas o banco ainda não foi provisionado nem conectado. A configuração explícita de confiança em proxy permanece adiada por decisão do usuário.
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
@@ -460,6 +460,22 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Drizzle Kit:** `drizzle-kit export` carregou a configuração e gerou SQL sem conexão ou escrita. `drizzle-kit check` não passou: retornou erro de parâmetros do driver AWS Data API (`database` indefinido e `secretArn` igual a `postgresql`); a forma com `--config` e `--dialect` também foi recusada pela CLI. Nenhuma tentativa executou DDL. A validação de migração externa permanece pendente.
 - **Pendências A02:** executar a suíte de banco isolado somente em ambiente de desenvolvimento comprovado; cobrir escrita e autorização de cadastro, confirmação, onboarding, perfil, follows, Círculo e bloqueios entre duas contas. Não há cobertura autenticada de ponta a ponta concluída nesta entrega. A confiança em proxy continua desligada/adiada e o rate limit segue local ao processo.
 
+### 11.7 Validação integrada de Frontend e Backend — 24/10/2026
+
+**Resultado geral:** o preview frontend, a API e os testes locais funcionam, mas o aplicativo ainda não está integrado ao backend em todos os módulos e não está validado para produção.
+
+- **Typecheck:** `pnpm run typecheck` passou como parte do build completo, incluindo frontend, API, bibliotecas compartilhadas e sandbox.
+- **Build:** `pnpm run build` sem variáveis falhou porque o Vite do sandbox exige `PORT` e `BASE_PATH`. Com `PORT=8081 BASE_PATH=/ pnpm run build`, o build completo passou. O bundle principal do frontend foi de 953,10 kB minificado e emitiu o aviso de chunk acima de 500 kB.
+- **Testes frontend:** `pnpm run test:social` passou com 42/42 testes. São testes de regras e armazenamento local; não substituem testes de navegação/browser nem a integração real com API.
+- **Testes backend:** `pnpm --filter @workspace/scripts run test:backend` passou com 16/16: 5 limites de segurança, 6 seleção de conexão e 5 contratos de runtime HTTP.
+- **Smoke da API:** `/api/healthz` respondeu `{"status":"ok"}`; `/api/readyz` respondeu `{"status":"ready"}` no banco atualmente selecionado (Replit). A requisição `GET /api/v1/social/feed` retornou 404 JSON porque essa rota de feed ainda não foi implementada.
+- **Preview visual:** screenshots mobile de `/`, `/login` e `/register` carregaram sem erros de aplicação no console. Isso confirma apenas a renderização inicial dessas páginas; interações, desktop, teclado e leitores de tela não foram auditados nesta rodada.
+- **Integração existente:** frontend usa a API para sessão, cadastro, login, confirmação de e-mail e onboarding. Backend também possui rotas de perfil, privacidade e relações. Entretanto, a interface ainda usa armazenamento local em partes de perfil/relacionamentos; `contentService` está explicitamente ligado ao adaptador de demonstração, e o adaptador REST não está ativo.
+- **Desalinhamento de contrato:** a especificação OpenAPI só declara `/healthz`, apesar das rotas adicionais de autenticação, perfis, onboarding e relações. O serviço frontend referencia conteúdo, comentários, artigos, busca e referências que não existem como rotas no backend. O Seek, Shop, avaliações, eventos e serviços ainda não têm módulos de API completos.
+- **Conta e recuperação:** a tela de recuperação de senha existe, mas não há rota correspondente na API. Não foi validado um ciclo real de cadastro → e-mail → confirmação → login → sessão contra um banco isolado.
+- **Persistência:** o banco externo solicitado ainda não existe/configurado. O banco atual é o padrão Replit; nenhum dado foi escrito durante esta validação. A suíte isolada de integração continua sem execução, pois o ambiente está identificado como produção e a proteção não pode ser contornada.
+- **Prioridades para avançar:** (1) alinhar OpenAPI e contratos ao backend implementado; (2) definir quais áreas permanecem como demonstração e ativar adaptadores reais para as demais; (3) validar cadastro e autorização em banco isolado comprovadamente de desenvolvimento; (4) completar APIs faltantes, começando pela recuperação de senha e pelos módulos escolhidos para o próximo pacote; (5) resolver o erro de `drizzle-kit check` antes de qualquer migração externa.
+
 ### Histórico do documento
 
 | Versão | Data | Atualização |
@@ -473,3 +489,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 1.7 | 2026-10-24 | Registra a correção da inicialização do schema padrão, a decisão de migrar para PostgreSQL externo e que o provisionamento ainda depende da conexão com o provedor. |
 | 1.8 | 2026-10-24 | Registra a seleção explícita e segura de conexão externa no backend, sem alterar o destino Replit nem provisionar ou migrar banco externo. |
 | 1.9 | 2026-10-24 | Registra os testes do seletor e a falha não destrutiva de `drizzle-kit check`; a migração externa segue sem validação. |
+| 2.0 | 2026-10-24 | Consolida a validação integrada do frontend e backend, build, testes, smoke de API, lacunas de contratos e próximos passos. |
