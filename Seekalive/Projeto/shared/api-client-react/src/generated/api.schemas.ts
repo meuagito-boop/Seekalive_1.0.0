@@ -9,3 +9,260 @@ export interface HealthStatus {
   status: string;
 }
 
+export type ApiErrorErrorDetailsItem = {
+  field: string;
+  message: string;
+};
+
+export type ApiErrorError = {
+  code: string;
+  message: string;
+  requestId: string;
+  details?: ApiErrorErrorDetailsItem[];
+};
+
+export interface ApiError {
+  error: ApiErrorError;
+}
+
+export type RelationshipViewFollowing = typeof RelationshipViewFollowing[keyof typeof RelationshipViewFollowing];
+
+
+export const RelationshipViewFollowing = {
+  none: 'none',
+  pending: 'pending',
+  accepted: 'accepted',
+} as const;
+
+export interface RelationshipView {
+  following: RelationshipViewFollowing;
+  inCircle: boolean;
+  blockedByMe: boolean;
+  blockedByThem: boolean;
+  mutedByMe: boolean;
+}
+
+export interface AccountStats {
+  /** @minimum 0 */
+  posts: number;
+  /** @minimum 0 */
+  followers: number;
+  /** @minimum 0 */
+  following: number;
+  /** @minimum 0 */
+  circles: number;
+}
+
+export type AccountViewAccountType = typeof AccountViewAccountType[keyof typeof AccountViewAccountType];
+
+
+export const AccountViewAccountType = {
+  personal: 'personal',
+  commercial: 'commercial',
+} as const;
+
+export interface AccountView {
+  id: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  /** @nullable */
+  avatarUrl: string | null;
+  /** @nullable */
+  coverUrl: string | null;
+  /** @nullable */
+  location: string | null;
+  /** @nullable */
+  website: string | null;
+  accountType: AccountViewAccountType;
+  isPrivate: boolean;
+  isVerified: boolean;
+  joinedAt: string;
+  relationship: RelationshipView;
+  stats: AccountStats;
+  /** @minimum 1 */
+  version: number;
+}
+
+export interface AccountPatch {
+  /**
+     * @minLength 3
+     * @maxLength 20
+     * @pattern ^[a-z0-9_]+$
+     */
+  username?: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  displayName?: string;
+  /** @maxLength 500 */
+  bio?: string;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  location?: string | null;
+  /**
+     * @maxLength 2048
+     * @nullable
+     */
+  website?: string | null;
+  /** @minimum 1 */
+  version: number;
+}
+
+export type PrivacySettingsProfileVisibility = typeof PrivacySettingsProfileVisibility[keyof typeof PrivacySettingsProfileVisibility];
+
+
+export const PrivacySettingsProfileVisibility = {
+  public: 'public',
+  private: 'private',
+} as const;
+
+export type PrivacySettingsMessages = typeof PrivacySettingsMessages[keyof typeof PrivacySettingsMessages];
+
+
+export const PrivacySettingsMessages = {
+  everyone: 'everyone',
+  circle: 'circle',
+  nobody: 'nobody',
+} as const;
+
+export interface PrivacySettings {
+  profileVisibility: PrivacySettingsProfileVisibility;
+  messages: PrivacySettingsMessages;
+  readReceipts: boolean;
+  /** @minimum 1 */
+  version: number;
+}
+
+/**
+ * All fields are required, including the version used for optimistic concurrency.
+ */
+export type PrivacySettingsWrite = PrivacySettings;
+
+export interface AccountPage {
+  items: AccountView[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface AccountList {
+  items: AccountView[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface FollowRequest {
+  account: AccountView;
+  createdAt: string;
+}
+
+export interface FollowRequestPage {
+  items: FollowRequest[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface CircleMember {
+  account: AccountView;
+  isMutual: true;
+}
+
+export interface CirclePage {
+  items: CircleMember[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export type FollowStateStatus = typeof FollowStateStatus[keyof typeof FollowStateStatus];
+
+
+export const FollowStateStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+} as const;
+
+export interface FollowState {
+  status: FollowStateStatus;
+  updatedAt: string;
+}
+
+/**
+ * Missing, expired, or unverified account session
+ */
+export type UnauthorizedResponse = ApiError;
+
+/**
+ * CSRF failure, blocked relationship, or inaccessible private profile
+ */
+export type ForbiddenResponse = ApiError;
+
+/**
+ * Account or relationship not found or intentionally undisclosed
+ */
+export type NotFoundResponse = ApiError;
+
+/**
+ * Invalid request input
+ */
+export type ValidationErrorResponse = ApiError;
+
+/**
+ * Optimistic concurrency conflict or duplicate username
+ */
+export type ConflictResponse = ApiError;
+
+export type PageLimitParameter = number;
+
+export type PageCursorParameter = string;
+
+export type GetFollowersParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
+
+export type GetFollowingParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
+
+export type GetIncomingFollowRequestsParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
+
+export type GetCircleParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
+

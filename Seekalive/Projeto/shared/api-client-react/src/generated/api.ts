@@ -6,26 +6,48 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
-  HealthStatus
+  AccountList,
+  AccountPage,
+  AccountPatch,
+  AccountView,
+  CirclePage,
+  ConflictResponse,
+  FollowRequestPage,
+  FollowState,
+  ForbiddenResponse,
+  GetCircleParams,
+  GetFollowersParams,
+  GetFollowingParams,
+  GetIncomingFollowRequestsParams,
+  HealthStatus,
+  NotFoundResponse,
+  PrivacySettings,
+  PrivacySettingsWrite,
+  UnauthorizedResponse,
+  ValidationErrorResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -152,4 +174,1527 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGetMyAccountUrl = () => {
+
+
+
+
+  return `/api/v1/accounts/me`
+}
+
+/**
+ * @summary Get the authenticated account profile
+ */
+export const getMyAccount = async ( options?: RequestInit): Promise<AccountView> => {
+
+  return customFetch<AccountView>(getGetMyAccountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyAccountQueryKey = () => {
+    return [
+    `/api/v1/accounts/me`
+    ] as const;
+    }
+
+
+export const getGetMyAccountQueryOptions = <TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAccountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAccount>>> = ({ signal }) => getMyAccount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyAccountQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAccount>>>
+export type GetMyAccountQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAccount>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAccount>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAccount>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAccount>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the authenticated account profile
+ */
+
+export function useGetMyAccount<TData = Awaited<ReturnType<typeof getMyAccount>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAccount>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyAccountQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateMyAccountUrl = () => {
+
+
+
+
+  return `/api/v1/accounts/me`
+}
+
+/**
+ * @summary Update the authenticated account profile
+ */
+export const updateMyAccount = async (accountPatch: AccountPatch, options?: RequestInit): Promise<AccountView> => {
+
+  return customFetch<AccountView>(getUpdateMyAccountUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(accountPatch)
+  }
+);}
+
+
+
+
+
+export const getUpdateMyAccountMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyAccount>>, TError,{data: BodyType<AccountPatch>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyAccount>>, TError,{data: BodyType<AccountPatch>}, TContext> => {
+
+const mutationKey = ['updateMyAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyAccount>>, {data: BodyType<AccountPatch>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyAccountMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyAccount>>>
+    export type UpdateMyAccountMutationBody = BodyType<AccountPatch>
+    export type UpdateMyAccountMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>
+
+    /**
+ * @summary Update the authenticated account profile
+ */
+export const useUpdateMyAccount = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyAccount>>, TError,{data: BodyType<AccountPatch>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyAccount>>,
+        TError,
+        {data: BodyType<AccountPatch>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyAccountMutationOptions(options), queryClient);
+    }
+
+export const getGetMyPrivacySettingsUrl = () => {
+
+
+
+
+  return `/api/v1/accounts/me/privacy`
+}
+
+/**
+ * @summary Get authenticated account privacy settings
+ */
+export const getMyPrivacySettings = async ( options?: RequestInit): Promise<PrivacySettings> => {
+
+  return customFetch<PrivacySettings>(getGetMyPrivacySettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyPrivacySettingsQueryKey = () => {
+    return [
+    `/api/v1/accounts/me/privacy`
+    ] as const;
+    }
+
+
+export const getGetMyPrivacySettingsQueryOptions = <TData = Awaited<ReturnType<typeof getMyPrivacySettings>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPrivacySettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyPrivacySettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPrivacySettings>>> = ({ signal }) => getMyPrivacySettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyPrivacySettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyPrivacySettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPrivacySettings>>>
+export type GetMyPrivacySettingsQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetMyPrivacySettings<TData = Awaited<ReturnType<typeof getMyPrivacySettings>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPrivacySettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyPrivacySettings>>,
+          TError,
+          Awaited<ReturnType<typeof getMyPrivacySettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPrivacySettings<TData = Awaited<ReturnType<typeof getMyPrivacySettings>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPrivacySettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyPrivacySettings>>,
+          TError,
+          Awaited<ReturnType<typeof getMyPrivacySettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPrivacySettings<TData = Awaited<ReturnType<typeof getMyPrivacySettings>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPrivacySettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get authenticated account privacy settings
+ */
+
+export function useGetMyPrivacySettings<TData = Awaited<ReturnType<typeof getMyPrivacySettings>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPrivacySettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyPrivacySettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateMyPrivacySettingsUrl = () => {
+
+
+
+
+  return `/api/v1/accounts/me/privacy`
+}
+
+/**
+ * @summary Update authenticated account privacy settings
+ */
+export const updateMyPrivacySettings = async (privacySettingsWrite: PrivacySettingsWrite, options?: RequestInit): Promise<PrivacySettings> => {
+
+  return customFetch<PrivacySettings>(getUpdateMyPrivacySettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(privacySettingsWrite)
+  }
+);}
+
+
+
+
+
+export const getUpdateMyPrivacySettingsMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyPrivacySettings>>, TError,{data: BodyType<PrivacySettingsWrite>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyPrivacySettings>>, TError,{data: BodyType<PrivacySettingsWrite>}, TContext> => {
+
+const mutationKey = ['updateMyPrivacySettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyPrivacySettings>>, {data: BodyType<PrivacySettingsWrite>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyPrivacySettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyPrivacySettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyPrivacySettings>>>
+    export type UpdateMyPrivacySettingsMutationBody = BodyType<PrivacySettingsWrite>
+    export type UpdateMyPrivacySettingsMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>
+
+    /**
+ * @summary Update authenticated account privacy settings
+ */
+export const useUpdateMyPrivacySettings = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyPrivacySettings>>, TError,{data: BodyType<PrivacySettingsWrite>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyPrivacySettings>>,
+        TError,
+        {data: BodyType<PrivacySettingsWrite>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyPrivacySettingsMutationOptions(options), queryClient);
+    }
+
+export const getGetProfileByUsernameUrl = (username: string,) => {
+
+
+
+
+  return `/api/v1/profiles/${username}`
+}
+
+/**
+ * Authentication is optional. Private profile fields are limited according to follow approval and block rules.
+ * @summary Get a visible profile by username
+ */
+export const getProfileByUsername = async (username: string, options?: RequestInit): Promise<AccountView> => {
+
+  return customFetch<AccountView>(getGetProfileByUsernameUrl(username),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileByUsernameQueryKey = (username: string,) => {
+    return [
+    `/api/v1/profiles/${username}`
+    ] as const;
+    }
+
+
+export const getGetProfileByUsernameQueryOptions = <TData = Awaited<ReturnType<typeof getProfileByUsername>>, TError = ErrorType<NotFoundResponse>>(username: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByUsername>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileByUsernameQueryKey(username);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileByUsername>>> = ({ signal }) => getProfileByUsername(username, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: username !== null && username !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileByUsername>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileByUsernameQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileByUsername>>>
+export type GetProfileByUsernameQueryError = ErrorType<NotFoundResponse>
+
+
+export function useGetProfileByUsername<TData = Awaited<ReturnType<typeof getProfileByUsername>>, TError = ErrorType<NotFoundResponse>>(
+ username: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByUsername>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileByUsername>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileByUsername>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileByUsername<TData = Awaited<ReturnType<typeof getProfileByUsername>>, TError = ErrorType<NotFoundResponse>>(
+ username: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByUsername>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileByUsername>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileByUsername>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileByUsername<TData = Awaited<ReturnType<typeof getProfileByUsername>>, TError = ErrorType<NotFoundResponse>>(
+ username: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByUsername>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a visible profile by username
+ */
+
+export function useGetProfileByUsername<TData = Awaited<ReturnType<typeof getProfileByUsername>>, TError = ErrorType<NotFoundResponse>>(
+ username: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByUsername>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileByUsernameQueryOptions(username,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProfileByAccountIdUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/v1/accounts/${accountId}`
+}
+
+/**
+ * Authentication is optional. Blocked accounts are not disclosed.
+ * @summary Get a visible profile by account ID
+ */
+export const getProfileByAccountId = async (accountId: string, options?: RequestInit): Promise<AccountView> => {
+
+  return customFetch<AccountView>(getGetProfileByAccountIdUrl(accountId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileByAccountIdQueryKey = (accountId: string,) => {
+    return [
+    `/api/v1/accounts/${accountId}`
+    ] as const;
+    }
+
+
+export const getGetProfileByAccountIdQueryOptions = <TData = Awaited<ReturnType<typeof getProfileByAccountId>>, TError = ErrorType<NotFoundResponse>>(accountId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByAccountId>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileByAccountIdQueryKey(accountId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileByAccountId>>> = ({ signal }) => getProfileByAccountId(accountId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: accountId !== null && accountId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileByAccountId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileByAccountIdQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileByAccountId>>>
+export type GetProfileByAccountIdQueryError = ErrorType<NotFoundResponse>
+
+
+export function useGetProfileByAccountId<TData = Awaited<ReturnType<typeof getProfileByAccountId>>, TError = ErrorType<NotFoundResponse>>(
+ accountId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByAccountId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileByAccountId>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileByAccountId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileByAccountId<TData = Awaited<ReturnType<typeof getProfileByAccountId>>, TError = ErrorType<NotFoundResponse>>(
+ accountId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByAccountId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileByAccountId>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileByAccountId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileByAccountId<TData = Awaited<ReturnType<typeof getProfileByAccountId>>, TError = ErrorType<NotFoundResponse>>(
+ accountId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByAccountId>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a visible profile by account ID
+ */
+
+export function useGetProfileByAccountId<TData = Awaited<ReturnType<typeof getProfileByAccountId>>, TError = ErrorType<NotFoundResponse>>(
+ accountId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileByAccountId>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileByAccountIdQueryOptions(accountId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetFollowersUrl = (accountId: string,
+    params?: GetFollowersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/accounts/${accountId}/followers?${stringifiedParams}` : `/api/v1/social/accounts/${accountId}/followers`
+}
+
+/**
+ * Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
+ * @summary List visible followers
+ */
+export const getFollowers = async (accountId: string,
+    params?: GetFollowersParams, options?: RequestInit): Promise<AccountPage> => {
+
+  return customFetch<AccountPage>(getGetFollowersUrl(accountId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFollowersQueryKey = (accountId: string,
+    params?: GetFollowersParams,) => {
+    return [
+    `/api/v1/social/accounts/${accountId}/followers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetFollowersQueryOptions = <TData = Awaited<ReturnType<typeof getFollowers>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(accountId: string,
+    params?: GetFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFollowersQueryKey(accountId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFollowers>>> = ({ signal }) => getFollowers(accountId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: accountId !== null && accountId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFollowers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetFollowersQueryResult = NonNullable<Awaited<ReturnType<typeof getFollowers>>>
+export type GetFollowersQueryError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>
+
+
+export function useGetFollowers<TData = Awaited<ReturnType<typeof getFollowers>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params: undefined |  GetFollowersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFollowers>>,
+          TError,
+          Awaited<ReturnType<typeof getFollowers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFollowers<TData = Awaited<ReturnType<typeof getFollowers>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFollowers>>,
+          TError,
+          Awaited<ReturnType<typeof getFollowers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFollowers<TData = Awaited<ReturnType<typeof getFollowers>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List visible followers
+ */
+
+export function useGetFollowers<TData = Awaited<ReturnType<typeof getFollowers>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetFollowersQueryOptions(accountId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetFollowingUrl = (accountId: string,
+    params?: GetFollowingParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/accounts/${accountId}/following?${stringifiedParams}` : `/api/v1/social/accounts/${accountId}/following`
+}
+
+/**
+ * Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
+ * @summary List visible followed accounts
+ */
+export const getFollowing = async (accountId: string,
+    params?: GetFollowingParams, options?: RequestInit): Promise<AccountPage> => {
+
+  return customFetch<AccountPage>(getGetFollowingUrl(accountId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFollowingQueryKey = (accountId: string,
+    params?: GetFollowingParams,) => {
+    return [
+    `/api/v1/social/accounts/${accountId}/following`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetFollowingQueryOptions = <TData = Awaited<ReturnType<typeof getFollowing>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(accountId: string,
+    params?: GetFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFollowingQueryKey(accountId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFollowing>>> = ({ signal }) => getFollowing(accountId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: accountId !== null && accountId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFollowing>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetFollowingQueryResult = NonNullable<Awaited<ReturnType<typeof getFollowing>>>
+export type GetFollowingQueryError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>
+
+
+export function useGetFollowing<TData = Awaited<ReturnType<typeof getFollowing>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params: undefined |  GetFollowingParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowing>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFollowing>>,
+          TError,
+          Awaited<ReturnType<typeof getFollowing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFollowing<TData = Awaited<ReturnType<typeof getFollowing>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowing>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFollowing>>,
+          TError,
+          Awaited<ReturnType<typeof getFollowing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFollowing<TData = Awaited<ReturnType<typeof getFollowing>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List visible followed accounts
+ */
+
+export function useGetFollowing<TData = Awaited<ReturnType<typeof getFollowing>>, TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetFollowingQueryOptions(accountId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getFollowAccountUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/v1/social/accounts/${accountId}/follow`
+}
+
+/**
+ * @summary Follow a public account or request to follow a private account
+ */
+export const followAccount = async (accountId: string, options?: RequestInit): Promise<FollowState> => {
+
+  return customFetch<FollowState>(getFollowAccountUrl(accountId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getFollowAccountMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof followAccount>>, TError,{accountId: string}, TContext> => {
+
+const mutationKey = ['followAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof followAccount>>, {accountId: string}> = (props) => {
+          const {accountId} = props ?? {};
+
+          return  followAccount(accountId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FollowAccountMutationResult = NonNullable<Awaited<ReturnType<typeof followAccount>>>
+
+    export type FollowAccountMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+
+    /**
+ * @summary Follow a public account or request to follow a private account
+ */
+export const useFollowAccount = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof followAccount>>,
+        TError,
+        {accountId: string},
+        TContext
+      > => {
+      return useMutation(getFollowAccountMutationOptions(options), queryClient);
+    }
+
+export const getUnfollowAccountUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/v1/social/accounts/${accountId}/follow`
+}
+
+/**
+ * @summary Unfollow an account or withdraw a pending request
+ */
+export const unfollowAccount = async (accountId: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getUnfollowAccountUrl(accountId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnfollowAccountMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unfollowAccount>>, TError,{accountId: string}, TContext> => {
+
+const mutationKey = ['unfollowAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unfollowAccount>>, {accountId: string}> = (props) => {
+          const {accountId} = props ?? {};
+
+          return  unfollowAccount(accountId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnfollowAccountMutationResult = NonNullable<Awaited<ReturnType<typeof unfollowAccount>>>
+
+    export type UnfollowAccountMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+
+    /**
+ * @summary Unfollow an account or withdraw a pending request
+ */
+export const useUnfollowAccount = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unfollowAccount>>,
+        TError,
+        {accountId: string},
+        TContext
+      > => {
+      return useMutation(getUnfollowAccountMutationOptions(options), queryClient);
+    }
+
+export const getGetIncomingFollowRequestsUrl = (params?: GetIncomingFollowRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/follow-requests?${stringifiedParams}` : `/api/v1/social/follow-requests`
+}
+
+/**
+ * @summary List incoming private-profile follow requests
+ */
+export const getIncomingFollowRequests = async (params?: GetIncomingFollowRequestsParams, options?: RequestInit): Promise<FollowRequestPage> => {
+
+  return customFetch<FollowRequestPage>(getGetIncomingFollowRequestsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIncomingFollowRequestsQueryKey = (params?: GetIncomingFollowRequestsParams,) => {
+    return [
+    `/api/v1/social/follow-requests`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetIncomingFollowRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(params?: GetIncomingFollowRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIncomingFollowRequestsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIncomingFollowRequests>>> = ({ signal }) => getIncomingFollowRequests(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetIncomingFollowRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getIncomingFollowRequests>>>
+export type GetIncomingFollowRequestsQueryError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>
+
+
+export function useGetIncomingFollowRequests<TData = Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params: undefined |  GetIncomingFollowRequestsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIncomingFollowRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getIncomingFollowRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIncomingFollowRequests<TData = Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params?: GetIncomingFollowRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIncomingFollowRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getIncomingFollowRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIncomingFollowRequests<TData = Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params?: GetIncomingFollowRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List incoming private-profile follow requests
+ */
+
+export function useGetIncomingFollowRequests<TData = Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params?: GetIncomingFollowRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIncomingFollowRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetIncomingFollowRequestsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAcceptFollowRequestUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/v1/social/follow-requests/${accountId}/accept`
+}
+
+/**
+ * @summary Approve a pending follow request
+ */
+export const acceptFollowRequest = async (accountId: string, options?: RequestInit): Promise<FollowState> => {
+
+  return customFetch<FollowState>(getAcceptFollowRequestUrl(accountId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAcceptFollowRequestMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptFollowRequest>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptFollowRequest>>, TError,{accountId: string}, TContext> => {
+
+const mutationKey = ['acceptFollowRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptFollowRequest>>, {accountId: string}> = (props) => {
+          const {accountId} = props ?? {};
+
+          return  acceptFollowRequest(accountId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptFollowRequestMutationResult = NonNullable<Awaited<ReturnType<typeof acceptFollowRequest>>>
+
+    export type AcceptFollowRequestMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+
+    /**
+ * @summary Approve a pending follow request
+ */
+export const useAcceptFollowRequest = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptFollowRequest>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof acceptFollowRequest>>,
+        TError,
+        {accountId: string},
+        TContext
+      > => {
+      return useMutation(getAcceptFollowRequestMutationOptions(options), queryClient);
+    }
+
+export const getDeclineFollowRequestUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/v1/social/follow-requests/${accountId}/decline`
+}
+
+/**
+ * @summary Decline a pending follow request
+ */
+export const declineFollowRequest = async (accountId: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeclineFollowRequestUrl(accountId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeclineFollowRequestMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,{accountId: string}, TContext> => {
+
+const mutationKey = ['declineFollowRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof declineFollowRequest>>, {accountId: string}> = (props) => {
+          const {accountId} = props ?? {};
+
+          return  declineFollowRequest(accountId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeclineFollowRequestMutationResult = NonNullable<Awaited<ReturnType<typeof declineFollowRequest>>>
+
+    export type DeclineFollowRequestMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse>
+
+    /**
+ * @summary Decline a pending follow request
+ */
+export const useDeclineFollowRequest = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof declineFollowRequest>>,
+        TError,
+        {accountId: string},
+        TContext
+      > => {
+      return useMutation(getDeclineFollowRequestMutationOptions(options), queryClient);
+    }
+
+export const getGetCircleUrl = (params?: GetCircleParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/circles?${stringifiedParams}` : `/api/v1/social/circles`
+}
+
+/**
+ * Circle membership is derived from reciprocal accepted follows; there are no separate circle requests.
+ * @summary List accounts followed mutually by the authenticated account
+ */
+export const getCircle = async (params?: GetCircleParams, options?: RequestInit): Promise<CirclePage> => {
+
+  return customFetch<CirclePage>(getGetCircleUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCircleQueryKey = (params?: GetCircleParams,) => {
+    return [
+    `/api/v1/social/circles`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetCircleQueryOptions = <TData = Awaited<ReturnType<typeof getCircle>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(params?: GetCircleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCircle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCircleQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCircle>>> = ({ signal }) => getCircle(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCircle>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetCircleQueryResult = NonNullable<Awaited<ReturnType<typeof getCircle>>>
+export type GetCircleQueryError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>
+
+
+export function useGetCircle<TData = Awaited<ReturnType<typeof getCircle>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params: undefined |  GetCircleParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCircle>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCircle>>,
+          TError,
+          Awaited<ReturnType<typeof getCircle>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCircle<TData = Awaited<ReturnType<typeof getCircle>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params?: GetCircleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCircle>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCircle>>,
+          TError,
+          Awaited<ReturnType<typeof getCircle>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCircle<TData = Awaited<ReturnType<typeof getCircle>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params?: GetCircleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCircle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List accounts followed mutually by the authenticated account
+ */
+
+export function useGetCircle<TData = Awaited<ReturnType<typeof getCircle>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>>(
+ params?: GetCircleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCircle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetCircleQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBlockedAccountsUrl = () => {
+
+
+
+
+  return `/api/v1/social/blocks`
+}
+
+/**
+ * @summary List accounts blocked by the authenticated account
+ */
+export const getBlockedAccounts = async ( options?: RequestInit): Promise<AccountList> => {
+
+  return customFetch<AccountList>(getGetBlockedAccountsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBlockedAccountsQueryKey = () => {
+    return [
+    `/api/v1/social/blocks`
+    ] as const;
+    }
+
+
+export const getGetBlockedAccountsQueryOptions = <TData = Awaited<ReturnType<typeof getBlockedAccounts>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedAccounts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBlockedAccountsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBlockedAccounts>>> = ({ signal }) => getBlockedAccounts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBlockedAccounts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetBlockedAccountsQueryResult = NonNullable<Awaited<ReturnType<typeof getBlockedAccounts>>>
+export type GetBlockedAccountsQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useGetBlockedAccounts<TData = Awaited<ReturnType<typeof getBlockedAccounts>>, TError = ErrorType<UnauthorizedResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedAccounts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBlockedAccounts>>,
+          TError,
+          Awaited<ReturnType<typeof getBlockedAccounts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBlockedAccounts<TData = Awaited<ReturnType<typeof getBlockedAccounts>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedAccounts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBlockedAccounts>>,
+          TError,
+          Awaited<ReturnType<typeof getBlockedAccounts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBlockedAccounts<TData = Awaited<ReturnType<typeof getBlockedAccounts>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedAccounts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List accounts blocked by the authenticated account
+ */
+
+export function useGetBlockedAccounts<TData = Awaited<ReturnType<typeof getBlockedAccounts>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedAccounts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetBlockedAccountsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getBlockAccountUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/v1/social/blocks/${accountId}`
+}
+
+/**
+ * @summary Block an account and remove follow edges and pending requests in both directions
+ */
+export const blockAccount = async (accountId: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getBlockAccountUrl(accountId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getBlockAccountMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof blockAccount>>, TError,{accountId: string}, TContext> => {
+
+const mutationKey = ['blockAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blockAccount>>, {accountId: string}> = (props) => {
+          const {accountId} = props ?? {};
+
+          return  blockAccount(accountId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BlockAccountMutationResult = NonNullable<Awaited<ReturnType<typeof blockAccount>>>
+
+    export type BlockAccountMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+
+    /**
+ * @summary Block an account and remove follow edges and pending requests in both directions
+ */
+export const useBlockAccount = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof blockAccount>>,
+        TError,
+        {accountId: string},
+        TContext
+      > => {
+      return useMutation(getBlockAccountMutationOptions(options), queryClient);
+    }
+
+export const getUnblockAccountUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/v1/social/blocks/${accountId}`
+}
+
+/**
+ * Previously removed follow edges and requests are not restored.
+ * @summary Remove a block initiated by the authenticated account
+ */
+export const unblockAccount = async (accountId: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getUnblockAccountUrl(accountId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnblockAccountMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unblockAccount>>, TError,{accountId: string}, TContext> => {
+
+const mutationKey = ['unblockAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unblockAccount>>, {accountId: string}> = (props) => {
+          const {accountId} = props ?? {};
+
+          return  unblockAccount(accountId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnblockAccountMutationResult = NonNullable<Awaited<ReturnType<typeof unblockAccount>>>
+
+    export type UnblockAccountMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+
+    /**
+ * @summary Remove a block initiated by the authenticated account
+ */
+export const useUnblockAccount = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockAccount>>, TError,{accountId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unblockAccount>>,
+        TError,
+        {accountId: string},
+        TContext
+      > => {
+      return useMutation(getUnblockAccountMutationOptions(options), queryClient);
+    }
 

@@ -30,5 +30,5 @@ export const profileUsernameParamSchema = z.object({
   username: usernameSchema,
 });
 
-export type AccountPatch = z.infer<typeof accountPatchSchema>;
+export type AccountPatchInput = z.infer<typeof accountPatchSchema>;
 export type PrivacyWrite = z.infer<typeof privacyWriteSchema>;

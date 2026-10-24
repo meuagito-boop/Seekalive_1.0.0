@@ -3,3 +3,4 @@
 - [Autenticação Seekalive](seekalive-auth-strategy.md) — login próprio pela API foi escolhido para a fase de backend; até lá, login e cadastro continuam demonstrativos.
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
 - [Banco externo Seekalive](external-database.md) — o backend deverá usar PostgreSQL fora da Replit; provedor e conexão ainda precisam ser estabelecidos.
+- [Back-end em etapas](backend-staged-rollout.md) — avaliar pendências apenas dentro da fase atual; após autenticação e cadastro, avançar no Social etapa por etapa.

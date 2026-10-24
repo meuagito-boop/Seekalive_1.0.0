@@ -17,3 +17,627 @@ export const HealthCheckResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the authenticated account profile
+ */
+export const getMyAccountResponseStatsPostsMin = 0;
+
+export const getMyAccountResponseStatsFollowersMin = 0;
+
+export const getMyAccountResponseStatsFollowingMin = 0;
+
+export const getMyAccountResponseStatsCirclesMin = 0;
+
+
+
+
+export const GetMyAccountResponse = zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getMyAccountResponseStatsPostsMin),
+  "followers": zod.number().min(getMyAccountResponseStatsFollowersMin),
+  "following": zod.number().min(getMyAccountResponseStatsFollowingMin),
+  "circles": zod.number().min(getMyAccountResponseStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+})
+
+
+/**
+ * @summary Update the authenticated account profile
+ */
+export const updateMyAccountBodyUsernameMin = 3;
+export const updateMyAccountBodyUsernameMax = 20;
+
+
+export const updateMyAccountBodyUsernameRegExp = new RegExp('^[a-z0-9_]+$');
+export const updateMyAccountBodyDisplayNameMin = 2;
+export const updateMyAccountBodyDisplayNameMax = 80;
+
+export const updateMyAccountBodyBioMax = 500;
+
+export const updateMyAccountBodyLocationMax = 160;
+
+export const updateMyAccountBodyWebsiteMax = 2048;
+
+
+
+
+export const UpdateMyAccountBody = zod.object({
+  "username": zod.string().min(updateMyAccountBodyUsernameMin).max(updateMyAccountBodyUsernameMax).regex(updateMyAccountBodyUsernameRegExp).optional(),
+  "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional(),
+  "bio": zod.string().max(updateMyAccountBodyBioMax).optional(),
+  "location": zod.string().max(updateMyAccountBodyLocationMax).nullish(),
+  "website": zod.url().max(updateMyAccountBodyWebsiteMax).nullish(),
+  "version": zod.number().min(1)
+})
+
+export const updateMyAccountResponseStatsPostsMin = 0;
+
+export const updateMyAccountResponseStatsFollowersMin = 0;
+
+export const updateMyAccountResponseStatsFollowingMin = 0;
+
+export const updateMyAccountResponseStatsCirclesMin = 0;
+
+
+
+
+export const UpdateMyAccountResponse = zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(updateMyAccountResponseStatsPostsMin),
+  "followers": zod.number().min(updateMyAccountResponseStatsFollowersMin),
+  "following": zod.number().min(updateMyAccountResponseStatsFollowingMin),
+  "circles": zod.number().min(updateMyAccountResponseStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+})
+
+
+/**
+ * @summary Get authenticated account privacy settings
+ */
+
+
+
+export const GetMyPrivacySettingsResponse = zod.object({
+  "profileVisibility": zod.enum(['public', 'private']),
+  "messages": zod.enum(['everyone', 'circle', 'nobody']),
+  "readReceipts": zod.boolean(),
+  "version": zod.number().min(1)
+})
+
+
+/**
+ * @summary Update authenticated account privacy settings
+ */
+
+
+
+export const UpdateMyPrivacySettingsBody = zod.object({
+  "profileVisibility": zod.enum(['public', 'private']),
+  "messages": zod.enum(['everyone', 'circle', 'nobody']),
+  "readReceipts": zod.boolean(),
+  "version": zod.number().min(1)
+}).describe('All fields are required, including the version used for optimistic concurrency.')
+
+
+
+
+export const UpdateMyPrivacySettingsResponse = zod.object({
+  "profileVisibility": zod.enum(['public', 'private']),
+  "messages": zod.enum(['everyone', 'circle', 'nobody']),
+  "readReceipts": zod.boolean(),
+  "version": zod.number().min(1)
+})
+
+
+/**
+ * Authentication is optional. Private profile fields are limited according to follow approval and block rules.
+ * @summary Get a visible profile by username
+ */
+export const getProfileByUsernamePathUsernameMin = 3;
+export const getProfileByUsernamePathUsernameMax = 20;
+
+
+export const getProfileByUsernamePathUsernameRegExp = new RegExp('^[a-z0-9_]+$');
+
+
+export const GetProfileByUsernameParams = zod.object({
+  "username": zod.coerce.string().min(getProfileByUsernamePathUsernameMin).max(getProfileByUsernamePathUsernameMax).regex(getProfileByUsernamePathUsernameRegExp)
+})
+
+export const getProfileByUsernameResponseStatsPostsMin = 0;
+
+export const getProfileByUsernameResponseStatsFollowersMin = 0;
+
+export const getProfileByUsernameResponseStatsFollowingMin = 0;
+
+export const getProfileByUsernameResponseStatsCirclesMin = 0;
+
+
+
+
+export const GetProfileByUsernameResponse = zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getProfileByUsernameResponseStatsPostsMin),
+  "followers": zod.number().min(getProfileByUsernameResponseStatsFollowersMin),
+  "following": zod.number().min(getProfileByUsernameResponseStatsFollowingMin),
+  "circles": zod.number().min(getProfileByUsernameResponseStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+})
+
+
+/**
+ * Authentication is optional. Blocked accounts are not disclosed.
+ * @summary Get a visible profile by account ID
+ */
+export const GetProfileByAccountIdParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const getProfileByAccountIdResponseStatsPostsMin = 0;
+
+export const getProfileByAccountIdResponseStatsFollowersMin = 0;
+
+export const getProfileByAccountIdResponseStatsFollowingMin = 0;
+
+export const getProfileByAccountIdResponseStatsCirclesMin = 0;
+
+
+
+
+export const GetProfileByAccountIdResponse = zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getProfileByAccountIdResponseStatsPostsMin),
+  "followers": zod.number().min(getProfileByAccountIdResponseStatsFollowersMin),
+  "following": zod.number().min(getProfileByAccountIdResponseStatsFollowingMin),
+  "circles": zod.number().min(getProfileByAccountIdResponseStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+})
+
+
+/**
+ * Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
+ * @summary List visible followers
+ */
+export const GetFollowersParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const getFollowersQueryLimitDefault = 20;
+export const getFollowersQueryLimitMax = 100;
+
+export const getFollowersQueryCursorMax = 32;
+
+
+
+export const GetFollowersQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getFollowersQueryLimitMax).default(getFollowersQueryLimitDefault),
+  "cursor": zod.coerce.string().max(getFollowersQueryCursorMax).optional()
+})
+
+export const getFollowersResponseItemsItemStatsPostsMin = 0;
+
+export const getFollowersResponseItemsItemStatsFollowersMin = 0;
+
+export const getFollowersResponseItemsItemStatsFollowingMin = 0;
+
+export const getFollowersResponseItemsItemStatsCirclesMin = 0;
+
+
+
+
+export const GetFollowersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getFollowersResponseItemsItemStatsPostsMin),
+  "followers": zod.number().min(getFollowersResponseItemsItemStatsFollowersMin),
+  "following": zod.number().min(getFollowersResponseItemsItemStatsFollowingMin),
+  "circles": zod.number().min(getFollowersResponseItemsItemStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
+ * @summary List visible followed accounts
+ */
+export const GetFollowingParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const getFollowingQueryLimitDefault = 20;
+export const getFollowingQueryLimitMax = 100;
+
+export const getFollowingQueryCursorMax = 32;
+
+
+
+export const GetFollowingQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getFollowingQueryLimitMax).default(getFollowingQueryLimitDefault),
+  "cursor": zod.coerce.string().max(getFollowingQueryCursorMax).optional()
+})
+
+export const getFollowingResponseItemsItemStatsPostsMin = 0;
+
+export const getFollowingResponseItemsItemStatsFollowersMin = 0;
+
+export const getFollowingResponseItemsItemStatsFollowingMin = 0;
+
+export const getFollowingResponseItemsItemStatsCirclesMin = 0;
+
+
+
+
+export const GetFollowingResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getFollowingResponseItemsItemStatsPostsMin),
+  "followers": zod.number().min(getFollowingResponseItemsItemStatsFollowersMin),
+  "following": zod.number().min(getFollowingResponseItemsItemStatsFollowingMin),
+  "circles": zod.number().min(getFollowingResponseItemsItemStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Follow a public account or request to follow a private account
+ */
+export const FollowAccountParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const FollowAccountResponse = zod.object({
+  "status": zod.enum(['pending', 'accepted']),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Unfollow an account or withdraw a pending request
+ */
+export const UnfollowAccountParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const UnfollowAccountResponse = zod.void()
+
+
+/**
+ * @summary List incoming private-profile follow requests
+ */
+export const getIncomingFollowRequestsQueryLimitDefault = 20;
+export const getIncomingFollowRequestsQueryLimitMax = 100;
+
+export const getIncomingFollowRequestsQueryCursorMax = 32;
+
+
+
+export const GetIncomingFollowRequestsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getIncomingFollowRequestsQueryLimitMax).default(getIncomingFollowRequestsQueryLimitDefault),
+  "cursor": zod.coerce.string().max(getIncomingFollowRequestsQueryCursorMax).optional()
+})
+
+export const getIncomingFollowRequestsResponseItemsItemAccountStatsPostsMin = 0;
+
+export const getIncomingFollowRequestsResponseItemsItemAccountStatsFollowersMin = 0;
+
+export const getIncomingFollowRequestsResponseItemsItemAccountStatsFollowingMin = 0;
+
+export const getIncomingFollowRequestsResponseItemsItemAccountStatsCirclesMin = 0;
+
+
+
+
+export const GetIncomingFollowRequestsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "account": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getIncomingFollowRequestsResponseItemsItemAccountStatsPostsMin),
+  "followers": zod.number().min(getIncomingFollowRequestsResponseItemsItemAccountStatsFollowersMin),
+  "following": zod.number().min(getIncomingFollowRequestsResponseItemsItemAccountStatsFollowingMin),
+  "circles": zod.number().min(getIncomingFollowRequestsResponseItemsItemAccountStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+}),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Approve a pending follow request
+ */
+export const AcceptFollowRequestParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const AcceptFollowRequestResponse = zod.object({
+  "status": zod.enum(['pending', 'accepted']),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Decline a pending follow request
+ */
+export const DeclineFollowRequestParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const DeclineFollowRequestResponse = zod.void()
+
+
+/**
+ * Circle membership is derived from reciprocal accepted follows; there are no separate circle requests.
+ * @summary List accounts followed mutually by the authenticated account
+ */
+export const getCircleQueryLimitDefault = 20;
+export const getCircleQueryLimitMax = 100;
+
+export const getCircleQueryCursorMax = 32;
+
+
+
+export const GetCircleQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getCircleQueryLimitMax).default(getCircleQueryLimitDefault),
+  "cursor": zod.coerce.string().max(getCircleQueryCursorMax).optional()
+})
+
+export const getCircleResponseItemsItemAccountStatsPostsMin = 0;
+
+export const getCircleResponseItemsItemAccountStatsFollowersMin = 0;
+
+export const getCircleResponseItemsItemAccountStatsFollowingMin = 0;
+
+export const getCircleResponseItemsItemAccountStatsCirclesMin = 0;
+
+
+
+
+export const GetCircleResponse = zod.object({
+  "items": zod.array(zod.object({
+  "account": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getCircleResponseItemsItemAccountStatsPostsMin),
+  "followers": zod.number().min(getCircleResponseItemsItemAccountStatsFollowersMin),
+  "following": zod.number().min(getCircleResponseItemsItemAccountStatsFollowingMin),
+  "circles": zod.number().min(getCircleResponseItemsItemAccountStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+}),
+  "isMutual": zod.boolean()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary List accounts blocked by the authenticated account
+ */
+export const getBlockedAccountsResponseItemsItemStatsPostsMin = 0;
+
+export const getBlockedAccountsResponseItemsItemStatsFollowersMin = 0;
+
+export const getBlockedAccountsResponseItemsItemStatsFollowingMin = 0;
+
+export const getBlockedAccountsResponseItemsItemStatsCirclesMin = 0;
+
+
+
+
+export const GetBlockedAccountsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.url().nullable(),
+  "coverUrl": zod.url().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.number().min(getBlockedAccountsResponseItemsItemStatsPostsMin),
+  "followers": zod.number().min(getBlockedAccountsResponseItemsItemStatsFollowersMin),
+  "following": zod.number().min(getBlockedAccountsResponseItemsItemStatsFollowingMin),
+  "circles": zod.number().min(getBlockedAccountsResponseItemsItemStatsCirclesMin)
+}),
+  "version": zod.number().min(1)
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Block an account and remove follow edges and pending requests in both directions
+ */
+export const BlockAccountParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const BlockAccountResponse = zod.void()
+
+
+/**
+ * Previously removed follow edges and requests are not restored.
+ * @summary Remove a block initiated by the authenticated account
+ */
+export const UnblockAccountParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const UnblockAccountResponse = zod.void()
+
+

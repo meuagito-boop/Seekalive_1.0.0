@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: profiles
+    description: Public profile views and account settings
+  - name: social-graph
+    description: Follows, private follow requests, mutual circles, and blocks
 paths:
   /healthz:
     get:
@@ -24,7 +28,440 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /v1/accounts/me:
+    get:
+      operationId: getMyAccount
+      tags: [profiles]
+      summary: Get the authenticated account profile
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Current account view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateMyAccount
+      tags: [profiles]
+      summary: Update the authenticated account profile
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountPatch"
+      responses:
+        "200":
+          description: Updated account view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountView"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/accounts/me/privacy:
+    get:
+      operationId: getMyPrivacySettings
+      tags: [profiles]
+      summary: Get authenticated account privacy settings
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Current privacy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacySettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: updateMyPrivacySettings
+      tags: [profiles]
+      summary: Update authenticated account privacy settings
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivacySettingsWrite"
+      responses:
+        "200":
+          description: Updated privacy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacySettings"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/profiles/{username}:
+    parameters:
+      - $ref: "#/components/parameters/Username"
+    get:
+      operationId: getProfileByUsername
+      tags: [profiles]
+      summary: Get a visible profile by username
+      description: Authentication is optional. Private profile fields are limited according to follow approval and block rules.
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Visible profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/accounts/{accountId}:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    get:
+      operationId: getProfileByAccountId
+      tags: [profiles]
+      summary: Get a visible profile by account ID
+      description: Authentication is optional. Blocked accounts are not disclosed.
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Visible profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/accounts/{accountId}/followers:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+      - $ref: "#/components/parameters/PageLimit"
+      - $ref: "#/components/parameters/PageCursor"
+    get:
+      operationId: getFollowers
+      tags: [social-graph]
+      summary: List visible followers
+      description: Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Paginated follower accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/accounts/{accountId}/following:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+      - $ref: "#/components/parameters/PageLimit"
+      - $ref: "#/components/parameters/PageCursor"
+    get:
+      operationId: getFollowing
+      tags: [social-graph]
+      summary: List visible followed accounts
+      description: Public profiles are visible without a session. Private profiles require an approved follow. Blocked accounts are hidden.
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Paginated followed accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/accounts/{accountId}/follow:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    put:
+      operationId: followAccount
+      tags: [social-graph]
+      summary: Follow a public account or request to follow a private account
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Follow state; private accounts return pending until approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowState"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: unfollowAccount
+      tags: [social-graph]
+      summary: Unfollow an account or withdraw a pending request
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Follow edge and any outgoing pending request removed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/follow-requests:
+    get:
+      operationId: getIncomingFollowRequests
+      tags: [social-graph]
+      summary: List incoming private-profile follow requests
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/PageLimit"
+        - $ref: "#/components/parameters/PageCursor"
+      responses:
+        "200":
+          description: Paginated incoming follow requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowRequestPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/social/follow-requests/{accountId}/accept:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    post:
+      operationId: acceptFollowRequest
+      tags: [social-graph]
+      summary: Approve a pending follow request
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Request accepted and follow edge created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/follow-requests/{accountId}/decline:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    post:
+      operationId: declineFollowRequest
+      tags: [social-graph]
+      summary: Decline a pending follow request
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Request removed if it belongs to the authenticated account
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /v1/social/circles:
+    get:
+      operationId: getCircle
+      tags: [social-graph]
+      summary: List accounts followed mutually by the authenticated account
+      description: Circle membership is derived from reciprocal accepted follows; there are no separate circle requests.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/PageLimit"
+        - $ref: "#/components/parameters/PageCursor"
+      responses:
+        "200":
+          description: Paginated mutual follows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CirclePage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/social/blocks:
+    get:
+      operationId: getBlockedAccounts
+      tags: [social-graph]
+      summary: List accounts blocked by the authenticated account
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Blocked account list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/social/blocks/{accountId}:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    put:
+      operationId: blockAccount
+      tags: [social-graph]
+      summary: Block an account and remove follow edges and pending requests in both directions
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Account blocked
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: unblockAccount
+      tags: [social-graph]
+      summary: Remove a block initiated by the authenticated account
+      description: Previously removed follow edges and requests are not restored.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Block removed if it was initiated by the authenticated account
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-seekalive_session
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    Username:
+      name: username
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 20
+        pattern: "^[a-z0-9_]+$"
+    PageLimit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    PageCursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        maxLength: 32
+  responses:
+    Unauthorized:
+      description: Missing, expired, or unverified account session
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    Forbidden:
+      description: CSRF failure, blocked relationship, or inaccessible private profile
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    NotFound:
+      description: Account or relationship not found or intentionally undisclosed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    ValidationError:
+      description: Invalid request input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    Conflict:
+      description: Optimistic concurrency conflict or duplicate username
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +470,229 @@ components:
           type: string
       required:
         - status
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            requestId:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                required: [field, message]
+          required: [code, message, requestId]
+      required: [error]
+    RelationshipView:
+      type: object
+      properties:
+        following:
+          type: string
+          enum: [none, pending, accepted]
+        inCircle:
+          type: boolean
+        blockedByMe:
+          type: boolean
+        blockedByThem:
+          type: boolean
+        mutedByMe:
+          type: boolean
+      required: [following, inCircle, blockedByMe, blockedByThem, mutedByMe]
+    AccountStats:
+      type: object
+      properties:
+        posts:
+          type: integer
+          minimum: 0
+        followers:
+          type: integer
+          minimum: 0
+        following:
+          type: integer
+          minimum: 0
+        circles:
+          type: integer
+          minimum: 0
+      required: [posts, followers, following, circles]
+    AccountView:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        username:
+          type: string
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: [string, "null"]
+          pattern: "^https?://"
+        coverUrl:
+          type: [string, "null"]
+          pattern: "^https?://"
+        location:
+          type: [string, "null"]
+        website:
+          type: [string, "null"]
+          pattern: "^https?://"
+        accountType:
+          type: string
+          enum: [personal, commercial]
+        isPrivate:
+          type: boolean
+        isVerified:
+          type: boolean
+        joinedAt:
+          type: string
+          format: date-time
+        relationship:
+          $ref: "#/components/schemas/RelationshipView"
+        stats:
+          $ref: "#/components/schemas/AccountStats"
+        version:
+          type: integer
+          minimum: 1
+      required:
+        - id
+        - username
+        - displayName
+        - bio
+        - avatarUrl
+        - coverUrl
+        - location
+        - website
+        - accountType
+        - isPrivate
+        - isVerified
+        - joinedAt
+        - relationship
+        - stats
+        - version
+    AccountPatch:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-z0-9_]+$"
+        displayName:
+          type: string
+          minLength: 2
+          maxLength: 80
+        bio:
+          type: string
+          maxLength: 500
+        location:
+          type: [string, "null"]
+          maxLength: 160
+        website:
+          type: [string, "null"]
+          pattern: "^https?://"
+          maxLength: 2048
+        version:
+          type: integer
+          minimum: 1
+      required: [version]
+      additionalProperties: false
+    PrivacySettings:
+      type: object
+      properties:
+        profileVisibility:
+          type: string
+          enum: [public, private]
+        messages:
+          type: string
+          enum: [everyone, circle, nobody]
+        readReceipts:
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+      required: [profileVisibility, messages, readReceipts, version]
+    PrivacySettingsWrite:
+      allOf:
+        - $ref: "#/components/schemas/PrivacySettings"
+      description: All fields are required, including the version used for optimistic concurrency.
+    AccountPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountView"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
+    AccountList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountView"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
+    FollowRequest:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/AccountView"
+        createdAt:
+          type: string
+          format: date-time
+      required: [account, createdAt]
+    FollowRequestPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FollowRequest"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
+    CircleMember:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/AccountView"
+        isMutual:
+          type: boolean
+          const: true
+      required: [account, isMutual]
+    CirclePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CircleMember"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
+    FollowState:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, accepted]
+        updatedAt:
+          type: string
+          format: date-time
+      required: [status, updatedAt]
 

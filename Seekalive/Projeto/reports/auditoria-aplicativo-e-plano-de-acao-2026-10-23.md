@@ -462,7 +462,7 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 
 ### 11.7 Validação integrada de Frontend e Backend — 24/10/2026
 
-**Resultado geral:** o preview frontend, a API e os testes locais funcionam, mas o aplicativo ainda não está integrado ao backend em todos os módulos e não está validado para produção.
+**Resultado geral:** o preview frontend, a API e os testes locais funcionam. Esta validação cobre a fase de autenticação/cadastro e a infraestrutura inicial. Funcionalidades de outros módulos ainda não iniciados — como feed, Seek e Shop — são escopo futuro, não defeitos desta fase. O fluxo de autenticação ainda não tem validação completa de ponta a ponta com escrita em banco.
 
 - **Typecheck:** `pnpm run typecheck` passou como parte do build completo, incluindo frontend, API, bibliotecas compartilhadas e sandbox.
 - **Build:** `pnpm run build` sem variáveis falhou porque o Vite do sandbox exige `PORT` e `BASE_PATH`. Com `PORT=8081 BASE_PATH=/ pnpm run build`, o build completo passou. O bundle principal do frontend foi de 953,10 kB minificado e emitiu o aviso de chunk acima de 500 kB.
@@ -470,11 +470,13 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Testes backend:** `pnpm --filter @workspace/scripts run test:backend` passou com 16/16: 5 limites de segurança, 6 seleção de conexão e 5 contratos de runtime HTTP.
 - **Smoke da API:** `/api/healthz` respondeu `{"status":"ok"}`; `/api/readyz` respondeu `{"status":"ready"}` no banco atualmente selecionado (Replit). A requisição `GET /api/v1/social/feed` retornou 404 JSON porque essa rota de feed ainda não foi implementada.
 - **Preview visual:** screenshots mobile de `/`, `/login` e `/register` carregaram sem erros de aplicação no console. Isso confirma apenas a renderização inicial dessas páginas; interações, desktop, teclado e leitores de tela não foram auditados nesta rodada.
-- **Integração existente:** frontend usa a API para sessão, cadastro, login, confirmação de e-mail e onboarding. Backend também possui rotas de perfil, privacidade e relações. Entretanto, a interface ainda usa armazenamento local em partes de perfil/relacionamentos; `contentService` está explicitamente ligado ao adaptador de demonstração, e o adaptador REST não está ativo.
-- **Desalinhamento de contrato:** a especificação OpenAPI só declara `/healthz`, apesar das rotas adicionais de autenticação, perfis, onboarding e relações. O serviço frontend referencia conteúdo, comentários, artigos, busca e referências que não existem como rotas no backend. O Seek, Shop, avaliações, eventos e serviços ainda não têm módulos de API completos.
-- **Conta e recuperação:** a tela de recuperação de senha existe, mas não há rota correspondente na API. Não foi validado um ciclo real de cadastro → e-mail → confirmação → login → sessão contra um banco isolado.
+- **Integração existente:** frontend usa a API para sessão, cadastro, login, confirmação de e-mail e onboarding. Backend também possui rotas de perfil, privacidade e relações. A integração da parte Social ainda é a próxima etapa; o uso do adaptador de demonstração para conteúdo permanece intencional até essa integração.
+- **Contrato da etapa atual:** a especificação OpenAPI só declara `/healthz`, apesar das rotas já implementadas de autenticação, perfis, onboarding e relações. Alinhar os contratos das rotas existentes é uma pendência real da etapa; não é necessário documentar agora APIs de módulos futuros antes de iniciá-los.
+- **Módulos futuros:** publicações/feed REST, comentários, artigos, busca e referências ainda não têm rotas no backend; Seek, Shop, avaliações, eventos e serviços também aguardam suas etapas próprias. Esses pontos não são falhas da fase de autenticação/cadastro.
+- **Conta e recuperação:** a tela de recuperação de senha existe, mas não há rota correspondente na API. Confirmar se recuperação faz parte do escopo de autenticação antes de fechar esse item. Não foi validado um ciclo real de cadastro → e-mail → confirmação → login → sessão contra um banco isolado.
 - **Persistência:** o banco externo solicitado ainda não existe/configurado. O banco atual é o padrão Replit; nenhum dado foi escrito durante esta validação. A suíte isolada de integração continua sem execução, pois o ambiente está identificado como produção e a proteção não pode ser contornada.
-- **Prioridades para avançar:** (1) alinhar OpenAPI e contratos ao backend implementado; (2) definir quais áreas permanecem como demonstração e ativar adaptadores reais para as demais; (3) validar cadastro e autorização em banco isolado comprovadamente de desenvolvimento; (4) completar APIs faltantes, começando pela recuperação de senha e pelos módulos escolhidos para o próximo pacote; (5) resolver o erro de `drizzle-kit check` antes de qualquer migração externa.
+- **Sequência recomendada para Social:** (1) alinhar contratos das rotas de perfil e relações existentes e integrar a interface a elas; testar seguir, pedidos/aprovação em perfil privado, Círculo por mutualidade e bloqueio bilateral; (2) implementar publicações/feed e aplicar as regras de visibilidade; (3) adicionar comentários, curtidas e reposts; (4) avançar para mensagens e notificações. Em cada etapa, fechar contrato, persistência, autorização, integração de frontend e testes antes de iniciar a seguinte.
+- **Pendências transversais:** validar os fluxos que escrevem em banco somente em desenvolvimento comprovado; resolver o erro de `drizzle-kit check` antes de qualquer migração externa; e tratar recuperação de senha conforme decisão de escopo da etapa de autenticação.
 
 ### Histórico do documento
 
@@ -490,3 +492,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 1.8 | 2026-10-24 | Registra a seleção explícita e segura de conexão externa no backend, sem alterar o destino Replit nem provisionar ou migrar banco externo. |
 | 1.9 | 2026-10-24 | Registra os testes do seletor e a falha não destrutiva de `drizzle-kit check`; a migração externa segue sem validação. |
 | 2.0 | 2026-10-24 | Consolida a validação integrada do frontend e backend, build, testes, smoke de API, lacunas de contratos e próximos passos. |
+| 2.1 | 2026-10-24 | Reclassifica módulos ainda não iniciados como escopo futuro e organiza a próxima fase Social em etapas incrementais. |
