@@ -340,7 +340,7 @@ router.get("/circles", async (request, response) => {
       eq(accounts.status, "active"),
       isNotNull(accountEmails.verifiedAt),
       sql`exists (
-        select 1 from account_follows reciprocal
+        select 1 from ${accountFollows} reciprocal
         where reciprocal.follower_id = ${accountFollows.followedId}
           and reciprocal.followed_id = ${actorId}
       )`,

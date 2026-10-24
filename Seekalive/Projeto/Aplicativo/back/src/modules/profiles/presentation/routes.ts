@@ -142,7 +142,7 @@ async function accountStats(accountId: string) {
       .where(and(
         eq(accountFollows.followerId, accountId),
         sql`exists (
-          select 1 from account_follows reciprocal
+          select 1 from ${accountFollows} reciprocal
           where reciprocal.follower_id = ${accountFollows.followedId}
             and reciprocal.followed_id = ${accountId}
         )`,
@@ -234,7 +234,7 @@ export async function accountViewsByIds(ids: string[], viewerId: string | null) 
       .where(and(
         inArray(accountFollows.followerId, idsToQuery),
         sql`exists (
-          select 1 from account_follows reciprocal
+          select 1 from ${accountFollows} reciprocal
           where reciprocal.follower_id = ${accountFollows.followedId}
             and reciprocal.followed_id = ${accountFollows.followerId}
         )`,
