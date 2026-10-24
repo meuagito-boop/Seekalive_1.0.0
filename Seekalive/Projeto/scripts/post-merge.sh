@@ -16,4 +16,4 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
 fi
 
 pnpm install --frozen-lockfile
-pnpm --filter @workspace/db run push
+SEEKALIVE_DB_MIGRATION_TARGET=replit pnpm --filter @workspace/db run push

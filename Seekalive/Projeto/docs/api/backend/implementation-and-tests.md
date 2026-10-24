@@ -81,7 +81,15 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL atualmente conectado é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. O usuário decidiu migrar para PostgreSQL externo, mas essa migração ainda não foi iniciada. O fluxo Publish da Replit não atualizará o schema do banco externo; antes de ativá-lo, definir um processo explícito e revisado de migração/rollback e um segredo de conexão somente para o backend. Não sobrescrever a variável runtime `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` abaixo cria dados somente em um schema de teste aleatório.
+O PostgreSQL atualmente conectado é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. O usuário decidiu migrar para PostgreSQL externo, mas essa migração ainda não foi iniciada. O fluxo Publish da Replit não atualizará o schema do banco externo; antes de ativá-lo, definir um processo explícito e revisado de migração/rollback. Não sobrescrever a variável runtime `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` abaixo cria dados somente em um schema de teste aleatório.
+
+#### Seleção de conexão externa
+
+- `SEEKALIVE_EXTERNAL_DATABASE_URL`: segredo PostgreSQL externo; deve ficar disponível somente ao backend.
+- `SEEKALIVE_DATABASE_TARGET=external`: seleciona o banco externo para o runtime. Sem essa opção, o runtime continua usando `DATABASE_URL`.
+- `SEEKALIVE_DB_MIGRATION_TARGET=external`: seleciona o banco externo somente em uma operação manual de schema. O pós-merge força `replit`, evitando que uma URL externa configurada passe a receber push automaticamente.
+- Para ativar a conexão externa, primeiro provisionar o banco, configurar a URL pelo fluxo seguro de Secrets e aplicar/revisar o schema externo. Só depois selecionar o alvo do runtime. Hoje nenhum desses segredos ou seletores externos está ativo.
+- Verificação atual: o seletor passou em seis testes sem conexão e `drizzle-kit export` carregou o schema sem escrita. `drizzle-kit check` falhou com erro de parâmetros do driver AWS Data API; não considerar o fluxo de migrações externas validado até esse erro ser esclarecido.
 
 ### Integração HTTP com schema isolado (A02)
 
