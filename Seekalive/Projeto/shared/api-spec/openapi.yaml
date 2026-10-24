@@ -653,7 +653,7 @@ components:
         - version
     MyAccountResponse:
       type: object
-      description: Private owner-only profile details; never returned by public profile or social-list endpoints.
+      description: Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.
       properties:
         account:
           $ref: "#/components/schemas/AccountView"
@@ -662,10 +662,6 @@ components:
           format: email
           maxLength: 254
           description: Verified email address visible only to the authenticated owner.
-        age:
-          type: integer
-          minimum: 18
-          maximum: 120
         firstName:
           type: [string, "null"]
           maxLength: 80
@@ -676,7 +672,7 @@ components:
           oneOf:
             - $ref: "#/components/schemas/OwnerCommercialProfile"
             - type: "null"
-      required: [account, email, age, firstName, lastName, commercialProfile]
+      required: [account, email, firstName, lastName, commercialProfile]
     OwnerCommercialProfile:
       type: object
       description: Full commercial registration details returned only to the authenticated owner.
@@ -730,7 +726,9 @@ components:
         Account type is never changed by this endpoint. Personal accounts use
         firstName and lastName together; their combined public name cannot
         exceed 100 characters. Commercial accounts use displayName and the
-        complete commercialProfile object. The server rejects fields
+        complete commercialProfile object. Age is collected only during
+        registration and cannot be read or changed through this endpoint.
+        The server rejects fields
         that do not match the authenticated account type.
       properties:
         username:
@@ -757,7 +755,6 @@ components:
           type: integer
           minimum: 18
           maximum: 120
-          description: Private, self-declared age; applies to both account types.
         commercialProfile:
           $ref: "#/components/schemas/CommercialAccountPatch"
         bio:

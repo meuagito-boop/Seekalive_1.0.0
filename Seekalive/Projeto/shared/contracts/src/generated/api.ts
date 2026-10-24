@@ -34,9 +34,6 @@ export const getMyAccountResponseAccountStatsCirclesMin = 0;
 
 export const getMyAccountResponseEmailMax = 254;
 
-export const getMyAccountResponseAgeMin = 18;
-export const getMyAccountResponseAgeMax = 120;
-
 export const getMyAccountResponseFirstNameMax = 80;
 
 export const getMyAccountResponseLastNameMax = 80;
@@ -85,7 +82,6 @@ export const GetMyAccountResponse = zod.object({
   "version": zod.int().min(1)
 }),
   "email": zod.email().max(getMyAccountResponseEmailMax).describe('Verified email address visible only to the authenticated owner.'),
-  "age": zod.int().min(getMyAccountResponseAgeMin).max(getMyAccountResponseAgeMax),
   "firstName": zod.string().max(getMyAccountResponseFirstNameMax).nullable(),
   "lastName": zod.string().max(getMyAccountResponseLastNameMax).nullable(),
   "commercialProfile": zod.union([zod.object({
@@ -97,7 +93,7 @@ export const GetMyAccountResponse = zod.object({
   "stateName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneStateNameMax),
   "countryName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneCountryNameMax)
 }).describe('Full commercial registration details returned only to the authenticated owner.'),zod.null()])
-}).describe('Private owner-only profile details; never returned by public profile or social-list endpoints.')
+}).describe('Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.')
 
 
 /**
@@ -149,7 +145,7 @@ export const UpdateMyAccountBody = zod.object({
   "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional().describe('For commercial accounts, the public business or service-provider name.'),
   "firstName": zod.string().min(updateMyAccountBodyFirstNameMin).max(updateMyAccountBodyFirstNameMax).optional().describe('Personal account only; must be paired with lastName.'),
   "lastName": zod.string().min(updateMyAccountBodyLastNameMin).max(updateMyAccountBodyLastNameMax).optional().describe('Personal account only; must be paired with firstName.'),
-  "age": zod.int().min(updateMyAccountBodyAgeMin).max(updateMyAccountBodyAgeMax).optional().describe('Private, self-declared age; applies to both account types.'),
+  "age": zod.int().min(updateMyAccountBodyAgeMin).max(updateMyAccountBodyAgeMax).optional(),
   "commercialProfile": zod.object({
   "address": zod.string().min(updateMyAccountBodyCommercialProfileAddressMin).max(updateMyAccountBodyCommercialProfileAddressMax),
   "postalCode": zod.string().min(updateMyAccountBodyCommercialProfilePostalCodeMin).max(updateMyAccountBodyCommercialProfilePostalCodeMax),
@@ -161,7 +157,7 @@ export const UpdateMyAccountBody = zod.object({
   "location": zod.string().max(updateMyAccountBodyLocationMax).nullish(),
   "website": zod.url().max(updateMyAccountBodyWebsiteMax).regex(updateMyAccountBodyWebsiteRegExp).nullish().describe('When provided, the URL must use HTTP or HTTPS.'),
   "version": zod.int().min(1)
-}).describe('Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. The server rejects fields that do not match the authenticated account type.\n')
+}).describe('Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. Age is collected only during registration and cannot be read or changed through this endpoint. The server rejects fields that do not match the authenticated account type.\n')
 
 export const updateMyAccountResponseAccountDisplayNameMax = 100;
 
@@ -176,9 +172,6 @@ export const updateMyAccountResponseAccountStatsCirclesMin = 0;
 
 
 export const updateMyAccountResponseEmailMax = 254;
-
-export const updateMyAccountResponseAgeMin = 18;
-export const updateMyAccountResponseAgeMax = 120;
 
 export const updateMyAccountResponseFirstNameMax = 80;
 
@@ -228,7 +221,6 @@ export const UpdateMyAccountResponse = zod.object({
   "version": zod.int().min(1)
 }),
   "email": zod.email().max(updateMyAccountResponseEmailMax).describe('Verified email address visible only to the authenticated owner.'),
-  "age": zod.int().min(updateMyAccountResponseAgeMin).max(updateMyAccountResponseAgeMax),
   "firstName": zod.string().max(updateMyAccountResponseFirstNameMax).nullable(),
   "lastName": zod.string().max(updateMyAccountResponseLastNameMax).nullable(),
   "commercialProfile": zod.union([zod.object({
@@ -240,7 +232,7 @@ export const UpdateMyAccountResponse = zod.object({
   "stateName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneStateNameMax),
   "countryName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneCountryNameMax)
 }).describe('Full commercial registration details returned only to the authenticated owner.'),zod.null()])
-}).describe('Private owner-only profile details; never returned by public profile or social-list endpoints.')
+}).describe('Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.')
 
 
 /**

@@ -61,7 +61,6 @@ test("perfil comercial autenticado é hidratado da resposta privada do propriet�
       stats: { posts: 0, followers: 0, following: 0, circles: 0 },
       version: 1,
     },
-    age: 35,
     firstName: null,
     lastName: null,
     commercialProfile: {
@@ -76,7 +75,7 @@ test("perfil comercial autenticado é hidratado da resposta privada do propriet�
   };
   const user = myAccountToUser(ownerResponse);
   assert.equal(user.accountType, "commercial");
-  assert.equal(user.age, 35);
+  assert.equal("age" in user, false);
   assert.equal(user.address, "Rua de Teste, 100");
   assert.equal(user.city, "São Paulo");
   assert.equal(user.location, "São Paulo, SP");
@@ -287,6 +286,18 @@ test("seguimentos escolhidos no onboarding permanecem vinculados à conta no nav
     if (previous) Object.defineProperty(globalThis, "window", previous);
     else Reflect.deleteProperty(globalThis, "window");
   }
+});
+test("idade é coletada no cadastro, mas não exibida após a criação da conta", () => {
+  const registration = readFileSync(
+    join(process.cwd(), "Aplicativo/front/src/pages/Register.tsx"),
+    "utf8",
+  );
+  const accountSettings = readFileSync(
+    join(process.cwd(), "Aplicativo/front/src/pages/settings/Account.tsx"),
+    "utf8",
+  );
+  assert.match(registration, /data-testid="input-age"/);
+  assert.doesNotMatch(accountSettings, /draft\.age|\bIdade\b/i);
 });
 test("alteração de nome de usuário sincroniza as fontes da conta e do Social", () => {
   const source = readFileSync(

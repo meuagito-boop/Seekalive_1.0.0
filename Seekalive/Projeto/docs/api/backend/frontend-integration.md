@@ -26,7 +26,7 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/seek` | Localização, categorias, filtros, carrosséis, salvos e mocks | Descoberta por contas comerciais, busca, cidades, avaliações e eventos reais |
 | `/seek/event/:id` | Detalhe de demonstração; ingresso desabilitado | Evento real com organizador, interesse persistente, estado; ingressos são extensão |
 | `/shop`, `/shop/item/:id` | Catálogo ilustrativo, detalhe, favoritos; compra desabilitada | Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo |
-| `/settings`, `/settings/account` | Username local; ações sensíveis desabilitadas | Preferências, identidade, reautenticação, exportação/desativação/exclusão |
+| `/settings/account` | Sessões reais leem/salvam nome pessoal ou nome/endereço comercial por API; e-mail verificado é somente leitura. Idade é coletada no cadastro, fica no servidor para a regra 18+ e nunca é retornada ou exibida após a criação | Troca de e-mail/senha, exportação, desativação e exclusão |
 | `/settings/privacy`, `/settings/blocked` | Preferências e bloqueios são locais; bloquear remove follows e pedidos entre as duas contas, oculta conteúdo/interações nos dois sentidos e deixa desbloqueio só para o iniciador; mensagens antigas retornam após desbloquear | Persistir bloqueios no servidor e remover follows/pedidos em transação; aplicar a regra bilateral em leitura, busca, feed, conversas e ações; não restaurar relações ao desbloquear |
 | `/settings/notifications` | Defaults visuais desabilitados | Preferências reais e consentimento para push/e-mail |
 | `/settings/security` | Sessões/MFA/histórico indisponíveis | Sessões revogáveis, ações no provedor e auditoria de acesso redigida |

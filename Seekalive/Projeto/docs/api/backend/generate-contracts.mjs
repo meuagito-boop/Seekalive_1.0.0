@@ -140,7 +140,7 @@ g("accounts", "/v1/accounts/me", "Consultar conta e dados privados do titular", 
 });
 patch("accounts", "/v1/accounts/me", "Editar dados próprios conforme o tipo de conta, com controle de versão", "AccountPatch", "MyAccountResponse", {
   status: "live",
-  contractDescription: "Atualiza username, idade e dados de perfil com controle de versão. Contas pessoais enviam nome e sobrenome juntos, com nome público total de até 100 caracteres; contas comerciais podem atualizar o nome público e o endereço completo. Conta e extensão comercial são atualizadas na mesma transação; campos de outro tipo de conta são rejeitados.",
+  contractDescription: "Atualiza username e dados de perfil com controle de versão. Idade é coletada somente no cadastro e não é retornada nem editável após a criação. Contas pessoais enviam nome e sobrenome juntos, com nome público total de até 100 caracteres; contas comerciais podem atualizar o nome público e o endereço completo. Conta e extensão comercial são atualizadas na mesma transação; campos de outro tipo de conta são rejeitados.",
 });
 del("accounts", "/v1/accounts/me", "Solicitar exclusão segura", "Accepted", { accepted: true });
 g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability", null, { query: ["username"], requiredQuery: ["username"], auth: "none", status: "live" });
@@ -425,11 +425,10 @@ const schemas = {
   MyAccountResponse: model({
     account: ref("Account"),
     email: { type: "string", format: "email", maxLength: 254 },
-    age: { type: "integer", minimum: 18, maximum: 120 },
     firstName: { type: ["string", "null"], maxLength: 80 },
     lastName: { type: ["string", "null"], maxLength: 80 },
     commercialProfile: { oneOf: [ref("OwnerCommercialProfile"), { type: "null" }] },
-  }, ["account", "email", "age", "firstName", "lastName", "commercialProfile"]),
+  }, ["account", "email", "firstName", "lastName", "commercialProfile"]),
   CommercialAccountPatch: model({
     address: { type: "string", minLength: 5, maxLength: 250 },
     postalCode: { type: "string", minLength: 5, maxLength: 20 },
@@ -442,7 +441,6 @@ const schemas = {
     displayName: { type: "string", minLength: 2, maxLength: 100 },
     firstName: { type: "string", minLength: 2, maxLength: 80 },
     lastName: { type: "string", minLength: 2, maxLength: 80 },
-    age: { type: "integer", minimum: 18, maximum: 120 },
     commercialProfile: ref("CommercialAccountPatch"),
     bio: { type: "string", maxLength: 500 },
     location: { type: ["string", "null"], maxLength: 160 },

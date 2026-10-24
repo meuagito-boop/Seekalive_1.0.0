@@ -3,7 +3,7 @@
 **Auditoria-base:** 22/10/2026; última atualização de estado: 24/10/2026
 **Escopo:** prontidão do frontend para integração gradual. A auditoria original foi análise/documentação; desde então, autenticação, onboarding, perfil básico, privacidade e relações sociais essenciais receberam API e schema no desenvolvimento.
 
-> Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.15).
+> Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.16).
 
 ## Parecer
 
@@ -24,7 +24,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
 | Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação de senha e gestão de sessões chamam a API | Entrega Resend dos fluxos de e-mail ainda precisa de E2E no navegador; API de e-mail permanece habilitada somente em desenvolvimento |
-| Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados, idade privada e e-mail somente para o titular; `/profile/edit` e conteúdo do perfil público ainda não estão ligados a essa edição | Parcial; falta E2E autenticado e integração das páginas públicas |
+| Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados; idade é coletada no cadastro, permanece somente no servidor para a regra de 18+ e nunca é retornada após a criação; e-mail é somente para o titular. `/profile/edit` e conteúdo do perfil público ainda não estão ligados a essa edição | Parcial; falta E2E autenticado e integração das páginas públicas |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
 | Galeria | Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência | Parcial |

@@ -369,7 +369,6 @@ async function loadOwnerAccount(accountId: string) {
   const [ownerDetails] = await db
     .select({
       accountType: accounts.accountType,
-      age: accounts.age,
       firstName: accounts.firstName,
       lastName: accounts.lastName,
       categoryKey: commercialProfiles.categoryKey,
@@ -434,7 +433,6 @@ async function loadOwnerAccount(accountId: string) {
       data: {
         account,
         email: verifiedEmail.email,
-        age: ownerDetails.age,
         firstName: ownerDetails.firstName,
         lastName: ownerDetails.lastName,
         commercialProfile: {
@@ -455,7 +453,6 @@ async function loadOwnerAccount(accountId: string) {
     data: {
       account,
       email: verifiedEmail.email,
-      age: ownerDetails.age,
       firstName: ownerDetails.firstName,
       lastName: ownerDetails.lastName,
       commercialProfile: null,
@@ -553,7 +550,6 @@ router.patch(
                   displayName: personalDisplayName,
                 }
               : {}),
-            ...(patch.age === undefined ? {} : { age: patch.age }),
             ...(patch.bio === undefined ? {} : { bio: patch.bio }),
             ...(patch.location === undefined ? {} : { locationLabel: patch.location }),
             ...(patch.website === undefined ? {} : { websiteUrl: patch.website }),

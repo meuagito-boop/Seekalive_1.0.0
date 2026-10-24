@@ -2867,7 +2867,7 @@
           "accounts"
         ],
         "summary": "Editar dados próprios conforme o tipo de conta, com controle de versão",
-        "description": "Atualiza username, idade e dados de perfil com controle de versão. Contas pessoais enviam nome e sobrenome juntos, com nome público total de até 100 caracteres; contas comerciais podem atualizar o nome público e o endereço completo. Conta e extensão comercial são atualizadas na mesma transação; campos de outro tipo de conta são rejeitados.",
+        "description": "Atualiza username e dados de perfil com controle de versão. Idade é coletada somente no cadastro e não é retornada nem editável após a criação. Contas pessoais enviam nome e sobrenome juntos, com nome público total de até 100 caracteres; contas comerciais podem atualizar o nome público e o endereço completo. Conta e extensão comercial são atualizadas na mesma transação; campos de outro tipo de conta são rejeitados.",
         "security": [
           {
             "SessionCookie": [],
@@ -23722,11 +23722,6 @@
             "format": "email",
             "maxLength": 254
           },
-          "age": {
-            "type": "integer",
-            "minimum": 18,
-            "maximum": 120
-          },
           "firstName": {
             "type": [
               "string",
@@ -23755,7 +23750,6 @@
         "required": [
           "account",
           "email",
-          "age",
           "firstName",
           "lastName",
           "commercialProfile"
@@ -23821,11 +23815,6 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 80
-          },
-          "age": {
-            "type": "integer",
-            "minimum": 18,
-            "maximum": 120
           },
           "commercialProfile": {
             "$ref": "#/components/schemas/CommercialAccountPatch"

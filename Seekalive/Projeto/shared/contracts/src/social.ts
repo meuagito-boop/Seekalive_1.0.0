@@ -14,7 +14,6 @@ export const accountPatchSchema = z.object({
   displayName: z.string().trim().min(2).max(100).optional(),
   firstName: z.string().trim().min(2).max(80).optional(),
   lastName: z.string().trim().min(2).max(80).optional(),
-  age: z.number().int().min(18).max(120).optional(),
   commercialProfile: commercialAccountPatchSchema.optional(),
   bio: z.string().trim().max(500).optional(),
   location: z.string().trim().max(160).nullable().optional(),

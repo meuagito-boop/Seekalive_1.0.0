@@ -8,7 +8,7 @@
 import type { CommercialAccountPatch } from './commercialAccountPatch';
 
 /**
- * Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. The server rejects fields that do not match the authenticated account type.
+ * Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. Age is collected only during registration and cannot be read or changed through this endpoint. The server rejects fields that do not match the authenticated account type.
  */
 export interface AccountPatch {
   /**
@@ -36,7 +36,6 @@ export interface AccountPatch {
      */
   lastName?: string;
   /**
-     * Private, self-declared age; applies to both account types.
      * @minimum 18
      * @maximum 120
      */

@@ -139,7 +139,6 @@ export function myAccountToUser(response: MyAccountResponse): User {
       email: response.email,
       firstName: response.firstName ?? undefined,
       lastName: response.lastName ?? undefined,
-      age: response.age,
     };
   }
   const category = commercialCategoryLabels[commercial.categoryKey] ?? commercial.categoryKey;
@@ -149,7 +148,6 @@ export function myAccountToUser(response: MyAccountResponse): User {
     email: response.email,
     firstName: response.firstName ?? undefined,
     lastName: response.lastName ?? undefined,
-    age: response.age,
     address: commercial.address,
     postalCode: commercial.postalCode,
     city: commercial.cityName,

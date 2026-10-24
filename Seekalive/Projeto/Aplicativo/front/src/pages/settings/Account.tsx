@@ -17,7 +17,6 @@ type AccountDraft = {
   firstName: string;
   lastName: string;
   businessName: string;
-  age: string;
   address: string;
   postalCode: string;
   cityName: string;
@@ -29,7 +28,6 @@ const emptyDraft: AccountDraft = {
   firstName: "",
   lastName: "",
   businessName: "",
-  age: "",
   address: "",
   postalCode: "",
   cityName: "",
@@ -43,7 +41,6 @@ function draftFromUser(user: User | null): AccountDraft {
     firstName: user.firstName ?? "",
     lastName: user.lastName ?? "",
     businessName: user.displayName,
-    age: user.age?.toString() ?? "",
     address: user.address ?? "",
     postalCode: user.postalCode ?? "",
     cityName: user.city ?? "",
@@ -139,22 +136,18 @@ export default function SettingsAccount() {
   async function submitProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!currentUser || !accountType) return;
-    const age = Number(draft.age);
     const displayName = isCommercial
       ? draft.businessName.trim()
       : `${draft.firstName.trim()} ${draft.lastName.trim()}`.trim();
 
     if (
-      !Number.isInteger(age)
-      || age < 18
-      || age > 120
-      || (isCommercial
+      (isCommercial
         ? draft.businessName.trim().length < 2
         : draft.firstName.trim().length < 2 || draft.lastName.trim().length < 2)
     ) {
       setProfileError(isCommercial
-        ? "Informe o nome comercial e uma idade válida entre 18 e 120 anos."
-        : "Informe nome, sobrenome e uma idade válida entre 18 e 120 anos.");
+        ? "Informe um nome comercial válido."
+        : "Informe nome e sobrenome válidos.");
       return;
     }
     if (displayName.length > 100) {
@@ -183,7 +176,6 @@ export default function SettingsAccount() {
         const updatedProfile = await socialGraphApi.updateMyAccount(isCommercial
           ? {
               displayName,
-              age,
               commercialProfile: {
                 address: draft.address.trim(),
                 postalCode: draft.postalCode.trim(),
@@ -196,7 +188,6 @@ export default function SettingsAccount() {
           : {
               firstName: draft.firstName.trim(),
               lastName: draft.lastName.trim(),
-              age,
               version: remoteProfile.account.version,
             });
         setRemoteProfile(updatedProfile);
@@ -209,7 +200,6 @@ export default function SettingsAccount() {
         ? {
             ...currentUser,
             displayName,
-            age,
             address: draft.address.trim(),
             postalCode: draft.postalCode.trim(),
             city: draft.cityName.trim(),
@@ -230,7 +220,6 @@ export default function SettingsAccount() {
             firstName: draft.firstName.trim(),
             lastName: draft.lastName.trim(),
             displayName,
-            age,
           };
       syncUpdatedUser(updatedUser);
       toast({ title: "Dados da demonstração atualizados", description: "A alteração fica neste navegador." });
@@ -345,19 +334,6 @@ export default function SettingsAccount() {
                     className={disabledField}
                   />
                   <Input
-                    value={draft.age}
-                    onChange={(event) => changeDraft("age", event.target.value)}
-                    type="number"
-                    min={18}
-                    max={120}
-                    step={1}
-                    aria-label="Idade do responsável pela conta comercial"
-                    required
-                    placeholder="Idade do responsável"
-                    className={disabledField}
-                  />
-                  <p className="text-xs text-muted-foreground">A idade do responsável é privada e não aparece no perfil comercial.</p>
-                  <Input
                     value={draft.address}
                     onChange={(event) => changeDraft("address", event.target.value)}
                     aria-label="Endereço comercial"
@@ -433,19 +409,6 @@ export default function SettingsAccount() {
                     placeholder="Sobrenome"
                     className={disabledField}
                   />
-                  <Input
-                    value={draft.age}
-                    onChange={(event) => changeDraft("age", event.target.value)}
-                    type="number"
-                    min={18}
-                    max={120}
-                    step={1}
-                    aria-label="Idade"
-                    required
-                    placeholder="Idade"
-                    className={disabledField}
-                  />
-                  <p className="text-xs text-muted-foreground">Sua idade é privada e não aparece no perfil público.</p>
                 </>
               )}
 

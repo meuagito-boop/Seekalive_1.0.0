@@ -591,7 +591,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   const personalOwnerProfile = await request("/api/v1/accounts/me", { auth: personal });
   assert.equal(personalOwnerProfile.response.status, 200, JSON.stringify(personalOwnerProfile.body));
   assert.equal(personalOwnerProfile.body.email, personalRegistration.email.toLowerCase());
-  assert.equal(personalOwnerProfile.body.age, 18);
+  assert.equal("age" in personalOwnerProfile.body, false);
   assert.equal(personalOwnerProfile.body.firstName, "Conta");
   assert.equal(personalOwnerProfile.body.lastName, "Isolada");
   assert.equal(personalOwnerProfile.body.commercialProfile, null);
@@ -604,14 +604,13 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     body: {
       firstName: "Conta Revisada",
       lastName: "Isolada",
-      age: 19,
       version: personalOwnerProfile.body.account.version,
     },
   });
   assert.equal(updatedPersonalProfile.response.status, 200, JSON.stringify(updatedPersonalProfile.body));
   assert.equal(updatedPersonalProfile.body.account.displayName, "Conta Revisada Isolada");
   assert.equal(updatedPersonalProfile.body.firstName, "Conta Revisada");
-  assert.equal(updatedPersonalProfile.body.age, 19);
+  assert.equal("age" in updatedPersonalProfile.body, false);
   assert.equal(updatedPersonalProfile.body.email, personalRegistration.email.toLowerCase());
 
   const personalCommercialFieldAttempt = await request("/api/v1/accounts/me", {
@@ -631,20 +630,25 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(personalCommercialFieldAttempt.response.status, 400);
   assert.equal(personalCommercialFieldAttempt.body.error.code, "ACCOUNT_FIELD_NOT_ALLOWED");
 
-  const personalUnderageAttempt = await request("/api/v1/accounts/me", {
+  const personalAgeEditAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",
     auth: personal,
-    body: { age: 17, version: updatedPersonalProfile.body.account.version },
+    body: { age: 19, version: updatedPersonalProfile.body.account.version },
   });
-  assert.equal(personalUnderageAttempt.response.status, 400);
+  assert.equal(personalAgeEditAttempt.response.status, 400);
 
   const personalStaleVersionAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",
     auth: personal,
-    body: { age: 20, version: personalOwnerProfile.body.account.version },
+    body: { bio: "Atualização antiga", version: personalOwnerProfile.body.account.version },
   });
   assert.equal(personalStaleVersionAttempt.response.status, 409);
   assert.equal(personalStaleVersionAttempt.body.error.code, "VERSION_CONFLICT");
+  const storedPersonalAge = await pool.query(
+    `SELECT age FROM ${quoteGeneratedSchema(schemaName)}.accounts WHERE id = $1`,
+    [personal.account.id],
+  );
+  assert.equal(Number(storedPersonalAge.rows[0]?.age), 18);
 
   const onboarding = await request("/api/v1/onboarding/interests", {
     method: "POST",
@@ -814,7 +818,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(commercialOwnerProfile.response.status, 200, JSON.stringify(commercialOwnerProfile.body));
   assert.equal(commercialOwnerProfile.body.account.id, commercial.account.id);
   assert.equal(commercialOwnerProfile.body.email, commercialRegistration.email.toLowerCase());
-  assert.equal(commercialOwnerProfile.body.age, 35);
+  assert.equal("age" in commercialOwnerProfile.body, false);
   assert.deepEqual(commercialOwnerProfile.body.commercialProfile, {
     categoryKey: "cafes",
     discoveryKind: "place",
@@ -841,7 +845,6 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: commercial,
     body: {
       displayName: "Comércio Revisado A02",
-      age: 36,
       commercialProfile: {
         address: "Avenida de Teste, 200",
         postalCode: "04567000",
@@ -854,7 +857,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(updatedCommercialProfile.response.status, 200, JSON.stringify(updatedCommercialProfile.body));
   assert.equal(updatedCommercialProfile.body.account.displayName, "Comércio Revisado A02");
-  assert.equal(updatedCommercialProfile.body.age, 36);
+  assert.equal("age" in updatedCommercialProfile.body, false);
   assert.deepEqual(updatedCommercialProfile.body.commercialProfile, {
     categoryKey: "cafes",
     discoveryKind: "place",
@@ -864,6 +867,11 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     stateName: "Rio de Janeiro",
     countryName: "Brasil",
   });
+  const storedCommercialAge = await pool.query(
+    `SELECT age FROM ${quoteGeneratedSchema(schemaName)}.accounts WHERE id = $1`,
+    [commercial.account.id],
+  );
+  assert.equal(Number(storedCommercialAge.rows[0]?.age), 35);
 
   const commercialPersonalFieldAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",

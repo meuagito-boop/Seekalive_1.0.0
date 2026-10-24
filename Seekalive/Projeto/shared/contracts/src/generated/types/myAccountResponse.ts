@@ -9,7 +9,7 @@ import type { AccountView } from './accountView';
 import type { OwnerCommercialProfile } from './ownerCommercialProfile';
 
 /**
- * Private owner-only profile details; never returned by public profile or social-list endpoints.
+ * Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.
  */
 export interface MyAccountResponse {
   account: AccountView;
@@ -18,11 +18,6 @@ export interface MyAccountResponse {
      * @maxLength 254
      */
   email: string;
-  /**
-     * @minimum 18
-     * @maximum 120
-     */
-  age: number;
   /**
      * @maxLength 80
      * @nullable

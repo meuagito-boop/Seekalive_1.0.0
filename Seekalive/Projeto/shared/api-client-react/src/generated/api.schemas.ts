@@ -150,7 +150,7 @@ export interface OwnerCommercialProfile {
 }
 
 /**
- * Private owner-only profile details; never returned by public profile or social-list endpoints.
+ * Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.
  */
 export interface MyAccountResponse {
   account: AccountView;
@@ -159,11 +159,6 @@ export interface MyAccountResponse {
      * @maxLength 254
      */
   email: string;
-  /**
-     * @minimum 18
-     * @maximum 120
-     */
-  age: number;
   /**
      * @maxLength 80
      * @nullable
@@ -217,7 +212,7 @@ export interface CommercialAccountPatch {
 }
 
 /**
- * Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. The server rejects fields that do not match the authenticated account type.
+ * Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. Age is collected only during registration and cannot be read or changed through this endpoint. The server rejects fields that do not match the authenticated account type.
  */
 export interface AccountPatch {
   /**
@@ -245,7 +240,6 @@ export interface AccountPatch {
      */
   lastName?: string;
   /**
-     * Private, self-declared age; applies to both account types.
      * @minimum 18
      * @maximum 120
      */

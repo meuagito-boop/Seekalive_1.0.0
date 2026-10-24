@@ -41,7 +41,7 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 
 ## Product
 
-O Aplicativo reúne Social, Seek e Shop sob a mesma conta. Contas comerciais são contas do Social e alimentam a descoberta no Seek. As telas de conta e perfil devem refletir o tipo da conta (pessoal ou comercial), sem criar uma identidade separada para o comércio.
+O Aplicativo reúne Social, Seek e Shop sob a mesma conta. Contas comerciais são contas do Social e alimentam a descoberta no Seek. As telas de conta e perfil devem refletir o tipo da conta (pessoal ou comercial), sem criar uma identidade separada para o comércio. A idade é coletada apenas no cadastro, armazenada no servidor para validar a regra de 18+ e nunca exibida ou retornada ao cliente depois da criação, inclusive em Configurações.
 
 ## User preferences
 
