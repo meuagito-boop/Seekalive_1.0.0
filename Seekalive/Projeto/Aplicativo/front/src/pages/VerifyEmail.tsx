@@ -54,6 +54,11 @@ export default function VerifyEmail() {
     try {
       const result = await confirmEmail({ email: email.trim().toLowerCase(), code: code.join("") });
       sessionStorage.removeItem("seekalive:pending-email");
+      if ("passwordUpdateRequired" in result) {
+        toast({ title: "E-mail confirmado", description: result.message });
+        setLocation("/login");
+        return;
+      }
       setAuthenticatedAccount(result.account);
       toast({ title: "E-mail confirmado", description: "Sua conta está ativa." });
       setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");

@@ -14,6 +14,10 @@ export type AuthResult = {
   emailVerified: true;
 };
 
+export type EmailConfirmationResult =
+  | AuthResult
+  | { emailVerified: true; passwordUpdateRequired: true; message: string };
+
 export type CurrentSession =
   | { authenticated: false; account: null; session: null }
   | { authenticated: true; account: AuthAccount; session: { id: string; createdAt: string; expiresAt: string } };
@@ -128,7 +132,16 @@ export function loginAccount(payload: { identifier: string; password: string }) 
 }
 
 export function confirmEmail(payload: { email: string; code: string }) {
-  return postJson<AuthResult>("/auth/verification/confirm", payload);
+  return postJson<EmailConfirmationResult>("/auth/verification/confirm", payload);
+}
+
+export function updatePasswordPolicy(payload: {
+  identifier: string;
+  currentPassword: string;
+  newPassword: string;
+  passwordConfirmation: string;
+}) {
+  return postJson<{ status: "password_updated" }>("/auth/password/update", payload);
 }
 
 export function resendVerification(payload: { email: string }) {

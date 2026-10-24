@@ -252,3 +252,17 @@ mtime_ms = 1792783990778
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/ccace8f7-8599-4c5d-9761-64034e43b5b2/ea5a50d9-2c8f-4b3f-88d9-f9b4e3e590d7"
 storage_version_token = "1792784017721683"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "3LEqI133eyG8DCGOxXCqr"
+uri = "file://Seekalive/Projeto/docs/api/backend/index.html"
+type = "html"
+title = "Documentação do backend Seekalive"
+description = "Documentação navegável atualizada com contratos, endpoints, esquema de dados, segurança e estado de implementação."
+logical_id = "8086b733-6777-4248-8d1e-80ff4899654e"
+content_hash = "sha256:f0e36d2000ec38981c13c842520d2502412628b88e213023119f78868fbf9fee"
+size = 192937
+mtime_ms = 1792872530901
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/8086b733-6777-4248-8d1e-80ff4899654e/9701a0c2-fbea-4cf1-bca8-40fff60dac43"
+storage_version_token = "1792872671372239"
+content_type = "text/html"

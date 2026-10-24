@@ -4,7 +4,7 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ## Antes de implementar
 
-1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail e interesses do onboarding. A conta só recebe sessão após confirmação; o envio de e-mail segue bloqueado sem provedor. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
+1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail, atualização de senha por senha atual e interesses do onboarding. A conta só recebe sessão após confirmação e política de senha vigente. Credenciais e sessões anteriores à regra recebem versão `0` na migração; senhas legadas compatíveis sobem de versão no login, senhas incompatíveis exigem atualização, e sessões antigas precisam de novo login. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
 2. Conectar e provisionar o provedor PostgreSQL externo escolhido; definir ambientes, backup e retenção antes de apontar o backend para ele.
 3. Confirmar armazenamento de mídia, limites, formatos e retenção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.
@@ -15,9 +15,10 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fase 1 — Infraestrutura segura e identidade (núcleo implementado)
 
-- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação e onboarding estão implementados. O e-mail não está conectado; não se deve contornar o bloqueio de cadastro real.
-- Falta selecionar e configurar provedor de envio quando o usuário autorizar essa etapa; recuperação de senha ainda não está implementada.
-- Aceite já verificado em código: visitante anônimo e conta sem e-mail verificado não acessam recursos protegidos; cadastro não emite sessão sem entrega; confirmação ativa e cria sessão; logout revoga a sessão.
+- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política e onboarding estão implementados no código. A migração das novas colunas ainda não foi aplicada ao schema principal de desenvolvimento.
+- O teste direto do Resend foi recebido em desenvolvimento, mas a suíte de API usa e-mail em memória; o fluxo E2E de cadastro via Resend deve ser validado separadamente. Produção não é presumida nem habilitada.
+- A política definida é 8–128 caracteres, com uma maiúscula, minúscula, número e caractere especial; o hash usa Argon2id. Recuperação de senha esquecida continua sem implementação.
+- Aceite verificado em schema temporário isolado: conta anônima/não verificada não acessa recursos; contas legadas sem senha compatível não recebem sessão; atualização válida grava novo hash e revoga sessões; senha legada compatível é promovida no login; logout revoga a sessão.
 - Aceite: build de produção não carrega registros fictícios de demonstração; páginas sem endpoint/dados mostram estados vazios, enquanto o preview de desenvolvimento mantém as fixtures para revisão visual.
 
 ### Fase 2 — Conta única, perfil e relacionamentos (API essencial implementada; frontend parcial)

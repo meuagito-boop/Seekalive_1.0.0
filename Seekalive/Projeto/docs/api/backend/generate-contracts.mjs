@@ -50,13 +50,20 @@ post("auth", "/v1/auth/login", "Autenticar por nome de usuário ou e-mail e senh
   csrfOnly: true,
   successCode: "200",
   status: "live",
-  contractDescription: "Normaliza o identificador e só cria sessão após validar senha e e-mail confirmado. Para credenciais corretas de conta pendente, retorna 403 EMAIL_NOT_VERIFIED sem cookie; conta pendente não acessa recursos. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
+  contractDescription: "Normaliza o identificador e só cria sessão após validar senha, e-mail confirmado e versão de política de senha. Senhas legadas que já atendam à regra atual têm sua versão atualizada no login; as demais recebem 403 PASSWORD_UPDATE_REQUIRED, sem sessão, e precisam ser trocadas com a senha atual. Credenciais de conta pendente recebem 403 EMAIL_NOT_VERIFIED sem cookie. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
   responseHeaders: {
     "Set-Cookie": {
       description: "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
       schema: { type: "string" },
     },
   },
+});
+post("auth", "/v1/auth/password/update", "Atualizar senha usando a senha atual", "PasswordPolicyUpdateRequest", "PasswordUpdated", {
+  auth: "none",
+  csrfOnly: true,
+  successCode: "200",
+  status: "live",
+  contractDescription: "Exige e-mail confirmado, credenciais atuais válidas e senha nova conforme a política. Atualiza o hash Argon2id e revoga todas as sessões na mesma transação; o cliente precisa autenticar novamente. Não substitui recuperação de senha perdida.",
 });
 post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Empty", {
   successCode: "204",
@@ -89,12 +96,12 @@ post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação de e-
   status: "live",
   contractDescription: "Aceita o e-mail informado e não confirma se existe conta. Sem provedor de e-mail, retorna 503 sem enviar código.",
 });
-post("auth", "/v1/auth/verification/confirm", "Confirmar desafio de e-mail de uso único", "VerificationConfirm", "AuthResult", {
+post("auth", "/v1/auth/verification/confirm", "Confirmar desafio de e-mail de uso único", "VerificationConfirm", "VerificationConfirmation", {
   auth: "none",
   csrfOnly: true,
   successCode: "200",
   status: "live",
-  contractDescription: "Valida o código de seis dígitos de uso único, marca o e-mail como confirmado e ativa a conta na mesma transação. Somente então emite sessão segura e permite o acesso ao onboarding e ao aplicativo.",
+  contractDescription: "Valida o código de seis dígitos de uso único, marca o e-mail como confirmado e ativa a conta na mesma transação. Conta na versão atual da política recebe uma sessão segura. Conta legada sem versão de senha recebe passwordUpdateRequired=true, sem sessão, e deve entrar para validar ou atualizar sua senha.",
   responseHeaders: {
     "Set-Cookie": {
       description: "Sessão opaca criada/rotacionada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
@@ -254,6 +261,15 @@ const schemas = {
   Readiness: model({ status: { type: "string", enum: ["ready", "degraded"] }, checks: { type: "object", additionalProperties: { type: "string" } } }, ["status", "checks"]),
   Csrf: model({ csrfToken: string }, ["csrfToken"]),
   Session: model({ id: uuid, createdAt: { type: "string", format: "date-time" }, expiresAt: { type: "string", format: "date-time" } }, ["id", "createdAt", "expiresAt"]),
+  PasswordUpdated: model({ status: { type: "string", const: "password_updated" } }, ["status"]),
+  LegacyPasswordUpdateRequired: model({
+    emailVerified: { type: "boolean", const: true },
+    passwordUpdateRequired: { type: "boolean", const: true },
+    message: string,
+  }, ["emailVerified", "passwordUpdateRequired", "message"]),
+  VerificationConfirmation: {
+    oneOf: [ref("AuthResult"), ref("LegacyPasswordUpdateRequired")],
+  },
   PageSession: page("Session"),
   AuthenticatedAccount: model({
     id: uuid,
@@ -290,20 +306,20 @@ const schemas = {
     accountType: { type: "string", const: "personal" },
     firstName: { type: "string", minLength: 2, maxLength: 80 },
     lastName: { type: "string", minLength: 2, maxLength: 80 },
-    age: { type: "integer", minimum: 1, maximum: 120 },
+    age: { type: "integer", minimum: 18, maximum: 120 },
     username: { type: "string", minLength: 3, maxLength: 20, pattern: "^[a-z0-9_]+$" },
     email: { type: "string", format: "email", maxLength: 254 },
-    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128, description: "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial." },
     passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
     acceptedTermsVersion: { type: "string", minLength: 1, maxLength: 50 },
   }, ["accountType", "firstName", "lastName", "age", "username", "email", "password", "passwordConfirmation", "acceptedTermsVersion"]),
   CommercialRegistration: model({
     accountType: { type: "string", const: "commercial" },
     businessName: { type: "string", minLength: 2, maxLength: 100 },
-    age: { type: "integer", minimum: 1, maximum: 120, description: "Idade informada pelo responsável pela conta comercial; dado privado." },
+    age: { type: "integer", minimum: 18, maximum: 120, description: "Idade informada pelo responsável pela conta comercial; dado privado." },
     username: { type: "string", minLength: 3, maxLength: 20, pattern: "^[a-z0-9_]+$" },
     email: { type: "string", format: "email", maxLength: 254 },
-    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128, description: "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial." },
     passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
     categoryKey: { type: "string", enum: ["restaurantes", "bares", "cafes", "servicos", "compras", "saude", "lazer"] },
     discoveryKind: { type: "string", enum: ["place", "provider"] },
@@ -323,8 +339,14 @@ const schemas = {
   },
   LoginRequest: model({
     identifier: { type: "string", minLength: 3, maxLength: 254, description: "Nome de usuário ou e-mail; aceita @ inicial no nome de usuário." },
-    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    password: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128, description: "Mantém compatibilidade com hashes legados; contas com senha fora da política atual precisam atualizá-la após validar a senha atual." },
   }, ["identifier", "password"]),
+  PasswordPolicyUpdateRequest: model({
+    identifier: { type: "string", minLength: 3, maxLength: 254 },
+    currentPassword: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+    newPassword: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128, description: "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial." },
+    passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+  }, ["identifier", "currentPassword", "newPassword", "passwordConfirmation"]),
   RecoveryRequest: model({ identifier: { type: "string", minLength: 3, maxLength: 254 } }, ["identifier"]),
   RecoveryConfirm: model({
     token: { type: "string", minLength: 32, maxLength: 512, writeOnly: true },

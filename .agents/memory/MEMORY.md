@@ -1,6 +1,6 @@
 - [Privacidade e seguimento](private-follow-approval.md) — perfis privados exigem aprovação; seguidores aceitos veem conteúdo público, enquanto Círculo continua mútuo.
 - [Bloqueio por conta](blocking-policy.md) — bloqueio bilateral remove follows/pedidos; só o iniciador desbloqueia, histórico de mensagens é ocultado e restaurado.
-- [Autenticação Seekalive](seekalive-auth-strategy.md) — autenticação própria; novos cadastros públicos exigem 18+ autodeclarados; revisar contas antigas antes de migrar.
+- [Autenticação Seekalive](seekalive-auth-strategy.md) — e-mail verificado e 18+; senha Argon2id com política atual aplicada às contas novas e antigas.
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
 - [Banco externo Seekalive](external-database.md) — o backend deverá usar PostgreSQL fora da Replit; provedor e conexão ainda precisam ser estabelecidos.
 - [Back-end em etapas](backend-staged-rollout.md) — resolver segurança/conta antes das páginas sociais; não sair de Social até estar pronto para produção.

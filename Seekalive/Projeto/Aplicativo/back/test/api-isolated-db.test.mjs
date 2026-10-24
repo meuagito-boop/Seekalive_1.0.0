@@ -48,6 +48,7 @@ const {
   sessions,
 } = database;
 const { getTableConfig } = await import("drizzle-orm/pg-core");
+const { passwordPolicySchema } = await import("@workspace/api-zod");
 const require = createRequire(import.meta.url);
 const argon2 = require("argon2");
 
@@ -315,6 +316,34 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(underageBusiness.response.status, 400);
 
+  const invalidPasswordPolicyCases = [
+    "a02_test_2026!", // no uppercase
+    "A02_TEST_2026!", // no lowercase
+    "Aa_Test!", // no number
+    "AaTest2026", // no special character
+    "A1!bc", // too short
+  ];
+  for (const candidate of invalidPasswordPolicyCases) {
+    assert.equal(passwordPolicySchema.safeParse(candidate).success, false, `Expected policy rejection for ${candidate}`);
+  }
+  assert.equal(passwordPolicySchema.safeParse(password).success, true);
+  const weakPasswordRegistration = await request("/api/v1/auth/register", {
+    method: "POST",
+    body: {
+      accountType: "personal",
+      firstName: "Pessoa",
+      lastName: "Senha",
+      username: `weak_${suffix}`,
+      email: `weak-password-${suffix}@example.com`,
+      age: 18,
+      password: "a02_test_2026!",
+      passwordConfirmation: "a02_test_2026!",
+      acceptedTermsVersion: "v1",
+    },
+    auth: preAuth,
+  });
+  assert.equal(weakPasswordRegistration.response.status, 400);
+
   const rejectedDatabaseInsert = await pool.query(
     `INSERT INTO ${quoteGeneratedSchema(schemaName)}.accounts
       (username, age, accepted_terms_version, display_name, account_type)
@@ -350,6 +379,84 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
 
   const personal = await confirmAccount(pendingPersonal, preAuth);
   assert.equal(personal.account.accountType, "personal");
+  const [newPersonalCredential] = await db
+    .select({ passwordPolicyVersion: passwordCredentials.passwordPolicyVersion })
+    .from(passwordCredentials)
+    .where(eq(passwordCredentials.accountId, personal.account.id));
+  assert.equal(newPersonalCredential.passwordPolicyVersion, 1);
+  const oldPersonalSession = { ...personal };
+  const legacyPassword = "Oldpassword123";
+  const legacyPasswordHash = await argon2.hash(legacyPassword, {
+    type: argon2.argon2id,
+    memoryCost: 65_536,
+    timeCost: 3,
+    parallelism: 1,
+  });
+  await db
+    .update(passwordCredentials)
+    .set({ passwordHash: legacyPasswordHash, passwordPolicyVersion: 0 })
+    .where(eq(passwordCredentials.accountId, personal.account.id));
+  await db
+    .update(sessions)
+    .set({ passwordPolicyVersion: 0 })
+    .where(eq(sessions.accountId, personal.account.id));
+  const legacySessionRejected = await request("/api/v1/auth/session", { auth: oldPersonalSession });
+  assert.equal(legacySessionRejected.body.authenticated, false);
+
+  const legacyLoginPreAuth = await createPreAuth();
+  const legacyLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pendingPersonal.email, password: legacyPassword },
+    auth: legacyLoginPreAuth,
+  });
+  assert.equal(legacyLogin.response.status, 403);
+  assert.equal(legacyLogin.body.error.code, "PASSWORD_UPDATE_REQUIRED");
+  assert.equal(
+    responseCookies(legacyLogin.response).some((cookie) => cookie.startsWith("__Host-seekalive_session=")),
+    false,
+    "A legacy password outside policy must not receive a session.",
+  );
+
+  const failedPasswordUpdate = await request("/api/v1/auth/password/update", {
+    method: "POST",
+    body: {
+      identifier: pendingPersonal.email,
+      currentPassword: "IncorrectOldPassword1!",
+      newPassword: "B03_Updated_Test_2026!",
+      passwordConfirmation: "B03_Updated_Test_2026!",
+    },
+    auth: await createPreAuth(),
+  });
+  assert.equal(failedPasswordUpdate.response.status, 401);
+
+  const passwordUpdate = await request("/api/v1/auth/password/update", {
+    method: "POST",
+    body: {
+      identifier: pendingPersonal.email,
+      currentPassword: legacyPassword,
+      newPassword: "B03_Updated_Test_2026!",
+      passwordConfirmation: "B03_Updated_Test_2026!",
+    },
+    auth: await createPreAuth(),
+  });
+  assert.equal(passwordUpdate.response.status, 200, JSON.stringify(passwordUpdate.body));
+  const revokedLegacySession = await request("/api/v1/auth/session", { auth: oldPersonalSession });
+  assert.equal(revokedLegacySession.body.authenticated, false);
+
+  const oldPasswordLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pendingPersonal.email, password: legacyPassword },
+    auth: await createPreAuth(),
+  });
+  assert.equal(oldPasswordLogin.response.status, 401);
+  const upgradedLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pendingPersonal.email, password: "B03_Updated_Test_2026!" },
+    auth: await createPreAuth(),
+  });
+  assert.equal(upgradedLogin.response.status, 200, JSON.stringify(upgradedLogin.body));
+  personal.cookie = cookieValue(upgradedLogin.response, "__Host-seekalive_session");
+  personal.csrfToken = upgradedLogin.body.csrfToken;
   const currentSession = await request("/api/v1/auth/session", { auth: personal });
   assert.equal(currentSession.response.status, 200);
   assert.equal(currentSession.body.authenticated, true);
@@ -393,8 +500,40 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     acceptedTermsVersion: "v1",
   };
   const pendingCommercial = await registerAccount(commercialRegistration, commercialPreAuth);
-  const commercial = await confirmAccount(pendingCommercial, commercialPreAuth);
+  const [pendingCommercialAccount] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(eq(accounts.username, commercialRegistration.username))
+    .limit(1);
+  assert.ok(pendingCommercialAccount);
+  await db
+    .update(passwordCredentials)
+    .set({ passwordPolicyVersion: 0 })
+    .where(eq(passwordCredentials.accountId, pendingCommercialAccount.id));
+  const legacyCommercialConfirmation = await request("/api/v1/auth/verification/confirm", {
+    method: "POST",
+    body: { email: pendingCommercial.email, code: pendingCommercial.message.code },
+    auth: commercialPreAuth,
+  });
+  assert.equal(legacyCommercialConfirmation.response.status, 200, JSON.stringify(legacyCommercialConfirmation.body));
+  assert.equal(legacyCommercialConfirmation.body.passwordUpdateRequired, true);
+  const commercialLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pendingCommercial.email, password },
+    auth: await createPreAuth(),
+  });
+  assert.equal(commercialLogin.response.status, 200, JSON.stringify(commercialLogin.body));
+  const commercial = {
+    account: commercialLogin.body.account,
+    cookie: cookieValue(commercialLogin.response, "__Host-seekalive_session"),
+    csrfToken: commercialLogin.body.csrfToken,
+  };
   assert.equal(commercial.account.accountType, "commercial");
+  const [upgradedCommercialCredential] = await db
+    .select({ passwordPolicyVersion: passwordCredentials.passwordPolicyVersion })
+    .from(passwordCredentials)
+    .where(eq(passwordCredentials.accountId, commercial.account.id));
+  assert.equal(upgradedCommercialCredential.passwordPolicyVersion, 1);
   const publicProfile = await request(`/api/v1/profiles/${commercial.account.username}`, { auth: personal });
   assert.equal(publicProfile.response.status, 200, JSON.stringify(publicProfile.body));
   assert.equal(publicProfile.body.account.id, commercial.account.id);

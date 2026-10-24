@@ -1,6 +1,6 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **130 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **131 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
 > Rotas marcadas **ATIVA** já têm handler no servidor atual. Rotas **PROPOSTA** ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.
 
@@ -27,13 +27,14 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **ATIVA** |
 | POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **ATIVA**; assíncrona |
 | POST | `/v1/auth/login` | Público | `LoginRequest` | `AuthResult` | **ATIVA** |
+| POST | `/v1/auth/password/update` | Público | `PasswordPolicyUpdateRequest` | `PasswordUpdated` | **ATIVA** |
 | POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **ATIVA** |
 | GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **PROPOSTA** |
 | DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | POST | `/v1/auth/recovery` | Público | `RecoveryRequest` | `Accepted` | **PROPOSTA**; assíncrona |
 | POST | `/v1/auth/recovery/confirm` | Público | `RecoveryConfirm` | `Empty` | **PROPOSTA** |
 | POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `AuthResult` | **ATIVA** |
+| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `VerificationConfirmation` | **ATIVA** |
 
 ## Onboarding
 

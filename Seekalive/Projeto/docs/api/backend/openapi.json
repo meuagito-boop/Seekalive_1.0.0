@@ -861,7 +861,7 @@
           "auth"
         ],
         "summary": "Autenticar por nome de usuário ou e-mail e senha",
-        "description": "Normaliza o identificador e só cria sessão após validar senha e e-mail confirmado. Para credenciais corretas de conta pendente, retorna 403 EMAIL_NOT_VERIFIED sem cookie; conta pendente não acessa recursos. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
+        "description": "Normaliza o identificador e só cria sessão após validar senha, e-mail confirmado e versão de política de senha. Senhas legadas que já atendam à regra atual têm sua versão atualizada no login; as demais recebem 403 PASSWORD_UPDATE_REQUIRED, sem sessão, e precisam ser trocadas com a senha atual. Credenciais de conta pendente recebem 403 EMAIL_NOT_VERIFIED sem cookie. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
         "security": [
           {
             "PreAuthCookie": [],
@@ -893,6 +893,174 @@
                 "description": "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/password/update": {
+      "post": {
+        "operationId": "auth_post_v1_auth_password_update_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Atualizar senha usando a senha atual",
+        "description": "Exige e-mail confirmado, credenciais atuais válidas e senha nova conforme a política. Atualiza o hash Argon2id e revoga todas as sessões na mesma transação; o cliente precisa autenticar novamente. Não substitui recuperação de senha perdida.",
+        "security": [
+          {
+            "PreAuthCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordPolicyUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordUpdated"
                 }
               }
             }
@@ -2037,7 +2205,7 @@
           "auth"
         ],
         "summary": "Confirmar desafio de e-mail de uso único",
-        "description": "Valida o código de seis dígitos de uso único, marca o e-mail como confirmado e ativa a conta na mesma transação. Somente então emite sessão segura e permite o acesso ao onboarding e ao aplicativo.",
+        "description": "Valida o código de seis dígitos de uso único, marca o e-mail como confirmado e ativa a conta na mesma transação. Conta na versão atual da política recebe uma sessão segura. Conta legada sem versão de senha recebe passwordUpdateRequired=true, sem sessão, e deve entrar para validar ou atualizar sua senha.",
         "security": [
           {
             "PreAuthCookie": [],
@@ -2060,7 +2228,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResult"
+                  "$ref": "#/components/schemas/VerificationConfirmation"
                 }
               }
             },
@@ -22521,6 +22689,51 @@
           "expiresAt"
         ]
       },
+      "PasswordUpdated": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "password_updated"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "LegacyPasswordUpdateRequired": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "emailVerified": {
+            "type": "boolean",
+            "const": true
+          },
+          "passwordUpdateRequired": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailVerified",
+          "passwordUpdateRequired",
+          "message"
+        ]
+      },
+      "VerificationConfirmation": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AuthResult"
+          },
+          {
+            "$ref": "#/components/schemas/LegacyPasswordUpdateRequired"
+          }
+        ]
+      },
       "PageSession": {
         "type": "object",
         "additionalProperties": false,
@@ -22721,7 +22934,7 @@
           },
           "age": {
             "type": "integer",
-            "minimum": 1,
+            "minimum": 18,
             "maximum": 120
           },
           "username": {
@@ -22740,7 +22953,8 @@
             "format": "password",
             "writeOnly": true,
             "minLength": 8,
-            "maxLength": 128
+            "maxLength": 128,
+            "description": "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial."
           },
           "passwordConfirmation": {
             "type": "string",
@@ -22782,7 +22996,7 @@
           },
           "age": {
             "type": "integer",
-            "minimum": 1,
+            "minimum": 18,
             "maximum": 120,
             "description": "Idade informada pelo responsável pela conta comercial; dado privado."
           },
@@ -22802,7 +23016,8 @@
             "format": "password",
             "writeOnly": true,
             "minLength": 8,
-            "maxLength": 128
+            "maxLength": 128,
+            "description": "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial."
           },
           "passwordConfirmation": {
             "type": "string",
@@ -22911,12 +23126,52 @@
             "format": "password",
             "writeOnly": true,
             "minLength": 8,
-            "maxLength": 128
+            "maxLength": 128,
+            "description": "Mantém compatibilidade com hashes legados; contas com senha fora da política atual precisam atualizá-la após validar a senha atual."
           }
         },
         "required": [
           "identifier",
           "password"
+        ]
+      },
+      "PasswordPolicyUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254
+          },
+          "currentPassword": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "newPassword": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial."
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "identifier",
+          "currentPassword",
+          "newPassword",
+          "passwordConfirmation"
         ]
       },
       "RecoveryRequest": {

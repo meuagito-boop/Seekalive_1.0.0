@@ -104,7 +104,7 @@ export default function SettingsAccount() {
             </>
           )}
           <Input value={currentUser?.email ?? ""} readOnly type="email" aria-label="E-mail de cadastro" placeholder="E-mail de cadastro" className="h-12 bg-card border-border rounded-xl opacity-70" />
-          <p className="text-xs text-muted-foreground">E-mail e senha só poderão ser alterados após conectar o serviço de autenticação. Senhas não são salvas localmente.</p>
+          <p className="text-xs text-muted-foreground">Esta tela ainda não altera e-mail ou senha. Contas com senha legada incompatível recebem a atualização obrigatória durante o login; o aplicativo não salva senhas no navegador.</p>
           {profileError && <p role="alert" className="text-xs text-destructive">{profileError}</p>}
           <Button type="submit" className="rounded-xl h-10 px-6" data-testid="button-save-profile">Salvar dados do perfil</Button>
         </form>
@@ -136,7 +136,7 @@ export default function SettingsAccount() {
         </form>
 
         <SectionTitle>E-mail e senha</SectionTitle>
-        <UnavailableNotice>Alterar e-mail e senha depende do serviço de autenticação, que ainda não está disponível.</UnavailableNotice>
+        <UnavailableNotice>A API de autenticação existe, mas a alteração voluntária de e-mail/senha nesta tela e a recuperação de senha esquecida ainda não foram implementadas. Senhas legadas incompatíveis são atualizadas pelo fluxo de login.</UnavailableNotice>
         <div className="px-4 pt-3 space-y-3">
           <Input disabled placeholder="Novo e-mail" type="email" aria-label="Novo e-mail (indisponível)" data-testid="input-new-email" className={disabledField} />
           <Input disabled placeholder="Nova senha" type="password" aria-label="Nova senha (indisponível)" data-testid="input-new-password" className={disabledField} />

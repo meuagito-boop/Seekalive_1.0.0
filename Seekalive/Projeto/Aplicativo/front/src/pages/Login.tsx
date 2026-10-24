@@ -3,26 +3,45 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { passwordPolicySchema } from "@workspace/api-zod";
 import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/context/AppContext";
-import { AuthApiError, loginAccount } from "@/services/authApi";
+import { AuthApiError, loginAccount, updatePasswordPolicy } from "@/services/authApi";
 
 const schema = z.object({
   identifier: z.string().trim().min(3, "Informe seu nome de usuário ou e-mail"),
-  password: z.string().min(8, "A senha deve ter ao menos 8 caracteres"),
+  password: z.string().min(8, "A senha deve ter ao menos 8 caracteres").max(128, "A senha deve ter no máximo 128 caracteres"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
+const passwordUpdateSchema = z
+  .object({
+    newPassword: passwordPolicySchema,
+    passwordConfirmation: passwordPolicySchema,
+  })
+  .superRefine((values, context) => {
+    if (values.newPassword !== values.passwordConfirmation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordConfirmation"],
+        message: "As senhas não coincidem.",
+      });
+    }
+  });
+
+type PasswordUpdateValues = z.infer<typeof passwordUpdateSchema>;
+
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [savePassword, setSavePassword] = useState(false);
+  const [passwordUpdateRequired, setPasswordUpdateRequired] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { setAuthenticatedAccount, startDevelopmentPreview } = useAppContext();
@@ -31,6 +50,10 @@ export default function Login() {
     resolver: zodResolver(schema),
     defaultValues: { identifier: "", password: "" },
   });
+  const passwordUpdateForm = useForm<PasswordUpdateValues>({
+    resolver: zodResolver(passwordUpdateSchema),
+    defaultValues: { newPassword: "", passwordConfirmation: "" },
+  });
 
   async function onSubmit(values: FormValues) {
     try {
@@ -38,6 +61,15 @@ export default function Login() {
       setAuthenticatedAccount(result.account);
       setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
     } catch (error) {
+      if (error instanceof AuthApiError && error.code === "PASSWORD_UPDATE_REQUIRED") {
+        setPasswordUpdateRequired(true);
+        passwordUpdateForm.reset();
+        toast({
+          title: "Atualize sua senha",
+          description: "Para continuar, crie uma senha que atenda aos requisitos atuais.",
+        });
+        return;
+      }
       if (error instanceof AuthApiError && error.code === "EMAIL_NOT_VERIFIED") {
         if (values.identifier.includes("@")) {
           sessionStorage.setItem("seekalive:pending-email", values.identifier.trim().toLowerCase());
@@ -49,6 +81,41 @@ export default function Login() {
       toast({
         title: "Não foi possível entrar",
         description: error instanceof Error ? error.message : "Confira seus dados e tente novamente.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function onPasswordUpdate(values: PasswordUpdateValues) {
+    const identifier = form.getValues("identifier").trim();
+    const currentPassword = form.getValues("password");
+    if (!identifier || !currentPassword) {
+      toast({
+        title: "Informe suas credenciais atuais",
+        description: "Preencha seu usuário ou e-mail e sua senha atual antes de continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await updatePasswordPolicy({
+        identifier,
+        currentPassword,
+        newPassword: values.newPassword,
+        passwordConfirmation: values.passwordConfirmation,
+      });
+      form.setValue("password", values.newPassword, { shouldValidate: true });
+      const result = await loginAccount({ identifier, password: values.newPassword });
+      setAuthenticatedAccount(result.account);
+      setPasswordUpdateRequired(false);
+      passwordUpdateForm.reset();
+      toast({ title: "Senha atualizada", description: "Sua conta está protegida pela regra atual." });
+      setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
+    } catch (error) {
+      toast({
+        title: "Não foi possível atualizar a senha",
+        description: error instanceof Error ? error.message : "Confira os dados e tente novamente.",
         variant: "destructive",
       });
     }
@@ -164,6 +231,78 @@ export default function Login() {
             </Button>
           </form>
         </Form>
+
+        {passwordUpdateRequired && (
+          <section
+            aria-labelledby="password-policy-heading"
+            className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4"
+            data-testid="password-policy-update"
+          >
+            <h2 id="password-policy-heading" className="mb-2 text-base font-semibold text-foreground">
+              Atualização obrigatória de senha
+            </h2>
+            <p className="mb-4 text-sm leading-5 text-muted-foreground">
+              A senha atual não atende aos requisitos. Informe uma nova senha para continuar.
+            </p>
+            <Form {...passwordUpdateForm}>
+              <form onSubmit={passwordUpdateForm.handleSubmit(onPasswordUpdate)} className="space-y-4">
+                <FormField
+                  control={passwordUpdateForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="password"
+                          autoComplete="new-password"
+                          minLength={8}
+                          maxLength={128}
+                          aria-label="Nova senha"
+                          placeholder="Nova senha"
+                          className="h-12 rounded-xl border-border bg-card text-foreground"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        De 8 a 128 caracteres, com maiúscula, minúscula, número e caractere especial.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={passwordUpdateForm.control}
+                  name="passwordConfirmation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="password"
+                          autoComplete="new-password"
+                          minLength={8}
+                          maxLength={128}
+                          aria-label="Confirme a nova senha"
+                          placeholder="Confirme a nova senha"
+                          className="h-12 rounded-xl border-border bg-card text-foreground"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full rounded-xl"
+                  disabled={passwordUpdateForm.formState.isSubmitting}
+                  data-testid="button-update-password-policy"
+                >
+                  {passwordUpdateForm.formState.isSubmitting ? "Atualizando..." : "Atualizar senha e entrar"}
+                </Button>
+              </form>
+            </Form>
+          </section>
+        )}
 
         {import.meta.env.DEV && (
           <div className="mt-5 rounded-xl border border-primary/25 bg-primary/5 p-4">

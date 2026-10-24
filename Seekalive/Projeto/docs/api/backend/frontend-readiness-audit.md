@@ -1,7 +1,9 @@
 # Auditoria de prontidão do frontend — Seekalive
 
-**Data da auditoria:** 22/10/2026; atualização de estado: 23/10/2026  
+**Auditoria-base:** 22/10/2026; última atualização de estado: 24/10/2026
 **Escopo:** prontidão do frontend para integração gradual. A auditoria original foi análise/documentação; desde então, autenticação, onboarding, perfil básico, privacidade e relações sociais essenciais receberam API e schema no desenvolvimento.
+
+> Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.11).
 
 ## Parecer
 
@@ -44,13 +46,13 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 - `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
 - O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
 
-**Decisão e estado atual:** autenticação própria implementada em Express, com sessão opaca, CSRF e hash Argon2id. Login, cadastro, verificação e onboarding estão ligados às rotas da API. O banco de desenvolvimento tem o schema de sete tabelas da primeira fatia; `localStorage` não concede acesso. Recuperação de senha ainda é demonstrativa.
+**Atualização de autenticação em 24/10:** cadastro, login, verificação de e-mail e onboarding usam a API. A política é Argon2id com senha de 8–128 caracteres, uma maiúscula, uma minúscula, um número e um caractere especial. O frontend e a API suportam migração de credenciais anteriores sem tentar inferir a senha a partir do hash. As regras foram exercitadas em schema temporário isolado; as novas colunas ainda não foram aplicadas ao banco principal de desenvolvimento.
 
-**Regra confirmada:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão; a confirmação ativa a conta e inicia uma sessão. Essa regra deve ser aplicada no servidor em todas as rotas.
+**Regras confirmadas:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão. Na confirmação, uma conta legada com política de senha antiga é ativada sem sessão e segue para login; senha legada compatível é promovida após validação, e senha incompatível exige atualização com a senha atual.
 
-**Atenção restante:** conectar um serviço de envio de e-mail para que cadastro e verificação possam concluir. O cookie de sessão usa validade configurável de sete dias por padrão. Não há alteração em banco de produção; o SQL completo segue como proposta.
+**Atenção restante:** a migração no banco principal de desenvolvimento ainda precisa de autorização porque sessões atuais com versão antiga deixarão de valer e todas as contas precisarão entrar novamente. O efeito é reautenticação, sem apagar contas ou conteúdo. Recuperação de senha esquecida, alteração voluntária na tela de configurações, sessões/dispositivos confiáveis e fatores adicionais continuam pendentes. Não há produção real nem mudança em produção.
 
-O contrato limita senhas a 128 caracteres; os formulários atuais ainda não definem limite máximo. Alinhar validação visual e mensagens de erro antes de ligar registro/login à API.
+O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a regra de composição é aplicada a novas senhas e a atualizações obrigatórias. O campo de senha permanece apenas em memória durante o fluxo e não é salvo em `localStorage`.
 
 ### P0 — O frontend ainda não consome perfil e relações da API
 

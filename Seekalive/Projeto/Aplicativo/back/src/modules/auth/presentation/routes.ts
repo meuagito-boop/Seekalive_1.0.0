@@ -49,7 +49,8 @@ const MAX_VERIFICATION_ATTEMPTS = 5;
 const genericRegistrationMessage = "Se os dados forem válidos, enviaremos um código de verificação para o e-mail informado.";
 const genericVerificationMessage = "Se houver uma conta pendente para esse e-mail, enviaremos um novo código.";
 const ARGON2ID_OPTIONS = {
-  type: argon2.argon2id,
+  // argon2.argon2id is runtime value 2; the package type widens it to number.
+  type: argon2.argon2id as 2,
   memoryCost: 65_536,
   timeCost: 3,
   parallelism: 1,
@@ -327,46 +328,60 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireC
     sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
     return;
   }
-  if (row.passwordPolicyVersion > PASSWORD_POLICY_VERSION) {
+  const passwordMatchesCurrentPolicy = passwordPolicySchema.safeParse(parsed.data.password).success;
+  const loginResult = await db.transaction(async (tx) => {
+    const [credential] = await tx
+      .select({
+        passwordHash: passwordCredentials.passwordHash,
+        passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
+      })
+      .from(passwordCredentials)
+      .where(eq(passwordCredentials.accountId, row.id))
+      .for("update")
+      .limit(1);
+    if (!credential || credential.passwordHash !== row.passwordHash) return { kind: "credentials_changed" as const };
+    if (credential.passwordPolicyVersion > PASSWORD_POLICY_VERSION) return { kind: "unsupported_policy" as const };
+    if (credential.passwordPolicyVersion < PASSWORD_POLICY_VERSION && !passwordMatchesCurrentPolicy) {
+      return { kind: "password_update_required" as const };
+    }
+    if (credential.passwordPolicyVersion < PASSWORD_POLICY_VERSION) {
+      await tx
+        .update(passwordCredentials)
+        .set({ passwordPolicyVersion: PASSWORD_POLICY_VERSION })
+        .where(eq(passwordCredentials.accountId, row.id));
+    }
+
+    const material = createSessionMaterial();
+    const [session] = await tx
+      .insert(sessions)
+      .values({
+        accountId: row.id,
+        tokenHash: material.tokenHash,
+        csrfTokenHash: material.csrfTokenHash,
+        passwordPolicyVersion: PASSWORD_POLICY_VERSION,
+        createdAt: material.createdAt,
+        expiresAt: material.expiresAt,
+      })
+      .returning({ id: sessions.id, createdAt: sessions.createdAt, expiresAt: sessions.expiresAt });
+    if (!session) throw new Error("Session insert returned no row.");
+    return { kind: "authenticated" as const, material, session };
+  });
+  if (loginResult.kind === "credentials_changed") {
+    sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais foram alteradas. Entre novamente.");
+    return;
+  }
+  if (loginResult.kind === "unsupported_policy") {
     sendError(response, 503, "PASSWORD_POLICY_UNSUPPORTED", "Atualize o aplicativo para continuar.");
     return;
   }
-  if (row.passwordPolicyVersion < PASSWORD_POLICY_VERSION) {
-    if (!passwordPolicySchema.safeParse(parsed.data.password).success) {
-      sendError(response, 403, "PASSWORD_UPDATE_REQUIRED", "Atualize sua senha para atender aos requisitos atuais.");
-      return;
-    }
-    const [upgradedCredential] = await db
-      .update(passwordCredentials)
-      .set({ passwordPolicyVersion: PASSWORD_POLICY_VERSION })
-      .where(and(
-        eq(passwordCredentials.accountId, row.id),
-        eq(passwordCredentials.passwordHash, row.passwordHash),
-      ))
-      .returning({ accountId: passwordCredentials.accountId });
-    if (!upgradedCredential) {
-      sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais foram alteradas. Entre novamente.");
-      return;
-    }
+  if (loginResult.kind === "password_update_required") {
+    sendError(response, 403, "PASSWORD_UPDATE_REQUIRED", "Atualize sua senha para atender aos requisitos atuais.");
+    return;
   }
 
-  const material = createSessionMaterial();
-  const [session] = await db
-    .insert(sessions)
-    .values({
-      accountId: row.id,
-      tokenHash: material.tokenHash,
-      csrfTokenHash: material.csrfTokenHash,
-      passwordPolicyVersion: PASSWORD_POLICY_VERSION,
-      createdAt: material.createdAt,
-      expiresAt: material.expiresAt,
-    })
-    .returning({ id: sessions.id, createdAt: sessions.createdAt, expiresAt: sessions.expiresAt });
-  if (!session) throw new Error("Session insert returned no row.");
-
-  setSessionCookie(response, material.rawToken);
+  setSessionCookie(response, loginResult.material.rawToken);
   response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
-  response.json(authResult(row, session, material.csrfToken));
+  response.json(authResult(row, loginResult.session, loginResult.material.csrfToken));
 });
 
 router.post("/password/update", createAuthRateLimit("password-update", 5, 15 * 60 * 1000), requireCsrf, async (request, response) => {
@@ -488,9 +503,11 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
       onboardingCompletedAt: accounts.onboardingCompletedAt,
       createdAt: accounts.createdAt,
       verifiedAt: accountEmails.verifiedAt,
+      passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
     })
     .from(accounts)
     .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+    .innerJoin(passwordCredentials, eq(passwordCredentials.accountId, accounts.id))
     .where(eq(accountEmails.emailNormalized, email))
     .limit(1);
   if (!account || account.status !== "pending_verification" || account.verifiedAt) {
@@ -525,7 +542,7 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
   }
 
   const material = createSessionMaterial();
-  let result: { id: string; createdAt: Date; expiresAt: Date };
+  let result: { id: string; createdAt: Date; expiresAt: Date } | null;
   try {
     result = await db.transaction(async (tx) => {
       const [consumedChallenge] = await tx
@@ -543,22 +560,25 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
       if (!verifiedEmail) throw new Error("VERIFICATION_ALREADY_CONSUMED");
 
       const [activatedAccount] = await tx
-      .update(accounts)
-      .set({ status: "active", updatedAt: now })
+        .update(accounts)
+        .set({ status: "active", updatedAt: now })
         .where(and(eq(accounts.id, account.id), eq(accounts.status, "pending_verification")))
         .returning({ id: accounts.id });
       if (!activatedAccount) throw new Error("VERIFICATION_ALREADY_CONSUMED");
 
+      if (account.passwordPolicyVersion < PASSWORD_POLICY_VERSION) return null;
+
       const [session] = await tx
-      .insert(sessions)
-      .values({
-        accountId: account.id,
-        tokenHash: material.tokenHash,
-        csrfTokenHash: material.csrfTokenHash,
-        createdAt: material.createdAt,
-        expiresAt: material.expiresAt,
-      })
-      .returning({ id: sessions.id, createdAt: sessions.createdAt, expiresAt: sessions.expiresAt });
+        .insert(sessions)
+        .values({
+          accountId: account.id,
+          tokenHash: material.tokenHash,
+          csrfTokenHash: material.csrfTokenHash,
+          passwordPolicyVersion: PASSWORD_POLICY_VERSION,
+          createdAt: material.createdAt,
+          expiresAt: material.expiresAt,
+        })
+        .returning({ id: sessions.id, createdAt: sessions.createdAt, expiresAt: sessions.expiresAt });
       if (!session) throw new Error("Session insert returned no row.");
       return session;
     });
@@ -568,6 +588,16 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
       return;
     }
     throw error;
+  }
+
+  if (!result) {
+    response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
+    response.json({
+      emailVerified: true,
+      passwordUpdateRequired: true,
+      message: "E-mail confirmado. Atualize sua senha para entrar.",
+    });
+    return;
   }
 
   setSessionCookie(response, material.rawToken);

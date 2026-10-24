@@ -50,6 +50,7 @@ CREATE INDEX account_emails_verified ON account_emails(verified_at) WHERE verifi
 CREATE TABLE password_credentials (
   account_id uuid PRIMARY KEY REFERENCES accounts(id),
   password_hash text NOT NULL CHECK (btrim(password_hash) <> ''),
+  password_policy_version smallint NOT NULL DEFAULT 0 CHECK (password_policy_version >= 0),
   password_changed_at timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -76,6 +77,7 @@ CREATE TABLE sessions (
   account_id uuid NOT NULL REFERENCES accounts(id),
   token_hash char(64) NOT NULL UNIQUE CHECK (char_length(token_hash) = 64),
   csrf_token_hash char(64) NOT NULL CHECK (char_length(csrf_token_hash) = 64),
+  password_policy_version smallint NOT NULL DEFAULT 0 CHECK (password_policy_version >= 0),
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL,
   revoked_at timestamptz,

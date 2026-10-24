@@ -3,12 +3,13 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { passwordPolicySchema } from "@workspace/api-zod";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Check } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { AuthApiError, registerAccount as submitRegistration } from "@/services/authApi";
 
@@ -41,8 +42,8 @@ const schema = z.object({
     .max(20, "O nome de usuário deve ter no máximo 20 caracteres")
     .regex(/^[a-z0-9_]+$/, "Use letras minúsculas, números e _"),
   email: z.string().trim().email("E-mail inválido").max(254, "O e-mail é muito longo"),
-  password: z.string().min(8, "Senha deve ter ao menos 8 caracteres").max(128, "A senha deve ter no máximo 128 caracteres"),
-  confirmPassword: z.string(),
+  password: passwordPolicySchema,
+  confirmPassword: passwordPolicySchema,
   terms: z.boolean().refine(v => v, "Aceite os termos para continuar"),
 }).superRefine((data, ctx) => {
   if (data.accountType === "personal") {
@@ -434,6 +435,8 @@ export default function Register() {
                       <Input
                         {...field}
                         type={showPassword ? "text" : "password"}
+                        minLength={8}
+                        maxLength={128}
                         aria-label="Senha"
                         autoComplete="new-password"
                         placeholder="Senha"
@@ -452,6 +455,9 @@ export default function Register() {
                       </button>
                     </div>
                   </FormControl>
+                  <FormDescription>
+                    De 8 a 128 caracteres, com maiúscula, minúscula, número e caractere especial.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -466,6 +472,8 @@ export default function Register() {
                     <Input
                       {...field}
                       type="password"
+                      minLength={8}
+                      maxLength={128}
                       aria-label="Confirmar senha"
                       autoComplete="new-password"
                       placeholder="Confirmar senha"
