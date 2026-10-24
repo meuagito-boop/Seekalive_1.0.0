@@ -10,9 +10,9 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { applicationSchema } from "./config";
+import { applicationTable } from "./config";
 
-export const accounts = applicationSchema.table(
+export const accounts = applicationTable(
   "accounts",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -40,7 +40,7 @@ export const accounts = applicationSchema.table(
   (table) => [uniqueIndex("accounts_username_unique").on(table.username)],
 );
 
-export const accountEmails = applicationSchema.table(
+export const accountEmails = applicationTable(
   "account_emails",
   {
     accountId: uuid("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
@@ -52,14 +52,14 @@ export const accountEmails = applicationSchema.table(
   (table) => [uniqueIndex("account_emails_email_unique").on(table.emailNormalized)],
 );
 
-export const passwordCredentials = applicationSchema.table("password_credentials", {
+export const passwordCredentials = applicationTable("password_credentials", {
   accountId: uuid("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
   passwordHash: text("password_hash").notNull(),
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const commercialProfiles = applicationSchema.table("business_profiles", {
+export const commercialProfiles = applicationTable("business_profiles", {
   accountId: uuid("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
   categoryKey: varchar("category_key", { length: 40 }).notNull(),
   discoveryKind: varchar("discovery_kind", { length: 16 }).notNull(),
@@ -72,7 +72,7 @@ export const commercialProfiles = applicationSchema.table("business_profiles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const authChallenges = applicationSchema.table(
+export const authChallenges = applicationTable(
   "auth_challenges",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -90,7 +90,7 @@ export const authChallenges = applicationSchema.table(
   ],
 );
 
-export const sessions = applicationSchema.table(
+export const sessions = applicationTable(
   "sessions",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -108,7 +108,7 @@ export const sessions = applicationSchema.table(
   ],
 );
 
-export const accountInterests = applicationSchema.table(
+export const accountInterests = applicationTable(
   "account_interests",
   {
     accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),

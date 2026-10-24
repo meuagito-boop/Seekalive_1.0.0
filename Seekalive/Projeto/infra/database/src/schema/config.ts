@@ -1,4 +1,4 @@
-import { pgSchema } from "drizzle-orm/pg-core";
+import { pgSchema, pgTable } from "drizzle-orm/pg-core";
 
 const isolatedSchema = process.env.SEEKALIVE_DB_SCHEMA?.trim();
 
@@ -9,4 +9,8 @@ if (isolatedSchema && (
   throw new Error("SEEKALIVE_DB_SCHEMA is reserved for isolated test schemas.");
 }
 
-export const applicationSchema = pgSchema(isolatedSchema ?? "public");
+const isolatedNamespace = isolatedSchema ? pgSchema(isolatedSchema) : undefined;
+
+export const applicationTable: typeof pgTable = isolatedNamespace
+  ? isolatedNamespace.table.bind(isolatedNamespace) as unknown as typeof pgTable
+  : pgTable;

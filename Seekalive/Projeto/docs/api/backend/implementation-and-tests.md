@@ -1,11 +1,11 @@
 # Plano de implementação e testes
 
-Este documento registra a implementação já existente e organiza as próximas fatias do backend. O schema de desenvolvimento já recebeu as tabelas atuais; produção permanece sem alteração e será atualizada pelo fluxo Publish do Replit.
+Este documento registra a implementação já existente e organiza as próximas fatias do backend. O projeto ainda usa o PostgreSQL gerenciado da Replit. O usuário decidiu mover o backend para PostgreSQL hospedado fora da Replit; o provedor ainda não foi conectado e nenhum banco externo foi criado. Até a transição ser concluída, não considerar a troca ativa nem alterar `DATABASE_URL`.
 
 ## Antes de implementar
 
 1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail e interesses do onboarding. A conta só recebe sessão após confirmação; o envio de e-mail segue bloqueado sem provedor. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
-2. Confirmar PostgreSQL por ambiente e política de backup/retention.
+2. Conectar e provisionar o provedor PostgreSQL externo escolhido; definir ambientes, backup e retenção antes de apontar o backend para ele.
 3. Confirmar armazenamento de mídia, limites, formatos e retenção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.
 5. Revisar `schema-core.sql`, constraints, migrações, termos de privacidade e matriz de autorização.
@@ -81,7 +81,7 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL atual é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. A produção deve receber alterações pelo diff de schema do fluxo oficial de publicação. Não executar DDL no startup, não usar `push-force` e não criar um migrador de produção paralelo. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` abaixo cria dados somente em um schema de teste aleatório.
+O PostgreSQL atualmente conectado é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. O usuário decidiu migrar para PostgreSQL externo, mas essa migração ainda não foi iniciada. O fluxo Publish da Replit não atualizará o schema do banco externo; antes de ativá-lo, definir um processo explícito e revisado de migração/rollback e um segredo de conexão somente para o backend. Não sobrescrever a variável runtime `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` abaixo cria dados somente em um schema de teste aleatório.
 
 ### Integração HTTP com schema isolado (A02)
 
