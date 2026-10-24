@@ -45,6 +45,19 @@ const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
 const genericRegistrationMessage = "Se os dados forem válidos, enviaremos um código de verificação para o e-mail informado.";
 const genericVerificationMessage = "Se houver uma conta pendente para esse e-mail, enviaremos um novo código.";
+let testEmailDelivery: AuthEmailDelivery | undefined;
+
+export function setAuthEmailDeliveryForTests(delivery: AuthEmailDelivery): void {
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error("Test email delivery can only be configured in NODE_ENV=test.");
+  }
+  testEmailDelivery = delivery;
+}
+
+function getAuthEmailDelivery(): AuthEmailDelivery {
+  return testEmailDelivery ?? authEmailDelivery;
+}
+
 const fallbackPasswordHashPromise = argon2.hash("seekalive-invalid-user-placeholder", {
   type: argon2.argon2id,
   memoryCost: 65_536,
@@ -162,11 +175,12 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
     return;
   }
   const registration = parsed.data;
+  const delivery = getAuthEmailDelivery();
   if (registration.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
     sendError(response, 400, "TERMS_VERSION_INVALID", "Atualize a página para aceitar a versão atual dos termos.");
     return;
   }
-  if (!authEmailDelivery.isConfigured) {
+  if (!delivery.isConfigured) {
     sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "O envio de verificação por e-mail ainda não está configurado. Nenhuma conta foi criada.");
     return;
   }
@@ -188,7 +202,7 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
   if (emailMatch) {
     if (emailMatch.status === "pending_verification") {
       try {
-        await deliverVerificationCode(authEmailDelivery, emailMatch, email);
+        await deliverVerificationCode(delivery, emailMatch, email);
       } catch (error) {
         logger.warn({ code: "EMAIL_DELIVERY_FAILED" }, "Verification email could not be delivered");
         sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código. Tente novamente mais tarde.");
@@ -245,7 +259,7 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
     });
 
     try {
-      await deliverVerificationCode(authEmailDelivery, account, email);
+      await deliverVerificationCode(delivery, account, email);
     } catch (error) {
       logger.warn({ code: "EMAIL_DELIVERY_FAILED" }, "Verification email could not be delivered");
       sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "A conta ficou pendente, mas o e-mail não pôde ser enviado. Tente reenviar mais tarde.");
@@ -332,7 +346,8 @@ router.post("/verification", createAuthRateLimit("verify-resend", 3, 15 * 60 * 1
     sendValidationError(response, parsed.error.issues);
     return;
   }
-  if (!authEmailDelivery.isConfigured) {
+  const delivery = getAuthEmailDelivery();
+  if (!delivery.isConfigured) {
     sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "O envio de verificação por e-mail ainda não está configurado.");
     return;
   }
@@ -346,7 +361,7 @@ router.post("/verification", createAuthRateLimit("verify-resend", 3, 15 * 60 * 1
     .limit(1);
   if (row?.status === "pending_verification" && !row.verifiedAt) {
     try {
-      await deliverVerificationCode(authEmailDelivery, row, email);
+      await deliverVerificationCode(delivery, row, email);
     } catch {
       sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código. Tente novamente mais tarde.");
       return;

@@ -1,8 +1,9 @@
-import { check, index, pgTable, primaryKey, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { check, index, primaryKey, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { accounts } from "./auth";
+import { applicationSchema } from "./config";
 
-export const accountFollows = pgTable(
+export const accountFollows = applicationSchema.table(
   "account_follows",
   {
     followerId: uuid("follower_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
@@ -16,7 +17,7 @@ export const accountFollows = pgTable(
   ],
 );
 
-export const accountFollowRequests = pgTable(
+export const accountFollowRequests = applicationSchema.table(
   "account_follow_requests",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -31,7 +32,7 @@ export const accountFollowRequests = pgTable(
   ],
 );
 
-export const accountBlocks = pgTable(
+export const accountBlocks = applicationSchema.table(
   "account_blocks",
   {
     blockerId: uuid("blocker_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
