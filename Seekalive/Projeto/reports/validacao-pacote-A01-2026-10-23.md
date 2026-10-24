@@ -1,17 +1,17 @@
 # Validação técnica do pacote A01 — Seekalive
 
-**Data:** 23/10/2026  
+**Data da atualização:** 24/10/2026
 **Escopo:** validação do pacote A01 no Aplicativo Social, backend compartilhado e codegen relacionado.  
 **Ambiente:** desenvolvimento/preview. Nenhum teste foi executado em produção.  
-**Classificação:** **IMPLEMENTADO, MAS PARCIALMENTE VALIDADO**.
+**Classificação:** **IMPLEMENTADO, MAS PARCIALMENTE VALIDADO**. A configuração explícita de confiança em proxy foi retirada do A01 por decisão do usuário; Express permanece com `trust proxy = false`.
 
 ## A. Resumo executivo
 
-O A01 foi aplicado e os testes locais confirmam que o Express usa `proxy-addr@2.0.8`, que cabeçalhos `X-Forwarded-For` não alteram o IP quando o proxy não está autorizado e que o rate limit continua bloqueando tentativas adicionais. Orval 8.22.0 gera os clientes a partir da especificação local, o typecheck geral passa e os builds do backend e do frontend concluem.
+O A01 manteve a versão corrigida `proxy-addr@2.0.8`, Orval 8.22.0 e as atualizações de dependências/codegen. A configuração explícita de proxy e a função de allowlist foram removidas conforme solicitado; o comportamento padrão do Express (`trust proxy = false`) ignora `X-Forwarded-For`. Os testes locais verificam esse padrão e o rate limit. Orval gera os clientes a partir da especificação local, o typecheck geral passa e os builds do backend e frontend concluem.
 
-Não considero o pacote concluído para produção. `TRUSTED_PROXY_CIDRS` está **ausente** no ambiente verificado. Isso faz o Express ignorar cabeçalhos encaminhados — comportamento seguro contra falsificação — mas, atrás de um proxy compartilhado, pode fazer vários visitantes serem agrupados sob o IP desse proxy. A infraestrutura real de produção ainda não existe ou não foi disponibilizada para confirmar os CIDRs.
+Não considero o pacote concluído para produção. A configuração de proxy foi deliberadamente adiada, e a infraestrutura real de produção ainda não existe ou não foi disponibilizada. Com o padrão atual, cabeçalhos encaminhados são ignorados, mas visitantes atrás de um proxy compartilhado podem ser agrupados sob o IP desse proxy para rate limiting. A política só deve ser revisitada quando a topologia de staging/produção for conhecida.
 
-Também restam testes de autenticação dependentes de banco de teste/conta e envio de e-mail. O scanner atual encontrou dependências de severidade alta ainda no backend e no grafo de codegen. Não as atualizei nesta validação: algumas exigem mudança fora da lista previamente autorizada ou triagem de compatibilidade. O relatório de auditoria principal foi atualizado com este estado.
+O Resend foi testado em desenvolvimento: a API aceitou o envio e o usuário confirmou recebimento. Ainda faltam testes de cadastro/verificação ponta a ponta com banco de teste. O scanner encontrou dependências de severidade alta no backend e no grafo de codegen; elas não foram atualizadas nesta validação. A auditoria principal registra o estado atual e define A02 como próximo pacote.
 
 ## B. Arquivos modificados
 
@@ -19,8 +19,8 @@ Também restam testes de autenticação dependentes de banco de teste/conta e en
 
 | Arquivo | Alteração | Motivo técnico | Área |
 |---|---|---|---|
-| `Aplicativo/back/src/security/trustProxy.ts` | Cria a política de confiança por CIDRs explícitos; vazio desabilita confiança e CIDR inválido falha no início. | Evitar confiar indiscriminadamente em `X-Forwarded-For`. | API |
-| `Aplicativo/back/src/app.ts` | Usa a política configurável no `trust proxy` do Express. | Fazer `req.ip` respeitar a allowlist, em vez de confiar em um número fixo de saltos. | API |
+| `Aplicativo/back/src/security/trustProxy.ts` | **Removido em 24/10/2026.** A função de allowlist por CIDRs foi retirada por decisão do usuário. | Adiar configuração de confiança em proxy até conhecer a topologia real; Express usa o padrão seguro `trust proxy = false`. | API |
+| `Aplicativo/back/src/app.ts` | **Removido em 24/10/2026.** `app.set("trust proxy", ...)` foi retirado. | Manter Express sem confiança explícita em cabeçalhos encaminhados. | API |
 | `Aplicativo/back/package.json` | Declara `proxy-addr@^2.0.8`. | Garantir a versão corrigida no runtime do Express. | API |
 | `shared/api-spec/package.json` | Atualiza Orval para 8.22.0. | Atender à versão corrigida mínima indicada na auditoria anterior. | Codegen compartilhado |
 | `shared/api-spec/orval.config.ts` | Corrige os diretórios de saída, bloqueia referências externas no parser e verifica JSON Pointers locais no transformer. | Gerar nos pacotes existentes e evitar buscar `$ref` externo. | Codegen compartilhado |
@@ -40,17 +40,16 @@ Também restam testes de autenticação dependentes de banco de teste/conta e en
 |---|---|---|---|
 | `scripts/src/security-boundaries.test.mjs` | Acrescenta teste HTTP local usando o `createAuthRateLimit` real: cabeçalhos encaminhados diferentes não mudam o IP observado e o terceiro pedido recebe 429. | Os testes anteriores verificavam a função de confiança, mas não demonstravam o efeito do cabeçalho sobre o middleware de rate limit. | Testes do backend |
 
-O estado versionado estava limpo no início desta validação. A única alteração feita durante ela foi o novo teste acima. Nenhuma alteração foi feita no código do Gestor ou do Painel.
+Na validação original, o novo teste HTTP local foi acrescentado. Na atualização de 24/10/2026, o helper de proxy e a configuração explícita foram removidos; o teste HTTP passou a verificar o default do Express. Nenhuma alteração foi feita no código do Gestor ou do Painel.
 
 ## C. Segurança do proxy
 
-- O Express usa a função `createTrustProxy()`, que lê `TRUSTED_PROXY_CIDRS`.
-- Sem CIDRs, a função retorna `false`; o Express não usa `X-Forwarded-For` para escolher `req.ip`.
-- Com CIDRs explícitos, somente endereços autorizados podem encaminhar a cadeia de IPs. A biblioteca rejeita valores inválidos durante a inicialização.
-- A resolução efetiva do Express foi conferida: `proxy-addr@2.0.8`.
-- O teste unitário confirmou confiança para os endereços simulados permitidos e negação para um endereço fora da allowlist. O teste HTTP local enviou três valores diferentes de `X-Forwarded-For`; todos conservaram o IP do socket local, e o terceiro pedido recebeu 429.
+- A função `createTrustProxy()` e a chamada `app.set("trust proxy", ...)` foram removidas em 24/10/2026, a pedido do usuário.
+- Express permanece no default `trust proxy = false`; não usa `X-Forwarded-For` para escolher `req.ip`.
+- A dependência transitiva usada pelo Express permanece corrigida e foi conferida como `proxy-addr@2.0.8`; isso não habilita confiança em proxies.
+- O teste HTTP local envia três valores diferentes de `X-Forwarded-For`; todos conservam o IP do socket local, e o terceiro pedido recebe 429. Não há mais teste de allowlist porque essa configuração saiu do escopo.
 - O smoke test de login no preview, com usuário fictício inexistente e senha não real, retornou `401 INVALID_CREDENTIALS`. A obtenção de CSRF retornou 200.
-- `TRUSTED_PROXY_CIDRS` estava ausente no ambiente consultado. Não foi fornecida uma topologia real de produção. Portanto, nenhum CIDR de produção foi inventado e nenhum teste foi apresentado como validação dessa infraestrutura.
+- Antes da remoção, `TRUSTED_PROXY_CIDRS` estava ausente no ambiente consultado. A topologia real de produção não foi fornecida; nenhum CIDR foi inventado. A configuração permanece adiada.
 - O rate limit de login configurado é 10 pedidos por IP a cada 15 minutos. Ele usa um `Map` em memória do processo, não uma store compartilhada entre instâncias; a validação não comprova proteção distribuída entre réplicas.
 
 ## D. Resultados dos testes
@@ -58,7 +57,7 @@ O estado versionado estava limpo no início desta validação. A única alteraç
 | Teste/verificação | Resultado | Evidência | Pendência |
 |---|---|---|---|
 | `pnpm --filter @workspace/api-spec run codegen` | Aprovado | Orval 8.22.0 gerou cliente React e schemas; `typecheck:libs` passou. | Não valida geração de uma especificação externa; o parser está configurado para negar refs externos. |
-| `pnpm --filter @workspace/scripts run test:security-boundaries` | Aprovado, 7/7 | Versão do `proxy-addr`, defaults, allowlist, CIDR inválido, efeito real de XFF no rate limit e regra de `$ref`. | Não substitui teste através da cadeia de proxies de produção. |
+| `pnpm --filter @workspace/scripts run test:security-boundaries` | Aprovado, 5/5 após retirar a configuração explícita | Versão do `proxy-addr`, default `trust proxy = false`, efeito real de XFF no rate limit e regra de `$ref`. | Não substitui teste através da cadeia de proxies de produção. |
 | `pnpm run typecheck` | Aprovado | Pacotes do workspace compilados, incluindo frontend, API, scripts, contratos e sandbox. | Não significa que fluxos funcionais com banco estejam testados. |
 | `pnpm run test:social` | Aprovado, 42/42 | Testes de regressão do Social e Seek. | Não é suíte HTTP/DB de autenticação. |
 | `pnpm --filter @workspace/api-server run build` | Aprovado | Build da API concluído. | Nenhum teste de integração com banco foi executado. |
@@ -66,7 +65,7 @@ O estado versionado estava limpo no início desta validação. A única alteraç
 | Preview e API | Aprovado para smoke test | Página inicial abriu; `/api/healthz` retornou `{"status":"ok"}`; sessão sem cookie retornou estado não autenticado. | Não valida produção. |
 | Login com credenciais inválidas | Aprovado para um caso negativo no preview | CSRF 200; tentativa fictícia retornou `401 INVALID_CREDENTIALS`. | Não testei conta real nem login válido. |
 | Login válido, sessão verificada e bloqueio após limite | Não executado integralmente | O código exige conta e banco; não há fixture/teste HTTP de autenticação disponível. O middleware de rate limit foi testado isoladamente por HTTP local. | Criar conta de teste em banco descartável e executar a suíte de integração. |
-| Verificação de e-mail | Não executada de ponta a ponta | O adaptador de envio está deliberadamente desabilitado. O código contém desafio com validade de 10 minutos, máximo de 5 tentativas e consumo transacional, mas o provedor não está conectado. | Teste end-to-end aguarda autorização/configuração do provedor e banco de teste. |
+| Verificação de e-mail | Envio de teste aceito e recebido; cadastro não testado ponta a ponta | Resend foi habilitado somente no desenvolvimento; a chamada de envio retornou 200 e o usuário confirmou recebimento. A consulta do status de leitura retornou 401 por falta de permissão de leitura. O fluxo ainda depende de banco e conta descartável. | Testar cadastro, reenvio, expiração e confirmação em banco descartável. Produção permanece desativada. |
 | Recuperação de senha | Não executada; rota não encontrada | A API de autenticação não contém endpoint de recuperação/redefinição de senha. | Funcionalidade pendente, fora das alterações feitas no A01. |
 | Lint | Não executado | Não há script `lint` nos manifests consultados. | Definir comando de lint em etapa própria, se desejado. |
 | Gestor/Painel | Não executado | Não aparecem como targets no workspace pnpm consultado. | Nenhum código deles foi alterado; não há comando de validação disponível neste workspace. |
@@ -96,11 +95,11 @@ O estado versionado estava limpo no início desta validação. A única alteraç
 
 ## G. Pendências e riscos
 
-1. Identificar a cadeia de proxies real de staging/produção, configurar apenas seus CIDRs em `TRUSTED_PROXY_CIDRS` e validar o IP observado e o rate limit através dela.
+1. Manter Express com `trust proxy = false` por enquanto. Antes de staging/produção, decidir a topologia real e só então aprovar/configurar proxies confiáveis e validar o IP e rate limit através da cadeia publicada.
 2. O rate limit é em memória e por processo; definir uma estratégia distribuída antes de operar várias instâncias.
 3. Triar e corrigir, com testes de compatibilidade, os achados altos de `body-parser`, `fast-uri`, `js-yaml`, `browserslist`, `postcss`, `source-map-js` e Zod. A mudança de Zod é major.
 4. Criar um banco descartável de teste e uma suíte HTTP/DB para login válido, conta não verificada, rate limit da rota real, sessões e logout.
-5. A verificação e cadastro real dependem de provedor de email. O adaptador está desativado; o cadastro retorna indisponibilidade sem criar conta quando não há envio configurado.
+5. Resend está habilitado somente em desenvolvimento e o envio de teste foi recebido. A verificação completa do cadastro ainda depende de E2E com banco descartável; produção permanece desativada.
 6. Implementar e testar recuperação de senha em pacote posterior.
 7. Avaliar a divergência da versão Vite do sandbox em relação ao limite “Vite somente no Social”.
 8. Resolver os avisos do build do frontend (bundle, sourcemap e importação de mocks) em etapa própria.
@@ -109,4 +108,4 @@ O estado versionado estava limpo no início desta validação. A única alteraç
 
 **IMPLEMENTADO, MAS PARCIALMENTE VALIDADO.**
 
-Os requisitos de código e testes locais principais do A01 passam: versão corrigida de `proxy-addr` confirmada no Express, encaminhamento não confiável não escolhe o IP, o middleware de limite responde 429, Orval gera os artefatos e os builds/typechecks aprovam. A classificação permanece parcial porque a infraestrutura de produção não está disponível, `TRUSTED_PROXY_CIDRS` não foi configurada, há dependências de severidade alta ainda não triadas e não existe suíte integrada para autenticação. Não há evidência para declarar o proxy ou a autenticação validados em produção.
+Os requisitos de código e testes locais principais do A01 passam: versão corrigida de `proxy-addr` confirmada no Express, default `trust proxy = false`, cabeçalhos encaminhados não escolhem o IP, middleware de limite responde 429, Orval gera os artefatos e os builds/typechecks aprovam. A configuração explícita de proxy foi retirada do escopo, não é bloqueio atual do A01 e continua sendo decisão necessária antes de validar a implantação real. A classificação permanece parcial pelas dependências de severidade alta não triadas e pela ausência de suíte integrada de autenticação. Não há evidência para declarar o proxy ou a autenticação validados em produção.

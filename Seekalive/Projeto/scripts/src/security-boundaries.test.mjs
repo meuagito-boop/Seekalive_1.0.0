@@ -4,7 +4,6 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTrustProxy } from "../../Aplicativo/back/src/security/trustProxy.ts";
 import { assertLocalReferences } from "../../shared/api-spec/orval.config.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -23,26 +22,10 @@ test("Express resolves the patched proxy-addr version at runtime", () => {
   assert.equal(packageJson.version, "2.0.8");
 });
 
-test("proxy forwarding is ignored unless proxy CIDRs are explicitly configured", () => {
-  assert.equal(createTrustProxy(), false);
-  assert.equal(createTrustProxy(" , "), false);
-});
-
-test("only explicitly allowlisted proxy addresses are trusted", () => {
-  const trust = createTrustProxy("127.0.0.1/32, 10.20.0.0/16");
-
-  assert.equal(typeof trust, "function");
-  if (typeof trust !== "function") {
-    return;
-  }
-
-  assert.equal(trust("127.0.0.1", 0), true);
-  assert.equal(trust("10.20.5.8", 1), true);
-  assert.equal(trust("203.0.113.8", 0), false);
-});
-
-test("invalid trusted proxy CIDRs fail explicitly", () => {
-  assert.throws(() => createTrustProxy("not-an-ip-range"));
+test("Express keeps proxy trust disabled by default", () => {
+  const express = backendRequire("express");
+  const app = express();
+  assert.equal(app.get("trust proxy"), false);
 });
 
 test("spoofed X-Forwarded-For cannot bypass the login IP rate limit", async () => {
@@ -53,7 +36,7 @@ test("spoofed X-Forwarded-For cannot bypass the login IP rate limit", async () =
   );
   const express = backendRequire("express");
   const app = express();
-  app.set("trust proxy", createTrustProxy(""));
+  assert.equal(app.get("trust proxy"), false);
   app.get(
     "/login",
     createAuthRateLimit(`spoof-test-${process.pid}-${Date.now()}`, 2, 60_000),
