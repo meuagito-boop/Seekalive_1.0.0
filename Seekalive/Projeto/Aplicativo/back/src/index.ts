@@ -16,13 +16,19 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const server = app.listen(port, () => {
+const server = app.listen(port);
+server.once("listening", () => {
   logger.info({ port }, "Server listening");
 });
 
 server.on("error", (error) => {
   logger.error({ err: error }, "Error listening on port");
   process.exitCode = 1;
+  if (!server.listening) {
+    void pool.end().catch((poolError: unknown) => {
+      logger.error({ err: poolError }, "Database pool failed to close after listen error");
+    });
+  }
 });
 
 let shutdownStarted = false;
@@ -38,6 +44,18 @@ function shutdown(signal: NodeJS.Signals): void {
     process.exit(1);
   }, 10_000);
   forceCloseTimer.unref();
+
+  if (!server.listening) {
+    clearTimeout(forceCloseTimer);
+    void pool
+      .end()
+      .then(() => logger.info({ signal }, "Database pool closed"))
+      .catch((poolError: unknown) => {
+        logger.error({ err: poolError }, "Database pool failed to close cleanly");
+        process.exitCode = 1;
+      });
+    return;
+  }
 
   server.close((error) => {
     clearTimeout(forceCloseTimer);
