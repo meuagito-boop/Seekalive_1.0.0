@@ -15,7 +15,7 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fase 1 — Infraestrutura segura e identidade (núcleo implementado)
 
-- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política e onboarding estão implementados no código. A migração das novas colunas ainda não foi aplicada ao schema principal de desenvolvimento.
+- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política e onboarding estão implementados no código. A migração de versões de senha e restrição de idade foi aplicada ao schema principal de desenvolvimento e verificada; no momento da aplicação não havia contas, credenciais nem sessões ativas.
 - O teste direto do Resend foi recebido em desenvolvimento, mas a suíte de API usa e-mail em memória; o fluxo E2E de cadastro via Resend deve ser validado separadamente. Produção não é presumida nem habilitada.
 - A política definida é 8–128 caracteres, com uma maiúscula, minúscula, número e caractere especial; o hash usa Argon2id. Recuperação de senha esquecida continua sem implementação.
 - Aceite verificado em schema temporário isolado: conta anônima/não verificada não acessa recursos; contas legadas sem senha compatível não recebem sessão; atualização válida grava novo hash e revoga sessões; senha legada compatível é promovida no login; logout revoga a sessão.

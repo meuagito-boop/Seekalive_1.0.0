@@ -2,7 +2,7 @@
 
 **Data da auditoria:** 23/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
 
-> Implementados: sessão, CSRF, cadastro/login/verificação, política de senha com migração de contas antigas, onboarding, leitura/edição de perfil, privacidade, seguimento, pedidos de perfis privados, Círculo derivado e bloqueios. O schema aplicado permanece somente no banco de desenvolvimento; a migração de versões de senha e a restrição de idade no banco principal ainda aguardam autorização. Um teste direto do Resend foi recebido em desenvolvimento; o fluxo E2E completo de cadastro e produção não são presumidos. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
+> Implementados: sessão, CSRF, cadastro/login/verificação, política de senha com migração de contas antigas, onboarding, leitura/edição de perfil, privacidade, seguimento, pedidos de perfis privados, Círculo derivado e bloqueios. O schema foi atualizado somente no banco de desenvolvimento; a migração de versões de senha e a restrição de idade foram verificadas. No momento da aplicação, o banco estava sem contas, credenciais e sessões ativas. Um teste direto do Resend foi recebido em desenvolvimento; o fluxo E2E completo de cadastro e produção não são presumidos. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
 
 ## Como utilizar este pacote
 
@@ -38,7 +38,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Área | Situação auditada |
 |---|---|
 | Servidor | Express/TypeScript em `Aplicativo/back`; saúde, autenticação, onboarding, perfis e relações estão implementados |
-| Banco | Drizzle/PostgreSQL com schema de identidade, perfil básico, privacidade e relações aplicado somente ao banco de desenvolvimento; a nova migração de versões de senha e a restrição de idade no banco principal ainda aguardam autorização; produção não foi alterada |
+| Banco | Drizzle/PostgreSQL com schema de identidade, perfil básico, privacidade e relações aplicado somente ao banco de desenvolvimento; versão de senha e restrição de idade aplicadas e verificadas; produção não foi alterada |
 | Especificação | `shared/api-spec/openapi.yaml` mantém o contrato público existente; `docs/api/backend/openapi.json` distingue endpoints ativos dos propostos |
 | Login | API própria com Argon2id, CSRF, e-mail confirmado e versão de política; contas legadas precisam validar ou atualizar a senha antes de receber sessão |
 | Regra de senha | 8–128 caracteres, ao menos uma maiúscula, uma minúscula, um número e um caractere especial; credenciais legadas são migradas no login sem tentar inferir o conteúdo do hash |

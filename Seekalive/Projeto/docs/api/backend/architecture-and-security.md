@@ -81,7 +81,7 @@ Status principais: `200`, `201`, `202` para tarefa realmente aceita, `204` sem c
 
 ## 3. Autenticação e ciclo de conta
 
-**Direção implementada parcialmente:** autenticação própria na API. Sessão, CSRF, cadastro/login, confirmação de e-mail, atualização obrigatória de senha legada e onboarding têm handlers. O teste direto de envio via Resend foi recebido em desenvolvimento, mas isso não comprova o fluxo E2E de cadastro nem autoriza produção. A recuperação de senha esquecida e os demais módulos continuam pendentes. O schema de desenvolvimento principal ainda precisa da migração das versões de senha e da restrição de idade.
+**Direção implementada parcialmente:** autenticação própria na API. Sessão, CSRF, cadastro/login, confirmação de e-mail, atualização obrigatória de senha legada e onboarding têm handlers. O teste direto de envio via Resend foi recebido em desenvolvimento, mas isso não comprova o fluxo E2E de cadastro nem autoriza produção. A recuperação de senha esquecida e os demais módulos continuam pendentes. O banco principal de desenvolvimento já tem as versões de senha e a restrição de idade; produção não foi alterada.
 
 Requisitos para a futura implementação:
 

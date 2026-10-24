@@ -1,8 +1,8 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.11
-**Status:** O Repl está em desenvolvimento; não há produção real. A Social 1B conecta perfil, busca de contas, relações sociais, Círculo, bloqueios e privacidade, mas ainda não está pronta para produção. Idade mínima autodeclarada de 18 anos e política de senha foram implementadas no frontend, contratos e API. A política foi testada em schema temporário isolado, inclusive para credenciais legadas; a consulta agregada anterior encontrou zero contas abaixo de 18. A migração do banco principal de desenvolvimento ainda não foi aplicada. Quando aprovada, sessões anteriores à política atual exigirão novo login; nenhuma conta ou conteúdo será apagado. Permanecem pendentes recuperação de senha esquecida, gestão de sessões/dispositivos, configurações e outras etapas do gate de conta antes das páginas públicas de perfil, feed/algoritmo, mensagens e notificações. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. O PostgreSQL externo não foi provisionado nem conectado; a configuração explícita de confiança em proxy permanece adiada.
+**Versão do documento:** 2.12
+**Status:** O Repl está em desenvolvimento; não há produção real. A Social 1B conecta perfil, busca de contas, relações sociais, Círculo, bloqueios e privacidade, mas ainda não está pronta para produção. Idade mínima autodeclarada de 18 anos e política de senha foram implementadas no frontend, contratos, API e schema principal de desenvolvimento. A política foi testada em schema temporário isolado, inclusive para credenciais legadas; a consulta agregada encontrou zero contas abaixo de 18. A migração do banco principal de desenvolvimento foi aplicada e verificada; naquele momento havia zero contas, credenciais e sessões ativas. Produção não foi alterada. Permanecem pendentes recuperação de senha esquecida, gestão de sessões/dispositivos, configurações e outras etapas do gate de conta antes das páginas públicas de perfil, feed/algoritmo, mensagens e notificações. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. O PostgreSQL externo não foi provisionado nem conectado; a configuração explícita de confiança em proxy permanece adiada.
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
@@ -540,6 +540,14 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Estado da migração:** não aplicada no banco principal de desenvolvimento e nenhuma conta existente foi atualizada. A aplicação exige autorização porque sessões atuais deixam de valer e será necessário entrar novamente. Não há produção verdadeira neste projeto.
 - **Ainda pendente no gate de conta:** recuperação de senha esquecida, troca voluntária na tela de configurações, gestão de sessões/dispositivos e verificação adicional de dispositivo. Não avançar às páginas públicas de perfil/feed/mensagem/notificação antes de fechar o gate da conta e da Social.
 
+### 11.12 Migração de senha e idade aplicada em desenvolvimento — 24/10/2026
+
+- A autorização foi recebida para aplicar a migração no banco principal **de desenvolvimento** (`heliumdb`, schema `public`), usando o alvo `replit` padrão do ambiente. Nenhuma operação foi direcionada a produção ou ao PostgreSQL externo.
+- `drizzle-kit push` aplicou as colunas `password_policy_version` em `password_credentials` e `sessions`, ambas `smallint NOT NULL DEFAULT 0`, e a restrição `accounts_age_adult_range` (`age >= 18 AND age <= 120`).
+- Verificação após a migração confirmou as duas colunas, default `0`, restrição correta e zero violações de idade. Antes e depois da aplicação: zero contas, zero credenciais e zero sessões ativas; portanto, nenhum registro ou sessão foi modificado nem usuário precisou reentrar agora.
+- O workflow da API foi reiniciado e iniciou na porta `8080` sem erro de inicialização. A alteração está somente no desenvolvimento.
+- A seção 11.11 descreve o estado anterior à autorização e é supersedida por esta seção. O gate de conta continua aberto para recuperação de senha, configurações de segurança e controle de sessões/dispositivos.
+
 ### Histórico do documento
 
 | Versão | Data | Atualização |
@@ -565,3 +573,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.9 | 2026-10-24 | Registra a decisão de idade mínima de 18 anos, validação no frontend/backend e schema, testes isolados e a pendência de revisão dos registros existentes antes de aplicar a restrição no banco principal. |
 | 2.10 | 2026-10-24 | Registra a consulta agregada autorizada no banco de desenvolvimento (zero contas abaixo de 18), sem ler identificadores ou alterar dados, e mantém a migração principal pendente. |
 | 2.11 | 2026-10-24 | Define e implementa a política de senha para contas novas e antigas, registra testes no schema isolado e deixa a migração do banco principal de desenvolvimento pendente de autorização por invalidar sessões existentes. |
+| 2.12 | 2026-10-24 | Registra a autorização, aplicação e verificação da migração no banco principal de desenvolvimento; confirma zero contas, credenciais e sessões ativas, sem impacto em dados ou produção. |
