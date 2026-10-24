@@ -405,7 +405,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        format: uuid
     Username:
       name: username
       in: path
@@ -414,7 +414,7 @@ components:
         type: string
         minLength: 3
         maxLength: 20
-        pattern: "^[a-z0-9_]+$"
+        description: Username is normalized to lowercase before validation.
     PageLimit:
       name: limit
       in: query
@@ -530,7 +530,7 @@ components:
       properties:
         id:
           type: string
-          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          format: uuid
         username:
           type: string
         displayName:
@@ -539,14 +539,13 @@ components:
           type: string
         avatarUrl:
           type: [string, "null"]
-          pattern: "^https?://"
         coverUrl:
           type: [string, "null"]
-          pattern: "^https?://"
         location:
           type: [string, "null"]
         website:
           type: [string, "null"]
+          format: uri
           pattern: "^https?://"
         accountType:
           type: string
@@ -589,7 +588,7 @@ components:
           type: string
           minLength: 3
           maxLength: 20
-          pattern: "^[a-z0-9_]+$"
+          description: Username is trimmed and normalized to lowercase before validation.
         displayName:
           type: string
           minLength: 2
@@ -603,6 +602,7 @@ components:
         website:
           type: [string, "null"]
           description: When provided, the URL must use HTTP or HTTPS.
+          format: uri
           pattern: "^https?://"
           maxLength: 2048
         version:
