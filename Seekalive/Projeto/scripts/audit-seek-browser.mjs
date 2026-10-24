@@ -45,8 +45,31 @@ async function fill(selector, value) {
   await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(e.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event(e.tagName==='SELECT'?'change':'input',{bubbles:true}));})()`);
 }
 async function navigate(path = "/seek") {
-  await cdp("Page.navigate", { url: origin + path });
-  await wait("document.querySelector('[aria-label^=\"Localização de exploração\"]') || document.querySelector('#root')?.textContent.includes('Editar perfil')");
+  if (await evaluate("!!document.querySelector('#root')")) {
+    await evaluate(`history.pushState({}, "", ${JSON.stringify(path)}); window.dispatchEvent(new PopStateEvent("popstate"));`);
+  } else {
+    await cdp("Page.navigate", { url: origin + path });
+  }
+  await wait("!!document.querySelector('#root')?.textContent.trim().length");
+  if (path === "/seek") await wait("!!document.querySelector('[aria-label^=\"Localização de exploração\"]')");
+  if (path === "/profile/edit") await wait("document.body.textContent.includes('Editar perfil')");
+}
+async function enterDevelopmentPreview() {
+  if (await evaluate("document.body.textContent.includes('Demonstração de desenvolvimento')")) return;
+  await navigate("/login");
+  await click('[data-testid="button-development-preview"]');
+  await wait("location.pathname === '/feed'");
+  await check(
+    "Development preview clearly identifies its fictional data",
+    "document.body.textContent.includes('Demonstração de desenvolvimento') && document.body.textContent.includes('sem conta ou sessão real')",
+  );
+}
+async function restartDevelopmentPreview() {
+  await cdp("Page.navigate", { url: `${origin}/login` });
+  await wait("!!document.querySelector('#root')?.textContent.length");
+  await wait("!!document.querySelector('[data-testid=\"button-development-preview\"]')");
+  await click('[data-testid="button-development-preview"]');
+  await wait("location.pathname === '/feed'");
 }
 async function check(name, expression) {
   assert.ok(await evaluate(expression), name);
@@ -69,8 +92,10 @@ await cdp("Runtime.enable"); await cdp("Page.enable"); await cdp("Network.enable
 await cdp("Emulation.setDeviceMetricsOverride", { width: 402, height: 874, deviceScaleFactor: 1, mobile: true });
 await cdp("Page.addScriptToEvaluateOnNewDocument", { source: `window.__gpsCalls=0;const original=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);navigator.geolocation.getCurrentPosition=(...args)=>{window.__gpsCalls++;return original(...args)};` });
 try {
+  await enterDevelopmentPreview();
   await navigate();
   await evaluate("localStorage.clear();sessionStorage.clear()");
+  await restartDevelopmentPreview();
   await navigate();
   await wait("!!document.querySelector('#seek-events')");
   await check("Prévia abre preenchida com locais, prestadores, eventos e fotos sem solicitar GPS",
@@ -89,6 +114,7 @@ try {
     account("seek_test_cafe", "Café de teste", "cafes", "3550308", "São Paulo"),
     account("seek_test_santos", "Café Santos", "cafes", "3548500", "Santos")];
   await evaluate(`localStorage.setItem('seekalive-social-accounts',${JSON.stringify(JSON.stringify(accounts))});localStorage.setItem('seekalive-active-account',${JSON.stringify(JSON.stringify(accounts[0]))})`);
+  await restartDevelopmentPreview();
   await navigate();
   await wait("document.querySelectorAll('article').length===3");
   await cdp("Network.setBlockedURLs", { urls: ["*ibge-cities-20261022.json*"] });
@@ -125,7 +151,11 @@ try {
   await textButton("Limpar filtros");
   await wait("document.querySelectorAll('article').length===1");
   await click('article button[aria-label^="Salvar"]');
-  await check("Salvar serviço atualiza seleção e armazenamento do navegador", "document.querySelector('article button[aria-pressed=true]')!==null && localStorage.getItem('seekalive-saved-businesses').includes('seek_test_provider')");
+  await check("Salvar serviço atualiza seleção e armazenamento isolado por conta", `(() => {
+    const saved = Object.entries(localStorage).some(([key, value]) =>
+      key.startsWith('seekalive-saved-businesses:account:') && value.includes('seek_test_provider'));
+    return document.querySelector('article button[aria-pressed="true"]') !== null && saved;
+  })()`);
   await cdp("Browser.setPermission", { permission: { name: "geolocation" }, setting: "denied", origin });
   await click('[aria-label^="Localização de exploração"]');
   await textButton("Usar minha localização atual");
@@ -155,17 +185,16 @@ try {
   await cdp("Emulation.setDeviceMetricsOverride", { width: 320, height: 800, deviceScaleFactor: 1, mobile: true });
   await check("Celular estreito mantém conteúdo dentro da largura", "document.documentElement.scrollWidth<=innerWidth+1");
   await navigate("/profile/edit");
-  await wait("document.body.textContent.includes('Cidade de descoberta no Seek')");
-  await check("Editor comercial usa catálogo real sem confundir GPS do usuário", "document.body.textContent.includes('São Paulo, SP')");
-  await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.includes('São Paulo, SP')).click()");
-  await wait("!!document.querySelector('#seek-city-search')");
-  await check("Cidade do comércio é seleção manual sem botão GPS", "!document.querySelector('[role=\"dialog\"]').textContent.includes('Usar minha localização atual')");
-  await chooseCity("Santos", "SP");
-  await evaluate("document.querySelector('form').requestSubmit()");
-  await wait("!location.pathname.endsWith('/edit')");
-  await check("Salvar perfil alimenta cidade estruturada da mesma conta Social", "JSON.parse(localStorage.getItem('seekalive-social-accounts')).find(a=>a.id==='seek_test_provider').commercialProfile.cityId==='3548500'");
+  await wait("document.body.textContent.includes('Editar perfil')");
+  await check("Editor da conta pessoal não mostra campos comerciais", "document.body.textContent.includes('Nome') && !document.body.textContent.includes('Cidade de descoberta no Seek')");
   await navigate();
-  await check("A nova cidade do prestador atualiza os resultados do Seek", "document.querySelectorAll('article').length===2 && document.body.textContent.includes('João Pedreiro')");
+  await check("Editar perfil pessoal não altera dados comerciais do catálogo Seek", `(() => {
+    const provider = JSON.parse(localStorage.getItem('seekalive-social-accounts')).find(a=>a.id==='seek_test_provider');
+    return provider.commercialProfile.cityName==='São Paulo' &&
+      document.querySelectorAll('article').length===1 &&
+      document.body.textContent.includes('Café Santos') &&
+      !document.body.textContent.includes('João Pedreiro');
+  })()`);
   assert.deepEqual(errors, [], "Sem exceções de JavaScript");
   await writeFile(`${output}/results.json`, JSON.stringify({ checks, errors, fixtureOnly: true, realCitySource: "IBGE", locationSimulation: "CDP only, no physical user position" }, null, 2));
   console.log(JSON.stringify({ passed: checks.length, exceptions: errors.length }));

@@ -74,7 +74,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateAccount = (user: User) => {
-    setCurrentUser((current) => current?.id === user.id ? user : current);
+    // Social profile refreshes omit auth-only fields such as onboarding state;
+    // merge their fields so they cannot erase state established by login.
+    setCurrentUser((current) => current?.id === user.id ? { ...current, ...user } : current);
   };
 
   const logout = async () => {

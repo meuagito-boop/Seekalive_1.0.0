@@ -55,8 +55,24 @@ async function fill(selector, value) {
   await evaluate(`(() => {const el = document.querySelector(${JSON.stringify(selector)}); const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', {bubbles:true}));})()`);
 }
 async function navigate(path) {
-  await cdp("Page.navigate", { url: origin + path });
+  if (await evaluate("!!document.querySelector('#root')")) {
+    await evaluate(`history.pushState({}, "", ${JSON.stringify(path)}); window.dispatchEvent(new PopStateEvent("popstate"));`);
+  } else {
+    await cdp("Page.navigate", { url: origin + path });
+  }
   await wait("!!document.querySelector('#root')?.textContent.length");
+}
+async function enterDevelopmentPreview() {
+  if (await evaluate("document.body.textContent.includes('Demonstração de desenvolvimento')")) return;
+  // A previous authenticated account may have been deleted by an E2E cleanup.
+  // Reload the route so stale in-memory authentication cannot hide preview access.
+  await cdp("Page.navigate", { url: origin + "/login" });
+  await click('[data-testid="button-development-preview"]');
+  await wait("location.pathname === '/feed'");
+  await check(
+    "Development preview clearly identifies its fictional data",
+    "document.body.textContent.includes('Demonstração de desenvolvimento') && document.body.textContent.includes('sem conta ou sessão real')",
+  );
 }
 async function screenshot(name) {
   const { data } = await cdp("Page.captureScreenshot", { format: "jpeg", quality: 75 });
@@ -72,6 +88,7 @@ try {
   await cdp("Page.enable");
   await cdp("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   await cdp("Emulation.setDeviceMetricsOverride", { width: 402, height: 874, deviceScaleFactor: 1, mobile: true });
+  await enterDevelopmentPreview();
   if (["settings", "camera-denied"].includes(process.env.AUDIT_SCOPE)) {
     if (process.env.AUDIT_SCOPE === "settings") {
     await navigate("/settings/appearance");
@@ -83,21 +100,36 @@ try {
     await check("Security does not simulate enabled 2FA", "[...document.querySelectorAll('button[role=\"switch\"]')].every(b=>b.disabled)");
     await screenshot("security-mobile");
     await navigate("/settings/privacy");
-    await check("Unsupported privacy controls disabled", "[...document.querySelectorAll('button[role=\"switch\"]')].every(b=>b.disabled)");
+      await check("Privacy exposes the supported private-profile and read-receipt controls", `(() => {
+        const switches = [...document.querySelectorAll('button[role="switch"]')];
+        return switches.some(b => b.getAttribute('aria-label') === 'Perfil privado') &&
+          switches.some(b => b.getAttribute('aria-label') === 'Confirmações de leitura') &&
+          switches.every(b => !b.disabled);
+      })()`);
+      await click('button[role="switch"][aria-label="Perfil privado"]');
+      await check("Private-profile preference toggles on", "document.querySelector('button[role=\"switch\"][aria-label=\"Perfil privado\"]').getAttribute('aria-checked') === 'true'");
+      await click('button[role="switch"][aria-label="Perfil privado"]');
+      await check("Private-profile preference restores its original state", "document.querySelector('button[role=\"switch\"][aria-label=\"Perfil privado\"]').getAttribute('aria-checked') === 'false'");
     await navigate("/settings/notifications");
-    await check("Unsupported notification switches disabled", "[...document.querySelectorAll('button[role=\"switch\"]')].every(b=>b.disabled)");
+      await check("Notification settings disclose that delivery providers are not connected", "document.body.textContent.includes('Envio por e-mail e push só funcionará quando os serviços forem conectados') && [...document.querySelectorAll('button[role=\"switch\"]')].length >= 2");
+      await click('button[role="switch"][aria-label="Notificações por e-mail"]');
+      await check("Email notification preference toggles locally without sending email", "document.querySelector('button[role=\"switch\"][aria-label=\"Notificações por e-mail\"]').getAttribute('aria-checked') === 'false'");
+      await click('button[role="switch"][aria-label="Notificações por e-mail"]');
+      await check("Email notification preference can be restored", "document.querySelector('button[role=\"switch\"][aria-label=\"Notificações por e-mail\"]').getAttribute('aria-checked') === 'true'");
+      await navigate("/settings/account");
+      await check("Account settings do not show age after signup", "!/\\bIdade\\b/i.test(document.body.textContent) && !document.querySelector('input[name=\"age\"]')");
     await navigate("/profile/cafecentralsp");
     await textButton("Informações");
     await check("Business Information label opens correct content", "document.body.textContent.includes('Horário de funcionamento')");
-    await textButton("Serviços");
-    await check("Business Services tab lists actual service options", "/Delivery|Agendamento|No local|Reservas|Atendimento/i.test(document.body.textContent)");
+    await check("Business services are inside Information, not a separate tab", "document.body.textContent.includes('Serviços e formas de atendimento') && /Delivery|Agendamento|No local|Reservas|Atendimento/i.test(document.body.textContent) && ![...document.querySelectorAll('[role=\"tab\"]')].some(tab=>tab.textContent.trim()==='Serviços')");
     await textButton("Avaliações");
     await check("Business Reviews correctly named", "document.body.textContent.includes('Avaliações')");
     await screenshot("commercial-reviews-mobile");
     await textButton("Adicionar avaliação");
     await wait("!!document.querySelector('[role=\"dialog\"] textarea')");
     await fill('[role="dialog"] textarea', "Atendimento avaliado durante a auditoria do front-end.");
-    await textButton("Publicar avaliação");
+      await wait(`!![...document.querySelectorAll('[role="dialog"] button')].find(button=>/^(Publicar avaliação|Salvar alterações)$/.test(button.textContent.trim()))`);
+      await evaluate(`document.querySelector('[role="dialog"]') && [...document.querySelectorAll('[role="dialog"] button')].find(button=>/^(Publicar avaliação|Salvar alterações)$/.test(button.textContent.trim())).click()`);
     await wait("document.body.textContent.includes('Sua avaliação foi salva neste navegador.')");
     console.log("PASS Business review saved with accurate browser-only feedback");
     await click('[role="dialog"] button:has(.sr-only)');
@@ -114,9 +146,9 @@ try {
   } else {
   await navigate("/feed");
   await wait("!!document.querySelector('[aria-label=\"Abrir menu\"]')");
-  await check("Feed: single visible header, no duplicate composer/demo banner", `(() => {
+  await check("Feed: single visible header and no duplicate composer", `(() => {
     const headers = [...document.querySelectorAll('header')].filter(h => h.getBoundingClientRect().height);
-    return headers.length === 1 && !document.body.textContent.includes('O que você quer compartilhar?') && !/demonstração|só nesta sessão/i.test(document.body.textContent);
+    return headers.length === 1 && !document.body.textContent.includes('O que você quer compartilhar?');
   })()`);
   await screenshot("feed-mobile");
   await click('[aria-label="Abrir menu"]');
@@ -189,8 +221,13 @@ try {
   await fill('input[type="search"]', "cafe");
   await wait("document.body.textContent.includes('Café Central')");
   await check("Seek accented search finds café", "document.body.textContent.includes('Café Central')");
-  await click('[aria-label="Abrir filtros"]');
-  await check("Seek filters include real radius and ordering controls", "!!document.querySelector('#seek-distance-mobile') && !!document.querySelector('#seek-order-mobile')");
+  await click('[aria-label="Filtros"]');
+  await check("Seek exposes ordering and an explicit unavailable-radius state", `(() => {
+    const filters = document.querySelector('#seek-filters');
+    const labels = [...(filters?.querySelectorAll('label') ?? [])].map(label => label.textContent);
+    return Boolean(filters && labels.some(label => label.includes('Ordenar por')) &&
+      labels.some(label => label.includes('Raio de busca') && label.includes('não é aplicado')));
+  })()`);
   await screenshot("seek-filters-mobile");
   await navigate("/settings");
   await check("Settings: exactly one visible main header", "[...document.querySelectorAll('header')].filter(h=>h.getBoundingClientRect().height).length === 1");
