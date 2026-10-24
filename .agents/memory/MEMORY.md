@@ -3,6 +3,6 @@
 - [Autenticação Seekalive](seekalive-auth-strategy.md) — login próprio pela API foi escolhido para a fase de backend; até lá, login e cadastro continuam demonstrativos.
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
 - [Banco externo Seekalive](external-database.md) — o backend deverá usar PostgreSQL fora da Replit; provedor e conexão ainda precisam ser estabelecidos.
-- [Back-end em etapas](backend-staged-rollout.md) — permanecer no Social até o módulo completo estar validado como pronto para produção; só então avançar para Seek/Shop.
+- [Back-end em etapas](backend-staged-rollout.md) — resolver segurança/conta antes das páginas sociais; não sair de Social até estar pronto para produção.
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.
