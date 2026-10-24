@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * version is required; provide at least one other editable field. A version-only patch is rejected.
+ */
 export interface AccountPatch {
   /**
      * @minLength 3
@@ -26,6 +29,7 @@ export interface AccountPatch {
      */
   location?: string | null;
   /**
+     * When provided, the URL must use HTTP or HTTPS.
      * @maxLength 2048
      * @nullable
      * @pattern ^https?://

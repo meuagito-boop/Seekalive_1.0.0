@@ -583,6 +583,7 @@ components:
         - version
     AccountPatch:
       type: object
+      description: version is required; provide at least one other editable field. A version-only patch is rejected.
       properties:
         username:
           type: string
@@ -601,6 +602,7 @@ components:
           maxLength: 160
         website:
           type: [string, "null"]
+          description: When provided, the URL must use HTTP or HTTPS.
           pattern: "^https?://"
           maxLength: 2048
         version:

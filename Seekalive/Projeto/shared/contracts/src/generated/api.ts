@@ -92,9 +92,9 @@ export const UpdateMyAccountBody = zod.object({
   "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional(),
   "bio": zod.string().max(updateMyAccountBodyBioMax).optional(),
   "location": zod.string().max(updateMyAccountBodyLocationMax).nullish(),
-  "website": zod.string().max(updateMyAccountBodyWebsiteMax).regex(updateMyAccountBodyWebsiteRegExp).nullish(),
+  "website": zod.string().max(updateMyAccountBodyWebsiteMax).regex(updateMyAccountBodyWebsiteRegExp).nullish().describe('When provided, the URL must use HTTP or HTTPS.'),
   "version": zod.number().min(1)
-})
+}).describe('version is required; provide at least one other editable field. A version-only patch is rejected.')
 
 export const updateMyAccountResponseIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const updateMyAccountResponseAvatarUrlRegExp = new RegExp('^https?:/');
