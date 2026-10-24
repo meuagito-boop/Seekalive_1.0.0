@@ -43,6 +43,8 @@ export interface User {
   /** Whether this profile blocked the active viewer. */
   blocksViewer?: boolean;
   isMuted?: boolean;
+  /** Identifies profile and relationship data loaded from the API, not local demo fixtures. */
+  source?: "server";
 }
 
 export interface FollowRequest {

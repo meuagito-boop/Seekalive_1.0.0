@@ -70,6 +70,8 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
@@ -137,7 +139,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AccountView"
+                $ref: "#/components/schemas/ProfileResponse"
         "404":
           $ref: "#/components/responses/NotFound"
   /v1/accounts/{accountId}:
@@ -160,6 +162,35 @@ paths:
                 $ref: "#/components/schemas/AccountView"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/social/accounts:
+    get:
+      operationId: searchAccounts
+      tags: [social-graph]
+      summary: Search verified accounts by name or username
+      description: Requires a verified session, returns a bounded page, and hides blocked accounts.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 80
+        - $ref: "#/components/parameters/PageLimit"
+        - $ref: "#/components/parameters/PageCursor"
+      responses:
+        "200":
+          description: Paginated matching accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /v1/social/accounts/{accountId}/followers:
     parameters:
       - $ref: "#/components/parameters/AccountId"
@@ -462,6 +493,17 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ApiError"
+    TooManyRequests:
+      description: Request limit exceeded; retry after the interval in Retry-After.
+      headers:
+        Retry-After:
+          description: Number of seconds before another request may be accepted.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
   schemas:
     HealthStatus:
       type: object
@@ -509,6 +551,26 @@ components:
         mutedByMe:
           type: boolean
       required: [following, inCircle, blockedByMe, blockedByThem, mutedByMe]
+    ProfileVisibility:
+      type: object
+      properties:
+        canViewPublicContent:
+          type: boolean
+        canViewCircleContent:
+          type: boolean
+      required: [canViewPublicContent, canViewCircleContent]
+    ProfileContentPage:
+      type: object
+      description: Content page shape reserved for profile content modules not yet connected to the backend.
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
     AccountStats:
       type: object
       properties:
@@ -580,6 +642,20 @@ components:
         - relationship
         - stats
         - version
+    ProfileResponse:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/AccountView"
+        visibility:
+          $ref: "#/components/schemas/ProfileVisibility"
+        posts:
+          $ref: "#/components/schemas/ProfileContentPage"
+        articles:
+          $ref: "#/components/schemas/ProfileContentPage"
+        media:
+          $ref: "#/components/schemas/ProfileContentPage"
+      required: [account, visibility, posts, articles, media]
     AccountPatch:
       type: object
       description: version is required; provide at least one other editable field. A version-only patch is rejected.

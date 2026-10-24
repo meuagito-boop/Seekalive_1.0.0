@@ -199,10 +199,10 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
   );
   assert.match(socialSource, /useAccountScopedIds\("seekalive-blocked-users", actorId\)/);
   assert.match(socialSource, /isBlockedByViewer: blockedUserIdSet\.has\(user\.id\)/);
-  assert.match(socialSource, /blocksViewer: accountsBlockingViewerSet\.has\(user\.id\)/);
+  assert.match(socialSource, /blocksViewer: !isRemoteSocialSession && accountsBlockingViewerSet\.has\(user\.id\)/);
   assert.match(
     socialSource,
-    /isBlocked: blockedUserIdSet\.has\(user\.id\) \|\| accountsBlockingViewerSet\.has\(user\.id\)/,
+    /isBlocked: blockedUserIdSet\.has\(user\.id\)\s*\|\|\s*\(!isRemoteSocialSession && accountsBlockingViewerSet\.has\(user\.id\)\)\s*\|\|\s*\(isRemoteSocialSession && user\.source === "server" && Boolean\(user\.isBlocked\)\)/,
   );
   assert.match(socialSource, /removeFollowEdgesForBlock\(viewer, target\)/);
   assert.match(socialSource, /followRequestIdsBetween\(state\.followRequests, viewer\.id, userId\)/);

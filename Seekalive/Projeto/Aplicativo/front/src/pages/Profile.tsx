@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check } from "lucide-react";
@@ -28,11 +28,57 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [profileRetry, setProfileRetry] = useState(0);
   const { toast } = useToast();
 
-  const { users, posts, repostEntries, postComments, toggleFollow, blockUser, unblockUser } = useSocial();
-  const { currentUser: signedInUser } = useAppContext();
+  const {
+    users,
+    posts,
+    repostEntries,
+    postComments,
+    toggleFollow,
+    blockUser,
+    unblockUser,
+    loadRemoteProfile,
+  } = useSocial();
+  const { currentUser: signedInUser, isDevelopmentPreview } = useAppContext();
   const viewer = signedInUser ?? (import.meta.env.DEV ? mockCurrentUser : null);
+  const username = params.username;
+  const isMe = !!viewer && (username === viewer.username || !username);
+  const isRemoteSocialSession = Boolean(signedInUser && !isDevelopmentPreview);
+  const remoteUser = isRemoteSocialSession && !isMe
+    ? users.find((user) => user.username === username && user.source === "server")
+    : undefined;
+
+  useEffect(() => {
+    if (!isRemoteSocialSession || isMe || !username || remoteUser) {
+      setProfileLoading(false);
+      setProfileLoadError(null);
+      return;
+    }
+
+    let active = true;
+    setProfileLoading(true);
+    setProfileLoadError(null);
+    loadRemoteProfile(username)
+      .then((user) => {
+        if (active && !user) setProfileLoadError("Perfil indisponível.");
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setProfileLoadError(error instanceof Error ? error.message : "Não foi possível carregar o perfil.");
+        }
+      })
+      .finally(() => {
+        if (active) setProfileLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRemoteSocialSession, isMe, username, remoteUser?.id, profileRetry, loadRemoteProfile]);
+
   if (!viewer) {
     return (
       <UnavailableState
@@ -44,16 +90,23 @@ export default function Profile() {
   }
 
   // Resolve user
-  const username = params.username;
-  const isMe = username === viewer.username || !username;
-
-  const found = isMe ? viewer : users.find(u => u.username === username);
+  const found = isMe
+    ? viewer
+    : isRemoteSocialSession
+      ? remoteUser
+      : users.find((user) => user.username === username);
   if (!found) {
     return (
       <UnavailableState
-        title="Perfil indisponível"
-        description={`Não encontramos @${username}. A conta pode ter sido removida.`}
-        action={<Link href="/feed" className="text-sm font-semibold text-primary hover:underline">Voltar ao feed</Link>}
+        title={profileLoading ? "Carregando perfil" : "Perfil indisponível"}
+        description={profileLoading
+          ? "Buscando os dados atualizados da conta."
+          : profileLoadError ?? `Não encontramos @${username}. A conta pode ter sido removida.`}
+        action={profileLoading
+          ? undefined
+          : profileLoadError
+            ? <Button variant="outline" onClick={() => setProfileRetry((value) => value + 1)}>Tentar novamente</Button>
+            : <Link href="/feed" className="text-sm font-semibold text-primary hover:underline">Voltar ao feed</Link>}
       />
     );
   }
@@ -87,12 +140,16 @@ export default function Profile() {
 
   function handleFollow() {
     if (isMe || user.isBlocked) return;
-    toggleFollow(user.id);
+    void toggleFollow(user.id);
   }
 
-  function handleBlockToggle() {
-    if (user.isBlockedByViewer) {
-      unblockUser(user.id);
+  async function handleBlockToggle() {
+    const wasBlockedByViewer = Boolean(user.isBlockedByViewer);
+    const updated = wasBlockedByViewer
+      ? await unblockUser(user.id)
+      : await blockUser(user.id);
+    if (!updated) return;
+    if (wasBlockedByViewer) {
       toast({
         title: "Seu bloqueio foi removido",
         description: user.blocksViewer
@@ -100,7 +157,6 @@ export default function Profile() {
           : "Os seguimentos removidos não serão restaurados automaticamente.",
       });
     } else {
-      blockUser(user.id);
       toast({
         title: "Perfil bloqueado",
         description: "Os seguimentos e solicitações entre vocês foram removidos.",
@@ -148,8 +204,9 @@ export default function Profile() {
           <Button
             variant="outline"
             className="mt-2 rounded-full"
-            onClick={() => {
-              blockUser(user.id);
+            onClick={async () => {
+              const updated = await blockUser(user.id);
+              if (!updated) return;
               toast({
                 title: "Perfil bloqueado",
                 description: "Os seguimentos e solicitações entre vocês foram removidos.",
@@ -335,10 +392,17 @@ export default function Profile() {
               <span className="font-bold">{formatCount(user.stats.followers)}</span>
               <span className="text-muted-foreground ml-1">Seguidores</span>
             </Link>
-            <Link href={`/profile/${user.username}/circles`} className="hover:underline" data-testid="link-circles">
-              <span className="font-bold">{formatCount(circleCount)}</span>
-              <span className="text-muted-foreground ml-1">Círculo</span>
-            </Link>
+            {isMe ? (
+              <Link href={`/profile/${user.username}/circles`} className="hover:underline" data-testid="link-circles">
+                <span className="font-bold">{formatCount(circleCount)}</span>
+                <span className="text-muted-foreground ml-1">Círculo</span>
+              </Link>
+            ) : (
+              <span className="text-muted-foreground" data-testid="stat-circles">
+                <span className="font-bold text-foreground">{formatCount(circleCount)}</span>
+                <span className="ml-1">Círculo</span>
+              </span>
+            )}
           </div>
         </div>
       </div>

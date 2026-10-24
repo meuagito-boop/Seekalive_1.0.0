@@ -42,6 +42,22 @@ export interface RelationshipView {
   mutedByMe: boolean;
 }
 
+export interface ProfileVisibility {
+  canViewPublicContent: boolean;
+  canViewCircleContent: boolean;
+}
+
+export type ProfileContentPageItemsItem = { [key: string]: unknown };
+
+/**
+ * Content page shape reserved for profile content modules not yet connected to the backend.
+ */
+export interface ProfileContentPage {
+  items: ProfileContentPageItemsItem[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
 export interface AccountStats {
   /** @minimum 0 */
   posts: number;
@@ -85,6 +101,14 @@ export interface AccountView {
   stats: AccountStats;
   /** @minimum 1 */
   version: number;
+}
+
+export interface ProfileResponse {
+  account: AccountView;
+  visibility: ProfileVisibility;
+  posts: ProfileContentPage;
+  articles: ProfileContentPage;
+  media: ProfileContentPage;
 }
 
 /**
@@ -222,9 +246,31 @@ export type ValidationErrorResponse = ApiError;
  */
 export type ConflictResponse = ApiError;
 
+/**
+ * Request limit exceeded; retry after the interval in Retry-After.
+ */
+export type TooManyRequestsResponse = ApiError;
+
 export type PageLimitParameter = number;
 
 export type PageCursorParameter = string;
+
+export type SearchAccountsParams = {
+/**
+ * @minLength 2
+ * @maxLength 80
+ */
+q: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
 
 export type GetFollowersParams = {
 /**

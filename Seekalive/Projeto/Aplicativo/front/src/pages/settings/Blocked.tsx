@@ -6,13 +6,20 @@ import { SettingsSubheader } from "./SettingsSubheader";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsBlocked() {
-  const { users, unblockUser } = useSocial();
+  const {
+    users,
+    unblockUser,
+    socialGraphLoading,
+    socialGraphError,
+    retrySocialGraph,
+  } = useSocial();
   const { toast } = useToast();
   const blocked = users.filter((u) => u.isBlockedByViewer);
 
-  function unblock(userId: string) {
+  async function unblock(userId: string) {
     const remainsBlockedByOther = blocked.find(user => user.id === userId)?.blocksViewer;
-    unblockUser(userId);
+    const success = await unblockUser(userId);
+    if (!success) return;
     toast({
       title: "Seu bloqueio foi removido",
       description: remainsBlockedByOther
@@ -25,7 +32,16 @@ export default function SettingsBlocked() {
     <div className="min-h-[100dvh] pb-16 md:pb-0">
       <SettingsSubheader title="Usuários bloqueados" />
 
-      {blocked.length === 0 ? (
+      {socialGraphError && (
+        <p role="alert" className="px-4 py-3 text-sm text-destructive">
+          {socialGraphError}{" "}
+          <button type="button" className="font-semibold underline" onClick={retrySocialGraph}>Tentar novamente</button>
+        </p>
+      )}
+
+      {socialGraphLoading && blocked.length === 0 ? (
+        <p role="status" className="px-4 py-12 text-center text-sm text-muted-foreground">Carregando bloqueios…</p>
+      ) : blocked.length === 0 ? (
         <div className="flex flex-col items-center py-20 px-6 text-center text-muted-foreground">
           <Ban className="w-12 h-12 mb-4 opacity-30" aria-hidden />
           <p className="font-medium text-foreground">Nenhum usuário bloqueado</p>

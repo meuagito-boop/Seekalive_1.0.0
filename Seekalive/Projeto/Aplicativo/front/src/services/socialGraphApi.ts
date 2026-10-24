@@ -1,0 +1,159 @@
+import {
+  acceptFollowRequest,
+  blockAccount,
+  declineFollowRequest,
+  followAccount,
+  getBlockedAccounts,
+  getCircle,
+  getFollowers,
+  getFollowing,
+  getIncomingFollowRequests,
+  getMyAccount,
+  getMyPrivacySettings,
+  getProfileByAccountId,
+  getProfileByUsername,
+  searchAccounts,
+  unblockAccount,
+  unfollowAccount,
+  updateMyPrivacySettings,
+} from "@workspace/api-client-react";
+import type {
+  AccountView,
+  PrivacySettings,
+  PrivacySettingsWrite,
+  ProfileResponse,
+} from "@workspace/api-client-react";
+import type { FollowRequest, User } from "@/data/mockData";
+import { getCsrfToken } from "@/services/authApi";
+
+type RequestOptions = Parameters<typeof getMyAccount>[0];
+
+export class SocialGraphApiError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "SocialGraphApiError";
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeError(error: unknown): SocialGraphApiError {
+  if (!isRecord(error)) {
+    return new SocialGraphApiError("Não foi possível concluir a solicitação.");
+  }
+
+  const nestedError = isRecord(error.data) && isRecord(error.data.error)
+    ? error.data.error
+    : undefined;
+  const message = typeof nestedError?.message === "string"
+    ? nestedError.message
+    : error instanceof Error
+      ? error.message
+      : "Não foi possível concluir a solicitação.";
+  const status = typeof error.status === "number" ? error.status : undefined;
+  const code = typeof nestedError?.code === "string" ? nestedError.code : undefined;
+  return new SocialGraphApiError(message, status, code);
+}
+
+async function request<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+const readOptions: RequestOptions = { credentials: "include" };
+
+async function write<T>(operation: (options: RequestOptions) => Promise<T>): Promise<T> {
+  return request(async () => {
+    const csrfToken = await getCsrfToken();
+    return operation({
+      credentials: "include",
+      headers: { "X-CSRF-Token": csrfToken },
+    });
+  });
+}
+
+export function accountViewToUser(account: AccountView): User {
+  return {
+    id: account.id,
+    username: account.username,
+    displayName: account.displayName,
+    bio: account.bio,
+    avatarUrl: account.avatarUrl ?? "",
+    coverUrl: account.coverUrl ?? "",
+    location: account.location ?? undefined,
+    website: account.website ?? undefined,
+    joinedAt: account.joinedAt,
+    accountType: account.accountType,
+    isPrivate: account.isPrivate,
+    isVerified: account.isVerified,
+    stats: { ...account.stats },
+    isFollowing: account.relationship.following === "accepted",
+    followRequestSent: account.relationship.following === "pending",
+    isInCircle: account.relationship.inCircle,
+    isBlockedByViewer: account.relationship.blockedByMe,
+    blocksViewer: account.relationship.blockedByThem,
+    isBlocked: account.relationship.blockedByMe || account.relationship.blockedByThem,
+    source: "server",
+  };
+}
+
+export function profileResponseToUser(profile: ProfileResponse): User {
+  return accountViewToUser(profile.account);
+}
+
+export function accountListToUsers(accounts: AccountView[]): User[] {
+  return accounts.map(accountViewToUser);
+}
+
+export function followRequestToModel(
+  request: { account: AccountView; createdAt: string },
+  targetId: string,
+): FollowRequest {
+  return {
+    id: request.account.id,
+    requesterId: request.account.id,
+    targetId,
+    createdAt: request.createdAt,
+  };
+}
+
+export const socialGraphApi = {
+  getMyAccount: () => request(() => getMyAccount(readOptions)),
+  getProfileByAccountId: (accountId: string) =>
+    request(() => getProfileByAccountId(accountId, readOptions)),
+  getProfileByUsername: (username: string) =>
+    request(() => getProfileByUsername(username, readOptions)),
+  searchAccounts: (q: string, cursor?: string) =>
+    request(() => searchAccounts({ q, limit: 20, cursor }, readOptions)),
+  getFollowers: (accountId: string, cursor?: string) =>
+    request(() => getFollowers(accountId, { limit: 20, cursor }, readOptions)),
+  getFollowing: (accountId: string, cursor?: string) =>
+    request(() => getFollowing(accountId, { limit: 20, cursor }, readOptions)),
+  getIncomingFollowRequests: (cursor?: string) =>
+    request(() => getIncomingFollowRequests({ limit: 100, cursor }, readOptions)),
+  getCircle: (cursor?: string) =>
+    request(() => getCircle({ limit: 20, cursor }, readOptions)),
+  getBlockedAccounts: () => request(() => getBlockedAccounts(readOptions)),
+  getPrivacySettings: (): Promise<PrivacySettings> =>
+    request(() => getMyPrivacySettings(readOptions)),
+  follow: (accountId: string) => write((options) => followAccount(accountId, options)),
+  unfollow: (accountId: string) => write((options) => unfollowAccount(accountId, options)),
+  acceptFollowRequest: (accountId: string) =>
+    write((options) => acceptFollowRequest(accountId, options)),
+  declineFollowRequest: (accountId: string) =>
+    write((options) => declineFollowRequest(accountId, options)),
+  block: (accountId: string) => write((options) => blockAccount(accountId, options)),
+  unblock: (accountId: string) => write((options) => unblockAccount(accountId, options)),
+  updatePrivacySettings: (settings: PrivacySettingsWrite) =>
+    write((options) => updateMyPrivacySettings(settings, options)),
+};
+

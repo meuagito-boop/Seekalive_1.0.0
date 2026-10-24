@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useReducer, useState, ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, ReactNode } from "react";
 import {
   Post, User, Notification, Conversation, Message, SeekReview, FollowRequest,
   mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages, mockSeekReviews,
@@ -8,8 +8,15 @@ import { getStoredAccounts, saveSocialAccount } from "@/data/accountStorage";
 import { getStoredFollowRequests, saveStoredFollowRequests } from "@/data/followRequestStorage";
 import { getStoredSeekReviews, saveStoredSeekReviews } from "@/data/reviewStorage";
 import { useAppContext } from "@/context/AppContext";
+import { toast } from "@/hooks/use-toast";
 import type { PublishPostInput, SocialComment, SocialRepost } from "@/types/content";
 import { contentService, ContentServiceError } from "@/services/contentService";
+import {
+  accountViewToUser,
+  followRequestToModel,
+  SocialGraphApiError,
+  socialGraphApi,
+} from "@/services/socialGraphApi";
 import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/contentValidation";
 import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
@@ -283,6 +290,12 @@ interface SocialContextType extends SocialState {
   unreadNotifications: number;
   unreadMessages: number;
   incomingFollowRequests: FollowRequest[];
+  isRemoteSocialSession: boolean;
+  socialGraphLoading: boolean;
+  socialGraphError: string | null;
+  retrySocialGraph: () => void;
+  loadRemoteProfile: (username: string) => Promise<User | null>;
+  upsertRemoteUser: (user: User) => void;
   // Action helpers
   toggleLike: (postId: string) => void;
   toggleRepost: (postId: string, actorId?: string) => void;
@@ -291,11 +304,11 @@ interface SocialContextType extends SocialState {
   toggleCommentLike: (commentId: string) => void;
   deletePost: (postId: string, authorId: string) => Promise<void>;
   toggleBookmark: (postId: string) => void;
-  toggleFollow: (userId: string) => void;
-  blockUser: (userId: string) => void;
-  unblockUser: (userId: string) => void;
-  acceptFollowRequest: (requestId: string) => void;
-  declineFollowRequest: (requestId: string) => void;
+  toggleFollow: (userId: string) => Promise<boolean>;
+  blockUser: (userId: string) => Promise<boolean>;
+  unblockUser: (userId: string) => Promise<boolean>;
+  acceptFollowRequest: (requestId: string) => Promise<boolean>;
+  declineFollowRequest: (requestId: string) => Promise<boolean>;
   addUser: (user: User) => void;
   updateUser: (user: User) => void;
   addPost: (
@@ -318,15 +331,24 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 // ── Provider ──────────────────────────────────────────────────────────
 export function SocialProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
-  const { currentUser, updateAccount } = useAppContext();
+  const { currentUser, updateAccount, isDevelopmentPreview } = useAppContext();
+  const isRemoteSocialSession = Boolean(currentUser && !isDevelopmentPreview);
   const viewer = currentUser ?? (import.meta.env.DEV ? demoCurrentUser : null);
   const actorId = currentUser?.id ?? viewer?.id ?? "guest";
-  const { ids: blockedUserIds, toggle: toggleBlockedUser } =
+  const { ids: localBlockedUserIds, toggle: toggleBlockedUser } =
     useAccountScopedIds("seekalive-blocked-users", actorId);
+  const [remoteBlockedUserIds, setRemoteBlockedUserIds] = useState<string[]>([]);
+  const [remoteFollowRequests, setRemoteFollowRequests] = useState<FollowRequest[]>([]);
+  const [socialGraphLoading, setSocialGraphLoading] = useState(false);
+  const [socialGraphError, setSocialGraphError] = useState<string | null>(null);
+  const [socialGraphRetry, setSocialGraphRetry] = useState(0);
+  const blockedUserIds = isRemoteSocialSession ? remoteBlockedUserIds : localBlockedUserIds;
   const blockedUserIdSet = new Set(blockedUserIds);
   const blockRelations = readAccountScopedIdsMap("seekalive-blocked-users");
   const blockProjection = getAccountBlockProjection(blockRelations, actorId);
-  const accountsBlockingViewerSet = new Set(blockProjection.blockingViewerIds);
+  const accountsBlockingViewerSet = isRemoteSocialSession
+    ? new Set<string>()
+    : new Set(blockProjection.blockingViewerIds);
   const blockedAccountIds = new Set(blockProjection.unavailableAccountIds);
   const blockedPostIds = new Set(
     state.posts.filter(post => blockedAccountIds.has(post.authorId)).map(post => post.id),
@@ -394,22 +416,85 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     setActivityByAccount(next);
   }
   useEffect(() => {
-    saveStoredFollowRequests(state.followRequests);
-  }, [state.followRequests]);
+    if (!isRemoteSocialSession) saveStoredFollowRequests(state.followRequests);
+  }, [state.followRequests, isRemoteSocialSession]);
+
+  useEffect(() => {
+    if (!isRemoteSocialSession || !currentUser) {
+      setRemoteBlockedUserIds([]);
+      setRemoteFollowRequests([]);
+      setSocialGraphError(null);
+      setSocialGraphLoading(false);
+      return;
+    }
+
+    let active = true;
+    setSocialGraphLoading(true);
+    setSocialGraphError(null);
+    setRemoteBlockedUserIds([]);
+    setRemoteFollowRequests([]);
+    Promise.all([
+      socialGraphApi.getMyAccount(),
+      socialGraphApi.getIncomingFollowRequests(),
+      socialGraphApi.getBlockedAccounts(),
+    ]).then(([account, requestsPage, blockedAccounts]) => {
+      if (!active) return;
+      const accountUser = accountViewToUser(account);
+      const incoming = requestsPage.items.map((request) =>
+        followRequestToModel(request, account.id),
+      );
+      const blockedUsers = blockedAccounts.items.map(accountViewToUser);
+      const remoteUsers = [
+        accountUser,
+        ...requestsPage.items.map((request) => accountViewToUser(request.account)),
+        ...blockedUsers,
+      ];
+      remoteUsers.forEach((user) => dispatch({ type: "ADD_USER", user }));
+      updateAccount(accountUser);
+      setRemoteFollowRequests(incoming);
+      setRemoteBlockedUserIds(blockedUsers.map((user) => user.id));
+    }).catch((error: unknown) => {
+      if (!active) return;
+      const message = error instanceof Error
+        ? error.message
+        : "Não foi possível carregar as conexões da conta.";
+      setSocialGraphError(message);
+      toast({
+        title: "Falha ao carregar conexões",
+        description: message,
+        variant: "destructive",
+      });
+    }).finally(() => {
+      if (active) setSocialGraphLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id, isRemoteSocialSession, socialGraphRetry]);
 
   const users = state.users.map((user) => ({
     ...user,
-    isBlockedByViewer: blockedUserIdSet.has(user.id),
-    blocksViewer: accountsBlockingViewerSet.has(user.id),
-    isBlocked: blockedUserIdSet.has(user.id) || accountsBlockingViewerSet.has(user.id),
-    isFollowing: viewer ? viewerFollowsUser(viewer, user) : false,
-    followRequestSent: !!viewer
-      && !blockedUserIdSet.has(user.id)
-      && !accountsBlockingViewerSet.has(user.id)
-      && state.followRequests.some(request =>
-      request.requesterId === viewer.id && request.targetId === user.id
-    ),
-    isInCircle: viewer ? areMutualFollowers(viewer, user) : false,
+    isBlockedByViewer: blockedUserIdSet.has(user.id)
+      || (!isRemoteSocialSession && Boolean(user.isBlockedByViewer)),
+    blocksViewer: !isRemoteSocialSession && accountsBlockingViewerSet.has(user.id),
+    isBlocked: blockedUserIdSet.has(user.id)
+      || (!isRemoteSocialSession && accountsBlockingViewerSet.has(user.id))
+      || (isRemoteSocialSession && user.source === "server" && Boolean(user.isBlocked)),
+    isFollowing: isRemoteSocialSession
+      ? user.source === "server" && Boolean(user.isFollowing)
+      : viewer ? viewerFollowsUser(viewer, user) : false,
+    followRequestSent: isRemoteSocialSession
+      ? user.source === "server" && Boolean(user.followRequestSent)
+      : !!viewer
+        && !blockedUserIdSet.has(user.id)
+        && !accountsBlockingViewerSet.has(user.id)
+        && state.followRequests.some(request =>
+          request.requesterId === viewer.id && request.targetId === user.id
+        ),
+    isInCircle: isRemoteSocialSession
+      ? user.source === "server" && Boolean(user.isInCircle)
+      : viewer ? areMutualFollowers(viewer, user) : false,
   }));
   function assertSession(authorId: string) {
     if (!currentUser) throw new ContentServiceError("Entre na sua conta para continuar.", 401);
@@ -422,12 +507,347 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     if (!canReadPost(
       post,
       currentUser?.id ?? (import.meta.env.DEV ? demoCurrentUser.id : ""),
-      !!viewer && areMutualFollowers(viewer, author),
+       !!viewer && (isRemoteSocialSession
+         ? Boolean(author?.isInCircle)
+         : areMutualFollowers(viewer, author)),
       author?.isPrivate ?? false,
       author?.isFollowing ?? false,
     ))
       throw new ContentServiceError("Você não tem acesso a esta publicação.", 403);
     return post;
+  }
+
+  function showRelationshipError(title: string, error: unknown) {
+    const message = error instanceof Error
+      ? error.message
+      : "Não foi possível concluir a solicitação.";
+    toast({ title, description: message, variant: "destructive" });
+  }
+
+  function showRefreshWarning() {
+    toast({
+      title: "Alteração salva",
+      description: "Não foi possível atualizar todos os dados exibidos. Recarregue a tela.",
+      variant: "destructive",
+    });
+  }
+
+  async function refreshRemoteAccount(accountId: string): Promise<User> {
+    const account = accountId === currentUser?.id
+      ? await socialGraphApi.getMyAccount()
+      : await socialGraphApi.getProfileByAccountId(accountId);
+    const user = accountViewToUser(account);
+    dispatch({ type: "ADD_USER", user });
+    if (accountId === currentUser?.id) updateAccount(user);
+    return user;
+  }
+
+  const loadRemoteProfile = useCallback(async (username: string): Promise<User | null> => {
+    if (!isRemoteSocialSession) return null;
+    const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
+    if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) return null;
+    const profile = await socialGraphApi.getProfileByUsername(normalizedUsername);
+    const user = accountViewToUser(profile.account);
+    dispatch({ type: "ADD_USER", user });
+    return user;
+  }, [isRemoteSocialSession]);
+
+  const upsertRemoteUser = useCallback((user: User) => dispatch({
+    type: "ADD_USER",
+    user: { ...user, source: "server" },
+  }), []);
+
+  async function handleToggleFollow(userId: string): Promise<boolean> {
+    const target = state.users.find((user) => user.id === userId);
+    if (!viewer || !target || target.id === viewer.id
+      || blockedUserIdSet.has(userId) || accountsBlockingViewerSet.has(userId)) return false;
+
+    if (isRemoteSocialSession) {
+      if (target.source !== "server") {
+        toast({
+          title: "Conta de demonstração",
+          description: "Perfis de exemplo não podem ser seguidos pela conta real.",
+        });
+        return false;
+      }
+      try {
+        const previousFollowing = Boolean(target.isFollowing);
+        const result = previousFollowing || target.followRequestSent
+          ? null
+          : await socialGraphApi.follow(userId);
+        if (previousFollowing || target.followRequestSent) {
+          await socialGraphApi.unfollow(userId);
+          dispatch({
+            type: "UPDATE_USER",
+            user: { ...target, isFollowing: false, followRequestSent: false, isInCircle: false },
+          });
+        } else if (result) {
+          dispatch({
+            type: "UPDATE_USER",
+            user: {
+              ...target,
+              isFollowing: result.status === "accepted",
+              followRequestSent: result.status === "pending",
+              isInCircle: false,
+            },
+          });
+        }
+      } catch (error) {
+        showRelationshipError("Não foi possível atualizar o seguimento", error);
+        return false;
+      }
+
+      try {
+        await Promise.all([
+          refreshRemoteAccount(userId),
+          currentUser ? refreshRemoteAccount(currentUser.id) : Promise.resolve(null),
+        ]);
+      } catch {
+        showRefreshWarning();
+      }
+      return true;
+    }
+
+    const pendingRequest = state.followRequests.find((request) =>
+      request.requesterId === viewer.id && request.targetId === userId
+    );
+    if (pendingRequest) {
+      dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId: pendingRequest.id });
+      return true;
+    }
+
+    const wasFollowing = viewerFollowsUser(viewer, target);
+    if (!wasFollowing && target.isPrivate) {
+      dispatch({
+        type: "ADD_FOLLOW_REQUEST",
+        request: {
+          id: `follow_request_${viewer.id}_${target.id}`,
+          requesterId: viewer.id,
+          targetId: target.id,
+          createdAt: new Date().toISOString(),
+        },
+      });
+      return true;
+    }
+
+    const targetFollowsViewer = (target.followingIds ?? []).includes(viewer.id);
+    const wasMutual = wasFollowing && targetFollowsViewer;
+    const willBeMutual = !wasFollowing && targetFollowsViewer;
+    const nextFollowingIds = (viewer.followingIds ?? []).filter((id) => id !== userId);
+    if (!wasFollowing) nextFollowingIds.push(userId);
+
+    const updatedViewer: User = {
+      ...viewer,
+      followingIds: nextFollowingIds,
+      stats: {
+        ...viewer.stats,
+        following: Math.max(0, viewer.stats.following + (wasFollowing ? -1 : 1)),
+        circles: Math.max(0, viewer.stats.circles + (willBeMutual ? 1 : wasMutual ? -1 : 0)),
+      },
+    };
+    const updatedTarget: User = {
+      ...target,
+      isFollowing: !wasFollowing,
+      stats: {
+        ...target.stats,
+        followers: Math.max(0, target.stats.followers + (wasFollowing ? -1 : 1)),
+        circles: Math.max(0, target.stats.circles + (willBeMutual ? 1 : wasMutual ? -1 : 0)),
+      },
+    };
+
+    if (currentUser) updateAccount(updatedViewer);
+    saveSocialAccount(updatedTarget);
+    dispatch({ type: "UPDATE_USER", user: updatedTarget });
+    if (currentUser && state.users.some((user) => user.id === currentUser.id))
+      dispatch({ type: "UPDATE_USER", user: updatedViewer });
+    return true;
+  }
+
+  async function handleBlockUser(userId: string): Promise<boolean> {
+    const target = state.users.find((user) => user.id === userId);
+    if (!viewer || !target || userId === viewer.id || blockedUserIdSet.has(userId)) return false;
+
+    if (isRemoteSocialSession) {
+      if (target.source !== "server") {
+        toast({
+          title: "Conta de demonstração",
+          description: "Perfis de exemplo não podem ser bloqueados pela conta real.",
+        });
+        return false;
+      }
+      try {
+        await socialGraphApi.block(userId);
+      } catch (error) {
+        showRelationshipError("Não foi possível bloquear o perfil", error);
+        return false;
+      }
+      setRemoteBlockedUserIds((ids) => ids.includes(userId) ? ids : [...ids, userId]);
+      setRemoteFollowRequests((requests) =>
+        requests.filter((request) => request.requesterId !== userId && request.targetId !== userId)
+      );
+      dispatch({
+        type: "UPDATE_USER",
+        user: {
+          ...target,
+          isBlocked: true,
+          isBlockedByViewer: true,
+          blocksViewer: false,
+          isFollowing: false,
+          followRequestSent: false,
+          isInCircle: false,
+        },
+      });
+      for (const requestId of followRequestIdsBetween(state.followRequests, viewer.id, userId))
+        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
+      if (currentUser) {
+        try {
+          await refreshRemoteAccount(currentUser.id);
+        } catch {
+          showRefreshWarning();
+        }
+      }
+      return true;
+    }
+
+    const { actor: updatedViewer, target: updatedTarget, changed } =
+      removeFollowEdgesForBlock(viewer, target);
+    if (changed) {
+      if (currentUser) updateAccount(updatedViewer);
+      else saveSocialAccount(updatedViewer);
+      saveSocialAccount(updatedTarget);
+      dispatch({ type: "UPDATE_USER", user: updatedTarget });
+      if (state.users.some((user) => user.id === viewer.id))
+        dispatch({ type: "UPDATE_USER", user: updatedViewer });
+    }
+    for (const requestId of followRequestIdsBetween(state.followRequests, viewer.id, userId))
+      dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
+    toggleBlockedUser(userId);
+    return true;
+  }
+
+  async function handleUnblockUser(userId: string): Promise<boolean> {
+    if (!blockedUserIdSet.has(userId)) return false;
+    if (!isRemoteSocialSession) {
+      toggleBlockedUser(userId);
+      return true;
+    }
+
+    try {
+      await socialGraphApi.unblock(userId);
+    } catch (error) {
+      showRelationshipError("Não foi possível remover o bloqueio", error);
+      return false;
+    }
+    setRemoteBlockedUserIds((ids) => ids.filter((id) => id !== userId));
+    try {
+      await refreshRemoteAccount(userId);
+    } catch (error) {
+      if (!(error instanceof SocialGraphApiError) || error.status !== 404) {
+        showRefreshWarning();
+      } else {
+        const previous = state.users.find((user) => user.id === userId);
+        if (previous) {
+          dispatch({
+            type: "UPDATE_USER",
+            user: {
+              ...previous,
+              isBlocked: true,
+              isBlockedByViewer: false,
+              blocksViewer: false,
+              isFollowing: false,
+              followRequestSent: false,
+              isInCircle: false,
+            },
+          });
+        }
+      }
+    }
+    return true;
+  }
+
+  async function handleAcceptFollowRequest(requestId: string): Promise<boolean> {
+    const ownerId = currentUser?.id;
+    if (!ownerId) return false;
+    const request = isRemoteSocialSession
+      ? remoteFollowRequests.find((item) => item.id === requestId && item.targetId === ownerId)
+      : state.followRequests.find((item) => item.id === requestId && item.targetId === ownerId);
+    if (!request || blockedUserIdSet.has(request.requesterId) || accountsBlockingViewerSet.has(request.requesterId))
+      return false;
+
+    if (isRemoteSocialSession) {
+      try {
+        await socialGraphApi.acceptFollowRequest(request.requesterId);
+      } catch (error) {
+        showRelationshipError("Não foi possível aceitar a solicitação", error);
+        return false;
+      }
+      setRemoteFollowRequests((requests) => requests.filter((item) => item.id !== requestId));
+      try {
+        await Promise.all([
+          refreshRemoteAccount(ownerId),
+          refreshRemoteAccount(request.requesterId),
+        ]);
+      } catch {
+        showRefreshWarning();
+      }
+      return true;
+    }
+
+    const targetAccount = currentUser;
+    const requester = state.users.find((user) => user.id === request.requesterId);
+    if (!requester) return false;
+    const requesterAlreadyFollows = (requester.followingIds ?? []).includes(targetAccount.id);
+    const viewerAlreadyFollowsRequester = viewerFollowsUser(targetAccount, requester);
+    const updatedViewer: User = requesterAlreadyFollows
+      ? targetAccount
+      : {
+          ...targetAccount,
+          stats: {
+            ...targetAccount.stats,
+            followers: targetAccount.stats.followers + 1,
+            circles: targetAccount.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
+          },
+        };
+    const updatedRequester: User = requesterAlreadyFollows
+      ? requester
+      : {
+          ...requester,
+          followingIds: [...(requester.followingIds ?? []), targetAccount.id],
+          stats: {
+            ...requester.stats,
+            following: requester.stats.following + 1,
+            circles: requester.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
+          },
+        };
+
+    if (!requesterAlreadyFollows) {
+      updateAccount(updatedViewer);
+      saveSocialAccount(updatedViewer);
+      saveSocialAccount(updatedRequester);
+      dispatch({ type: "UPDATE_USER", user: updatedViewer });
+      dispatch({ type: "UPDATE_USER", user: updatedRequester });
+    }
+    dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
+    return true;
+  }
+
+  async function handleDeclineFollowRequest(requestId: string): Promise<boolean> {
+    const request = isRemoteSocialSession
+      ? remoteFollowRequests.find((item) => item.id === requestId && item.targetId === currentUser?.id)
+      : state.followRequests.find((item) => item.id === requestId && item.targetId === currentUser?.id);
+    if (!request) return false;
+    if (isRemoteSocialSession) {
+      try {
+        await socialGraphApi.declineFollowRequest(request.requesterId);
+        setRemoteFollowRequests((requests) => requests.filter((item) => item.id !== requestId));
+        return true;
+      } catch (error) {
+        showRelationshipError("Não foi possível recusar a solicitação", error);
+        return false;
+      }
+    }
+    dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
+    return true;
   }
 
   const ctx: SocialContextType = {
@@ -440,6 +860,10 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     messages: visibleMessages,
     users,
     dispatch,
+    isRemoteSocialSession,
+    socialGraphLoading,
+    socialGraphError,
+    retrySocialGraph: () => setSocialGraphRetry((retry) => retry + 1),
 
     getPostById: (id) => posts.find(p => p.id === id),
     getUserById: (id) => {
@@ -451,11 +875,15 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       ? visibleMessages.filter(message => message.conversationId === convId) : [],
     unreadNotifications: visibleNotifications.filter(notification => !notification.isRead).length,
     unreadMessages: visibleConversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
-    incomingFollowRequests: state.followRequests.filter(request =>
-      request.targetId === currentUser?.id
-      && !blockedUserIdSet.has(request.requesterId)
-      && !accountsBlockingViewerSet.has(request.requesterId)
-    ),
+    incomingFollowRequests: isRemoteSocialSession
+      ? remoteFollowRequests.filter((request) => !blockedUserIdSet.has(request.requesterId))
+      : state.followRequests.filter(request =>
+        request.targetId === currentUser?.id
+        && !blockedUserIdSet.has(request.requesterId)
+        && !accountsBlockingViewerSet.has(request.requesterId)
+      ),
+    loadRemoteProfile,
+    upsertRemoteUser,
 
     toggleLike: (postId) => updateCurrentActivity(current => ({
       ...current,
@@ -520,137 +948,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         ? current.bookmarkedPostIds.filter(id => id !== postId)
         : [...current.bookmarkedPostIds, postId],
     })),
-    toggleFollow: (userId) => {
-      const target = state.users.find(user => user.id === userId);
-      if (!viewer || !target || target.id === viewer.id
-        || blockedUserIdSet.has(userId) || accountsBlockingViewerSet.has(userId)) return;
-      const pendingRequest = state.followRequests.find(request =>
-        request.requesterId === viewer.id && request.targetId === userId
-      );
-      if (pendingRequest) {
-        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId: pendingRequest.id });
-        return;
-      }
-
-      const wasFollowing = viewerFollowsUser(viewer, target);
-      if (!wasFollowing && target.isPrivate) {
-        dispatch({
-          type: "ADD_FOLLOW_REQUEST",
-          request: {
-            id: `follow_request_${viewer.id}_${target.id}`,
-            requesterId: viewer.id,
-            targetId: target.id,
-            createdAt: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-
-      const targetFollowsViewer = (target.followingIds ?? []).includes(viewer.id);
-      const wasMutual = wasFollowing && targetFollowsViewer;
-      const willBeMutual = !wasFollowing && targetFollowsViewer;
-      const nextFollowingIds = (viewer.followingIds ?? [])
-        .filter(id => id !== userId);
-      if (!wasFollowing) nextFollowingIds.push(userId);
-
-      const updatedViewer: User = {
-        ...viewer,
-        followingIds: nextFollowingIds,
-        stats: {
-          ...viewer.stats,
-          following: Math.max(0, viewer.stats.following + (wasFollowing ? -1 : 1)),
-          circles: Math.max(0, viewer.stats.circles + (willBeMutual ? 1 : wasMutual ? -1 : 0)),
-        },
-      };
-      const updatedTarget: User = {
-        ...target,
-        isFollowing: !wasFollowing,
-        stats: {
-          ...target.stats,
-          followers: Math.max(0, target.stats.followers + (wasFollowing ? -1 : 1)),
-          circles: Math.max(0, target.stats.circles + (willBeMutual ? 1 : wasMutual ? -1 : 0)),
-        },
-      };
-
-      if (currentUser) updateAccount(updatedViewer);
-      saveSocialAccount(updatedTarget);
-      dispatch({ type: "UPDATE_USER", user: updatedTarget });
-      if (currentUser && state.users.some(user => user.id === currentUser.id))
-        dispatch({ type: "UPDATE_USER", user: updatedViewer });
-    },
-    blockUser: (userId) => {
-      const target = state.users.find(user => user.id === userId);
-      if (!viewer || !target || userId === viewer.id || blockedUserIdSet.has(userId)) return;
-
-      const { actor: updatedViewer, target: updatedTarget, changed } =
-        removeFollowEdgesForBlock(viewer, target);
-      if (changed) {
-        if (currentUser) updateAccount(updatedViewer);
-        else saveSocialAccount(updatedViewer);
-        saveSocialAccount(updatedTarget);
-        dispatch({ type: "UPDATE_USER", user: updatedTarget });
-        if (state.users.some(user => user.id === viewer.id))
-          dispatch({ type: "UPDATE_USER", user: updatedViewer });
-      }
-
-      for (const requestId of followRequestIdsBetween(state.followRequests, viewer.id, userId))
-        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
-      toggleBlockedUser(userId);
-    },
-    unblockUser: (userId) => {
-      if (blockedUserIdSet.has(userId)) toggleBlockedUser(userId);
-    },
-    acceptFollowRequest: (requestId) => {
-      const targetAccount = currentUser;
-      if (!targetAccount) return;
-      const request = state.followRequests.find(item =>
-        item.id === requestId && item.targetId === targetAccount.id
-      );
-      if (!request) return;
-      if (blockedUserIdSet.has(request.requesterId) || accountsBlockingViewerSet.has(request.requesterId)) return;
-
-      const requester = state.users.find(user => user.id === request.requesterId);
-      if (!requester) return;
-
-      const requesterAlreadyFollows = (requester.followingIds ?? []).includes(targetAccount.id);
-      const viewerAlreadyFollowsRequester = viewerFollowsUser(targetAccount, requester);
-      const updatedViewer: User = requesterAlreadyFollows
-        ? targetAccount
-        : {
-            ...targetAccount,
-            stats: {
-              ...targetAccount.stats,
-              followers: targetAccount.stats.followers + 1,
-              circles: targetAccount.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
-            },
-          };
-      const updatedRequester: User = requesterAlreadyFollows
-        ? requester
-        : {
-            ...requester,
-            followingIds: [...(requester.followingIds ?? []), targetAccount.id],
-            stats: {
-              ...requester.stats,
-              following: requester.stats.following + 1,
-              circles: requester.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
-            },
-          };
-
-      if (!requesterAlreadyFollows) {
-        updateAccount(updatedViewer);
-        saveSocialAccount(updatedViewer);
-        saveSocialAccount(updatedRequester);
-        dispatch({ type: "UPDATE_USER", user: updatedViewer });
-        dispatch({ type: "UPDATE_USER", user: updatedRequester });
-      }
-      dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
-    },
-    declineFollowRequest: (requestId) => {
-      const request = state.followRequests.find(item =>
-        item.id === requestId && item.targetId === currentUser?.id
-      );
-      if (request) dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
-    },
+    toggleFollow: handleToggleFollow,
+    blockUser: handleBlockUser,
+    unblockUser: handleUnblockUser,
+    acceptFollowRequest: handleAcceptFollowRequest,
+    declineFollowRequest: handleDeclineFollowRequest,
     addUser: (user) => {
       saveSocialAccount(user);
       dispatch({ type: "ADD_USER", user });

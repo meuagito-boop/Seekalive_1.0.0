@@ -61,7 +61,7 @@ export async function getCurrentSession(): Promise<CurrentSession> {
   return parseResponse<CurrentSession>(response);
 }
 
-async function getCsrfToken(): Promise<string> {
+export async function getCsrfToken(): Promise<string> {
   const response = await fetch("/api/v1/auth/csrf", {
     method: "GET",
     credentials: "include",

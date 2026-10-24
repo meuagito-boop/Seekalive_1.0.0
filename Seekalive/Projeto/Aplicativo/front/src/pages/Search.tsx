@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PostCard } from "@/components/post/PostCard";
 import { formatCount } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
+import { accountListToUsers, socialGraphApi } from "@/services/socialGraphApi";
 
 const tabs = [
   { label: "Publicações", id: "Posts" },
@@ -25,30 +26,106 @@ const demoTrending = [
 ];
 
 export default function Search() {
-  const { posts, users, toggleFollow } = useSocial();
+  const {
+    posts,
+    users,
+    toggleFollow,
+    isRemoteSocialSession,
+    upsertRemoteUser,
+  } = useSocial();
   const search = useSearch();
   const urlQuery = new URLSearchParams(search).get("q") ?? "";
   const [query, setQuery] = useState(urlQuery);
   const { currentUser } = useAppContext();
   const viewerId = currentUser?.id ?? "me";
   const trending = import.meta.env.DEV ? demoTrending : [];
-  const suggestedUsers = users.filter(user => user.id !== currentUser?.id).slice(0, 5);
+  const suggestedUsers = isRemoteSocialSession
+    ? []
+    : users.filter(user => user.id !== currentUser?.id).slice(0, 5);
   useEffect(() => { setQuery(urlQuery); }, [urlQuery]);
   const [activeTab, setActiveTab] = useState(0);
+  const [remoteUsers, setRemoteUsers] = useState<ReturnType<typeof accountListToUsers>>([]);
+  const [remoteSearchCursor, setRemoteSearchCursor] = useState<string | null>(null);
+  const [remoteSearchLoading, setRemoteSearchLoading] = useState(false);
+  const [remoteSearchError, setRemoteSearchError] = useState<string | null>(null);
+  const [searchRetry, setSearchRetry] = useState(0);
 
   const isSearching = query.trim().length > 0;
 
   const q = query.trim().toLowerCase();
+  const apiQuery = query.trim().replace(/^@/, "");
+  useEffect(() => {
+    if (!isRemoteSocialSession || apiQuery.length < 2) {
+      setRemoteUsers([]);
+      setRemoteSearchCursor(null);
+      setRemoteSearchError(null);
+      setRemoteSearchLoading(false);
+      return;
+    }
+
+    let active = true;
+    setRemoteUsers([]);
+    setRemoteSearchCursor(null);
+    setRemoteSearchError(null);
+    const timer = window.setTimeout(() => {
+      setRemoteSearchLoading(true);
+      setRemoteSearchError(null);
+      void socialGraphApi.searchAccounts(query.trim())
+        .then((page) => {
+          if (!active) return;
+          const accounts = accountListToUsers(page.items)
+            .filter((account) => account.id !== currentUser?.id);
+          accounts.forEach(upsertRemoteUser);
+          setRemoteUsers(accounts);
+          setRemoteSearchCursor(page.nextCursor);
+        })
+        .catch((searchError: unknown) => {
+          if (active) setRemoteSearchError(searchError instanceof Error ? searchError.message : "Não foi possível buscar pessoas.");
+        })
+        .finally(() => {
+          if (active) setRemoteSearchLoading(false);
+        });
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [isRemoteSocialSession, apiQuery, query, searchRetry, currentUser?.id, upsertRemoteUser]);
+
+  async function loadMoreAccounts() {
+    if (!remoteSearchCursor || remoteSearchLoading) return;
+    setRemoteSearchLoading(true);
+    setRemoteSearchError(null);
+    try {
+      const page = await socialGraphApi.searchAccounts(query.trim(), remoteSearchCursor);
+      const accounts = accountListToUsers(page.items)
+        .filter((account) => account.id !== currentUser?.id);
+      accounts.forEach(upsertRemoteUser);
+      setRemoteUsers((existing) => [
+        ...existing,
+        ...accounts.filter((account) => !existing.some((item) => item.id === account.id)),
+      ]);
+      setRemoteSearchCursor(page.nextCursor);
+    } catch (searchError) {
+      setRemoteSearchError(searchError instanceof Error ? searchError.message : "Não foi possível carregar mais pessoas.");
+    } finally {
+      setRemoteSearchLoading(false);
+    }
+  }
+
   const filteredPosts = posts.filter(p => {
     const author = users.find(u => u.id === p.authorId);
     if (!author || !canReadPost(p, viewerId, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false)) return false;
     const haystack = [p.content, p.article?.title ?? "", p.article?.body ?? "", ...(p.hashtags ?? []).map(t => `#${t}`), ...(p.mentions ?? []).map(m => `@${m}`)].join(" ").toLowerCase();
     return haystack.includes(q);
   });
-  const filteredUsers = users.filter(u =>
-    u.displayName.toLowerCase().includes(query.toLowerCase()) ||
-    u.username.toLowerCase().includes(query.toLowerCase())
-  );
+  const filteredUsers = isRemoteSocialSession
+    ? remoteUsers
+    : users.filter(u =>
+      u.displayName.toLowerCase().includes(query.toLowerCase()) ||
+      u.username.toLowerCase().includes(query.toLowerCase())
+    );
   const filteredTags = trending.filter(t =>
     t.tag.toLowerCase().includes(query.toLowerCase())
   );
@@ -158,7 +235,11 @@ export default function Search() {
                       {user.isFollowing ? "Seguindo" : user.followRequestSent ? "Cancelar" : user.isPrivate ? "Solicitar" : "Seguir"}
                     </button>
                   </motion.div>
-                )) : <p className="w-full rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Novas pessoas aparecerão quando houver contas disponíveis.</p>}
+                )) : <p className="w-full rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  {isRemoteSocialSession
+                    ? "Busque por nome ou @ para encontrar contas verificadas."
+                    : "Novas pessoas aparecerão quando houver contas disponíveis."}
+                </p>}
               </div>
             </div>
 
@@ -174,7 +255,16 @@ export default function Search() {
 
             {/* People */}
             {activeTab === 1 && (
-              filteredUsers.length === 0
+              isRemoteSocialSession && remoteSearchError ? (
+                <div className="py-16 text-center text-muted-foreground">
+                  <p role="alert" className="font-medium text-destructive">{remoteSearchError}</p>
+                  <button type="button" className="mt-3 text-sm font-semibold text-primary underline" onClick={() => setSearchRetry((value) => value + 1)}>Tentar novamente</button>
+                </div>
+              ) : isRemoteSocialSession && apiQuery.length < 2 ? (
+                <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Digite pelo menos 2 caracteres para buscar.</p></div>
+              ) : remoteSearchLoading && filteredUsers.length === 0 ? (
+                <div role="status" className="py-16 text-center text-muted-foreground"><p className="font-medium">Buscando pessoas…</p></div>
+              ) : filteredUsers.length === 0
                 ? <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Nenhuma pessoa encontrada</p></div>
                 : filteredUsers.map((user, i) => (
                   <motion.div
@@ -208,6 +298,18 @@ export default function Search() {
                     </button>
                   </motion.div>
                 ))
+            )}
+            {activeTab === 1 && isRemoteSocialSession && remoteSearchCursor && (
+              <div className="flex justify-center px-4 py-5">
+                <button
+                  type="button"
+                  onClick={() => void loadMoreAccounts()}
+                  disabled={remoteSearchLoading}
+                  className="rounded-full border border-border px-5 py-2 text-sm font-semibold disabled:opacity-60"
+                >
+                  {remoteSearchLoading ? "Carregando…" : "Carregar mais"}
+                </button>
+              </div>
             )}
 
             {/* Tags */}

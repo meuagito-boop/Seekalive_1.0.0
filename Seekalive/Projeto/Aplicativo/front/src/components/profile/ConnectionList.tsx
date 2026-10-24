@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Search, Users } from "lucide-react";
@@ -6,33 +6,117 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { UnavailableState } from "@/components/content/StateBlocks";
+import { accountListToUsers, socialGraphApi } from "@/services/socialGraphApi";
 
 export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
   const params = useParams<{ username: string }>();
   const [, setLocation] = useLocation();
   const [query, setQuery] = useState("");
-  const { users, toggleFollow } = useSocial();
+  const {
+    users,
+    toggleFollow,
+    isRemoteSocialSession,
+    loadRemoteProfile,
+    upsertRemoteUser,
+  } = useSocial();
   const { currentUser } = useAppContext();
   const label = kind === "followers" ? "Seguidores" : "Seguindo";
+  const [remoteAccounts, setRemoteAccounts] = useState<ReturnType<typeof accountListToUsers>>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
 
   const isMe = !!currentUser && params.username === currentUser.username;
-  const owner = isMe ? currentUser : users.find(u => u.username === params.username);
+  const owner = isMe
+    ? currentUser
+    : isRemoteSocialSession
+      ? users.find((user) => user.username === params.username && user.source === "server")
+      : users.find((user) => user.username === params.username);
+
+  useEffect(() => {
+    if (!isRemoteSocialSession || isMe || owner || !params.username) return;
+    let active = true;
+    void loadRemoteProfile(params.username)
+      .then((loaded) => {
+        if (active && !loaded) setError("O nome de usuário informado não é válido.");
+      })
+      .catch((loadError: unknown) => {
+        if (active) setError(loadError instanceof Error ? loadError.message : "Não foi possível carregar o perfil.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRemoteSocialSession, isMe, owner?.id, params.username, retry, loadRemoteProfile]);
+
+  useEffect(() => {
+    if (!isRemoteSocialSession || !owner) return;
+    let active = true;
+    setRemoteAccounts([]);
+    setNextCursor(null);
+    setError(null);
+    setLoading(true);
+    const fetchPage = kind === "followers" ? socialGraphApi.getFollowers : socialGraphApi.getFollowing;
+    void fetchPage(owner.id)
+      .then((page) => {
+        if (!active) return;
+        const pageUsers = accountListToUsers(page.items);
+        pageUsers.forEach(upsertRemoteUser);
+        setRemoteAccounts(pageUsers);
+        setNextCursor(page.nextCursor);
+      })
+      .catch((loadError: unknown) => {
+        if (active) setError(loadError instanceof Error ? loadError.message : "Não foi possível carregar a lista.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRemoteSocialSession, owner?.id, kind, retry, upsertRemoteUser]);
 
   if (!owner) {
     return (
       <UnavailableState
-        title="Perfil indisponível"
-        description={`Não encontramos @${params.username}. A conta pode ter sido removida.`}
-        action={<Link href="/feed" className="text-sm font-semibold text-primary hover:underline">Voltar ao feed</Link>}
+        title={isRemoteSocialSession && !error ? "Carregando perfil" : "Perfil indisponível"}
+        description={error ?? (isRemoteSocialSession
+          ? "Buscando os dados atualizados da conta."
+          : `Não encontramos @${params.username}. A conta pode ter sido removida.`)}
+        action={error
+          ? <button type="button" className="text-sm font-semibold text-primary hover:underline" onClick={() => setRetry((value) => value + 1)}>Tentar novamente</button>
+          : <Link href="/feed" className="text-sm font-semibold text-primary hover:underline">Voltar ao feed</Link>}
       />
     );
   }
 
-  // Só "Seguindo" do próprio usuário tem estado real no frontend; demais listas ficam indisponíveis.
-  const available = kind === "following" && isMe;
-  const base = available ? users.filter(u => u.id !== owner.id && !u.isBlocked && u.isFollowing) : [];
+  const available = isRemoteSocialSession || (kind === "following" && isMe);
+  const base = isRemoteSocialSession
+    ? remoteAccounts.filter((user) => user.id !== owner.id && !user.isBlocked)
+    : available ? users.filter((user) => user.id !== owner.id && !user.isBlocked && user.isFollowing) : [];
   const q = query.trim().toLowerCase();
   const filtered = base.filter(u => u.displayName.toLowerCase().includes(q) || u.username.toLowerCase().includes(q));
+
+  async function loadMore() {
+    if (!isRemoteSocialSession || !owner || !nextCursor || loading) return;
+    setLoading(true);
+    setError(null);
+    const fetchPage = kind === "followers" ? socialGraphApi.getFollowers : socialGraphApi.getFollowing;
+    try {
+      const page = await fetchPage(owner.id, nextCursor);
+      const pageUsers = accountListToUsers(page.items);
+      pageUsers.forEach(upsertRemoteUser);
+      setRemoteAccounts((existing) => [
+        ...existing,
+        ...pageUsers.filter((user) => !existing.some((item) => item.id === user.id)),
+      ]);
+      setNextCursor(page.nextCursor);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Não foi possível carregar mais contas.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
@@ -76,11 +160,24 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
         </div>
       </div>
 
+      {error && (
+        <p role="alert" className="px-4 py-3 text-sm text-destructive">
+          {error}{" "}
+          <button type="button" className="font-semibold underline" onClick={() => setRetry((value) => value + 1)}>
+            Tentar novamente
+          </button>
+        </p>
+      )}
+
+      {loading && remoteAccounts.length === 0 && (
+        <p role="status" className="px-4 py-8 text-center text-sm text-muted-foreground">Carregando conexões…</p>
+      )}
+
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center px-6 py-16 text-center text-muted-foreground">
           <Users className="w-10 h-10 mb-3 opacity-30" />
           <p className="text-sm">
-            {q ? "Nenhuma conta encontrada para essa busca." : "Você ainda não segue nenhuma conta."}
+            {loading ? "Carregando conexões…" : q ? "Nenhuma conta encontrada para essa busca." : kind === "followers" ? "Esta conta ainda não tem seguidores." : "Você ainda não segue nenhuma conta."}
           </p>
         </div>
       ) : (
@@ -119,6 +216,18 @@ export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
               )}
             </motion.div>
           ))}
+        </div>
+      )}
+      {isRemoteSocialSession && nextCursor && (
+        <div className="flex justify-center px-4 py-5">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loading}
+            className="rounded-full border border-border px-5 py-2 text-sm font-semibold disabled:opacity-60"
+          >
+            {loading ? "Carregando…" : "Carregar mais"}
+          </button>
         </div>
       )}
       </>

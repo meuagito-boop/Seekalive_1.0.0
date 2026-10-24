@@ -184,19 +184,20 @@ export const GetProfileByUsernameParams = zod.object({
   "username": zod.coerce.string().min(getProfileByUsernamePathUsernameMin).max(getProfileByUsernamePathUsernameMax)
 })
 
-export const getProfileByUsernameResponseWebsiteRegExp = new RegExp('^https?:/');
-export const getProfileByUsernameResponseStatsPostsMin = 0;
+export const getProfileByUsernameResponseAccountWebsiteRegExp = new RegExp('^https?:/');
+export const getProfileByUsernameResponseAccountStatsPostsMin = 0;
 
-export const getProfileByUsernameResponseStatsFollowersMin = 0;
+export const getProfileByUsernameResponseAccountStatsFollowersMin = 0;
 
-export const getProfileByUsernameResponseStatsFollowingMin = 0;
+export const getProfileByUsernameResponseAccountStatsFollowingMin = 0;
 
-export const getProfileByUsernameResponseStatsCirclesMin = 0;
+export const getProfileByUsernameResponseAccountStatsCirclesMin = 0;
 
 
 
 
 export const GetProfileByUsernameResponse = zod.object({
+  "account": zod.object({
   "id": zod.uuid(),
   "username": zod.string(),
   "displayName": zod.string(),
@@ -204,7 +205,7 @@ export const GetProfileByUsernameResponse = zod.object({
   "avatarUrl": zod.string().nullable(),
   "coverUrl": zod.string().nullable(),
   "location": zod.string().nullable(),
-  "website": zod.url().regex(getProfileByUsernameResponseWebsiteRegExp).nullable(),
+  "website": zod.url().regex(getProfileByUsernameResponseAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
   "isVerified": zod.boolean(),
@@ -217,12 +218,29 @@ export const GetProfileByUsernameResponse = zod.object({
   "mutedByMe": zod.boolean()
 }),
   "stats": zod.object({
-  "posts": zod.int().min(getProfileByUsernameResponseStatsPostsMin),
-  "followers": zod.int().min(getProfileByUsernameResponseStatsFollowersMin),
-  "following": zod.int().min(getProfileByUsernameResponseStatsFollowingMin),
-  "circles": zod.int().min(getProfileByUsernameResponseStatsCirclesMin)
+  "posts": zod.int().min(getProfileByUsernameResponseAccountStatsPostsMin),
+  "followers": zod.int().min(getProfileByUsernameResponseAccountStatsFollowersMin),
+  "following": zod.int().min(getProfileByUsernameResponseAccountStatsFollowingMin),
+  "circles": zod.int().min(getProfileByUsernameResponseAccountStatsCirclesMin)
 }),
   "version": zod.int().min(1)
+}),
+  "visibility": zod.object({
+  "canViewPublicContent": zod.boolean(),
+  "canViewCircleContent": zod.boolean()
+}),
+  "posts": zod.object({
+  "items": zod.array(zod.record(zod.string(), zod.unknown())),
+  "nextCursor": zod.string().nullable()
+}).describe('Content page shape reserved for profile content modules not yet connected to the backend.'),
+  "articles": zod.object({
+  "items": zod.array(zod.record(zod.string(), zod.unknown())),
+  "nextCursor": zod.string().nullable()
+}).describe('Content page shape reserved for profile content modules not yet connected to the backend.'),
+  "media": zod.object({
+  "items": zod.array(zod.record(zod.string(), zod.unknown())),
+  "nextCursor": zod.string().nullable()
+}).describe('Content page shape reserved for profile content modules not yet connected to the backend.')
 })
 
 
@@ -273,6 +291,71 @@ export const GetProfileByAccountIdResponse = zod.object({
   "circles": zod.int().min(getProfileByAccountIdResponseStatsCirclesMin)
 }),
   "version": zod.int().min(1)
+})
+
+
+/**
+ * Requires a verified session, returns a bounded page, and hides blocked accounts.
+ * @summary Search verified accounts by name or username
+ */
+export const searchAccountsQueryQMin = 2;
+export const searchAccountsQueryQMax = 80;
+
+export const searchAccountsQueryLimitDefault = 20;
+export const searchAccountsQueryLimitMax = 100;
+
+export const searchAccountsQueryCursorMax = 32;
+
+
+
+export const SearchAccountsQueryParams = zod.object({
+  "q": zod.coerce.string().min(searchAccountsQueryQMin).max(searchAccountsQueryQMax),
+  "limit": zod.coerce.number().int().min(1).max(searchAccountsQueryLimitMax).default(searchAccountsQueryLimitDefault),
+  "cursor": zod.coerce.string().max(searchAccountsQueryCursorMax).optional()
+})
+
+export const searchAccountsResponseItemsItemWebsiteRegExp = new RegExp('^https?:/');
+export const searchAccountsResponseItemsItemStatsPostsMin = 0;
+
+export const searchAccountsResponseItemsItemStatsFollowersMin = 0;
+
+export const searchAccountsResponseItemsItemStatsFollowingMin = 0;
+
+export const searchAccountsResponseItemsItemStatsCirclesMin = 0;
+
+
+
+
+export const SearchAccountsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "coverUrl": zod.string().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().regex(searchAccountsResponseItemsItemWebsiteRegExp).nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "isVerified": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.int().min(searchAccountsResponseItemsItemStatsPostsMin),
+  "followers": zod.int().min(searchAccountsResponseItemsItemStatsFollowersMin),
+  "following": zod.int().min(searchAccountsResponseItemsItemStatsFollowingMin),
+  "circles": zod.int().min(searchAccountsResponseItemsItemStatsCirclesMin)
+}),
+  "version": zod.int().min(1)
+})),
+  "nextCursor": zod.string().nullable()
 })
 
 
