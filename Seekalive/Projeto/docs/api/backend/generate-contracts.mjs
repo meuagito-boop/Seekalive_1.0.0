@@ -77,17 +77,19 @@ post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Emp
 });
 g("auth", "/v1/auth/sessions", "Listar sessões próprias", "PageSession", null);
 del("auth", "/v1/auth/sessions/{sessionId}", "Revogar sessão própria", "Empty");
-post("auth", "/v1/auth/recovery", "Solicitar recuperação de senha com resposta anti-enumeração", "RecoveryRequest", "Accepted", {
+post("auth", "/v1/auth/password/reset/request", "Solicitar código para redefinir a senha", "PasswordResetRequest", "PasswordResetRequested", {
   auth: "none",
   csrfOnly: true,
   accepted: true,
-  contractDescription: "Retorna sempre a mesma resposta 202, independentemente de existir conta para o identificador; envia desafio de uso único ao e-mail da conta quando elegível.",
+  status: "live",
+  contractDescription: "Retorna a mesma resposta 202 e aplica um piso de 200 ms para e-mail inexistente, não verificado, elegível ou limitado por conta. Só contas ativas e com e-mail verificado recebem o código; o desafio é HMAC-SHA256, expira em 10 minutos, permite cinco tentativas e só pode ser consumido uma vez. Limites: cinco pedidos por IP em 15 minutos, intervalo de 60 segundos e até cinco pedidos por conta/hora; o limite por IP retorna 429. A entrega é iniciada após a resposta para não expor latência do provedor; sem outbox durável, falha invalida o código e a pessoa pode tentar novamente após o intervalo.",
 });
-post("auth", "/v1/auth/recovery/confirm", "Redefinir senha com desafio de recuperação válido", "RecoveryConfirm", "Empty", {
+post("auth", "/v1/auth/password/reset/confirm", "Redefinir a senha com código válido", "PasswordResetConfirm", "PasswordResetComplete", {
   auth: "none",
   csrfOnly: true,
   successCode: "200",
-  contractDescription: "Consome o desafio uma única vez, substitui o hash da senha e revoga todas as sessões da conta na mesma transação.",
+  status: "live",
+  contractDescription: "Exige e-mail da conta, código de seis dígitos válido e senha dentro da política atual. Consome o código uma única vez, grava Argon2id, revoga todas as sessões e invalida outros códigos de recuperação na mesma transação. Não cria sessão; o usuário entra novamente. Códigos inválidos, expirados, esgotados, reutilizados ou de contas não elegíveis retornam o mesmo erro.",
 });
 post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação de e-mail", "VerificationRequest", "Accepted", {
   auth: "optional",
@@ -257,6 +259,8 @@ const schemas = {
   Error: model({ error: model({ code: string, message: string, requestId: string, fields: arr(model({ path: string, message: string }, ["path", "message"])) }, ["code", "message", "requestId"]) }, ["error"]),
   Empty: model({}),
   Accepted: model({ jobId: uuid, status: { type: "string", enum: ["queued", "processing"] } }, ["jobId", "status"]),
+  PasswordResetRequested: model({ status: { type: "string", enum: ["reset_requested"] }, message: string }, ["status", "message"]),
+  PasswordResetComplete: model({ status: { type: "string", enum: ["password_reset"] } }, ["status"]),
   Health: model({ status: { type: "string", const: "ok" } }, ["status"]),
   Readiness: model({ status: { type: "string", enum: ["ready", "degraded"] }, checks: { type: "object", additionalProperties: { type: "string" } } }, ["status", "checks"]),
   Csrf: model({ csrfToken: string }, ["csrfToken"]),
@@ -347,12 +351,13 @@ const schemas = {
     newPassword: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128, description: "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial." },
     passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
   }, ["identifier", "currentPassword", "newPassword", "passwordConfirmation"]),
-  RecoveryRequest: model({ identifier: { type: "string", minLength: 3, maxLength: 254 } }, ["identifier"]),
-  RecoveryConfirm: model({
-    token: { type: "string", minLength: 32, maxLength: 512, writeOnly: true },
-    newPassword: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
+  PasswordResetRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }, ["email"]),
+  PasswordResetConfirm: model({
+    email: { type: "string", format: "email", maxLength: 254 },
+    code: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
+    newPassword: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128, description: "Ao menos uma maiúscula, uma minúscula, um número e um caractere especial." },
     passwordConfirmation: { type: "string", format: "password", writeOnly: true, minLength: 8, maxLength: 128 },
-  }, ["token", "newPassword", "passwordConfirmation"]),
+  }, ["email", "code", "newPassword", "passwordConfirmation"]),
   VerificationRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }),
   VerificationConfirm: model({
     email: { type: "string", format: "email", maxLength: 254 },
@@ -472,7 +477,13 @@ const schemas = {
   PrivacyWrite: model({ profileVisibility: { type: "string", enum: ["public", "private"] }, messages: { type: "string", enum: ["everyone", "circle", "nobody"] }, readReceipts: { type: "boolean" }, version: { type: "integer", minimum: 1 } }, ["profileVisibility", "messages", "readReceipts", "version"]),
   Privacy: ref("PrivacyWrite"),
   Interests: model({ interests: { type: "array", maxItems: 30, items: { type: "string", maxLength: 60 } }, version: { type: "integer" } }, ["interests", "version"]),
-  RecoveryRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }, ["email"]),
+  PasswordResetRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }, ["email"]),
+  PasswordResetConfirm: model({
+    email: { type: "string", format: "email", maxLength: 254 },
+    code: { type: "string", pattern: "^[0-9]{6}$" },
+    newPassword: { type: "string", format: "password", minLength: 8, maxLength: 128 },
+    passwordConfirmation: { type: "string", format: "password", minLength: 8, maxLength: 128 },
+  }, ["email", "code", "newPassword", "passwordConfirmation"]),
   VerificationRequest: model({ email: { type: "string", format: "email", maxLength: 254 } }, ["email"]),
   VerificationConfirm: model({ challengeId: uuid, code: { type: "string", minLength: 6, maxLength: 12 } }, ["challengeId", "code"]),
   Availability: model({ available: { type: "boolean" }, normalizedUsername: string }, ["available", "normalizedUsername"]),

@@ -31,8 +31,8 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **ATIVA** |
 | GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **PROPOSTA** |
 | DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/auth/recovery` | Público | `RecoveryRequest` | `Accepted` | **PROPOSTA**; assíncrona |
-| POST | `/v1/auth/recovery/confirm` | Público | `RecoveryConfirm` | `Empty` | **PROPOSTA** |
+| POST | `/v1/auth/password/reset/request` | Público | `PasswordResetRequest` | `PasswordResetRequested` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/password/reset/confirm` | Público | `PasswordResetConfirm` | `PasswordResetComplete` | **ATIVA** |
 | POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **ATIVA**; assíncrona |
 | POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `VerificationConfirmation` | **ATIVA** |
 

@@ -28,6 +28,12 @@ export function hashVerificationCode(accountId: string, code: string): string {
     .digest("hex");
 }
 
+export function hashPasswordResetCode(accountId: string, code: string): string {
+  return createHmac("sha256", sessionSecret)
+    .update(`reset_password:${accountId}:${code}`)
+    .digest("hex");
+}
+
 function createPreAuthCsrf(nonce: string): string {
   return createHmac("sha256", sessionSecret).update(`pre-auth-csrf:${nonce}`).digest("base64url");
 }

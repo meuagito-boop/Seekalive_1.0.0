@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 const schemaName = `seekalive_test_${randomUUID().replaceAll("-", "")}`;
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -132,6 +132,7 @@ let server;
 let baseUrl;
 let publicSchemaBefore;
 const emailMessages = [];
+const passwordResetMessages = [];
 
 before(async () => {
   const { rows } = await pool.query("SELECT current_database() AS database_name");
@@ -171,6 +172,9 @@ before(async () => {
     isConfigured: true,
     async sendVerificationCode(message) {
       emailMessages.push(message);
+    },
+    async sendPasswordResetCode(message) {
+      passwordResetMessages.push(message);
     },
   });
 
@@ -457,6 +461,130 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(upgradedLogin.response.status, 200, JSON.stringify(upgradedLogin.body));
   personal.cookie = cookieValue(upgradedLogin.response, "__Host-seekalive_session");
   personal.csrfToken = upgradedLogin.body.csrfToken;
+
+  const unknownResetRequest = await request("/api/v1/auth/password/reset/request", {
+    method: "POST",
+    body: { email: `unknown-${suffix}@example.com` },
+    auth: await createPreAuth(),
+  });
+  assert.equal(unknownResetRequest.response.status, 202);
+  assert.equal(unknownResetRequest.body.status, "reset_requested");
+  assert.equal(passwordResetMessages.length, 0);
+
+  const validResetRequest = await request("/api/v1/auth/password/reset/request", {
+    method: "POST",
+    body: { email: pendingPersonal.email },
+    auth: await createPreAuth(),
+  });
+  assert.equal(validResetRequest.response.status, 202);
+  assert.deepEqual(validResetRequest.body, unknownResetRequest.body, "Reset request must not reveal whether the address exists.");
+  assert.equal(passwordResetMessages.length, 1);
+  const resetCode = passwordResetMessages.at(-1).code;
+  const [storedResetChallenge] = await db
+    .select({ tokenHash: authChallenges.tokenHash, purpose: authChallenges.purpose })
+    .from(authChallenges)
+    .where(and(
+      eq(authChallenges.accountId, personal.account.id),
+      eq(authChallenges.purpose, "reset_password"),
+    ));
+  assert.equal(storedResetChallenge.purpose, "reset_password");
+  assert.notEqual(storedResetChallenge.tokenHash, resetCode);
+  assert.equal(storedResetChallenge.tokenHash.length, 64);
+
+  const cooledDownResetRequest = await request("/api/v1/auth/password/reset/request", {
+    method: "POST",
+    body: { email: pendingPersonal.email },
+    auth: await createPreAuth(),
+  });
+  assert.deepEqual(cooledDownResetRequest.body, unknownResetRequest.body);
+  assert.equal(passwordResetMessages.length, 1, "Account cooldown must suppress repeated reset emails.");
+
+  const wrongResetCode = await request("/api/v1/auth/password/reset/confirm", {
+    method: "POST",
+    body: {
+      email: pendingPersonal.email,
+      code: resetCode === "000000" ? "000001" : "000000",
+      newPassword: "C04_Recovered_Test_2026!",
+      passwordConfirmation: "C04_Recovered_Test_2026!",
+    },
+    auth: await createPreAuth(),
+  });
+  assert.equal(wrongResetCode.response.status, 400);
+  assert.equal(wrongResetCode.body.error.code, "INVALID_PASSWORD_RESET");
+
+  const resetPassword = await request("/api/v1/auth/password/reset/confirm", {
+    method: "POST",
+    body: {
+      email: pendingPersonal.email,
+      code: resetCode,
+      newPassword: "C04_Recovered_Test_2026!",
+      passwordConfirmation: "C04_Recovered_Test_2026!",
+    },
+    auth: await createPreAuth(),
+  });
+  assert.equal(resetPassword.response.status, 200, JSON.stringify(resetPassword.body));
+  assert.equal(resetPassword.body.status, "password_reset");
+  assert.equal(responseCookies(resetPassword.response).some((cookie) => cookie.startsWith("__Host-seekalive_session=")), false);
+  const sessionRevokedByReset = await request("/api/v1/auth/session", { auth: personal });
+  assert.equal(sessionRevokedByReset.body.authenticated, false);
+
+  const replayedResetCode = await request("/api/v1/auth/password/reset/confirm", {
+    method: "POST",
+    body: {
+      email: pendingPersonal.email,
+      code: resetCode,
+      newPassword: "D05_Replay_Test_2026!",
+      passwordConfirmation: "D05_Replay_Test_2026!",
+    },
+    auth: await createPreAuth(),
+  });
+  assert.equal(replayedResetCode.response.status, 400);
+  assert.equal(replayedResetCode.body.error.code, "INVALID_PASSWORD_RESET");
+
+  const resetPasswordLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pendingPersonal.email, password: "C04_Recovered_Test_2026!" },
+    auth: await createPreAuth(),
+  });
+  assert.equal(resetPasswordLogin.response.status, 200, JSON.stringify(resetPasswordLogin.body));
+  personal.cookie = cookieValue(resetPasswordLogin.response, "__Host-seekalive_session");
+  personal.csrfToken = resetPasswordLogin.body.csrfToken;
+
+  await db
+    .update(authChallenges)
+    .set({ createdAt: new Date(Date.now() - 61_000) })
+    .where(and(
+      eq(authChallenges.accountId, personal.account.id),
+      eq(authChallenges.purpose, "reset_password"),
+    ));
+  const expiredCodeRequest = await request("/api/v1/auth/password/reset/request", {
+    method: "POST",
+    body: { email: pendingPersonal.email },
+    auth: await createPreAuth(),
+  });
+  assert.equal(expiredCodeRequest.response.status, 202);
+  const expiredCode = passwordResetMessages.at(-1).code;
+  await db
+    .update(authChallenges)
+    .set({ expiresAt: new Date(Date.now() - 1) })
+    .where(and(
+      eq(authChallenges.accountId, personal.account.id),
+      eq(authChallenges.purpose, "reset_password"),
+      isNull(authChallenges.consumedAt),
+    ));
+  const expiredResetConfirmation = await request("/api/v1/auth/password/reset/confirm", {
+    method: "POST",
+    body: {
+      email: pendingPersonal.email,
+      code: expiredCode,
+      newPassword: "E06_Expired_Test_2026!",
+      passwordConfirmation: "E06_Expired_Test_2026!",
+    },
+    auth: await createPreAuth(),
+  });
+  assert.equal(expiredResetConfirmation.response.status, 400);
+  assert.equal(expiredResetConfirmation.body.error.code, "INVALID_PASSWORD_RESET");
+
   const currentSession = await request("/api/v1/auth/session", { auth: personal });
   assert.equal(currentSession.response.status, 200);
   assert.equal(currentSession.body.authenticated, true);
@@ -500,6 +628,14 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     acceptedTermsVersion: "v1",
   };
   const pendingCommercial = await registerAccount(commercialRegistration, commercialPreAuth);
+  const resetMessagesBeforeUnverifiedAccount = passwordResetMessages.length;
+  const pendingAccountResetRequest = await request("/api/v1/auth/password/reset/request", {
+    method: "POST",
+    body: { email: pendingCommercial.email },
+    auth: await createPreAuth(),
+  });
+  assert.deepEqual(pendingAccountResetRequest.body, unknownResetRequest.body);
+  assert.equal(passwordResetMessages.length, resetMessagesBeforeUnverifiedAccount, "Unverified accounts must not receive password-reset messages.");
   const [pendingCommercialAccount] = await db
     .select({ id: accounts.id })
     .from(accounts)

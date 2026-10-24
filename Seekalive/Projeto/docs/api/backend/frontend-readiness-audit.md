@@ -23,7 +23,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Área | Estado atual | Prontidão |
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
-| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail e onboarding já chamam a API; recuperação de senha permanece demonstrativa | Envio de e-mail sem provedor; cadastro responde 503 |
+| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding e recuperação de senha já chamam a API | Entrega Resend do fluxo de recuperação ainda precisa de E2E no navegador; API de e-mail permanece habilitada somente em desenvolvimento |
 | Contas e perfis | A API já lê/edita perfil básico com versão; telas de perfil/edição ainda usam estado local e não chamam essa API | Parcial; falta integração de telas |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
@@ -42,7 +42,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 
 - `pages/Register.tsx` valida e cria um perfil local, usa ID baseado no nome de usuário e grava dados de conta no navegador. A senha não é armazenada — isso é correto para o protótipo, mas significa que não existe credencial utilizável no backend.
 - `pages/Login.tsx` não envia usuário/e-mail e senha para um serviço; a tela apresenta o fluxo como não conectado. Após sair, a conta local não pode ser autenticada novamente pelo login.
-- `ForgotPassword.tsx` e `VerifyEmail.tsx` não enviam nem validam códigos reais.
+- `ForgotPassword.tsx` solicita e confirma a redefinição pela API. A suíte isolada valida os casos principais; o fluxo visual completo e o recebimento de e-mail na tela ainda exigem E2E separado.
 - `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
 - O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
 
@@ -50,13 +50,13 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 
 **Regras confirmadas:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão. Na confirmação, uma conta legada com política de senha antiga é ativada sem sessão e segue para login; senha legada compatível é promovida após validação, e senha incompatível exige atualização com a senha atual.
 
-**Atenção restante:** não havia sessões nem credenciais no banco quando a migração foi aplicada; portanto, nenhum usuário precisou entrar novamente por causa dela. No futuro, sessões legadas com versão antiga exigirão novo login. Recuperação de senha esquecida, alteração voluntária na tela de configurações, sessões/dispositivos confiáveis e fatores adicionais continuam pendentes. Não há produção real nem mudança em produção.
+**Atenção restante:** não havia sessões nem credenciais no banco quando a migração foi aplicada; portanto, nenhum usuário precisou entrar novamente por causa dela. A recuperação de senha agora está implementada por código de uso único, mas a entrega assíncrona não tem outbox durável nem tentativa persistente. Alteração voluntária na tela de configurações, sessões/dispositivos confiáveis e fatores adicionais continuam pendentes. Não há produção real nem mudança em produção.
 
 O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a regra de composição é aplicada a novas senhas e a atualizações obrigatórias. O campo de senha permanece apenas em memória durante o fluxo e não é salvo em `localStorage`.
 
 ### P0 — O frontend ainda não consome perfil e relações da API
 
-- `Aplicativo/back/src` implementa saúde, autenticação, onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações, recuperação de senha e gestão de sessões continuam sem handlers.
+- `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha), onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens, notificações e gestão de sessões continuam sem handlers.
 - A autenticação e o onboarding usam a API. As telas de perfil, privacidade, seguir, pedidos, Círculo e bloqueio ainda não consomem os endpoints ativos. `services/contentService.ts` continua apontando para `demoContentAdapter`.
 - A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.
@@ -157,7 +157,7 @@ Esses resultados comprovam esta fatia, não a prontidão integral do backend. N�
 ## Ordem recomendada para fechar a prontidão
 
 1. **Concluído no backend:** perfil básico, privacidade, pedidos/aceitação de seguimento, Círculo mútuo e bloqueio/desbloqueio. Próximo passo: ligar essas telas à API, mantendo o preview de demonstração separado.
-2. **Primeira fatia implementada:** registro pessoal/comercial, login por usuário/e-mail, sessão, CSRF, verificação obrigatória e gravação das escolhas de onboarding. O envio de e-mail segue bloqueado; recuperação de senha, testes de integração e rotas dos demais módulos continuam pendentes.
+2. **Fatia de identidade implementada:** registro pessoal/comercial, login por usuário/e-mail, sessão, CSRF, verificação obrigatória, gravação das escolhas de onboarding e recuperação de senha. O fluxo de recuperação tem teste integrado com e-mail em memória; validar o envio no navegador e a entrega real no ambiente de desenvolvimento segue como aceite separado.
 3. **Concluído no frontend:** fixtures de exemplo ficam no desenvolvimento; curtidas, repostagens, salvos, leituras, filtros e preferências locais são separados por conta. Não migrar automaticamente os valores das chaves antigas sem identificar seu dono.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
 5. Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.

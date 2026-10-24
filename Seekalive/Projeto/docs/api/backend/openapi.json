@@ -1690,14 +1690,14 @@
         }
       }
     },
-    "/v1/auth/recovery": {
+    "/v1/auth/password/reset/request": {
       "post": {
-        "operationId": "auth_post_v1_auth_recovery_1",
+        "operationId": "auth_post_v1_auth_password_reset_request_1",
         "tags": [
           "auth"
         ],
-        "summary": "Solicitar recuperação de senha com resposta anti-enumeração",
-        "description": "Retorna sempre a mesma resposta 202, independentemente de existir conta para o identificador; envia desafio de uso único ao e-mail da conta quando elegível.",
+        "summary": "Solicitar código para redefinir a senha",
+        "description": "Retorna a mesma resposta 202 e aplica um piso de 200 ms para e-mail inexistente, não verificado, elegível ou limitado por conta. Só contas ativas e com e-mail verificado recebem o código; o desafio é HMAC-SHA256, expira em 10 minutos, permite cinco tentativas e só pode ser consumido uma vez. Limites: cinco pedidos por IP em 15 minutos, intervalo de 60 segundos e até cinco pedidos por conta/hora; o limite por IP retorna 429. A entrega é iniciada após a resposta para não expor latência do provedor; sem outbox durável, falha invalida o código e a pessoa pode tentar novamente após o intervalo.",
         "security": [
           {
             "PreAuthCookie": [],
@@ -1709,18 +1709,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RecoveryRequest"
+                "$ref": "#/components/schemas/PasswordResetRequest"
               }
             }
           }
         },
         "responses": {
           "202": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Accepted"
+                  "$ref": "#/components/schemas/PasswordResetRequested"
                 }
               }
             }
@@ -1858,14 +1858,14 @@
         }
       }
     },
-    "/v1/auth/recovery/confirm": {
+    "/v1/auth/password/reset/confirm": {
       "post": {
-        "operationId": "auth_post_v1_auth_recovery_confirm_1",
+        "operationId": "auth_post_v1_auth_password_reset_confirm_1",
         "tags": [
           "auth"
         ],
-        "summary": "Redefinir senha com desafio de recuperação válido",
-        "description": "Consome o desafio uma única vez, substitui o hash da senha e revoga todas as sessões da conta na mesma transação.",
+        "summary": "Redefinir a senha com código válido",
+        "description": "Exige e-mail da conta, código de seis dígitos válido e senha dentro da política atual. Consome o código uma única vez, grava Argon2id, revoga todas as sessões e invalida outros códigos de recuperação na mesma transação. Não cria sessão; o usuário entra novamente. Códigos inválidos, expirados, esgotados, reutilizados ou de contas não elegíveis retornam o mesmo erro.",
         "security": [
           {
             "PreAuthCookie": [],
@@ -1877,18 +1877,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RecoveryConfirm"
+                "$ref": "#/components/schemas/PasswordResetConfirm"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Empty"
+                  "$ref": "#/components/schemas/PasswordResetComplete"
                 }
               }
             }
@@ -22618,6 +22618,40 @@
           "status"
         ]
       },
+      "PasswordResetRequested": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "reset_requested"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ]
+      },
+      "PasswordResetComplete": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "password_reset"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "Health": {
         "type": "object",
         "additionalProperties": false,
@@ -23174,7 +23208,7 @@
           "passwordConfirmation"
         ]
       },
-      "RecoveryRequest": {
+      "PasswordResetRequest": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -23188,33 +23222,35 @@
           "email"
         ]
       },
-      "RecoveryConfirm": {
+      "PasswordResetConfirm": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "token": {
+          "email": {
             "type": "string",
-            "minLength": 32,
-            "maxLength": 512,
-            "writeOnly": true
+            "format": "email",
+            "maxLength": 254
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
           },
           "newPassword": {
             "type": "string",
             "format": "password",
-            "writeOnly": true,
             "minLength": 8,
             "maxLength": 128
           },
           "passwordConfirmation": {
             "type": "string",
             "format": "password",
-            "writeOnly": true,
             "minLength": 8,
             "maxLength": 128
           }
         },
         "required": [
-          "token",
+          "email",
+          "code",
           "newPassword",
           "passwordConfirmation"
         ]

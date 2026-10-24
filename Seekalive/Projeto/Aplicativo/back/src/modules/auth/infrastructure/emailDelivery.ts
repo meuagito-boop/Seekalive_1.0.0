@@ -1,6 +1,6 @@
 export class EmailDeliveryUnavailableError extends Error {
   constructor() {
-    super("Email verification delivery is not configured.");
+    super("Auth email delivery is not configured.");
     this.name = "EmailDeliveryUnavailableError";
   }
 }
@@ -11,9 +11,15 @@ export type VerificationEmail = {
   code: string;
 };
 
+export type PasswordResetEmail = {
+  email: string;
+  code: string;
+};
+
 export interface AuthEmailDelivery {
   readonly isConfigured: boolean;
   sendVerificationCode(message: VerificationEmail): Promise<void>;
+  sendPasswordResetCode(message: PasswordResetEmail): Promise<void>;
 }
 
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
@@ -31,35 +37,58 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+async function sendResendEmail(message: {
+  email: string;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<void> {
+  if (!isDevelopment || !resendEnabled || !resendApiKey || !resendFrom) {
+    throw new EmailDeliveryUnavailableError();
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: resendFrom,
+      to: [message.email],
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok) {
+    // Do not include provider response bodies or credentials in thrown/logged
+    // errors; auth routes return a generic delivery failure to the client.
+    throw new Error(`Resend email request failed with status ${response.status}.`);
+  }
+}
+
 // Resend is intentionally enabled only in development. Production remains
 // disabled until its sender domain and deployment policy are explicitly set up.
 export const authEmailDelivery: AuthEmailDelivery = {
   isConfigured: isDevelopment && resendEnabled && Boolean(resendApiKey && resendFrom),
   async sendVerificationCode(message) {
-    if (!isDevelopment || !resendEnabled || !resendApiKey || !resendFrom) {
-      throw new EmailDeliveryUnavailableError();
-    }
-
     const displayName = escapeHtml(message.displayName);
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: resendFrom,
-        to: [message.email],
-        subject: "Confirme seu e-mail — Seekalive",
-        text: `Olá, ${message.displayName}.\n\nSeu código de verificação do Seekalive é: ${message.code}\n\nEle expira em 10 minutos. Se você não iniciou este cadastro, ignore esta mensagem.`,
-        html: `<p>Olá, ${displayName}.</p><p>Seu código de verificação do Seekalive é:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${message.code}</p><p>Ele expira em 10 minutos. Se você não iniciou este cadastro, ignore esta mensagem.</p>`,
-      }),
+    await sendResendEmail({
+      email: message.email,
+      subject: "Confirme seu e-mail — Seekalive",
+      text: `Olá, ${message.displayName}.\n\nSeu código de verificação do Seekalive é: ${message.code}\n\nEle expira em 10 minutos. Se você não iniciou este cadastro, ignore esta mensagem.`,
+      html: `<p>Olá, ${displayName}.</p><p>Seu código de verificação do Seekalive é:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${message.code}</p><p>Ele expira em 10 minutos. Se você não iniciou este cadastro, ignore esta mensagem.</p>`,
     });
-
-    if (!response.ok) {
-      // Do not include provider response bodies or credentials in thrown/logged
-      // errors; auth routes return a generic delivery failure to the client.
-      throw new Error(`Resend email request failed with status ${response.status}.`);
-    }
+  },
+  async sendPasswordResetCode(message) {
+    await sendResendEmail({
+      email: message.email,
+      subject: "Redefina sua senha — Seekalive",
+      text: `Seu código para redefinir a senha do Seekalive é: ${message.code}\n\nEle expira em 10 minutos e pode ser usado uma única vez. Se você não solicitou a redefinição, ignore esta mensagem.`,
+      html: `<p>Seu código para redefinir a senha do Seekalive é:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${message.code}</p><p>Ele expira em 10 minutos e pode ser usado uma única vez. Se você não solicitou a redefinição, ignore esta mensagem.</p>`,
+    });
   },
 };

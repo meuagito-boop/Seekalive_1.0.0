@@ -81,6 +81,27 @@ export const passwordPolicyUpdateSchema = z
     }
   });
 
+export const passwordResetRequestSchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(254),
+});
+
+export const passwordResetConfirmSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email().max(254),
+    code: z.string().regex(/^[0-9]{6}$/, "Informe o código de seis dígitos."),
+    newPassword: passwordPolicySchema,
+    passwordConfirmation: passwordPolicySchema,
+  })
+  .superRefine((value, context) => {
+    if (value.newPassword !== value.passwordConfirmation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordConfirmation"],
+        message: "As senhas não coincidem.",
+      });
+    }
+  });
+
 export const verificationRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
 });
