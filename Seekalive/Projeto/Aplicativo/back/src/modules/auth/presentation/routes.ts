@@ -13,6 +13,9 @@ import {
 } from "@workspace/db";
 import {
   loginRequestSchema,
+  PASSWORD_POLICY_VERSION,
+  passwordPolicySchema,
+  passwordPolicyUpdateSchema,
   registerRequestSchema,
   verificationConfirmSchema,
   verificationRequestSchema,
@@ -45,6 +48,12 @@ const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
 const genericRegistrationMessage = "Se os dados forem válidos, enviaremos um código de verificação para o e-mail informado.";
 const genericVerificationMessage = "Se houver uma conta pendente para esse e-mail, enviaremos um novo código.";
+const ARGON2ID_OPTIONS = {
+  type: argon2.argon2id,
+  memoryCost: 65_536,
+  timeCost: 3,
+  parallelism: 1,
+};
 let testEmailDelivery: AuthEmailDelivery | undefined;
 
 export function setAuthEmailDeliveryForTests(delivery: AuthEmailDelivery): void {
@@ -59,10 +68,7 @@ function getAuthEmailDelivery(): AuthEmailDelivery {
 }
 
 const fallbackPasswordHashPromise = argon2.hash("seekalive-invalid-user-placeholder", {
-  type: argon2.argon2id,
-  memoryCost: 65_536,
-  timeCost: 3,
-  parallelism: 1,
+  ...ARGON2ID_OPTIONS,
 });
 
 router.use((_request, response, next) => {
@@ -216,12 +222,7 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
   const displayName = registration.accountType === "personal"
     ? `${registration.firstName} ${registration.lastName}`.trim()
     : registration.businessName.trim();
-  const passwordHash = await argon2.hash(registration.password, {
-    type: argon2.argon2id,
-    memoryCost: 65_536,
-    timeCost: 3,
-    parallelism: 1,
-  });
+  const passwordHash = await argon2.hash(registration.password, ARGON2ID_OPTIONS);
 
   try {
     const account = await db.transaction(async (tx) => {
@@ -241,7 +242,11 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
       if (!created) throw new Error("Account insert returned no row.");
 
       await tx.insert(accountEmails).values({ accountId: created.id, emailNormalized: email });
-      await tx.insert(passwordCredentials).values({ accountId: created.id, passwordHash });
+      await tx.insert(passwordCredentials).values({
+        accountId: created.id,
+        passwordHash,
+        passwordPolicyVersion: PASSWORD_POLICY_VERSION,
+      });
 
       if (registration.accountType === "commercial") {
         await tx.insert(commercialProfiles).values({
@@ -300,6 +305,7 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireC
       createdAt: accounts.createdAt,
       emailVerifiedAt: accountEmails.verifiedAt,
       passwordHash: passwordCredentials.passwordHash,
+      passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
     })
     .from(accounts)
     .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
@@ -321,6 +327,28 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireC
     sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
     return;
   }
+  if (row.passwordPolicyVersion > PASSWORD_POLICY_VERSION) {
+    sendError(response, 503, "PASSWORD_POLICY_UNSUPPORTED", "Atualize o aplicativo para continuar.");
+    return;
+  }
+  if (row.passwordPolicyVersion < PASSWORD_POLICY_VERSION) {
+    if (!passwordPolicySchema.safeParse(parsed.data.password).success) {
+      sendError(response, 403, "PASSWORD_UPDATE_REQUIRED", "Atualize sua senha para atender aos requisitos atuais.");
+      return;
+    }
+    const [upgradedCredential] = await db
+      .update(passwordCredentials)
+      .set({ passwordPolicyVersion: PASSWORD_POLICY_VERSION })
+      .where(and(
+        eq(passwordCredentials.accountId, row.id),
+        eq(passwordCredentials.passwordHash, row.passwordHash),
+      ))
+      .returning({ accountId: passwordCredentials.accountId });
+    if (!upgradedCredential) {
+      sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais foram alteradas. Entre novamente.");
+      return;
+    }
+  }
 
   const material = createSessionMaterial();
   const [session] = await db
@@ -329,6 +357,7 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireC
       accountId: row.id,
       tokenHash: material.tokenHash,
       csrfTokenHash: material.csrfTokenHash,
+      passwordPolicyVersion: PASSWORD_POLICY_VERSION,
       createdAt: material.createdAt,
       expiresAt: material.expiresAt,
     })
@@ -338,6 +367,78 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireC
   setSessionCookie(response, material.rawToken);
   response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
   response.json(authResult(row, session, material.csrfToken));
+});
+
+router.post("/password/update", createAuthRateLimit("password-update", 5, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+  const parsed = passwordPolicyUpdateSchema.safeParse(request.body);
+  if (!parsed.success) {
+    sendValidationError(response, parsed.error.issues);
+    return;
+  }
+
+  const identifier = parsed.data.identifier.trim().replace(/^@/, "").toLowerCase();
+  const condition = identifier.includes("@")
+    ? eq(accountEmails.emailNormalized, identifier)
+    : eq(accounts.username, identifier);
+  const [row] = await db
+    .select({
+      id: accounts.id,
+      status: accounts.status,
+      emailVerifiedAt: accountEmails.verifiedAt,
+      passwordHash: passwordCredentials.passwordHash,
+    })
+    .from(accounts)
+    .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+    .innerJoin(passwordCredentials, eq(passwordCredentials.accountId, accounts.id))
+    .where(condition)
+    .limit(1);
+
+  const fallbackHash = await fallbackPasswordHashPromise;
+  const currentPasswordIsValid = await argon2
+    .verify(row?.passwordHash ?? fallbackHash, parsed.data.currentPassword)
+    .catch(() => false);
+  if (!row || !currentPasswordIsValid) {
+    sendError(response, 401, "INVALID_CREDENTIALS", "Usuário/e-mail ou senha inválidos.");
+    return;
+  }
+  if (row.status === "pending_verification" || !row.emailVerifiedAt) {
+    sendError(response, 403, "EMAIL_NOT_VERIFIED", "Confirme o e-mail antes de atualizar a senha.");
+    return;
+  }
+  if (row.status !== "active") {
+    sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
+    return;
+  }
+
+  const newPasswordHash = await argon2.hash(parsed.data.newPassword, ARGON2ID_OPTIONS);
+  const now = new Date();
+  const updated = await db.transaction(async (tx) => {
+    const [credential] = await tx
+      .update(passwordCredentials)
+      .set({
+        passwordHash: newPasswordHash,
+        passwordPolicyVersion: PASSWORD_POLICY_VERSION,
+        passwordChangedAt: now,
+      })
+      .where(and(
+        eq(passwordCredentials.accountId, row.id),
+        eq(passwordCredentials.passwordHash, row.passwordHash),
+      ))
+      .returning({ accountId: passwordCredentials.accountId });
+    if (!credential) return false;
+
+    await tx
+      .update(sessions)
+      .set({ revokedAt: now })
+      .where(and(eq(sessions.accountId, row.id), isNull(sessions.revokedAt)));
+    return true;
+  });
+  if (!updated) {
+    sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais foram alteradas. Entre novamente.");
+    return;
+  }
+
+  response.json({ status: "password_updated" });
 });
 
 router.post("/verification", createAuthRateLimit("verify-resend", 3, 15 * 60 * 1000), requireCsrf, async (request, response) => {

@@ -1,10 +1,21 @@
 import { z } from "zod";
 
+export const PASSWORD_POLICY_VERSION = 1;
+
+export const passwordPolicySchema = z
+  .string()
+  .min(8, "A senha deve ter pelo menos 8 caracteres.")
+  .max(128, "A senha deve ter no máximo 128 caracteres.")
+  .regex(/\p{Lu}/u, "Inclua ao menos uma letra maiúscula.")
+  .regex(/\p{Ll}/u, "Inclua ao menos uma letra minúscula.")
+  .regex(/\p{N}/u, "Inclua ao menos um número.")
+  .regex(/[\p{P}\p{S}]/u, "Inclua ao menos um caractere especial.");
+
 const sharedRegistrationFields = {
   username: z.string().trim().toLowerCase().min(3).max(20).regex(/^[a-z0-9_]+$/),
   email: z.string().trim().toLowerCase().email().max(254),
-  password: z.string().min(8).max(128),
-  passwordConfirmation: z.string().min(8).max(128),
+  password: passwordPolicySchema,
+  passwordConfirmation: passwordPolicySchema,
   acceptedTermsVersion: z.string().trim().min(1).max(50),
   age: z.coerce.number().int().min(18).max(120),
 };
@@ -46,6 +57,30 @@ export const loginRequestSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+export const passwordPolicyUpdateSchema = z
+  .object({
+    identifier: z.string().trim().min(3).max(254),
+    currentPassword: z.string().min(8).max(128),
+    newPassword: passwordPolicySchema,
+    passwordConfirmation: passwordPolicySchema,
+  })
+  .superRefine((value, context) => {
+    if (value.newPassword === value.currentPassword) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["newPassword"],
+        message: "A nova senha deve ser diferente da senha atual.",
+      });
+    }
+    if (value.newPassword !== value.passwordConfirmation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordConfirmation"],
+        message: "As senhas não coincidem.",
+      });
+    }
+  });
+
 export const verificationRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
 });
@@ -79,3 +114,4 @@ export const onboardingCompletionSchema = z
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
+export type PasswordPolicyUpdateRequest = z.infer<typeof passwordPolicyUpdateSchema>;

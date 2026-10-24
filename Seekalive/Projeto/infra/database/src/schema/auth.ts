@@ -60,6 +60,7 @@ export const accountEmails = applicationTable(
 export const passwordCredentials = applicationTable("password_credentials", {
   accountId: uuid("account_id").primaryKey().references(() => accounts.id, { onDelete: "cascade" }),
   passwordHash: text("password_hash").notNull(),
+  passwordPolicyVersion: smallint("password_policy_version").default(0).notNull(),
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -102,6 +103,7 @@ export const sessions = applicationTable(
     accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     csrfTokenHash: varchar("csrf_token_hash", { length: 64 }).notNull(),
+    passwordPolicyVersion: smallint("password_policy_version").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),

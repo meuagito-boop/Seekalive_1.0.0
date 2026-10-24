@@ -1,7 +1,8 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { and, eq, gt, isNull } from "drizzle-orm";
-import { accountEmails, accounts, db, sessions } from "@workspace/db";
+import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
+import { accountEmails, accounts, db, passwordCredentials, sessions } from "@workspace/db";
 
 export const SESSION_COOKIE = "__Host-seekalive_session";
 export const PRE_AUTH_COOKIE = "__Host-seekalive_pre_auth";
@@ -82,6 +83,8 @@ export async function loadActiveSession(request: Request) {
       accountStatus: accounts.status,
       onboardingCompletedAt: accounts.onboardingCompletedAt,
       emailVerifiedAt: accountEmails.verifiedAt,
+      sessionPasswordPolicyVersion: sessions.passwordPolicyVersion,
+      credentialPasswordPolicyVersion: passwordCredentials.passwordPolicyVersion,
       csrfTokenHash: sessions.csrfTokenHash,
       createdAt: sessions.createdAt,
       expiresAt: sessions.expiresAt,
@@ -89,6 +92,7 @@ export async function loadActiveSession(request: Request) {
     .from(sessions)
     .innerJoin(accounts, eq(sessions.accountId, accounts.id))
     .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+    .innerJoin(passwordCredentials, eq(passwordCredentials.accountId, accounts.id))
     .where(
       and(
         eq(sessions.tokenHash, hashToken(rawToken)),
@@ -98,7 +102,13 @@ export async function loadActiveSession(request: Request) {
     )
     .limit(1);
 
-  if (!row || row.accountStatus !== "active" || !row.emailVerifiedAt) return null;
+  if (
+    !row
+    || row.accountStatus !== "active"
+    || !row.emailVerifiedAt
+    || row.credentialPasswordPolicyVersion !== PASSWORD_POLICY_VERSION
+    || row.sessionPasswordPolicyVersion !== PASSWORD_POLICY_VERSION
+  ) return null;
   return row;
 }
 
