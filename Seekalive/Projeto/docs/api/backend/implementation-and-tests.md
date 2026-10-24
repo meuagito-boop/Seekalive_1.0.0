@@ -81,7 +81,17 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL atual é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. A produção deve receber alterações pelo diff de schema do fluxo oficial de publicação. Não executar DDL no startup, não usar `push-force` e não criar um migrador de produção paralelo. Os testes HTTP atuais não fazem mutações; os testes de jornadas que criam contas/relacionamentos exigem um banco de teste isolado antes de serem executados.
+O PostgreSQL atual é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. A produção deve receber alterações pelo diff de schema do fluxo oficial de publicação. Não executar DDL no startup, não usar `push-force` e não criar um migrador de produção paralelo. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` abaixo cria dados somente em um schema de teste aleatório.
+
+### Integração HTTP com schema isolado (A02)
+
+Para executar em um runtime comprovadamente de desenvolvimento:
+
+1. Consulte `SELECT current_database()` no banco de desenvolvimento e use o nome retornado em `SEEKALIVE_EXPECTED_DATABASE`.
+2. Execute `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE='<nome-do-banco-dev>' pnpm --filter @workspace/scripts run test:api-isolated-db`.
+3. O executor valida o opt-in, o banco-alvo e o ambiente antes de criar um schema aleatório `seekalive_test_<id>`. O push normal do Drizzle fica limitado a esse schema; as tabelas são qualificadas explicitamente. A suíte usa um coletor de e-mail em memória, testa cadastro/verificação e relações sociais e remove apenas o schema criado por ela ao encerrar. Também compara o catálogo `public` antes e depois.
+
+Não execute em produção, não remova nem sobrescreva marcadores de ambiente para contornar o bloqueio, e não use `push-force`. Se o processo abortar na validação do ambiente, nenhum schema deve ser criado. Na tentativa documentada em 24/10/2026, o shell estava marcado `REPLIT_ENVIRONMENT=production`; a execução parou antes da conexão/DDL. A conexão local e a consulta de desenvolvimento informaram o mesmo nome de base, mas a identidade do servidor não pôde ser comparada, então o teste continua pendente até a execução ocorrer em um runtime de desenvolvimento comprovado.
 
 ## Decisões que permanecem abertas
 

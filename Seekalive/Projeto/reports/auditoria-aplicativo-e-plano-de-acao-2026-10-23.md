@@ -1,8 +1,8 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 1.5
-**Status:** A01 implementado, mas parcialmente validado. A02 começou: fluxo de schema alinhado ao PostgreSQL gerenciado da Replit, endpoints de liveness/readiness, 404 JSON, request ID, encerramento gracioso e testes HTTP básicos adicionados. A suíte completa de fluxos autenticados e relacionamentos ainda não foi executada em banco de teste isolado. A configuração explícita de confiança em proxy permanece adiada por decisão do usuário.
+**Versão do documento:** 1.6
+**Status:** A01 implementado, mas parcialmente validado. A02 começou: fluxo de schema alinhado ao PostgreSQL gerenciado da Replit, endpoints de liveness/readiness, 404 JSON, request ID, encerramento gracioso e testes HTTP básicos adicionados. A suíte isolada de fluxos autenticados foi implementada, mas não executada: a proteção detectou o ambiente marcado como produção e interrompeu o teste antes de conectar ou criar schema. A configuração explícita de confiança em proxy permanece adiada por decisão do usuário.
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
@@ -450,10 +450,11 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 ### 11.6 Execução do pacote A02 — 24/10/2026
 
 - **Banco e publicação:** confirmado que este projeto usa PostgreSQL gerenciado da Replit. O script `Seekalive/Projeto/scripts/post-merge.sh` foi configurado no pós-merge, usa o `push` normal no desenvolvimento e recusa execução quando o ambiente está explicitamente identificado como produção. O comando `push-force` foi removido. O fluxo oficial de publicação da Replit continua responsável por promover o diff de schema para produção.
-- **Sem alteração de dados/schema:** o pós-merge foi configurado, mas não foi executado nesta etapa. Não houve migration, push, criação/remoção de conta ou consulta de produção; a readiness executa apenas `SELECT 1` no banco de desenvolvimento.
+- **Sem alteração de dados/schema:** o pós-merge não foi executado nesta etapa. Não houve migration, push, criação/remoção de conta ou escrita no banco. Foram feitas consultas somente de leitura para identificar o banco: a consulta pelo contexto de desenvolvimento e a conexão local retornaram o mesmo nome de banco, mas o endereço do servidor não foi exposto pela conexão e não pôde ser comparado. Portanto, o alvo da conexão local não foi considerado comprovadamente de desenvolvimento.
 - **API:** `/api/healthz` é liveness sem dependência do banco; `/api/readyz` verifica o banco e retorna 503 se indisponível. 404 e demais erros da API incluem `requestId` no objeto `error`, também enviado pelo header `X-Request-Id`. O encerramento por SIGTERM/SIGINT drena HTTP e fecha o pool, com limite de 10 segundos.
-- **Verificação:** typecheck e build de todos os pacotes permitidos no script de raiz aprovados; build da API aprovado; `pnpm --filter @workspace/scripts run test:backend` passou com 10/10 testes sem mutações; o guard de produção e um smoke test SIGTERM foram aprovados. Documentação Markdown, HTML e ZIP foram atualizados.
-- **Pendências A02:** testar o schema em banco limpo/isolado; cobrir escrita e autorização de cadastro, confirmação, onboarding, perfil, follows, Círculo e bloqueios entre duas contas. Não há cobertura de fluxos autenticados de ponta a ponta nesta entrega. A confiança em proxy continua desligada/adiada e o rate limit segue local ao processo.
+- **Verificação:** typecheck e build de todos os pacotes permitidos no script de raiz aprovados; build da API aprovado; `pnpm --filter @workspace/scripts run test:backend` passou com 10/10 testes sem mutações; um smoke test SIGTERM foi aprovado.
+- **Suíte de banco isolado:** o executor `test:api-isolated-db` foi implementado com schema aleatório, schema explícito nas tabelas, catálogo `public` protegido por fingerprint e entrega de e-mail em memória (sem Resend). A execução foi bloqueada antes da conexão e de qualquer DDL porque `REPLIT_ENVIRONMENT=production`. O nome da base coincidiu com a consulta do ambiente de desenvolvimento, mas isso não prova a identidade do servidor. Nenhum schema de teste foi criado; não se deve ignorar ou sobrescrever essa proteção.
+- **Pendências A02:** executar a suíte de banco isolado somente em ambiente de desenvolvimento comprovado; cobrir escrita e autorização de cadastro, confirmação, onboarding, perfil, follows, Círculo e bloqueios entre duas contas. Não há cobertura autenticada de ponta a ponta concluída nesta entrega. A confiança em proxy continua desligada/adiada e o rate limit segue local ao processo.
 
 ### Histórico do documento
 
@@ -464,3 +465,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 1.3 | 2026-10-23 | Registra a validação A01, o teste HTTP contra falsificação de IP, os limites de autenticação e os achados atuais de dependências. |
 | 1.4 | 2026-10-24 | Retira confiança explícita em proxy conforme decisão do usuário, registra Express em `trust proxy = false`, atualiza o teste e define A02 como próximo pacote. Atualiza o estado do Resend em desenvolvimento. |
 | 1.5 | 2026-10-24 | Registra a execução parcial do A02, o fluxo de schema do PostgreSQL gerenciado, health checks, erros com request ID, encerramento gracioso, testes HTTP básicos e lacunas de integração autenticada. |
+| 1.6 | 2026-10-24 | Registra a suíte de integração com schema isolado e a execução interrompida pelo marcador de produção, sem DDL ou mutações; identifica a necessidade de confirmar o ambiente antes da execução. |
