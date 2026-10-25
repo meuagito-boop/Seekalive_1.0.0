@@ -8,7 +8,7 @@
 
 Este documento propõe a propriedade dos dados antes de separar o PostgreSQL atual em bancos lógicos por domínio. O Aplicativo continua um monólito modular: bancos separados não implicam microserviços nem contas sociais duplicadas.
 
-A referência anexada exige dez bancos lógicos: Contas, Segurança, Perfis/Relações, Mídias, Feed, Mensagens, Notificações, Pesquisa, Seek e Localização. O produto também tem Shop, mas a lista não define seu banco. Este documento propõe um banco próprio para Shop, sujeito à confirmação do usuário. Relatórios e moderação atravessam todos os módulos e também não têm domínio definido pela lista; ficam pendentes de decisão, sem alocação silenciosa.
+A referência anexada exige dez bancos lógicos: Contas, Segurança, Perfis/Relações, Mídias, Feed, Mensagens, Notificações, Pesquisa, Seek e Localização. Em 24/10/2026, o usuário confirmou que Shop também terá banco lógico próprio, acrescentando um décimo primeiro domínio ao desenho. A confirmação cobre somente a separação do catálogo; não aprova pedidos, pagamentos ou estoque. Relatórios e moderação atravessam todos os módulos e ainda não têm domínio definido; ficam pendentes de decisão, sem alocação silenciosa.
 
 Esta é uma proposta de ownership, não um schema pronto. O schema Drizzle atual — dez tabelas em um único banco de desenvolvimento — continua sendo a fonte de verdade do que está implementado. `docs/api/backend/schema-core.sql` continua uma proposta não aplicada e não pode ser executada como está.
 
@@ -36,7 +36,7 @@ Esta é uma proposta de ownership, não um schema pronto. O schema Drizzle atual
 | **Pesquisa/Indexação** (`SEARCH_DATABASE_URL`) | Documentos de índice derivados, versões/checkpoints de sincronização e estado de reconstrução. Pode começar com PostgreSQL se atender aos testes; outra tecnologia só se houver evidência de necessidade. | Fonte oficial de perfil, post, comércio ou produto; segredos, idade, e-mail ou localização precisa de usuário. Índices devem ser reconstruíveis e revalidar visibilidade/bloqueios. |
 | **Seek** (`SEEK_DATABASE_URL`) | Listagens de comércios e prestadores vinculadas ao `account_id`; categorias comerciais/eventos; serviços realmente oferecidos, horários/exceções, áreas atendidas, avaliações/respostas, eventos e interesses em eventos. Usa `location_id` para o domínio Localização. | Login separado, credenciais, cópia da identidade da conta ou coordenadas duplicadas sem política de origem. Opção não oferecida/não informada continua fora do perfil público. |
 | **Localização** (`LOCATION_DATABASE_URL`) | Catálogo geográfico oficial (incluindo municípios IBGE); localizações aprovadas de negócios/eventos e geometria PostGIS usada em busca por ponto/raio/região. Outros domínios recebem apenas operações internas e IDs. | Posição atual do usuário persistida por padrão, endereço público inferido ou provedor de mapa/geocodificação não aprovado. |
-| **Shop** (`SHOP_DATABASE_URL`, recomendado; aguarda confirmação) | Catálogo de produtos/ofertas e dados próprios do vendedor comercial. `shop_items` pertence aqui. Operações futuras de estoque, carrinho, pedido, pagamento e entrega só entram com escopo e regras transacionais aprovados. | Segunda conta de vendedor, credenciais, endereço/coordenação copiados do Seek/Localização ou promessa de compra/pagamento que ainda não existe. |
+| **Shop** (`SHOP_DATABASE_URL`, banco lógico confirmado; não provisionado) | Catálogo de produtos/ofertas e dados próprios do vendedor comercial. `shop_items` pertence aqui. Operações futuras de estoque, carrinho, pedido, pagamento e entrega só entram com escopo e regras transacionais aprovados. | Segunda conta de vendedor, credenciais, endereço/coordenação copiados do Seek/Localização ou promessa de compra/pagamento que ainda não existe. |
 | **Confiança e Segurança de Conteúdo** (domínio/banco ainda sem decisão) | Candidatos: denúncias e decisões de moderação sobre contas, posts, mensagens, avaliações, eventos e itens do Shop. A operação requer autorização restrita e referências tipadas, não FKs cruzadas. | Não será colocado automaticamente em Contas, Segurança de autenticação ou Painel. Sua inclusão como banco próprio precisa de decisão de escopo. |
 
 ### Diagrama conceitual
@@ -56,7 +56,7 @@ flowchart LR
   search[("Pesquisa<br/>projeções derivadas")]
   seek[("Seek")]
   location[("Localização<br/>PostGIS")]
-  shop[("Shop<br/>proposto")]
+  shop[("Shop<br/>banco confirmado; catálogo")]
   safety[("Confiança e Segurança<br/>decisão pendente")]
 
   api <--> accounts
@@ -156,12 +156,11 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL. Para esta arquitetur
 
 ## Decisões que ainda precisam do usuário
 
-1. **Shop:** recomenda-se banco lógico próprio porque é um módulo separado e seu catálogo tem ciclo de vida distinto do Seek. Isso adiciona um domínio além dos dez listados no prompt; não inclui pedidos/pagamentos, que continuam fora do escopo.
-2. **Denúncias e moderação:** recomenda-se avaliar um domínio restrito de Confiança e Segurança de Conteúdo, pois os alvos atravessam Feed, Mensagens, Seek e Shop. Isso adiciona escopo e possível banco; alternativa é adiar essas tabelas, sem fingir que pertencem a um dos domínios atuais.
-3. **Nome público:** confirmar se nome/sobrenome informados no cadastro são privados por padrão e se só `displayName` aparece no perfil. A proposta mantém nome civil e idade em Contas, e nome público em Perfis/Relações.
-4. **Unidades comerciais:** confirmar se um perfil comercial terá uma localização principal ou poderá manter várias unidades. O desenho recomendado mantém o endereço declarado no Seek e referencia a representação geográfica por `location_id`, sem coordenadas duplicadas.
-5. **Salvos/coleções:** confirmar se Perfis/Relações pode ser fonte de salvos globais tipados, ou se cada módulo deve guardar seu próprio favorito.
-6. **Selo verificado:** definir se `isVerified` significa e-mail confirmado ou selo público/comercial. A recomendação é armazenar esses estados separadamente e nunca deixar que o titular altere o selo.
+1. **Denúncias e moderação:** recomenda-se avaliar um domínio restrito de Confiança e Segurança de Conteúdo, pois os alvos atravessam Feed, Mensagens, Seek e Shop. Isso adiciona escopo e possível banco; alternativa é adiar essas tabelas, sem fingir que pertencem a um dos domínios atuais.
+2. **Nome público:** confirmar se nome/sobrenome informados no cadastro são privados por padrão e se só `displayName` aparece no perfil. A proposta mantém nome civil e idade em Contas, e nome público em Perfis/Relações.
+3. **Unidades comerciais:** confirmar se um perfil comercial terá uma localização principal ou poderá manter várias unidades. O desenho recomendado mantém o endereço declarado no Seek e referencia a representação geográfica por `location_id`, sem coordenadas duplicadas.
+4. **Salvos/coleções:** confirmar se Perfis/Relações pode ser fonte de salvos globais tipados, ou se cada módulo deve guardar seu próprio favorito.
+5. **Selo verificado:** definir se `isVerified` significa e-mail confirmado ou selo público/comercial. A recomendação é armazenar esses estados separadamente e nunca deixar que o titular altere o selo.
 
 ## Ordem e critérios para adoção
 
@@ -170,4 +169,4 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL. Para esta arquitetur
 - Só depois criar configuração por domínio, permissões mínimas e migrações versionadas. Não sobrescrever `DATABASE_URL`, não reutilizar uma credencial superusuária e manter o destino de pós-merge atual até validação e autorização próprias.
 - Testar cada banco em isolamento: criação limpa, falha de conexão, autorização, operações parciais/idempotentes, exportação, backup, restauração e migração reversível. PostGIS requer testar SRID, validação, `geography(Point,4326)` ou alternativa justificada, GiST e plano de consulta.
 
-**Conclusão:** esta matriz é o mapa recomendado para revisão. Ela resolve a primeira atribuição de dados, mas não aprova automaticamente o banco adicional de Shop, Trust & Safety, cardinalidade de unidades, política de salvos ou selo verificado. Até essas decisões serem respondidas, não há autorização para dividir ou migrar tabelas.
+**Conclusão:** o usuário aprovou Shop como décimo primeiro banco lógico, limitado por ora ao catálogo. A matriz continua sendo proposta para os demais limites e não aprova um banco de Trust & Safety, cardinalidade de unidades, política de salvos ou selo verificado. A aprovação arquitetural de Shop não cria banco, não configura conexão e não autoriza migração.
