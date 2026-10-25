@@ -331,15 +331,19 @@ test("idade é coletada no cadastro, mas não exibida após a criação da conta
   assert.doesNotMatch(accountSettings, /draft\.age|\bIdade\b/i);
 });
 test("alteração de nome de usuário sincroniza as fontes da conta e do Social", () => {
-  const source = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/modules/settings/screens/Account.tsx"),
+  const usernameHook = readFileSync(
+    join(process.cwd(), "Aplicativo/front/src/modules/settings/hooks/useUsernameSettings.ts"),
     "utf8",
   );
-  const usernameHandler = source.split("async function submitUsername")[1]?.split("const disabled =")[0] ?? "";
-  const syncHandler = source.split("function syncUpdatedUser")[1]?.split("async function submitProfile")[0] ?? "";
-  assert.match(usernameHandler, /socialGraphApi\.updateMyAccount\(\{\s*username: nextUsername,\s*version: remoteProfile\.account\.version,/s);
-  assert.match(usernameHandler, /syncUpdatedUser\(\{\s*\.\.\.currentUser,\s*username: nextUsername\s*\}\);/);
-  assert.match(syncHandler, /updateAccount\(user\);\s*updateUser\(user\);/);
+  const profileHook = readFileSync(
+    join(process.cwd(), "Aplicativo/front/src/modules/settings/hooks/useAccountProfileSettings.ts"),
+    "utf8",
+  );
+  assert.match(usernameHook, /socialGraphApi\.updateMyAccount\(\{\s*username: nextUsername,\s*version: remoteProfile!\.account\.version,/s);
+  assert.match(usernameHook, /syncUpdatedUser\(myAccountToUser\(updatedProfile\)\);/);
+  assert.match(usernameHook, /syncUpdatedUser\(\{\s*\.\.\.currentUser,\s*username: nextUsername\s*\}\);/);
+  assert.match(profileHook, /updateAccount\(user\);\s*updateUser\(user\);/);
+  assert.match(profileHook, /if \(isRemoteSocialSession\) upsertRemoteUser\(user\);/);
 });
 test("Seek busca sem acentos e combina categoria, nota, status, distância e ordenação", () => {
   assert.ok(matchesSeekSearch(["Café Central", "São Paulo"], " cafe  sao "));

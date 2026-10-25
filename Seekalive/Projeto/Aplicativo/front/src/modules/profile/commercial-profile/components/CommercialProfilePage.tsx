@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
-import { Link } from "wouter";
 import {
-  ArrowLeft,
-  Bookmark,
-  Camera,
   MapPin,
-  MoreHorizontal,
-  Share2,
   Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BusinessReviewsDialog } from "@/modules/seek/components/BusinessReviewsDialog";
+import { CommercialProfileHero } from "@/modules/profile/commercial-profile/components/CommercialProfileHero";
+import { CommercialProfileOverview } from "@/modules/profile/commercial-profile/components/CommercialProfileOverview";
+import { CommercialProfileTopBar } from "@/modules/profile/commercial-profile/components/CommercialProfileTopBar";
+import { businessMapUrl } from "@/modules/profile/commercial-profile/utils/businessMapUrl";
 import { useSocial } from "@/modules/app/state/SocialContext";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { localActorId, useAccountScopedIds } from "@/modules/shared/storage/accountScopedStorage";
@@ -22,6 +20,10 @@ import { getProfileMedia } from "@/modules/shared/content/postMedia";
 import { canReadPost } from "@/modules/shared/content/contentValidation";
 import { handleTabKeyDown } from "@/modules/shared/ui/tabKeyboard";
 import { formatWeeklyHours } from "@/modules/profile/commercial-profile/utils/businessHours";
+import {
+  calculateAverageBusinessRating,
+  selectBusinessReviews,
+} from "@/modules/seek/utils/businessReviews";
 import { CommercialInfoTab } from "./CommercialInfoTab";
 import { CommercialMediaTab, type CommercialMediaTabKey } from "./CommercialMediaTab";
 import { CommercialReviewsTab } from "./CommercialReviewsTab";
@@ -39,14 +41,6 @@ const serviceOptions = [
   { key: "appointments", label: "Agendamento", description: "Atendimento com horário marcado." },
   { key: "takeout", label: "Retirada no local", description: "Pedidos podem ser retirados no estabelecimento." },
 ] as const;
-
-function priceLabel(level?: number) {
-  return level ? "$".repeat(level) : "";
-}
-
-function mapsUrl(address: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-}
 
 export function CommercialProfilePage({
   user,
@@ -71,16 +65,13 @@ export function CommercialProfilePage({
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [activeMediaTab, setActiveMediaTab] = useState<CommercialMediaTabKey>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const allBusinessReviews = reviews
-    .filter((review) => review.businessAccountId === user.id)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const businessReviews = allBusinessReviews.filter(review => !getUserById(review.reviewerId)?.isBlocked);
+  const { allReviews: allBusinessReviews, visibleReviews: businessReviews } =
+    selectBusinessReviews(reviews, user.id, getUserById);
   const rating = allBusinessReviews.length
-    ? allBusinessReviews.reduce((total, review) => total + review.rating, 0) / allBusinessReviews.length
+    ? calculateAverageBusinessRating(allBusinessReviews)
     : null;
   const ratingCounts = [5, 4, 3, 2, 1].map((score) => ({
     score,
@@ -124,182 +115,40 @@ export function CommercialProfilePage({
 
   return (
     <div className="min-h-screen pb-24 md:pb-8">
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-lg">
-        <div className="flex min-w-0 items-center gap-3">
-          <button
-            type="button"
-            onClick={() => (window.history.length > 1 ? window.history.back() : window.location.assign(`${import.meta.env.BASE_URL}feed`))}
-            aria-label="Voltar"
-            className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold">{user.displayName}</p>
-            <p className="truncate text-[11px] text-muted-foreground">@{user.username}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setShareOpen(true)}
-            aria-label="Compartilhar perfil"
-            className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
-          {!isMe && (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowProfileMenu(value => !value)}
-                aria-label="Mais opções do perfil comercial"
-                aria-expanded={showProfileMenu}
-                className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                data-testid="button-more-commercial-profile"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-              {showProfileMenu && (
-                <div className="absolute right-0 top-11 z-50 w-48 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      blockUser(user.id);
-                      toast({
-                        title: "Perfil bloqueado",
-                        description: "Os seguimentos e solicitações entre vocês foram removidos.",
-                      });
-                    }}
-                    className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-muted/50"
-                    data-testid="action-block-commercial-profile"
-                  >
-                    Bloquear perfil
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          {isMe ? (
-            <Button asChild variant="outline" className="h-8 rounded-full px-3 text-xs">
-              <Link href="/profile/edit">Editar perfil</Link>
-            </Button>
-          ) : (
-            <Button
-              variant={user.isFollowing || user.followRequestSent ? "outline" : "default"}
-              className="h-8 rounded-full px-3 text-xs"
-              onClick={() => toggleFollow(user.id)}
-            >
-              {user.isFollowing ? "Seguindo" : user.followRequestSent ? "Cancelar solicitação" : user.isPrivate ? "Solicitar para seguir" : "Seguir"}
-            </Button>
-          )}
-        </div>
-      </header>
+      <CommercialProfileTopBar
+        user={user}
+        isMe={isMe}
+        onShare={() => setShareOpen(true)}
+        onBlock={() => {
+          blockUser(user.id);
+          toast({
+            title: "Perfil bloqueado",
+            description: "Os seguimentos e solicitações entre vocês foram removidos.",
+          });
+        }}
+        onToggleFollow={() => void toggleFollow(user.id)}
+      />
 
       <main className="mx-auto max-w-5xl">
-        <section className="relative h-[250px] overflow-hidden bg-muted md:h-[370px]">
-          <img
-            src={photos[selectedPhoto] ?? user.coverUrl}
-            alt={`Foto de ${user.displayName}`}
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/20" />
-          {commercial.isOpen !== undefined && (
-            <div className="absolute left-4 top-4">
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                commercial.isOpen ? "bg-emerald-500/90 text-white" : "bg-zinc-800/85 text-white"
-              }`}>
-                {commercial.isOpen ? "Aberto agora" : "Fechado"}
-              </span>
-            </div>
-          )}
-          <div className="absolute bottom-4 left-4 right-4 text-white md:bottom-6 md:left-8">
-            <p className="mb-1 text-xs font-medium text-white/80">
-              {priceLabel(commercial.priceLevel)}
-              {commercial.priceLevel && <span className="mx-1.5">·</span>}
-              {commercial.category}
-            </p>
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="break-words text-2xl font-black leading-tight md:text-4xl">{user.displayName}</h1>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <span className="flex items-center gap-0.5" aria-label={rating === null ? "Sem avaliações" : `Nota ${rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} de 5`}>
-                    {[1, 2, 3, 4, 5].map((score) => (
-                      <Star
-                        key={score}
-                        className={`h-4 w-4 ${rating !== null && score <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-white/45"}`}
-                      />
-                    ))}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("Avaliações");
-                      setReviewsOpen(true);
-                    }}
-                    className="text-sm font-semibold text-white underline-offset-2 hover:underline"
-                  >
-                    {rating === null ? "Sem avaliações" : `${rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} · ${allBusinessReviews.length} ${allBusinessReviews.length === 1 ? "avaliação" : "avaliações"}`}
-                  </button>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={jumpToPhotos}
-                className="flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm hover:bg-black/65"
-              >
-                <Camera className="h-4 w-4" />
-                Ver {photos.length} fotos
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b border-border px-4 py-4 md:px-8">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-            <span className="font-semibold">{commercial.category}</span>
-            {commercial.priceLevel && <span className="text-muted-foreground">· {priceLabel(commercial.priceLevel)}</span>}
-            <span className="min-w-0 break-words text-muted-foreground">· {commercial.address}</span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
-            {commercial.isOpen !== undefined && (
-              <span className={`font-semibold ${commercial.isOpen ? "text-emerald-500" : "text-muted-foreground"}`}>
-                {commercial.isOpen ? "Aberto" : "Fechado"}
-              </span>
-            )}
-            <span className="text-muted-foreground">
-              {openingHoursSummary}
-            </span>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2 pb-1">
-            <Button
-              onClick={() => setReviewsOpen(true)}
-              className="h-10 shrink-0 rounded-full px-4"
-            >
-              <Star className="mr-2 h-4 w-4" />
-              Adicionar avaliação
-            </Button>
-            <a
-              href={mapsUrl(commercial.address)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 text-sm font-semibold text-foreground no-underline hover:bg-muted"
-            >
-              <MapPin className="h-4 w-4" />
-              Mapa
-            </a>
-            <button
-              type="button"
-              onClick={toggleSaved}
-              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 text-sm font-semibold text-foreground hover:bg-muted"
-            >
-              <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-              {isSaved ? "Salvo neste navegador" : "Salvar"}
-            </button>
-          </div>
-        </section>
+        <CommercialProfileHero
+          user={user}
+          photos={photos}
+          selectedPhoto={selectedPhoto}
+          rating={rating}
+          reviewCount={allBusinessReviews.length}
+          onOpenReviews={() => {
+            setActiveTab("Avaliações");
+            setReviewsOpen(true);
+          }}
+          onShowPhotos={jumpToPhotos}
+        />
+        <CommercialProfileOverview
+          user={user}
+          openingHoursSummary={openingHoursSummary}
+          isSaved={isSaved}
+          onOpenReviews={() => setReviewsOpen(true)}
+          onToggleSaved={toggleSaved}
+        />
 
         <nav
           aria-label="Seções do perfil"
@@ -401,7 +250,7 @@ export function CommercialProfilePage({
             <Star className="mr-2 h-4 w-4" />
             Avaliar
           </Button>
-          <a href={mapsUrl(commercial.address)} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-semibold text-foreground no-underline">
+          <a href={businessMapUrl(commercial.address)} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-semibold text-foreground no-underline">
             <MapPin className="h-4 w-4" />
             Mapa
           </a>

@@ -1,270 +1,36 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion, motion } from "framer-motion";
 import { AlertTriangle, Loader2, RotateCw } from "lucide-react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/modules/app/state/AppContext";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import type { User } from "@/modules/profile/types/user";
-import { useToast } from "@/modules/shared/hooks/useToast";
-import { myAccountToUser, socialGraphApi, SocialGraphApiError } from "@/modules/social/services/socialGraphApi";
-import type { MyAccountResponse } from "@workspace/api-client-react";
-import { useLocation } from "wouter";
+import { useAccountProfileSettings } from "@/modules/settings/hooks/useAccountProfileSettings";
+import { useUsernameSettings } from "@/modules/settings/hooks/useUsernameSettings";
 import { SettingsSubheader, SectionTitle, UnavailableNotice } from "./SettingsSubheader";
 import { EmailChangeForm } from "../components/account/EmailChangeForm";
 import { PasswordChangeForm } from "../components/account/PasswordChangeForm";
 import { PersonalAccountForm } from "../components/account/PersonalAccountForm";
 import { CommercialAccountForm } from "../components/account/CommercialAccountForm";
 import { UsernameForm } from "../components/account/UsernameForm";
-import { draftFromUser, type AccountDraft } from "../types/accountDraft";
-
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-
-function requestErrorMessage(error: unknown): string {
-  if (error instanceof SocialGraphApiError && error.key === "VERSION_CONFLICT") {
-    return "Os dados da conta mudaram em outra sessão. Recarregue as informações antes de salvar.";
-  }
-  return error instanceof Error ? error.message : "Não foi possível salvar os dados da conta.";
-}
 
 export default function SettingsAccount() {
   const shouldReduceMotion = useReducedMotion();
-  const { currentUser, updateAccount, clearLocalAuthentication } = useAppContext();
+  const { clearLocalAuthentication } = useAppContext();
   const [, setLocation] = useLocation();
-  const {
-    users,
-    updateUser,
-    upsertRemoteUser,
-    isRemoteSocialSession,
-  } = useSocial();
-  const { toast } = useToast();
+  const profile = useAccountProfileSettings();
+  const username = useUsernameSettings({
+    accountType: profile.accountType,
+    currentUsername: profile.currentUsername,
+    isRemoteSocialSession: profile.isRemoteSocialSession,
+    remoteProfile: profile.remoteProfile,
+    setRemoteProfile: profile.setRemoteProfile,
+    syncUpdatedUser: profile.syncUpdatedUser,
+  });
 
-  const [remoteProfile, setRemoteProfile] = useState<MyAccountResponse | null>(null);
-  const [draft, setDraft] = useState<AccountDraft>(() => draftFromUser(currentUser));
-  const [username, setUsername] = useState(currentUser?.username ?? "");
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(isRemoteSocialSession);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSavingUsername, setIsSavingUsername] = useState(false);
-  const [retryLoad, setRetryLoad] = useState(0);
-
-  useEffect(() => {
-    if (!isRemoteSocialSession) {
-      setRemoteProfile(null);
-      setDraft(draftFromUser(currentUser));
-      setUsername(currentUser?.username ?? "");
-      setLoadError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    if (!currentUser) return;
-    let active = true;
-    setIsLoading(true);
-    setLoadError(null);
-    void socialGraphApi.getMyAccount()
-      .then((profile) => {
-        if (!active) return;
-        const user = myAccountToUser(profile);
-        setRemoteProfile(profile);
-        setDraft(draftFromUser(user));
-        setUsername(profile.account.username);
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setLoadError(requestErrorMessage(error));
-          setRemoteProfile(null);
-        }
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [currentUser?.id, isRemoteSocialSession, retryLoad]);
-
-  const accountType = remoteProfile?.account.accountType ?? currentUser?.accountType;
-  const isCommercial = accountType === "commercial";
-  const email = remoteProfile?.email ?? currentUser?.email ?? "";
-  const currentUsername = remoteProfile?.account.username ?? currentUser?.username ?? "";
-
-  function changeDraft<K extends keyof AccountDraft>(key: K, value: AccountDraft[K]) {
-    setDraft((current) => ({ ...current, [key]: value }));
-    setProfileError(null);
-  }
-
-  function syncUpdatedUser(user: User) {
-    updateAccount(user);
-    updateUser(user);
-    if (isRemoteSocialSession) upsertRemoteUser(user);
-    setDraft(draftFromUser(user));
-    setUsername(user.username);
-  }
-
-  async function submitProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!currentUser || !accountType) return;
-    const displayName = isCommercial
-      ? draft.businessName.trim()
-      : `${draft.firstName.trim()} ${draft.lastName.trim()}`.trim();
-
-    if (
-      (isCommercial
-        ? draft.businessName.trim().length < 2
-        : draft.firstName.trim().length < 2 || draft.lastName.trim().length < 2)
-    ) {
-      setProfileError(isCommercial
-        ? "Informe um nome comercial válido."
-        : "Informe nome e sobrenome válidos.");
-      return;
-    }
-    if (displayName.length > 100) {
-      setProfileError("O nome público não pode ultrapassar 100 caracteres.");
-      return;
-    }
-    if (isCommercial && [
-      draft.address,
-      draft.postalCode,
-      draft.cityName,
-      draft.stateName,
-      draft.countryName,
-    ].some((value) => value.trim().length < 2)) {
-      setProfileError("Preencha endereço, CEP, cidade, estado e país.");
-      return;
-    }
-
-    setIsSavingProfile(true);
-    setProfileError(null);
-    try {
-      if (isRemoteSocialSession) {
-        if (!remoteProfile) {
-          setProfileError("Recarregue os dados da conta antes de salvar.");
-          return;
-        }
-        const updatedProfile = await socialGraphApi.updateMyAccount(isCommercial
-          ? {
-              displayName,
-              commercialProfile: {
-                address: draft.address.trim(),
-                postalCode: draft.postalCode.trim(),
-                cityName: draft.cityName.trim(),
-                stateName: draft.stateName.trim(),
-                countryName: draft.countryName.trim(),
-              },
-              version: remoteProfile.account.version,
-            }
-          : {
-              firstName: draft.firstName.trim(),
-              lastName: draft.lastName.trim(),
-              version: remoteProfile.account.version,
-            });
-        setRemoteProfile(updatedProfile);
-        syncUpdatedUser(myAccountToUser(updatedProfile));
-        toast({ title: "Dados da conta atualizados", description: "As alterações foram salvas na sua conta." });
-        return;
-      }
-
-      const updatedUser: User = isCommercial
-        ? {
-            ...currentUser,
-            displayName,
-            address: draft.address.trim(),
-            postalCode: draft.postalCode.trim(),
-            city: draft.cityName.trim(),
-            state: draft.stateName.trim(),
-            country: draft.countryName.trim(),
-            location: `${draft.cityName.trim()}, ${draft.stateName.trim()}`,
-            commercialProfile: currentUser.commercialProfile
-              ? {
-                  ...currentUser.commercialProfile,
-                  address: draft.address.trim(),
-                  cityName: draft.cityName.trim(),
-                  cityState: draft.stateName.trim(),
-                }
-              : currentUser.commercialProfile,
-          }
-        : {
-            ...currentUser,
-            firstName: draft.firstName.trim(),
-            lastName: draft.lastName.trim(),
-            displayName,
-          };
-      syncUpdatedUser(updatedUser);
-      toast({ title: "Dados da demonstração atualizados", description: "A alteração fica neste navegador." });
-    } catch (error) {
-      const message = requestErrorMessage(error);
-      setProfileError(message);
-      toast({ title: "Dados não salvos", description: message, variant: "destructive" });
-    } finally {
-      setIsSavingProfile(false);
-    }
-  }
-
-  async function submitUsername(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!currentUser || !accountType) return;
-    const nextUsername = username.trim().toLowerCase().replace(/^@/, "");
-    if (!USERNAME_RE.test(nextUsername)) {
-      setUsernameError("Use de 3 a 20 caracteres: letras minúsculas, números ou _.");
-      return;
-    }
-    if (nextUsername === currentUsername) {
-      setUsernameError("Esse já é o seu nome de usuário.");
-      return;
-    }
-    if (!isRemoteSocialSession && users.some(
-      (user) => user.id !== currentUser.id && user.username.toLowerCase() === nextUsername,
-    )) {
-      setUsernameError("Esse nome de usuário já está em uso na demonstração.");
-      return;
-    }
-
-    setIsSavingUsername(true);
-    setUsernameError(null);
-    try {
-      if (isRemoteSocialSession) {
-        if (!remoteProfile) {
-          setUsernameError("Recarregue os dados da conta antes de salvar.");
-          return;
-        }
-        const updatedProfile = await socialGraphApi.updateMyAccount({
-          username: nextUsername,
-          version: remoteProfile.account.version,
-        });
-        setRemoteProfile(updatedProfile);
-        syncUpdatedUser(myAccountToUser(updatedProfile));
-      } else {
-        syncUpdatedUser({ ...currentUser, username: nextUsername });
-      }
-      toast({
-        title: "Nome de usuário alterado",
-        description: isRemoteSocialSession
-          ? `Agora sua conta é @${nextUsername}.`
-          : `Agora a demonstração é @${nextUsername} neste navegador.`,
-      });
-    } catch (error) {
-      const message = requestErrorMessage(error);
-      setUsernameError(message);
-      toast({ title: "Nome de usuário não alterado", description: message, variant: "destructive" });
-    } finally {
-      setIsSavingUsername(false);
-    }
-  }
-
-  const disabled = isLoading || Boolean(loadError) || isSavingProfile || isSavingUsername;
+  const disabled = profile.isLoading
+    || Boolean(profile.loadError)
+    || profile.isSavingProfile
+    || username.isSavingUsername;
   const disabledField = "h-12 bg-card border-border rounded-xl";
-
-  function handleEmailChanged(nextEmail: string) {
-    setRemoteProfile((profile) => profile ? { ...profile, email: nextEmail } : profile);
-    if (!currentUser) return;
-    const updatedUser = { ...currentUser, email: nextEmail };
-    updateAccount(updatedUser);
-    updateUser(updatedUser);
-    upsertRemoteUser(updatedUser);
-  }
 
   function handlePasswordChanged() {
     clearLocalAuthentication();
@@ -280,20 +46,20 @@ export default function SettingsAccount() {
         animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
         className="pb-8"
       >
-        {isLoading && (
+        {profile.isLoading && (
           <p role="status" className="flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Carregando dados da conta…
           </p>
         )}
-        {loadError && (
+        {profile.loadError && (
           <div role="alert" className="mx-4 mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
-            <p className="text-sm text-destructive">{loadError}</p>
+            <p className="text-sm text-destructive">{profile.loadError}</p>
             <Button
               type="button"
               variant="outline"
               className="mt-3 min-h-11"
-              onClick={() => setRetryLoad((value) => value + 1)}
+              onClick={profile.retry}
             >
               <RotateCw className="mr-2 h-4 w-4" aria-hidden="true" />
               Recarregar dados
@@ -301,68 +67,84 @@ export default function SettingsAccount() {
           </div>
         )}
 
-        {accountType && !isLoading && !loadError && (
+        {profile.accountType && !profile.isLoading && !profile.loadError && (
           <>
-            {isCommercial ? (
+            {profile.isCommercial ? (
               <CommercialAccountForm
-                draft={draft}
-                email={email}
-                error={profileError}
+                draft={profile.draft}
+                email={profile.email}
+                error={profile.profileError}
                 isDisabled={disabled}
-                isSaving={isSavingProfile}
+                isSaving={profile.isSavingProfile}
                 disabledField={disabledField}
-                onChange={(key, value) => changeDraft(key, value)}
-                onSubmit={(event) => void submitProfile(event)}
+                onChange={(key, value) => profile.changeDraft(key, value)}
+                onSubmit={(event) => void profile.submitProfile(event)}
               />
             ) : (
               <PersonalAccountForm
-                draft={draft}
-                email={email}
-                error={profileError}
+                draft={profile.draft}
+                email={profile.email}
+                error={profile.profileError}
                 isDisabled={disabled}
-                isSaving={isSavingProfile}
+                isSaving={profile.isSavingProfile}
                 disabledField={disabledField}
-                onChange={(key, value) => changeDraft(key, value)}
-                onSubmit={(event) => void submitProfile(event)}
+                onChange={(key, value) => profile.changeDraft(key, value)}
+                onSubmit={(event) => void profile.submitProfile(event)}
               />
             )}
 
             <UsernameForm
-              username={username}
-              currentUsername={currentUsername}
-              error={usernameError}
+              username={username.username}
+              currentUsername={profile.currentUsername}
+              error={username.usernameError}
               isDisabled={disabled}
-              isSaving={isSavingUsername}
+              isSaving={username.isSavingUsername}
               disabledField={disabledField}
               onChange={(value) => {
-                setUsername(value);
-                setUsernameError(null);
+                username.setUsername(value);
+                username.setUsernameError(null);
               }}
-              onSubmit={(event) => void submitUsername(event)}
+              onSubmit={(event) => void username.submitUsername(event)}
             />
 
             <SectionTitle>E-mail e senha</SectionTitle>
-            {!isRemoteSocialSession ? (
+            {!profile.isRemoteSocialSession ? (
               <UnavailableNotice>
                 A demonstração deste navegador não altera credenciais. A troca de e-mail e senha exige uma conta autenticada pela API.
               </UnavailableNotice>
             ) : (
               <div className="space-y-5 px-4 pt-2">
-                <EmailChangeForm email={email} disabledField={disabledField} onEmailChanged={handleEmailChanged} />
-                <PasswordChangeForm email={email} disabledField={disabledField} onPasswordChanged={handlePasswordChanged} />
+                <EmailChangeForm
+                  email={profile.email}
+                  disabledField={disabledField}
+                  onEmailChanged={profile.handleEmailChanged}
+                />
+                <PasswordChangeForm
+                  email={profile.email}
+                  disabledField={disabledField}
+                  onPasswordChanged={handlePasswordChanged}
+                />
                 <p className="text-xs text-muted-foreground">
                   Sem acesso ao e-mail atual? Solicite ajuda ao suporte:{" "}
-                  <a className="underline underline-offset-2" href="mailto:admseekalive@gmail.com">admseekalive@gmail.com</a>.
+                  <a className="underline underline-offset-2" href="mailto:admseekalive@gmail.com">
+                    admseekalive@gmail.com
+                  </a>.
                 </p>
               </div>
             )}
 
             <SectionTitle>Contas conectadas</SectionTitle>
-            <div className="px-4 pt-2 space-y-2">
+            <div className="space-y-2 px-4 pt-2">
               {["Google", "Apple"].map((provider) => (
                 <div key={provider} className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
                   <span className="text-sm font-medium">{provider}</span>
-                  <Button disabled variant="outline" size="sm" className="min-h-10 rounded-full text-xs" data-testid={`button-connect-${provider.toLowerCase()}`}>
+                  <Button
+                    disabled
+                    variant="outline"
+                    size="sm"
+                    className="min-h-10 rounded-full text-xs"
+                    data-testid={`button-connect-${provider.toLowerCase()}`}
+                  >
                     Indisponível
                   </Button>
                 </div>
@@ -373,12 +155,24 @@ export default function SettingsAccount() {
               <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-destructive">Zona de perigo</h2>
             </div>
-            <UnavailableNotice>Desativar ou excluir a conta ainda não está disponível. Nenhum dado será alterado por estes controles.</UnavailableNotice>
+            <UnavailableNotice>
+              Desativar ou excluir a conta ainda não está disponível. Nenhum dado será alterado por estes controles.
+            </UnavailableNotice>
             <div className="space-y-2 px-4 pt-3">
-              <Button disabled variant="outline" className="min-h-11 w-full rounded-xl border-destructive/40 text-destructive" data-testid="button-deactivate">
+              <Button
+                disabled
+                variant="outline"
+                className="min-h-11 w-full rounded-xl border-destructive/40 text-destructive"
+                data-testid="button-deactivate"
+              >
                 Desativar conta
               </Button>
-              <Button disabled variant="destructive" className="min-h-11 w-full rounded-xl" data-testid="button-delete">
+              <Button
+                disabled
+                variant="destructive"
+                className="min-h-11 w-full rounded-xl"
+                data-testid="button-delete"
+              >
                 Excluir conta permanentemente
               </Button>
             </div>
