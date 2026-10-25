@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.27
+**Versão do documento:** 2.28
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -10,6 +10,8 @@
 **Decisão de conta incorporada em 24/10/2026:** a primeira versão pública não terá selo de verificação. A confirmação de e-mail é privada e usada para autenticação; o contrato público e os componentes de perfil/publicação não devem expor nem exibir `isVerified`.
 
 **Regra de nome de usuário incorporada em 24/10/2026:** a primeira troca é permitida após 30 dias do registro; cada troca posterior, 30 dias após a anterior. O @ antigo fica indisponível para todos por 30 dias, inclusive para o titular anterior, e a interface deve avisar antes da confirmação.
+
+**Regra de troca de e-mail incorporada em 24/10/2026:** a alteração só entra em vigor depois da confirmação do novo endereço; até lá, o endereço atual continua ativo.
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
@@ -699,6 +701,13 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Estado técnico:** ainda não implementado. O backend atual verifica unicidade do nome ativo, mas não aplica o prazo mínimo nem reserva o nome anterior. A implementação precisa bloquear alterações precoces no servidor, impedir reutilização em cadastro e em outras trocas, tratar concorrência e ter testes de API; não basta esconder a disponibilidade no frontend.
 - **Gate:** não considerar o ciclo de nome de usuário pronto nem avançar para páginas públicas até a regra estar aplicada e testada. Não foi feita migração nem alteração no banco nesta decisão.
 
+### 11.25 Ativação de novo e-mail da conta — 24/10/2026
+
+- **Decisão confirmada:** a troca só entra em vigor depois que o novo endereço for confirmado; o e-mail atual permanece ativo até a confirmação.
+- **Segurança:** manter a regra de que login e acesso exigem um endereço verificado. A troca não deve criar intervalo em que a conta fique sem um e-mail ativo.
+- **Estado técnico:** o fluxo de alteração de e-mail não está implementado na API nem na tela Conta. Esta seção registra a regra do produto, não uma funcionalidade pronta.
+- **Detalhes pendentes antes da implementação:** definir reautenticação com senha atual, aviso ao e-mail antigo, expiração/cancelamento do desafio e comportamento se o usuário perder acesso ao endereço antigo.
+
 ### Histórico do documento
 
 | Versão | Data | Atualização |
@@ -740,3 +749,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.25 | 2026-10-24 | Define reserva do @ anterior por 30 dias e registra a implementação de retenção como pendência antes de páginas públicas. |
 | 2.26 | 2026-10-24 | Define que a reserva do @ antigo vale para todos, exige aviso prévio e bloqueia a primeira alteração por 30 dias; o intervalo entre trocas futuras segue pendente. |
 | 2.27 | 2026-10-24 | Confirma 30 dias desde o registro para a primeira troca e 30 dias desde a última troca para as seguintes; mantém o @ anterior indisponível para todos por 30 dias. |
+| 2.28 | 2026-10-24 | Define que a troca de e-mail só entra em vigor após confirmar o novo endereço, mantendo o atual ativo até lá. |
