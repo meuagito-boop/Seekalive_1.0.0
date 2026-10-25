@@ -4,10 +4,10 @@ import { Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useAppContext } from "@/context/AppContext";
-import { RouteLoadingFallback } from "@/routes/RouteLoadingFallback";
+import { RouteLoadingFallback } from "@/modules/app/components/RouteLoadingFallback";
 
-const UnauthenticatedRoutes = lazy(() => import("@/routes/UnauthenticatedRoutes"));
-const AuthenticatedRoutes = lazy(() => import("@/routes/AuthenticatedRoutes"));
+const UnauthenticatedRoutes = lazy(() => import("@/modules/app/routes/UnauthenticatedRoutes"));
+const AuthenticatedRoutes = lazy(() => import("@/modules/app/routes/AuthenticatedRoutes"));
 const queryClient = new QueryClient();
 
 function Router() {

@@ -19,7 +19,7 @@ import { mockUsers, mockNotifications, currentUser } from "../src/data/mockData"
 import { formatCount, formatTimeAgo } from "../src/lib/formatters";
 import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/services/mediaService";
-import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters";
+import { filterSeekBusinesses, matchesSeekSearch } from "../src/modules/seek/utils/seekFilters";
 import { saveStoredSeekReviews } from "../src/data/reviewStorage";
 import { myAccountToUser } from "../src/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
@@ -266,7 +266,7 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     "utf8",
   );
   const profileSource = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/pages/Profile.tsx"),
+    join(process.cwd(), "Aplicativo/front/src/modules/profile/screens/Profile.tsx"),
     "utf8",
   );
   assert.match(socialSource, /useAccountScopedIds\("seekalive-blocked-users", actorId\)/);

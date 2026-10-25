@@ -1,6 +1,6 @@
 import type { ContentReference } from "@/types/social/contentReferences";
 import type { PostFormat } from "@/types/social/posts";
-import type { WeeklyOpeningHours } from "@/types/profiles/commercial/businessHours";
+import type { WeeklyOpeningHours } from "@/modules/profile/commercial-profile/types/businessHours";
 
 export interface User {
   id: string;

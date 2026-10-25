@@ -2,17 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { MyAccountResponse } from "@workspace/api-client-react";
 import type { User } from "@/data/mockData";
-import type { ProfileEditFormValues } from "@/pages/profile-edit/profileEditSchema";
+import type { ProfileEditFormValues } from "@/modules/profile/types/profileEditSchema";
 import {
   buildCommercialPreviewUser,
   buildCommercialProfilePatch,
-} from "@/pages/profile-edit/commercialProfileEdit";
+} from "@/modules/profile/commercial-profile/utils/commercialProfileEdit";
 import {
   buildPersonalPreviewUser,
   buildPersonalProfilePatch,
   validatePersonalProfileName,
-} from "@/pages/profile-edit/personalProfileEdit";
-import { profileEditSchema } from "@/pages/profile-edit/profileEditSchema";
+} from "@/modules/profile/personal-profile/utils/personalProfileEdit";
+import { profileEditSchema } from "@/modules/profile/types/profileEditSchema";
 
 const values: ProfileEditFormValues = {
   firstName: "Ana",

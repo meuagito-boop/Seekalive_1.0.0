@@ -9,8 +9,8 @@ import {
 } from "../mockData";
 import { demoIntegrationPosts } from "../demoIntegrationPosts";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "../demoSeekAccounts";
-import { demoSeekEvents } from "../demoSeekEvents";
-import { demoShopItems, demoStores } from "../demoCatalog";
+import { demoSeekEvents } from "@/modules/seek/data/demoSeekEvents";
+import { demoShopItems, demoStores } from "@/modules/shop/data/demoCatalog";
 import type { SocialState } from "@/context/social/state";
 
 export { currentUser as developmentPreviewUser };

@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildSeekItems, defaultDiscoveryFilters, discoveryImage, filterDiscovery, itemMatchesLocation, validateDiscoveryFilters } from "../src/lib/seekDiscovery";
-import type { DiscoveryLocation, SeekDiscoveryItem } from "../src/lib/seekDiscovery";
-import { LocationError, locationErrorMessage, parseIBGECities, readRecentLocations, rememberManualLocation, requestDeviceLocation, searchCities } from "../src/services/seekLocationService";
+import { buildSeekItems, defaultDiscoveryFilters, discoveryImage, filterDiscovery, itemMatchesLocation, validateDiscoveryFilters } from "../src/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation, SeekDiscoveryItem } from "../src/modules/seek/utils/seekDiscovery";
+import { LocationError, locationErrorMessage, parseIBGECities, readRecentLocations, rememberManualLocation, requestDeviceLocation, searchCities } from "../src/modules/seek/services/seekLocationService";
 import type { User } from "../src/data/mockData";
 import { mockUsers } from "../src/data/mockData";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "../src/data/demoSeekAccounts";
-import { demoSeekEvents } from "../src/data/demoSeekEvents";
+import { demoSeekEvents } from "../src/modules/seek/data/demoSeekEvents";
 
 const sp: DiscoveryLocation = { id: "3550308", city: "São Paulo", state: "SP", label: "São Paulo, SP · Brasil", source: "manual" };
 const santos: DiscoveryLocation = { id: "3548500", city: "Santos", state: "SP", label: "Santos, SP · Brasil", source: "manual" };
