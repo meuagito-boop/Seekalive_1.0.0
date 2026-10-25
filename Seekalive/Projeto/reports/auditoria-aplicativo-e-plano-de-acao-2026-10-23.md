@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.30
+**Versão do documento:** 2.31
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -12,6 +12,8 @@
 **Regra de nome de usuário incorporada em 24/10/2026:** a primeira troca é permitida após 30 dias do registro; cada troca posterior, 30 dias após a anterior. O @ antigo fica indisponível para todos por 30 dias, inclusive para o titular anterior, e a interface deve avisar antes da confirmação.
 
 **Regra de alteração de credenciais incorporada em 24/10/2026:** trocar e-mail ou senha exige senha atual e código enviado ao e-mail já cadastrado. Para troca de e-mail, o novo endereço só entra em vigor depois de confirmado; o atual permanece ativo até lá e recebe um aviso de segurança quando a troca termina.
+
+**Recuperação sem acesso ao e-mail:** solicitar contato manual com suporte e verificação adicional. A solicitação deverá chegar ao e-mail de suporte e ao futuro Painel de Controle; não criar atalho automático nem alterar o Painel nesta etapa.
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
@@ -716,6 +718,14 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Distinção:** a confirmação de um e-mail novo é adicional apenas para troca de endereço; troca de senha não modifica o e-mail cadastrado.
 - **Estado técnico:** troca voluntária de senha ainda não está disponível na tela Conta/API; a recuperação de senha esquecida é um fluxo diferente e não substitui esta regra.
 
+### 11.27 Recuperação de conta sem acesso ao e-mail atual — 24/10/2026
+
+- **Decisão confirmada:** o titular deve entrar em contato com o suporte e passar por verificação adicional manual; o app não deve liberar a conta automaticamente sem comprovar o controle do e-mail atual.
+- **Canais confirmados:** a solicitação deve ser entregue tanto ao e-mail do suporte quanto ao Painel de Controle planejado.
+- **Escopo do Painel:** será usado para controle, gestão e moderação, incluindo assuntos do aplicativo e do Gestor. O Painel e o Gestor não serão alterados nesta etapa.
+- **Estado técnico:** não há fluxo de suporte, fila de solicitações, destino de e-mail nem procedimento de verificação manual implementado. O método de verificação adicional, permissões, retenção e trilha de decisão continuam pendentes.
+- **Gate:** antes de implementar, definir o método de verificação adicional e os controles contra fraude; entregar o mesmo registro de forma segura aos canais confirmados sem incluir credenciais ou códigos de autenticação.
+
 ### Histórico do documento
 
 | Versão | Data | Atualização |
@@ -760,3 +770,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.28 | 2026-10-24 | Define que a troca de e-mail só entra em vigor após confirmar o novo endereço, mantendo o atual ativo até lá. |
 | 2.29 | 2026-10-24 | Exige senha atual e código no e-mail atual para trocar e-mail ou senha; a troca de endereço também exige verificar o novo e-mail. |
 | 2.30 | 2026-10-24 | Define que a troca de e-mail bem-sucedida gera aviso de segurança ao endereço antigo. |
+| 2.31 | 2026-10-24 | Define recuperação manual com verificação adicional e entrega ao e-mail de suporte e ao futuro Painel de Controle, sem editar o Painel nesta etapa. |
