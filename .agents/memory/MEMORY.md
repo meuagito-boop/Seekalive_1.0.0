@@ -10,4 +10,4 @@
 - [Back-end em etapas](backend-staged-rollout.md) — resolver conta antes das páginas públicas; Social precisa estar pronto antes de Seek/Shop; Painel gerirá app e Gestor depois.
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.
-- [Privacidade de sessões](session-device-privacy.md) — não inferir dispositivo habitual; sessões mostram apenas datas e status atual até haver decisão explícita sobre identificação de aparelho.
+- [Privacidade de sessões](session-device-privacy.md) — registrar IP por sessão; proteger como dado pessoal e não tratá-lo como aparelho ou local preciso.
