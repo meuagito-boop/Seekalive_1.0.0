@@ -19,11 +19,84 @@ export type ApiErrorError = {
   message: string;
   requestId: string;
   details?: ApiErrorErrorDetailsItem[];
+  /** @minimum 1 */
+  retryAfterSeconds?: number;
 };
 
 export interface ApiError {
   error: ApiErrorError;
 }
+
+export interface AccountEmailChangeRequest {
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  currentPassword: string;
+  /** @maxLength 254 */
+  newEmail: string;
+}
+
+export interface AccountPasswordChangeRequest {
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  currentPassword: string;
+  /**
+     * Must include uppercase, lowercase, numeric, and special characters.
+     * @minLength 8
+     * @maxLength 128
+     */
+  newPassword: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  passwordConfirmation: string;
+}
+
+export interface ChallengeConfirmInput {
+  challengeId: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+}
+
+export interface EmailChangeCurrentCodeResponse {
+  status: 'current_email_verification_required';
+  challengeId: string;
+  currentEmailMasked: string;
+  newEmailMasked: string;
+  expiresAt: string;
+  message: string;
+}
+
+export interface EmailChangeNewCodeResponse {
+  status: 'new_email_verification_required';
+  challengeId: string;
+  newEmailMasked: string;
+  expiresAt: string;
+  message: string;
+}
+
+export interface PasswordChangeCodeResponse {
+  status: 'password_change_verification_required';
+  challengeId: string;
+  emailMasked: string;
+  expiresAt: string;
+  message: string;
+}
+
+export interface AccountEmailChangeResult {
+  status: 'email_changed';
+  email: string;
+  securityNoticeSent: boolean;
+}
+
+export const AccountPasswordChangeResultValue = {
+  status: 'password_changed',
+} as const;
+export type AccountPasswordChangeResult = typeof AccountPasswordChangeResultValue;
 
 export type RelationshipViewFollowing = typeof RelationshipViewFollowing[keyof typeof RelationshipViewFollowing];
 
@@ -344,6 +417,11 @@ export interface FollowState {
 export type UnauthorizedResponse = ApiError;
 
 /**
+ * The account is blocked from security-sensitive changes.
+ */
+export type AccountUnavailableResponse = ApiError;
+
+/**
  * CSRF failure, blocked relationship, or inaccessible private profile
  */
 export type ForbiddenResponse = ApiError;
@@ -367,6 +445,11 @@ export type ConflictResponse = ApiError;
  * Request limit exceeded; retry after the interval in Retry-After.
  */
 export type TooManyRequestsResponse = ApiError;
+
+/**
+ * The configured e-mail provider is unavailable.
+ */
+export type EmailDeliveryUnavailableResponse = ApiError;
 
 /**
  * Profile data is inconsistent or the server could not complete the request.

@@ -48,6 +48,23 @@ export function hashPasswordUpdateCode(accountId: string, challengeId: string, c
     .digest("hex");
 }
 
+export function hashAccountPasswordChangeCode(accountId: string, challengeId: string, code: string): string {
+  return createHmac("sha256", sessionSecret)
+    .update(`account_password_change:${accountId}:${challengeId}:${code}`)
+    .digest("hex");
+}
+
+export function hashAccountEmailChangeCode(
+  accountId: string,
+  challengeId: string,
+  purpose: "account_email_change_current" | "account_email_change_new",
+  code: string,
+): string {
+  return createHmac("sha256", sessionSecret)
+    .update(`${purpose}:${accountId}:${challengeId}:${code}`)
+    .digest("hex");
+}
+
 function createPreAuthCsrf(nonce: string): string {
   return createHmac("sha256", sessionSecret).update(`pre-auth-csrf:${nonce}`).digest("base64url");
 }

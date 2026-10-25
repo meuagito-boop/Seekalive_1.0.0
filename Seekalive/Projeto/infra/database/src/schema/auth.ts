@@ -103,6 +103,7 @@ export const authChallenges = applicationTable(
     purpose: varchar("purpose", { length: 32 }).notNull(),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     deviceTokenHash: varchar("device_token_hash", { length: 64 }),
+    pendingEmail: varchar("pending_email", { length: 254 }),
     pendingPasswordHash: text("pending_password_hash"),
     basePasswordHash: text("base_password_hash"),
     attempts: integer("attempts").default(0).notNull(),

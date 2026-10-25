@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 const schemaName = `seekalive_test_${randomUUID().replaceAll("-", "")}`;
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -141,6 +141,10 @@ const emailMessages = [];
 const passwordResetMessages = [];
 const deviceLoginMessages = [];
 const passwordUpdateMessages = [];
+const accountPasswordChangeMessages = [];
+const accountEmailChangeCurrentMessages = [];
+const accountEmailChangeNewMessages = [];
+const accountEmailChangeSecurityNotices = [];
 
 before(async () => {
   const { rows } = await pool.query("SELECT current_database() AS database_name");
@@ -194,6 +198,18 @@ before(async () => {
     },
     async sendPasswordUpdateCode(message) {
       passwordUpdateMessages.push(message);
+    },
+    async sendAccountPasswordChangeCode(message) {
+      accountPasswordChangeMessages.push(message);
+    },
+    async sendAccountEmailChangeCurrentCode(message) {
+      accountEmailChangeCurrentMessages.push(message);
+    },
+    async sendAccountEmailChangeNewCode(message) {
+      accountEmailChangeNewMessages.push(message);
+    },
+    async sendAccountEmailChangeSecurityNotice(message) {
+      accountEmailChangeSecurityNotices.push(message);
     },
   });
 
@@ -1563,4 +1579,186 @@ test("three incorrect device codes lock the account and expose the configured su
   assert.equal(blockedLogin.response.status, 423);
   assert.equal(blockedLogin.body.error.code, "SECURITY_LOCKED");
   assert.equal(blockedLogin.body.error.supportEmail, "admseekalive@gmail.com");
+});
+
+test("authenticated e-mail and password changes verify both mailboxes and revoke trusted sessions", async () => {
+  const suffix = randomUUID().slice(0, 8);
+  const clientIp = "203.0.113.113";
+  const currentPassword = "B01_Account_Change_2026!";
+  const newPassword = "B02_Account_Change_2026!";
+  const currentEmail = `change-${suffix}@example.com`;
+  const newEmail = `changed-${suffix}@example.com`;
+  const preAuth = await createPreAuth();
+  const pending = await registerAccount({
+    accountType: "personal",
+    firstName: "Conta",
+    lastName: "Alteracao",
+    username: `change_${suffix}`,
+    email: currentEmail,
+    age: 32,
+    password: currentPassword,
+    passwordConfirmation: currentPassword,
+    acceptedTermsVersion: "v1",
+  }, preAuth, clientIp);
+  const account = await confirmAccount(pending, preAuth, clientIp);
+
+  const malformedEmail = await request("/api/v1/auth/account/email/change/request", {
+    method: "POST",
+    body: { currentPassword, newEmail: "not-an-email" },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(malformedEmail.response.status, 400);
+  const wrongCurrentPassword = await request("/api/v1/auth/account/email/change/request", {
+    method: "POST",
+    body: { currentPassword: "Incorrect_Password_2026!", newEmail },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(wrongCurrentPassword.response.status, 401);
+  assert.equal(wrongCurrentPassword.body.error.code, "INVALID_CURRENT_PASSWORD");
+
+  const emailRequest = await request("/api/v1/auth/account/email/change/request", {
+    method: "POST",
+    body: { currentPassword, newEmail },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(emailRequest.response.status, 202, JSON.stringify(emailRequest.body));
+  assert.equal(emailRequest.body.status, "current_email_verification_required");
+  const currentEmailCode = accountEmailChangeCurrentMessages.at(-1);
+  assert.equal(currentEmailCode.email, currentEmail);
+
+  const wrongCurrentCode = currentEmailCode.code === "000000" ? "000001" : "000000";
+  const rejectedCurrentCode = await request("/api/v1/auth/account/email/change/confirm-current", {
+    method: "POST",
+    body: { challengeId: emailRequest.body.challengeId, code: wrongCurrentCode },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(rejectedCurrentCode.response.status, 400);
+
+  const currentEmailConfirmed = await request("/api/v1/auth/account/email/change/confirm-current", {
+    method: "POST",
+    body: { challengeId: emailRequest.body.challengeId, code: currentEmailCode.code },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(currentEmailConfirmed.response.status, 202, JSON.stringify(currentEmailConfirmed.body));
+  assert.equal(currentEmailConfirmed.body.status, "new_email_verification_required");
+  const newEmailCode = accountEmailChangeNewMessages.at(-1);
+  assert.equal(newEmailCode.email, newEmail);
+
+  const wrongNewCode = newEmailCode.code === "000000" ? "000001" : "000000";
+  const rejectedNewCode = await request("/api/v1/auth/account/email/change/confirm-new", {
+    method: "POST",
+    body: { challengeId: currentEmailConfirmed.body.challengeId, code: wrongNewCode },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(rejectedNewCode.response.status, 400);
+
+  const [emailBeforeFinalCode] = await db
+    .select({ email: accountEmails.emailNormalized })
+    .from(accountEmails)
+    .where(eq(accountEmails.accountId, account.account.id));
+  assert.equal(emailBeforeFinalCode.email, currentEmail);
+
+  const newEmailConfirmed = await request("/api/v1/auth/account/email/change/confirm-new", {
+    method: "POST",
+    body: { challengeId: currentEmailConfirmed.body.challengeId, code: newEmailCode.code },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(newEmailConfirmed.response.status, 200, JSON.stringify(newEmailConfirmed.body));
+  assert.equal(newEmailConfirmed.body.status, "email_changed");
+  assert.equal(newEmailConfirmed.body.email, newEmail);
+  assert.equal(newEmailConfirmed.body.securityNoticeSent, true);
+  assert.equal(accountEmailChangeSecurityNotices.at(-1).email, currentEmail);
+
+  const [emailAfterConfirmation] = await db
+    .select({ email: accountEmails.emailNormalized })
+    .from(accountEmails)
+    .where(eq(accountEmails.accountId, account.account.id));
+  assert.equal(emailAfterConfirmation.email, newEmail);
+  const consumedEmailChanges = await db
+    .select({ pendingEmail: authChallenges.pendingEmail })
+    .from(authChallenges)
+    .where(and(
+      eq(authChallenges.accountId, account.account.id),
+      inArray(authChallenges.purpose, ["account_email_change_current", "account_email_change_new"]),
+    ));
+  assert.ok(consumedEmailChanges.length >= 2);
+  assert.ok(consumedEmailChanges.every((challenge) => challenge.pendingEmail === null));
+
+  const passwordRequest = await request("/api/v1/auth/account/password/change/request", {
+    method: "POST",
+    body: {
+      currentPassword,
+      newPassword,
+      passwordConfirmation: newPassword,
+    },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(passwordRequest.response.status, 202, JSON.stringify(passwordRequest.body));
+  assert.equal(passwordRequest.body.status, "password_change_verification_required");
+  assert.equal(accountPasswordChangeMessages.at(-1).email, newEmail);
+
+  const passwordChangeMessage = accountPasswordChangeMessages.at(-1);
+  const wrongPasswordCode = passwordChangeMessage.code === "000000" ? "000001" : "000000";
+  const rejectedPasswordCode = await request("/api/v1/auth/account/password/change/confirm", {
+    method: "POST",
+    body: { challengeId: passwordRequest.body.challengeId, code: wrongPasswordCode },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(rejectedPasswordCode.response.status, 400);
+
+  const passwordConfirmed = await request("/api/v1/auth/account/password/change/confirm", {
+    method: "POST",
+    body: {
+      challengeId: passwordRequest.body.challengeId,
+      code: passwordChangeMessage.code,
+    },
+    auth: account,
+    clientIp,
+  });
+  assert.equal(passwordConfirmed.response.status, 200, JSON.stringify(passwordConfirmed.body));
+  assert.equal(passwordConfirmed.body.status, "password_changed");
+  const activeSessions = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(and(eq(sessions.accountId, account.account.id), isNull(sessions.revokedAt)));
+  assert.equal(activeSessions.length, 0);
+  const activeDevices = await db
+    .select({ id: trustedDevices.id })
+    .from(trustedDevices)
+    .where(and(eq(trustedDevices.accountId, account.account.id), isNull(trustedDevices.revokedAt)));
+  assert.equal(activeDevices.length, 0);
+  const consumedPasswordChanges = await db
+    .select({
+      pendingPasswordHash: authChallenges.pendingPasswordHash,
+      basePasswordHash: authChallenges.basePasswordHash,
+    })
+    .from(authChallenges)
+    .where(and(
+      eq(authChallenges.accountId, account.account.id),
+      eq(authChallenges.purpose, "account_password_change"),
+    ));
+  assert.ok(consumedPasswordChanges.length >= 1);
+  assert.ok(consumedPasswordChanges.every(
+    (challenge) => challenge.pendingPasswordHash === null && challenge.basePasswordHash === null,
+  ));
+
+  const nextLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: newEmail, password: newPassword },
+    auth: await createPreAuth(),
+    clientIp,
+    autoDeviceVerification: false,
+  });
+  assert.equal(nextLogin.response.status, 202, JSON.stringify(nextLogin.body));
+  assert.equal(nextLogin.body.status, "device_verification_required");
+  assert.equal(deviceLoginMessages.at(-1).email, newEmail);
 });

@@ -82,6 +82,34 @@ export const passwordPolicyUpdateSchema = z
     }
   });
 
+export const accountPasswordChangeRequestSchema = z
+  .object({
+    currentPassword: z.string().min(8).max(128),
+    newPassword: passwordPolicySchema,
+    passwordConfirmation: passwordPolicySchema,
+  })
+  .superRefine((value, context) => {
+    if (value.newPassword === value.currentPassword) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["newPassword"],
+        message: "A nova senha deve ser diferente da senha atual.",
+      });
+    }
+    if (value.newPassword !== value.passwordConfirmation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["passwordConfirmation"],
+        message: "As senhas não coincidem.",
+      });
+    }
+  });
+
+export const accountEmailChangeRequestSchema = z.object({
+  currentPassword: z.string().min(8).max(128),
+  newEmail: z.string().trim().toLowerCase().email().max(254),
+});
+
 export const passwordResetRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
 });

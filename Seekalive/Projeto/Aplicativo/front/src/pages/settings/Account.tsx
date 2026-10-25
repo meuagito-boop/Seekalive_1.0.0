@@ -7,8 +7,17 @@ import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
 import type { User } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { accountPasswordChangeRequestSchema } from "@workspace/api-zod";
+import {
+  confirmAccountPasswordChange,
+  confirmCurrentAccountEmailChange,
+  confirmNewAccountEmailChange,
+  requestAccountEmailChange,
+  requestAccountPasswordChange,
+} from "@/services/authApi";
 import { myAccountToUser, socialGraphApi, SocialGraphApiError } from "@/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
+import { useLocation } from "wouter";
 import { SettingsSubheader, SectionTitle, UnavailableNotice } from "./SettingsSubheader";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
@@ -58,7 +67,8 @@ function requestErrorMessage(error: unknown): string {
 
 export default function SettingsAccount() {
   const shouldReduceMotion = useReducedMotion();
-  const { currentUser, updateAccount } = useAppContext();
+  const { currentUser, updateAccount, logout } = useAppContext();
+  const [, setLocation] = useLocation();
   const {
     users,
     updateUser,
@@ -76,6 +86,25 @@ export default function SettingsAccount() {
   const [isLoading, setIsLoading] = useState(isRemoteSocialSession);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingUsername, setIsSavingUsername] = useState(false);
+  const [emailChangeStep, setEmailChangeStep] = useState<"idle" | "confirm-current" | "confirm-new">("idle");
+  const [emailChangeChallengeId, setEmailChangeChallengeId] = useState("");
+  const [emailChangeCurrentMasked, setEmailChangeCurrentMasked] = useState("");
+  const [emailChangeNewMasked, setEmailChangeNewMasked] = useState("");
+  const [emailChangeExpiresAt, setEmailChangeExpiresAt] = useState("");
+  const [emailChangePassword, setEmailChangePassword] = useState("");
+  const [emailChangeNewEmail, setEmailChangeNewEmail] = useState("");
+  const [emailChangeCode, setEmailChangeCode] = useState("");
+  const [emailChangeError, setEmailChangeError] = useState<string | null>(null);
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [passwordChangeChallengeId, setPasswordChangeChallengeId] = useState("");
+  const [passwordChangeEmailMasked, setPasswordChangeEmailMasked] = useState("");
+  const [passwordChangeExpiresAt, setPasswordChangeExpiresAt] = useState("");
+  const [passwordCurrent, setPasswordCurrent] = useState("");
+  const [passwordNew, setPasswordNew] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [passwordChangeCode, setPasswordChangeCode] = useState("");
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [retryLoad, setRetryLoad] = useState(0);
 
   useEffect(() => {
@@ -283,6 +312,174 @@ export default function SettingsAccount() {
     }
   }
 
+  function resetEmailChange() {
+    setEmailChangeStep("idle");
+    setEmailChangeChallengeId("");
+    setEmailChangeCurrentMasked("");
+    setEmailChangeNewMasked("");
+    setEmailChangeExpiresAt("");
+    setEmailChangePassword("");
+    setEmailChangeNewEmail("");
+    setEmailChangeCode("");
+    setEmailChangeError(null);
+  }
+
+  async function submitEmailChangeRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isRemoteSocialSession) return;
+    setIsChangingEmail(true);
+    setEmailChangeError(null);
+    try {
+      const result = await requestAccountEmailChange({
+        currentPassword: emailChangePassword,
+        newEmail: emailChangeNewEmail,
+      });
+      setEmailChangeChallengeId(result.challengeId);
+      setEmailChangeCurrentMasked(result.currentEmailMasked ?? "");
+      setEmailChangeNewMasked(result.newEmailMasked ?? "");
+      setEmailChangeExpiresAt(result.expiresAt);
+      setEmailChangePassword("");
+      setEmailChangeNewEmail("");
+      setEmailChangeCode("");
+      setEmailChangeStep("confirm-current");
+      toast({ title: "Código enviado", description: result.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível iniciar a troca de e-mail.";
+      setEmailChangeError(message);
+    } finally {
+      setIsChangingEmail(false);
+    }
+  }
+
+  async function submitCurrentEmailCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!emailChangeChallengeId) return;
+    setIsChangingEmail(true);
+    setEmailChangeError(null);
+    try {
+      const result = await confirmCurrentAccountEmailChange({
+        challengeId: emailChangeChallengeId,
+        code: emailChangeCode,
+      });
+      setEmailChangeChallengeId(result.challengeId);
+      setEmailChangeNewMasked(result.newEmailMasked ?? emailChangeNewMasked);
+      setEmailChangeExpiresAt(result.expiresAt);
+      setEmailChangeCode("");
+      setEmailChangeStep("confirm-new");
+      toast({ title: "E-mail atual confirmado", description: result.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível confirmar o código.";
+      setEmailChangeError(message);
+    } finally {
+      setIsChangingEmail(false);
+    }
+  }
+
+  async function submitNewEmailCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!emailChangeChallengeId) return;
+    setIsChangingEmail(true);
+    setEmailChangeError(null);
+    try {
+      const result = await confirmNewAccountEmailChange({
+        challengeId: emailChangeChallengeId,
+        code: emailChangeCode,
+      });
+      setRemoteProfile((profile) => profile ? { ...profile, email: result.email } : profile);
+      if (currentUser) {
+        const updatedUser = { ...currentUser, email: result.email };
+        updateAccount(updatedUser);
+        updateUser(updatedUser);
+        upsertRemoteUser(updatedUser);
+      }
+      resetEmailChange();
+      toast({
+        title: "E-mail alterado",
+        description: result.securityNoticeSent
+          ? "O novo endereço foi confirmado. Enviamos um aviso ao e-mail anterior."
+          : "O novo endereço foi confirmado, mas não foi possível enviar o aviso ao e-mail anterior.",
+        ...(result.securityNoticeSent ? {} : { variant: "destructive" as const }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível confirmar o novo e-mail.";
+      setEmailChangeError(message);
+    } finally {
+      setIsChangingEmail(false);
+    }
+  }
+
+  function resetPasswordChange() {
+    setPasswordChangeChallengeId("");
+    setPasswordChangeEmailMasked("");
+    setPasswordChangeExpiresAt("");
+    setPasswordCurrent("");
+    setPasswordNew("");
+    setPasswordConfirmation("");
+    setPasswordChangeCode("");
+    setPasswordChangeError(null);
+  }
+
+  async function submitPasswordChangeRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isRemoteSocialSession) return;
+    const validation = accountPasswordChangeRequestSchema.safeParse({
+      currentPassword: passwordCurrent,
+      newPassword: passwordNew,
+      passwordConfirmation,
+    });
+    if (!validation.success) {
+      setPasswordChangeError(validation.error.issues[0]?.message ?? "Confira os dados da nova senha.");
+      return;
+    }
+    setIsChangingPassword(true);
+    setPasswordChangeError(null);
+    try {
+      const result = await requestAccountPasswordChange({
+        currentPassword: passwordCurrent,
+        newPassword: passwordNew,
+        passwordConfirmation,
+      });
+      setPasswordChangeChallengeId(result.challengeId);
+      setPasswordChangeEmailMasked(result.emailMasked ?? "");
+      setPasswordChangeExpiresAt(result.expiresAt);
+      setPasswordCurrent("");
+      setPasswordNew("");
+      setPasswordConfirmation("");
+      setPasswordChangeCode("");
+      toast({ title: "Código enviado", description: result.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível iniciar a troca de senha.";
+      setPasswordChangeError(message);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }
+
+  async function submitPasswordChangeCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!passwordChangeChallengeId) return;
+    setIsChangingPassword(true);
+    setPasswordChangeError(null);
+    try {
+      await confirmAccountPasswordChange({
+        challengeId: passwordChangeChallengeId,
+        code: passwordChangeCode,
+      });
+      resetPasswordChange();
+      toast({
+        title: "Senha alterada",
+        description: "Por segurança, todas as sessões foram encerradas. Entre novamente com a nova senha.",
+      });
+      await logout();
+      setLocation("/login");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível confirmar a troca de senha.";
+      setPasswordChangeError(message);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }
+
   const disabled = isLoading || Boolean(loadError) || isSavingProfile || isSavingUsername;
   const disabledField = "h-12 bg-card border-border rounded-xl";
 
@@ -421,7 +618,7 @@ export default function SettingsAccount() {
                 placeholder="E-mail verificado"
                 className={`${disabledField} opacity-70`}
               />
-              <p className="text-xs text-muted-foreground">O e-mail é somente para consulta nesta tela. A troca exige um fluxo separado de nova verificação.</p>
+              <p className="text-xs text-muted-foreground">Para alterar o e-mail, use o fluxo de confirmação abaixo.</p>
               {profileError && <p role="alert" className="text-sm text-destructive">{profileError}</p>}
               <Button
                 type="submit"
@@ -474,9 +671,197 @@ export default function SettingsAccount() {
             </form>
 
             <SectionTitle>E-mail e senha</SectionTitle>
-            <UnavailableNotice>
-              A recuperação de senha está disponível pela opção “Esqueci minha senha” na tela de entrada. Alterar a senha atual e trocar o e-mail ainda exigem fluxos próprios; nenhum campo desta seção altera essas credenciais.
-            </UnavailableNotice>
+            {!isRemoteSocialSession ? (
+              <UnavailableNotice>
+                A demonstração deste navegador não altera credenciais. A troca de e-mail e senha exige uma conta autenticada pela API.
+              </UnavailableNotice>
+            ) : (
+              <div className="space-y-5 px-4 pt-2">
+                <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="email-change-title">
+                  <div>
+                    <h3 id="email-change-title" className="text-base font-semibold">Trocar e-mail</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      O endereço atual continua ativo até você confirmar o código enviado ao novo e-mail.
+                    </p>
+                  </div>
+                  {emailChangeStep === "idle" ? (
+                    <form onSubmit={(event) => void submitEmailChangeRequest(event)} className="space-y-3">
+                      <Input
+                        type="email"
+                        value={emailChangeNewEmail}
+                        onChange={(event) => setEmailChangeNewEmail(event.target.value)}
+                        aria-label="Novo endereço de e-mail"
+                        aria-invalid={Boolean(emailChangeError)}
+                        aria-describedby={emailChangeError ? "email-change-error" : undefined}
+                        autoComplete="email"
+                        maxLength={254}
+                        required
+                        placeholder="Novo e-mail"
+                        className={disabledField}
+                        disabled={isChangingEmail}
+                      />
+                      <Input
+                        type="password"
+                        value={emailChangePassword}
+                        onChange={(event) => setEmailChangePassword(event.target.value)}
+                        aria-label="Senha atual para autorizar a troca de e-mail"
+                        aria-invalid={Boolean(emailChangeError)}
+                        aria-describedby={emailChangeError ? "email-change-error" : undefined}
+                        autoComplete="current-password"
+                        maxLength={128}
+                        required
+                        placeholder="Senha atual"
+                        className={disabledField}
+                        disabled={isChangingEmail}
+                      />
+                      <Button type="submit" className="min-h-11 rounded-xl" disabled={isChangingEmail}>
+                        {isChangingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                        Enviar código ao e-mail atual
+                      </Button>
+                    </form>
+                  ) : (
+                    <form
+                      onSubmit={(event) => void (emailChangeStep === "confirm-current"
+                        ? submitCurrentEmailCode(event)
+                        : submitNewEmailCode(event))}
+                      className="space-y-3"
+                    >
+                      <p className="text-sm text-muted-foreground">
+                        {emailChangeStep === "confirm-current"
+                          ? `Digite o código enviado ao e-mail atual ${emailChangeCurrentMasked}.`
+                          : `Digite o código enviado ao novo endereço ${emailChangeNewMasked}.`}
+                        {" "}O código expira às {new Date(emailChangeExpiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
+                      </p>
+                      <Input
+                        value={emailChangeCode}
+                        onChange={(event) => setEmailChangeCode(event.currentTarget.value.replace(/\D/g, "").slice(0, 6))}
+                        aria-label="Código de confirmação do e-mail"
+                        aria-invalid={Boolean(emailChangeError)}
+                        aria-describedby={emailChangeError ? "email-change-error" : undefined}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        minLength={6}
+                        required
+                        placeholder="Código de 6 dígitos"
+                        className={disabledField}
+                        disabled={isChangingEmail}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="submit" className="min-h-11 rounded-xl" disabled={isChangingEmail || emailChangeCode.length !== 6}>
+                          {isChangingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                          {emailChangeStep === "confirm-current" ? "Confirmar e enviar ao novo e-mail" : "Confirmar novo e-mail"}
+                        </Button>
+                        <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={isChangingEmail} onClick={resetEmailChange}>
+                          Iniciar novamente
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                  {emailChangeError && <p id="email-change-error" role="alert" className="text-sm text-destructive">{emailChangeError}</p>}
+                </section>
+
+                <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="password-change-title">
+                  <div>
+                    <h3 id="password-change-title" className="text-base font-semibold">Trocar senha</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Você precisará da senha atual e de um código enviado a {email}.
+                      Após a confirmação, todas as sessões e instalações reconhecidas serão revogadas.
+                    </p>
+                  </div>
+                  {!passwordChangeChallengeId ? (
+                    <form onSubmit={(event) => void submitPasswordChangeRequest(event)} className="space-y-3">
+                      <Input
+                        type="password"
+                        value={passwordCurrent}
+                        onChange={(event) => setPasswordCurrent(event.target.value)}
+                        aria-label="Senha atual"
+                        aria-invalid={Boolean(passwordChangeError)}
+                        aria-describedby={passwordChangeError ? "password-change-error" : undefined}
+                        autoComplete="current-password"
+                        maxLength={128}
+                        required
+                        placeholder="Senha atual"
+                        className={disabledField}
+                        disabled={isChangingPassword}
+                      />
+                      <Input
+                        type="password"
+                        value={passwordNew}
+                        onChange={(event) => setPasswordNew(event.target.value)}
+                        aria-label="Nova senha"
+                        aria-invalid={Boolean(passwordChangeError)}
+                        aria-describedby={passwordChangeError ? "password-change-error" : undefined}
+                        autoComplete="new-password"
+                        maxLength={128}
+                        required
+                        placeholder="Nova senha"
+                        className={disabledField}
+                        disabled={isChangingPassword}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Mínimo de 8 caracteres, com letra maiúscula, minúscula, número e caractere especial.
+                      </p>
+                      <Input
+                        type="password"
+                        value={passwordConfirmation}
+                        onChange={(event) => setPasswordConfirmation(event.target.value)}
+                        aria-label="Confirme a nova senha"
+                        aria-invalid={Boolean(passwordChangeError)}
+                        aria-describedby={passwordChangeError ? "password-change-error" : undefined}
+                        autoComplete="new-password"
+                        maxLength={128}
+                        required
+                        placeholder="Confirme a nova senha"
+                        className={disabledField}
+                        disabled={isChangingPassword}
+                      />
+                      <Button type="submit" className="min-h-11 rounded-xl" disabled={isChangingPassword}>
+                        {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                        Enviar código ao e-mail atual
+                      </Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={(event) => void submitPasswordChangeCode(event)} className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Digite o código enviado a {passwordChangeEmailMasked}. Ele expira às{" "}
+                        {new Date(passwordChangeExpiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
+                      </p>
+                      <Input
+                        value={passwordChangeCode}
+                        onChange={(event) => setPasswordChangeCode(event.currentTarget.value.replace(/\D/g, "").slice(0, 6))}
+                        aria-label="Código para confirmar a troca de senha"
+                        aria-invalid={Boolean(passwordChangeError)}
+                        aria-describedby={passwordChangeError ? "password-change-error" : undefined}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        minLength={6}
+                        required
+                        placeholder="Código de 6 dígitos"
+                        className={disabledField}
+                        disabled={isChangingPassword}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="submit" className="min-h-11 rounded-xl" disabled={isChangingPassword || passwordChangeCode.length !== 6}>
+                          {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                          Confirmar troca e encerrar sessões
+                        </Button>
+                        <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={isChangingPassword} onClick={resetPasswordChange}>
+                          Iniciar novamente
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                  {passwordChangeError && <p id="password-change-error" role="alert" className="text-sm text-destructive">{passwordChangeError}</p>}
+                </section>
+
+                <p className="text-xs text-muted-foreground">
+                  Sem acesso ao e-mail atual? Solicite ajuda ao suporte:{" "}
+                  <a className="underline underline-offset-2" href="mailto:admseekalive@gmail.com">admseekalive@gmail.com</a>.
+                </p>
+              </div>
+            )}
 
             <SectionTitle>Contas conectadas</SectionTitle>
             <div className="px-4 pt-2 space-y-2">

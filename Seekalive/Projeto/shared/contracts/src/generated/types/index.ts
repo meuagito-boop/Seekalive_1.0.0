@@ -6,19 +6,28 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './accountEmailChangeRequest';
+export * from './accountEmailChangeResult';
 export * from './accountList';
 export * from './accountPage';
+export * from './accountPasswordChangeRequest';
+export * from './accountPasswordChangeResult';
 export * from './accountPatch';
 export * from './accountStats';
+export * from './accountUnavailableResponse';
 export * from './accountView';
 export * from './accountViewAccountType';
 export * from './apiError';
 export * from './apiErrorError';
 export * from './apiErrorErrorDetailsItem';
+export * from './challengeConfirmInput';
 export * from './circleMember';
 export * from './circlePage';
 export * from './commercialAccountPatch';
 export * from './conflictResponse';
+export * from './emailChangeCurrentCodeResponse';
+export * from './emailChangeNewCodeResponse';
+export * from './emailDeliveryUnavailableResponse';
 export * from './followRequest';
 export * from './followRequestPage';
 export * from './followState';
@@ -36,6 +45,7 @@ export * from './ownerCommercialProfile';
 export * from './ownerCommercialProfileDiscoveryKind';
 export * from './pageCursorParameter';
 export * from './pageLimitParameter';
+export * from './passwordChangeCodeResponse';
 export * from './privacySettings';
 export * from './privacySettingsMessages';
 export * from './privacySettingsProfileVisibility';

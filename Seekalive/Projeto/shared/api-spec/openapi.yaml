@@ -14,6 +14,8 @@ tags:
     description: Public profile views and account settings
   - name: social-graph
     description: Follows, private follow requests, mutual circles, and blocks
+  - name: auth-security
+    description: Authenticated e-mail and password changes
 paths:
   /healthz:
     get:
@@ -28,6 +30,181 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /v1/auth/account/email/change/request:
+    post:
+      operationId: requestAccountEmailChange
+      tags: [auth-security]
+      summary: Start a verified e-mail change
+      description: Requires the current password. Sends the first code to the currently verified e-mail; the current address remains active until the new address is confirmed.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountEmailChangeRequest"
+      responses:
+        "202":
+          description: Code sent to the current verified address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailChangeCurrentCodeResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/account/email/change/confirm-current:
+    post:
+      operationId: confirmCurrentAccountEmailChange
+      tags: [auth-security]
+      summary: Confirm access to the current e-mail
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeConfirmInput"
+      responses:
+        "202":
+          description: Current address confirmed; a second code was sent to the proposed new address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailChangeNewCodeResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/account/email/change/confirm-new:
+    post:
+      operationId: confirmNewAccountEmailChange
+      tags: [auth-security]
+      summary: Confirm and activate the new e-mail
+      description: Updates the account e-mail only after confirming the new address, then sends a security notice to the former address.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeConfirmInput"
+      responses:
+        "200":
+          description: New address confirmed and activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountEmailChangeResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/account/password/change/request:
+    post:
+      operationId: requestAccountPasswordChange
+      tags: [auth-security]
+      summary: Start an authenticated password change
+      description: Requires the current password and sends a code to the current verified e-mail.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountPasswordChangeRequest"
+      responses:
+        "202":
+          description: Confirmation code sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordChangeCodeResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/account/password/change/confirm:
+    post:
+      operationId: confirmAccountPasswordChange
+      tags: [auth-security]
+      summary: Confirm a password change
+      description: Updates the password and revokes all sessions and recognized installations.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeConfirmInput"
+      responses:
+        "200":
+          description: Password changed; the server clears the current session cookies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPasswordChangeResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/accounts/me:
     get:
       operationId: getMyAccount
@@ -471,6 +648,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ApiError"
+    AccountUnavailable:
+      description: The account is blocked from security-sensitive changes.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
     Forbidden:
       description: CSRF failure, blocked relationship, or inaccessible private profile
       content:
@@ -502,6 +685,12 @@ components:
           description: Number of seconds before another request may be accepted.
           schema:
             type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    EmailDeliveryUnavailable:
+      description: The configured e-mail provider is unavailable.
       content:
         application/json:
           schema:
@@ -542,8 +731,120 @@ components:
                   message:
                     type: string
                 required: [field, message]
+            retryAfterSeconds:
+              type: integer
+              minimum: 1
           required: [code, message, requestId]
       required: [error]
+    AccountEmailChangeRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+        newEmail:
+          type: string
+          format: email
+          maxLength: 254
+      required: [currentPassword, newEmail]
+      additionalProperties: false
+    AccountPasswordChangeRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must include uppercase, lowercase, numeric, and special characters.
+        passwordConfirmation:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required: [currentPassword, newPassword, passwordConfirmation]
+      additionalProperties: false
+    ChallengeConfirmInput:
+      type: object
+      properties:
+        challengeId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+      required: [challengeId, code]
+      additionalProperties: false
+    EmailChangeCurrentCodeResponse:
+      type: object
+      properties:
+        status:
+          const: current_email_verification_required
+        challengeId:
+          type: string
+          format: uuid
+        currentEmailMasked:
+          type: string
+        newEmailMasked:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+      required: [status, challengeId, currentEmailMasked, newEmailMasked, expiresAt, message]
+    EmailChangeNewCodeResponse:
+      type: object
+      properties:
+        status:
+          const: new_email_verification_required
+        challengeId:
+          type: string
+          format: uuid
+        newEmailMasked:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+      required: [status, challengeId, newEmailMasked, expiresAt, message]
+    PasswordChangeCodeResponse:
+      type: object
+      properties:
+        status:
+          const: password_change_verification_required
+        challengeId:
+          type: string
+          format: uuid
+        emailMasked:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+      required: [status, challengeId, emailMasked, expiresAt, message]
+    AccountEmailChangeResult:
+      type: object
+      properties:
+        status:
+          const: email_changed
+        email:
+          type: string
+          format: email
+        securityNoticeSent:
+          type: boolean
+      required: [status, email, securityNoticeSent]
+    AccountPasswordChangeResult:
+      type: object
+      properties:
+        status:
+          const: password_changed
+      required: [status]
     RelationshipView:
       type: object
       properties:

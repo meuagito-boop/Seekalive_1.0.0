@@ -15,6 +15,13 @@
       "when": 1792909350220,
       "tag": "0001_ancient_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792911013962,
+      "tag": "0002_magenta_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

@@ -55,12 +55,15 @@ import {
   setSessionCookie,
 } from "../../../security/session";
 import {
-  authEmailDelivery,
   EmailDeliveryUnavailableError,
+  getAuthEmailDelivery,
+  setAuthEmailDeliveryForTests,
   type AuthEmailDelivery,
 } from "../infrastructure/emailDelivery";
+import accountSecurityRouter from "./accountSecurityRoutes";
 
 const router: IRouter = Router();
+router.use("/account", accountSecurityRouter);
 const CURRENT_TERMS_VERSION = "v1";
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
@@ -84,18 +87,8 @@ const ARGON2ID_OPTIONS = {
   timeCost: 3,
   parallelism: 1,
 };
-let testEmailDelivery: AuthEmailDelivery | undefined;
 
-export function setAuthEmailDeliveryForTests(delivery: AuthEmailDelivery): void {
-  if (process.env.NODE_ENV !== "test") {
-    throw new Error("Test email delivery can only be configured in NODE_ENV=test.");
-  }
-  testEmailDelivery = delivery;
-}
-
-function getAuthEmailDelivery(): AuthEmailDelivery {
-  return testEmailDelivery ?? authEmailDelivery;
-}
+export { setAuthEmailDeliveryForTests };
 
 const fallbackPasswordHashPromise = argon2.hash("seekalive-invalid-user-placeholder", {
   ...ARGON2ID_OPTIONS,

@@ -18,6 +18,118 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Requires the current password. Sends the first code to the currently verified e-mail; the current address remains active until the new address is confirmed.
+ * @summary Start a verified e-mail change
+ */
+export const requestAccountEmailChangeBodyCurrentPasswordMin = 8;
+export const requestAccountEmailChangeBodyCurrentPasswordMax = 128;
+
+export const requestAccountEmailChangeBodyNewEmailMax = 254;
+
+
+
+export const RequestAccountEmailChangeBody = zod.object({
+  "currentPassword": zod.string().min(requestAccountEmailChangeBodyCurrentPasswordMin).max(requestAccountEmailChangeBodyCurrentPasswordMax),
+  "newEmail": zod.email().max(requestAccountEmailChangeBodyNewEmailMax)
+})
+
+export const RequestAccountEmailChangeResponse = zod.object({
+  "status": zod.literal("current_email_verification_required"),
+  "challengeId": zod.uuid(),
+  "currentEmailMasked": zod.string(),
+  "newEmailMasked": zod.string(),
+  "expiresAt": zod.coerce.date(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Confirm access to the current e-mail
+ */
+export const confirmCurrentAccountEmailChangeBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmCurrentAccountEmailChangeBody = zod.object({
+  "challengeId": zod.uuid(),
+  "code": zod.string().regex(confirmCurrentAccountEmailChangeBodyCodeRegExp)
+})
+
+export const ConfirmCurrentAccountEmailChangeResponse = zod.object({
+  "status": zod.literal("new_email_verification_required"),
+  "challengeId": zod.uuid(),
+  "newEmailMasked": zod.string(),
+  "expiresAt": zod.coerce.date(),
+  "message": zod.string()
+})
+
+
+/**
+ * Updates the account e-mail only after confirming the new address, then sends a security notice to the former address.
+ * @summary Confirm and activate the new e-mail
+ */
+export const confirmNewAccountEmailChangeBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmNewAccountEmailChangeBody = zod.object({
+  "challengeId": zod.uuid(),
+  "code": zod.string().regex(confirmNewAccountEmailChangeBodyCodeRegExp)
+})
+
+export const ConfirmNewAccountEmailChangeResponse = zod.object({
+  "status": zod.literal("email_changed"),
+  "email": zod.email(),
+  "securityNoticeSent": zod.boolean()
+})
+
+
+/**
+ * Requires the current password and sends a code to the current verified e-mail.
+ * @summary Start an authenticated password change
+ */
+export const requestAccountPasswordChangeBodyCurrentPasswordMin = 8;
+export const requestAccountPasswordChangeBodyCurrentPasswordMax = 128;
+
+export const requestAccountPasswordChangeBodyNewPasswordMin = 8;
+export const requestAccountPasswordChangeBodyNewPasswordMax = 128;
+
+export const requestAccountPasswordChangeBodyPasswordConfirmationMin = 8;
+export const requestAccountPasswordChangeBodyPasswordConfirmationMax = 128;
+
+
+
+export const RequestAccountPasswordChangeBody = zod.object({
+  "currentPassword": zod.string().min(requestAccountPasswordChangeBodyCurrentPasswordMin).max(requestAccountPasswordChangeBodyCurrentPasswordMax),
+  "newPassword": zod.string().min(requestAccountPasswordChangeBodyNewPasswordMin).max(requestAccountPasswordChangeBodyNewPasswordMax).describe('Must include uppercase, lowercase, numeric, and special characters.'),
+  "passwordConfirmation": zod.string().min(requestAccountPasswordChangeBodyPasswordConfirmationMin).max(requestAccountPasswordChangeBodyPasswordConfirmationMax)
+})
+
+export const RequestAccountPasswordChangeResponse = zod.object({
+  "status": zod.literal("password_change_verification_required"),
+  "challengeId": zod.uuid(),
+  "emailMasked": zod.string(),
+  "expiresAt": zod.coerce.date(),
+  "message": zod.string()
+})
+
+
+/**
+ * Updates the password and revokes all sessions and recognized installations.
+ * @summary Confirm a password change
+ */
+export const confirmAccountPasswordChangeBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmAccountPasswordChangeBody = zod.object({
+  "challengeId": zod.uuid(),
+  "code": zod.string().regex(confirmAccountPasswordChangeBodyCodeRegExp)
+})
+
+export const ConfirmAccountPasswordChangeResponse = zod.object({
+  "status": zod.literal("password_changed")
+})
+
+
+/**
  * @summary Get the authenticated account profile
  */
 export const getMyAccountResponseAccountDisplayNameMax = 100;

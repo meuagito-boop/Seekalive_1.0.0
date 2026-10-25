@@ -12,4 +12,6 @@ export type ApiErrorError = {
   message: string;
   requestId: string;
   details?: ApiErrorErrorDetailsItem[];
+  /** @minimum 1 */
+  retryAfterSeconds?: number;
 };

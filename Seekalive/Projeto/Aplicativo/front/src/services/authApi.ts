@@ -152,6 +152,29 @@ export async function getCsrfToken(): Promise<string> {
   return payload.csrfToken;
 }
 
+export type AccountChangeCodeResponse = {
+  status:
+    | "current_email_verification_required"
+    | "new_email_verification_required"
+    | "password_change_verification_required";
+  challengeId: string;
+  emailMasked?: string;
+  currentEmailMasked?: string;
+  newEmailMasked?: string;
+  expiresAt: string;
+  message: string;
+};
+
+export type AccountEmailChangeResult = {
+  status: "email_changed";
+  email: string;
+  securityNoticeSent: boolean;
+};
+
+export type AccountPasswordChangeResult = {
+  status: "password_changed";
+};
+
 async function postJson<T>(path: string, body?: unknown): Promise<T> {
   const csrfToken = await getCsrfToken();
   const response = await fetch(`/api/v1${path}`, {
@@ -165,6 +188,30 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
     body: body === undefined ? "{}" : JSON.stringify(body),
   });
   return parseResponse<T>(response);
+}
+
+export function requestAccountEmailChange(payload: { currentPassword: string; newEmail: string }) {
+  return postJson<AccountChangeCodeResponse>("/auth/account/email/change/request", payload);
+}
+
+export function confirmCurrentAccountEmailChange(payload: { challengeId: string; code: string }) {
+  return postJson<AccountChangeCodeResponse>("/auth/account/email/change/confirm-current", payload);
+}
+
+export function confirmNewAccountEmailChange(payload: { challengeId: string; code: string }) {
+  return postJson<AccountEmailChangeResult>("/auth/account/email/change/confirm-new", payload);
+}
+
+export function requestAccountPasswordChange(payload: {
+  currentPassword: string;
+  newPassword: string;
+  passwordConfirmation: string;
+}) {
+  return postJson<AccountChangeCodeResponse>("/auth/account/password/change/request", payload);
+}
+
+export function confirmAccountPasswordChange(payload: { challengeId: string; code: string }) {
+  return postJson<AccountPasswordChangeResult>("/auth/account/password/change/confirm", payload);
 }
 
 async function deleteJson<T>(path: string): Promise<T> {

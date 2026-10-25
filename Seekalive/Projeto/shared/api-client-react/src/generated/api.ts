@@ -25,12 +25,21 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountEmailChangeRequest,
+  AccountEmailChangeResult,
   AccountList,
   AccountPage,
+  AccountPasswordChangeRequest,
+  AccountPasswordChangeResult,
   AccountPatch,
+  AccountUnavailableResponse,
   AccountView,
+  ChallengeConfirmInput,
   CirclePage,
   ConflictResponse,
+  EmailChangeCurrentCodeResponse,
+  EmailChangeNewCodeResponse,
+  EmailDeliveryUnavailableResponse,
   FollowRequestPage,
   FollowState,
   ForbiddenResponse,
@@ -42,6 +51,7 @@ import type {
   InternalErrorResponse,
   MyAccountResponse,
   NotFoundResponse,
+  PasswordChangeCodeResponse,
   PrivacySettings,
   PrivacySettingsWrite,
   ProfileResponse,
@@ -179,6 +189,450 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getRequestAccountEmailChangeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/email/change/request`
+}
+
+/**
+ * Requires the current password. Sends the first code to the currently verified e-mail; the current address remains active until the new address is confirmed.
+ * @summary Start a verified e-mail change
+ */
+export const requestAccountEmailChange = async (accountEmailChangeRequest: AccountEmailChangeRequest, options?: Parameters<typeof customFetch>[1]): Promise<EmailChangeCurrentCodeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EmailChangeCurrentCodeResponse>(getRequestAccountEmailChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(accountEmailChangeRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestAccountEmailChangeMutationKey = () => ['requestAccountEmailChange'] as const;
+
+export const getRequestAccountEmailChangeMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountEmailChange>>, TError,RequestAccountEmailChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAccountEmailChange>>, TError,RequestAccountEmailChangeMutationVariables, TContext> => {
+
+const mutationKey = getRequestAccountEmailChangeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAccountEmailChange>>, RequestAccountEmailChangeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAccountEmailChange(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAccountEmailChangeMutationResult = NonNullable<Awaited<ReturnType<typeof requestAccountEmailChange>>>
+    export type RequestAccountEmailChangeMutationBody = BodyType<AccountEmailChangeRequest>
+    export type RequestAccountEmailChangeMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type RequestAccountEmailChangeMutationVariables = {data: BodyType<AccountEmailChangeRequest>}
+
+    /**
+ * @summary Start a verified e-mail change
+ */
+export const useRequestAccountEmailChange = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountEmailChange>>, TError,RequestAccountEmailChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAccountEmailChange>>,
+        TError,
+        RequestAccountEmailChangeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAccountEmailChangeMutationOptions(options), queryClient);
+    }
+
+export const getConfirmCurrentAccountEmailChangeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/email/change/confirm-current`
+}
+
+/**
+ * @summary Confirm access to the current e-mail
+ */
+export const confirmCurrentAccountEmailChange = async (challengeConfirmInput: ChallengeConfirmInput, options?: Parameters<typeof customFetch>[1]): Promise<EmailChangeNewCodeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EmailChangeNewCodeResponse>(getConfirmCurrentAccountEmailChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(challengeConfirmInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmCurrentAccountEmailChangeMutationKey = () => ['confirmCurrentAccountEmailChange'] as const;
+
+export const getConfirmCurrentAccountEmailChangeMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmCurrentAccountEmailChange>>, TError,ConfirmCurrentAccountEmailChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmCurrentAccountEmailChange>>, TError,ConfirmCurrentAccountEmailChangeMutationVariables, TContext> => {
+
+const mutationKey = getConfirmCurrentAccountEmailChangeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmCurrentAccountEmailChange>>, ConfirmCurrentAccountEmailChangeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmCurrentAccountEmailChange(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmCurrentAccountEmailChangeMutationResult = NonNullable<Awaited<ReturnType<typeof confirmCurrentAccountEmailChange>>>
+    export type ConfirmCurrentAccountEmailChangeMutationBody = BodyType<ChallengeConfirmInput>
+    export type ConfirmCurrentAccountEmailChangeMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type ConfirmCurrentAccountEmailChangeMutationVariables = {data: BodyType<ChallengeConfirmInput>}
+
+    /**
+ * @summary Confirm access to the current e-mail
+ */
+export const useConfirmCurrentAccountEmailChange = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmCurrentAccountEmailChange>>, TError,ConfirmCurrentAccountEmailChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmCurrentAccountEmailChange>>,
+        TError,
+        ConfirmCurrentAccountEmailChangeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmCurrentAccountEmailChangeMutationOptions(options), queryClient);
+    }
+
+export const getConfirmNewAccountEmailChangeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/email/change/confirm-new`
+}
+
+/**
+ * Updates the account e-mail only after confirming the new address, then sends a security notice to the former address.
+ * @summary Confirm and activate the new e-mail
+ */
+export const confirmNewAccountEmailChange = async (challengeConfirmInput: ChallengeConfirmInput, options?: Parameters<typeof customFetch>[1]): Promise<AccountEmailChangeResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AccountEmailChangeResult>(getConfirmNewAccountEmailChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(challengeConfirmInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmNewAccountEmailChangeMutationKey = () => ['confirmNewAccountEmailChange'] as const;
+
+export const getConfirmNewAccountEmailChangeMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmNewAccountEmailChange>>, TError,ConfirmNewAccountEmailChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmNewAccountEmailChange>>, TError,ConfirmNewAccountEmailChangeMutationVariables, TContext> => {
+
+const mutationKey = getConfirmNewAccountEmailChangeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmNewAccountEmailChange>>, ConfirmNewAccountEmailChangeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmNewAccountEmailChange(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmNewAccountEmailChangeMutationResult = NonNullable<Awaited<ReturnType<typeof confirmNewAccountEmailChange>>>
+    export type ConfirmNewAccountEmailChangeMutationBody = BodyType<ChallengeConfirmInput>
+    export type ConfirmNewAccountEmailChangeMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>
+    export type ConfirmNewAccountEmailChangeMutationVariables = {data: BodyType<ChallengeConfirmInput>}
+
+    /**
+ * @summary Confirm and activate the new e-mail
+ */
+export const useConfirmNewAccountEmailChange = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmNewAccountEmailChange>>, TError,ConfirmNewAccountEmailChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmNewAccountEmailChange>>,
+        TError,
+        ConfirmNewAccountEmailChangeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmNewAccountEmailChangeMutationOptions(options), queryClient);
+    }
+
+export const getRequestAccountPasswordChangeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/password/change/request`
+}
+
+/**
+ * Requires the current password and sends a code to the current verified e-mail.
+ * @summary Start an authenticated password change
+ */
+export const requestAccountPasswordChange = async (accountPasswordChangeRequest: AccountPasswordChangeRequest, options?: Parameters<typeof customFetch>[1]): Promise<PasswordChangeCodeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PasswordChangeCodeResponse>(getRequestAccountPasswordChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(accountPasswordChangeRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestAccountPasswordChangeMutationKey = () => ['requestAccountPasswordChange'] as const;
+
+export const getRequestAccountPasswordChangeMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountPasswordChange>>, TError,RequestAccountPasswordChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAccountPasswordChange>>, TError,RequestAccountPasswordChangeMutationVariables, TContext> => {
+
+const mutationKey = getRequestAccountPasswordChangeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAccountPasswordChange>>, RequestAccountPasswordChangeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAccountPasswordChange(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAccountPasswordChangeMutationResult = NonNullable<Awaited<ReturnType<typeof requestAccountPasswordChange>>>
+    export type RequestAccountPasswordChangeMutationBody = BodyType<AccountPasswordChangeRequest>
+    export type RequestAccountPasswordChangeMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type RequestAccountPasswordChangeMutationVariables = {data: BodyType<AccountPasswordChangeRequest>}
+
+    /**
+ * @summary Start an authenticated password change
+ */
+export const useRequestAccountPasswordChange = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountPasswordChange>>, TError,RequestAccountPasswordChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAccountPasswordChange>>,
+        TError,
+        RequestAccountPasswordChangeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAccountPasswordChangeMutationOptions(options), queryClient);
+    }
+
+export const getConfirmAccountPasswordChangeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/password/change/confirm`
+}
+
+/**
+ * Updates the password and revokes all sessions and recognized installations.
+ * @summary Confirm a password change
+ */
+export const confirmAccountPasswordChange = async (challengeConfirmInput: ChallengeConfirmInput, options?: Parameters<typeof customFetch>[1]): Promise<AccountPasswordChangeResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AccountPasswordChangeResult>(getConfirmAccountPasswordChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(challengeConfirmInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmAccountPasswordChangeMutationKey = () => ['confirmAccountPasswordChange'] as const;
+
+export const getConfirmAccountPasswordChangeMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountPasswordChange>>, TError,ConfirmAccountPasswordChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAccountPasswordChange>>, TError,ConfirmAccountPasswordChangeMutationVariables, TContext> => {
+
+const mutationKey = getConfirmAccountPasswordChangeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAccountPasswordChange>>, ConfirmAccountPasswordChangeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAccountPasswordChange(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAccountPasswordChangeMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAccountPasswordChange>>>
+    export type ConfirmAccountPasswordChangeMutationBody = BodyType<ChallengeConfirmInput>
+    export type ConfirmAccountPasswordChangeMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>
+    export type ConfirmAccountPasswordChangeMutationVariables = {data: BodyType<ChallengeConfirmInput>}
+
+    /**
+ * @summary Confirm a password change
+ */
+export const useConfirmAccountPasswordChange = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountPasswordChange>>, TError,ConfirmAccountPasswordChangeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAccountPasswordChange>>,
+        TError,
+        ConfirmAccountPasswordChangeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmAccountPasswordChangeMutationOptions(options), queryClient);
+    }
 
 export const getGetMyAccountUrl = () => {
 
