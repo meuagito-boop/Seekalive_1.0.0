@@ -2,7 +2,7 @@
 - [Bloqueio por conta](blocking-policy.md) — bloqueio bilateral remove follows/pedidos; só o iniciador desbloqueia, histórico de mensagens é ocultado e restaurado.
 - [Autenticação Seekalive](seekalive-auth-strategy.md) — e-mail verificado e 18+; senha Argon2id com política atual aplicada às contas novas e antigas.
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
-- [Banco externo Seekalive](external-database.md) — PostgreSQL fora da Replit com bancos lógicos por domínio, incluindo Shop; provedor e conexão ainda pendentes.
+- [Banco externo Seekalive](external-database.md) — PostgreSQL externo; Shop e Confiança e Segurança têm bancos lógicos próprios, ainda sem provedor/conexão.
 - [Back-end em etapas](backend-staged-rollout.md) — resolver segurança/conta antes das páginas sociais; não sair de Social até estar pronto para produção.
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.
