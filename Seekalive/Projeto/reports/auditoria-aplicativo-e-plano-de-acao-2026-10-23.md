@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.25
+**Versão do documento:** 2.26
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -9,7 +9,7 @@
 
 **Decisão de conta incorporada em 24/10/2026:** a primeira versão pública não terá selo de verificação. A confirmação de e-mail é privada e usada para autenticação; o contrato público e os componentes de perfil/publicação não devem expor nem exibir `isVerified`.
 
-**Regra de nome de usuário incorporada em 24/10/2026:** após uma troca, o @ anterior deve ficar reservado por 30 dias e depois ser liberado. O backend ainda permite reutilização imediata; a regra não será considerada pronta até haver reserva atômica no servidor, cobertura de cadastro/troca e teste de concorrência.
+**Regra de nome de usuário incorporada em 24/10/2026:** o @ inicial não pode ser alterado nos primeiros 30 dias da conta; após troca, o @ anterior fica indisponível para todos por 30 dias, sem exceção para o titular anterior, e a interface deve avisar claramente antes da confirmação. A frequência das trocas seguintes ainda precisa ser definida.
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
@@ -694,9 +694,10 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 
 ### 11.24 Retenção do nome de usuário anterior — 24/10/2026
 
-- **Decisão confirmada:** ao trocar o @, o identificador anterior fica reservado por 30 dias e depois pode ser liberado para outra conta.
-- **Detalhe ainda em aberto:** se o titular original pode recuperar o próprio @ durante o período de reserva.
-- **Estado técnico:** ainda não implementado. O backend atual verifica unicidade do nome ativo, mas não reserva o nome anterior. A implementação precisa impedir reutilização em cadastro e em outras trocas, tratar concorrência no servidor e ter teste de API; não basta esconder a disponibilidade no frontend.
+- **Decisões confirmadas:** o @ inicial só pode ser alterado depois de 30 dias da criação da conta. Depois de qualquer troca, o @ anterior fica indisponível para todas as contas durante 30 dias; nem o titular anterior pode recuperá-lo. Após esse prazo, ele pode ser liberado.
+- **Aviso obrigatório:** antes de confirmar a troca, a interface deve explicar que o @ antigo ficará indisponível por 30 dias e que não poderá ser recuperado nesse período.
+- **Detalhe ainda em aberto:** definir se o intervalo de 30 dias também se aplica entre cada alteração posterior à primeira.
+- **Estado técnico:** ainda não implementado. O backend atual verifica unicidade do nome ativo, mas não aplica o prazo mínimo nem reserva o nome anterior. A implementação precisa bloquear alterações precoces no servidor, impedir reutilização em cadastro e em outras trocas, tratar concorrência e ter testes de API; não basta esconder a disponibilidade no frontend.
 - **Gate:** não considerar o ciclo de nome de usuário pronto nem avançar para páginas públicas até a regra estar aplicada e testada. Não foi feita migração nem alteração no banco nesta decisão.
 
 ### Histórico do documento
@@ -738,3 +739,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.23 | 2026-10-24 | Confirma que o perfil pessoal publica somente `displayName`; nome e sobrenome do cadastro ficam privados. |
 | 2.24 | 2026-10-24 | Registra a ausência de selo público na primeira versão; remove `isVerified` do DTO/OpenAPI e da interface pública, sem migração no banco ativo. |
 | 2.25 | 2026-10-24 | Define reserva do @ anterior por 30 dias e registra a implementação de retenção como pendência antes de páginas públicas. |
+| 2.26 | 2026-10-24 | Define que a reserva do @ antigo vale para todos, exige aviso prévio e bloqueia a primeira alteração por 30 dias; o intervalo entre trocas futuras segue pendente. |
