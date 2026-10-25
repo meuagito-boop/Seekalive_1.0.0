@@ -1,149 +1,11 @@
-import type { ContentReference } from "@/types/social/contentReferences";
-import type { PostFormat } from "@/types/social/posts";
-import type { WeeklyOpeningHours } from "@/modules/profile/commercial-profile/types/businessHours";
-
-export interface User {
-  id: string;
-  username: string;
-  displayName: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  bio: string;
-  avatarUrl: string;
-  coverUrl: string;
-  location?: string;
-  address?: string;
-  postalCode?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  website?: string;
-  joinedAt: string;
-  accountType: "personal" | "commercial";
-  interests?: string[];
-  onboardingCompleted?: boolean;
-  commercialProfile?: CommercialProfile;
-  isPrivate?: boolean;
-  stats: {
-    posts: number;
-    followers: number;
-    following: number;
-    circles: number;
-  };
-  followingIds?: string[];
-  isFollowing?: boolean;
-  followRequestSent?: boolean;
-  isInCircle?: boolean;
-  /** Viewer-relative projection; the stored relation is account-to-target. */
-  isBlocked?: boolean;
-  /** Whether the active viewer blocked this profile. */
-  isBlockedByViewer?: boolean;
-  /** Whether this profile blocked the active viewer. */
-  blocksViewer?: boolean;
-  isMuted?: boolean;
-  /** Identifies profile and relationship data loaded from the API, not local demo fixtures. */
-  source?: "server";
-}
-
-export interface FollowRequest {
-  id: string;
-  requesterId: string;
-  targetId: string;
-  createdAt: string;
-}
-
-export interface CommercialProfile {
-  discoveryKind?: "place" | "provider";
-  cityId?: string;
-  cityName?: string;
-  cityState?: string;
-  serviceAreas?: string[];
-  categoryKey: string;
-  category: string;
-  address: string;
-  distanceKm?: number;
-  isOpen?: boolean;
-  openingHours?: string;
-  weeklyHours?: WeeklyOpeningHours;
-  priceLevel?: 1 | 2 | 3 | 4;
-  photos?: string[];
-  videos?: string[];
-  amenities?: string[];
-  serviceOptions?: {
-    delivery?: boolean;
-    dineIn?: boolean;
-    tableService?: boolean;
-    reservations?: boolean;
-    appointments?: boolean;
-    takeout?: boolean;
-  };
-  tags: string[];
-}
-
-export interface SeekReview {
-  id: string;
-  businessAccountId: string;
-  reviewerId: string;
-  rating: 1 | 2 | 3 | 4 | 5;
-  comment: string;
-  createdAt: string;
-  businessReply?: {
-    content: string;
-    createdAt: string;
-  };
-}
-
-export interface Post {
-  id: string;
-  authorId: string;
-  content: string;
-  mediaUrls?: string[];
-  mediaTypes?: ("image" | "video")[];
-  createdAt: string;
-  likes: number;
-  comments: number;
-  reposts: number;
-  shares: number;
-  isLiked?: boolean;
-  isReposted?: boolean;
-  isBookmarked?: boolean;
-  audience: "public" | "circles" | "private";
-  type: "text" | "video";
-  parentPostId?: string;
-  format?: PostFormat;
-  article?: { title: string; body: string };
-  reference?: ContentReference;
-  mentions?: string[];
-  hashtags?: string[];
-}
-
-export interface Notification {
-  id: string;
-  recipientId?: string;
-  type: "follow" | "like" | "comment" | "repost" | "mention";
-  actorId: string;
-  entityId?: string;
-  isRead: boolean;
-  createdAt: string;
-}
-
-export interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-  isRead: boolean;
-  createdAt: string;
-}
-
-export interface Conversation {
-  id: string;
-  participantIds: string[];
-  lastMessage?: Message;
-  unreadCount: number;
-  createdAt: string;
-}
+import type { User } from "@/modules/profile/types/user";
+import type { FollowRequest } from "@/modules/social/types/followRequest";
+import type { CommercialProfile } from "@/modules/profile/commercial-profile/types/commercialProfile";
+import type { SeekReview } from "@/modules/seek/types/review";
+import type { Post } from "@/modules/social/types/post";
+import type { Notification } from "@/modules/notifications/types/notification";
+import type { Message } from "@/modules/messages/types/message";
+import type { Conversation } from "@/modules/messages/types/conversation";
 
 export const mockUsers: User[] = [
   {
@@ -751,13 +613,6 @@ export const mockConversations: Conversation[] = [
   },
 ];
 
-export const interests = [
-  "Tecnologia", "Design", "Música", "Arte", "Games", "Esportes",
-  "Ciência", "Viagens", "Gastronomia", "Política", "Moda", "Finanças",
-  "Cinema", "Saúde", "Educação", "Fotografia", "Animais", "Humor",
-  "Literatura", "Startups", "Sustentabilidade", "Cultura"
-];
-
 export const currentUser: User = {
   id: "me",
   username: "usuario_demo",
@@ -770,8 +625,3 @@ export const currentUser: User = {
   accountType: "personal",
   stats: { posts: 12, followers: 142, following: 38, circles: 5 },
 };
-
-export function getUserById(id: string): User | undefined {
-  if (id === "me") return currentUser;
-  return mockUsers.find(u => u.id === id);
-}

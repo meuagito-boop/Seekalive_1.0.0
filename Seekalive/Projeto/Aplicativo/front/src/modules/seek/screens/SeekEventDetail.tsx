@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "wouter";
 import { ArrowLeft, CalendarDays, MapPin, Share2, Users, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSocial } from "@/context/SocialContext";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 import { UnavailableState } from "@/components/content/StateBlocks";
 import type { SeekEvent } from "@/modules/seek/types/event";

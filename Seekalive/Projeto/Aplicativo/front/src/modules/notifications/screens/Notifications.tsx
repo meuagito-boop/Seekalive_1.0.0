@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 import { Bell, Heart, MessageCircle, Repeat2, UserPlus, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatTimeAgo } from "@/lib/formatters";
-import { useSocial } from "@/context/SocialContext";
-import type { Notification } from "@/data/mockData";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import type { Notification } from "@/modules/notifications/types/notification";
 
 const tabs = ["Todas", "Menções", "Seguidores", "Reações"];
 

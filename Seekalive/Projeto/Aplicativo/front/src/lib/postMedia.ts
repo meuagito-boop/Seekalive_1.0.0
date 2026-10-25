@@ -1,5 +1,5 @@
-import type { Post } from "@/data/mockData";
-import { canReadPost } from "@/services/contentValidation";
+import type { Post } from "@/modules/social/types/post";
+import { canReadPost } from "@/modules/social/application/contentValidation";
 
 export type PostMediaType = "image" | "video";
 

@@ -1,4 +1,4 @@
-import type { Post } from "./mockData";
+import type { Post } from "@/modules/social/types/post";
 
 const base = {
   createdAt: "2026-10-22T11:00:00Z",

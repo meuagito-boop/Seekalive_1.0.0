@@ -1,4 +1,4 @@
-import type { ContentReference, ReferenceType } from "@/types/social/contentReferences";
+import type { ContentReference, ReferenceType } from "@/modules/app/content/contentReferences";
 
 const REFERENCE_TYPES: ReferenceType[] = ["seek_entity", "shop_item", "social_post"];
 

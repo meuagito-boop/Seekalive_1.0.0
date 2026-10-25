@@ -1,5 +1,5 @@
 import type { ApiErrorKey } from "@workspace/api-zod";
-import { readApiError } from "@/services/apiErrors";
+import { readApiError } from "@/modules/app/api/apiErrors";
 
 export class AuthApiError extends Error {
   constructor(

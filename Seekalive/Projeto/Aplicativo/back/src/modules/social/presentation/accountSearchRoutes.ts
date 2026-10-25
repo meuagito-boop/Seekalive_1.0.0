@@ -2,7 +2,7 @@ import { and, asc, eq, ilike, isNotNull, or } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { accountEmails, accounts, db } from "@workspace/db";
 import { createAuthRateLimit } from "../../../security/request-origin";
-import { accountViewsByIds } from "../../profiles/application/accountViews";
+import { accountViewsByIds } from "../../accounts/application/accountViews";
 import { activeAccountId, parsePage, sendError } from "./routeSupport";
 
 const router: IRouter = Router();

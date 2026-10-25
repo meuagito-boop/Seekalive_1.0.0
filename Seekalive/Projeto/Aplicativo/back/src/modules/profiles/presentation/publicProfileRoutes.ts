@@ -4,9 +4,9 @@ import {
   accountView,
   findActiveAccountById,
   findActiveAccountByUsername,
-} from "../application/accountViews";
-import { canViewPrivateProfileContent } from "../application/profileVisibility";
-import type { PublicAccountRow } from "../application/accountViews";
+} from "../../accounts/application/accountViews";
+import { canViewPrivateProfileContent } from "../../accounts/application/accountVisibility";
+import type { PublicAccountRow } from "../../accounts/application/accountViews";
 import { getRelationshipFor } from "../../social/application/getRelationshipFor";
 import { isBlockedBetween } from "../../social/application/isBlockedBetween";
 import { sendError } from "./routeSupport";

@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { AuthApiError, registerAccount as submitRegistration } from "@/services/authApi";
-import { useAppContext } from "@/context/AppContext";
+import { AuthApiError } from "@/modules/auth/services/http";
+import { registerAccount as submitRegistration } from "@/modules/auth/services/registrationApi";
+import { useAppContext } from "@/modules/app/state/AppContext";
 
 const commercialCategories = [
   { value: "restaurantes", label: "Restaurantes" },

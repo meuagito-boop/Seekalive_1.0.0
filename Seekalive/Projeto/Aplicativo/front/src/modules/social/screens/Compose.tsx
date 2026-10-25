@@ -5,15 +5,15 @@ import { X, Globe, Users, Lock, Loader2, BookOpenText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
 import { useDraftMedia, MAX_MEDIA_ITEMS } from "@/hooks/use-draft-media";
 import { MediaDraftGrid, MediaPickerButtons } from "@/components/content/MediaDraftGrid";
 import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard";
 import { ErrorState } from "@/components/content/StateBlocks";
 import { renderInline } from "@/components/content/RichText";
 import { articleCreatePath, extractHashtags, extractMentions, readReferenceFromSearch, postPath } from "@/lib/contentLinks";
-import type { ContentReference } from "@/types/social/contentReferences";
+import type { ContentReference } from "@/modules/app/content/contentReferences";
 
 const MAX_CHARS = 280;
 

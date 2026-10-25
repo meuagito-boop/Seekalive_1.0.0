@@ -4,7 +4,7 @@ import {
   User, Shield, Bell, Palette, Lock, Ban, LogOut,
   ChevronRight, Info
 } from "lucide-react";
-import { useAppContext } from "@/context/AppContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
 
 const settingsGroups = [
   {

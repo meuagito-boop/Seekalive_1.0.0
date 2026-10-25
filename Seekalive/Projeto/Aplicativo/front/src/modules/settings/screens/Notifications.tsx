@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { SettingsSubheader } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
-import { getNotificationPreferences, saveNotificationPreferences } from "@/data/appPreferences";
-import { useAppContext } from "@/context/AppContext";
-import { localActorId } from "@/data/accountScopedStorage";
+import { getNotificationPreferences, saveNotificationPreferences } from "@/modules/settings/data/notificationPreferences";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { localActorId } from "@/modules/app/persistence/browserAccountStorage";
 
 interface ToggleItem {
   label: string;

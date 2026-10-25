@@ -1,5 +1,3 @@
-import type { ApiErrorKey } from "@workspace/api-zod";
-
 export type AuthAccount = {
   id: string;
   username: string;
@@ -121,14 +119,3 @@ export type CommercialRegistration = {
 };
 
 export type Registration = PersonalRegistration | CommercialRegistration;
-
-export type AuthApiErrorDetails = {
-  status: number;
-  code: number;
-  key: ApiErrorKey;
-  details: Array<{ field: string; message: string }>;
-  supportEmail?: string;
-  retryAfterSeconds?: number;
-  attemptsRemaining?: number;
-  resendAvailableAt?: string;
-};

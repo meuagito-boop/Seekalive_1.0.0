@@ -4,7 +4,7 @@ import {
   ChevronRight, UserPlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAppContext } from "@/context/AppContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
 
 interface SocialSidebarProps {
   onNavigate?: () => void;

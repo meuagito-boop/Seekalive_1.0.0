@@ -3,10 +3,10 @@ import { Link, useLocation, useParams } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Search, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
 import { UnavailableState } from "@/components/content/StateBlocks";
-import { accountListToUsers, socialGraphApi } from "@/services/socialGraphApi";
+import { accountListToUsers, socialGraphApi } from "@/modules/social/services/socialGraphApi";
 
 export function ConnectionList({ kind }: { kind: "followers" | "following" }) {
   const params = useParams<{ username: string }>();

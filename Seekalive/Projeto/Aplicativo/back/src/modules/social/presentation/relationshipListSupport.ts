@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { loadActiveSession } from "../../../security/session";
 import {
   findActiveAccountById,
-} from "../../profiles/application/accountViews";
+} from "../../accounts/application/accountViews";
 import { canViewRelationshipList } from "../application/canViewRelationshipList";
 import { isBlockedBetween } from "../application/isBlockedBetween";
 import { sendError } from "./routeSupport";

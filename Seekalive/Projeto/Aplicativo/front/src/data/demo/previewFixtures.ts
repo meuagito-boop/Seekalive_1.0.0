@@ -11,7 +11,7 @@ import { demoIntegrationPosts } from "../demoIntegrationPosts";
 import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "../demoSeekAccounts";
 import { demoSeekEvents } from "@/modules/seek/data/demoSeekEvents";
 import { demoShopItems, demoStores } from "@/modules/shop/data/demoCatalog";
-import type { SocialState } from "@/context/social/state";
+import type { SocialState } from "@/modules/app/state/socialApplicationState";
 
 export { currentUser as developmentPreviewUser };
 export { demoSeekEvents as developmentSeekEvents };

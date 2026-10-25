@@ -1,7 +1,8 @@
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { canReadPost } from "@/services/contentValidation";
-import type { Post, User } from "@/data/mockData";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { canReadPost } from "@/modules/social/application/contentValidation";
+import type { Post } from "@/modules/social/types/post";
+import type { User } from "@/modules/profile/types/user";
 
 export type ReadablePost =
   | { state: "ok"; post: Post; author: User }

@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { accountBlocks, db } from "@workspace/db";
-import { accountView, findActiveAccountById } from "../../profiles/application/accountViews";
+import { accountView, findActiveAccountById } from "../../accounts/application/accountViews";
 import { activeAccountId } from "./routeSupport";
 
 const router: IRouter = Router();

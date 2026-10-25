@@ -8,7 +8,7 @@ export {
   accountView,
   accountViewsByIds,
   findActiveAccountById,
-} from "../application/accountViews";
+} from "../../accounts/application/accountViews";
 
 const router: IRouter = Router();
 

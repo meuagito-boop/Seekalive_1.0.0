@@ -3,9 +3,9 @@ import { useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Users, Search, UserCheck, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAppContext } from "@/context/AppContext";
-import { useSocial } from "@/context/SocialContext";
-import { accountViewToUser, socialGraphApi } from "@/services/socialGraphApi";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { accountViewToUser, socialGraphApi } from "@/modules/social/services/socialGraphApi";
 import { UnavailableState } from "@/components/content/StateBlocks";
 
 export default function Circles() {

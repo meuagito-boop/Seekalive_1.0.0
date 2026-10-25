@@ -16,16 +16,17 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { PostCard } from "@/components/post/PostCard";
+import { PostCard } from "@/modules/social/components/post/PostCard";
 import { BusinessReviewsDialog } from "@/modules/seek/components/BusinessReviewsDialog";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { localActorId } from "@/modules/app/persistence/browserAccountStorage";
+import { useAccountScopedIds } from "@/modules/app/hooks/useAccountScopedIds";
 import { useToast } from "@/hooks/use-toast";
-import type { User } from "@/data/mockData";
+import type { User } from "@/modules/profile/types/user";
 import { buildProfileTimeline } from "@/modules/profile/utils/profileTimeline";
 import { getProfileMedia } from "@/lib/postMedia";
-import { canReadPost } from "@/services/contentValidation";
+import { canReadPost } from "@/modules/social/application/contentValidation";
 import { formatWeeklyHours, weeklyHoursRows } from "@/modules/profile/commercial-profile/utils/businessHours";
 import { handleTabKeyDown } from "@/lib/tabKeyboard";
 

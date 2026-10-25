@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { accountStorageKey, localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { accountStorageKey, localActorId } from "@/modules/app/persistence/browserAccountStorage";
+import { useAccountScopedIds } from "@/modules/app/hooks/useAccountScopedIds";
 import { buildSeekItems, defaultDiscoveryFilters, filterDiscovery, validateDiscoveryFilters } from "@/modules/seek/utils/seekDiscovery";
 import type { DiscoveryFilters, DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
 import { readRecentLocations, rememberManualLocation } from "@/modules/seek/services/seekLocationService";

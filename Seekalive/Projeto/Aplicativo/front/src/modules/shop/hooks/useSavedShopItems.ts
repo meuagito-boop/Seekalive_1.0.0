@@ -1,5 +1,6 @@
-import { useAppContext } from "@/context/AppContext";
-import { localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { localActorId } from "@/modules/app/persistence/browserAccountStorage";
+import { useAccountScopedIds } from "@/modules/app/hooks/useAccountScopedIds";
 
 const KEY = "seekalive-saved-shop-items";
 

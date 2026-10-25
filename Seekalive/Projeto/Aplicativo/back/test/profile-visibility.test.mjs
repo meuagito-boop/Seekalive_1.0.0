@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canViewPrivateProfileContent } from "../src/modules/profiles/application/profileVisibility.ts";
+import { canViewPrivateProfileContent } from "../src/modules/accounts/application/accountVisibility.ts";
 
 test("public profiles remain visible to signed-out visitors", () => {
   assert.equal(canViewPrivateProfileContent(false, null, "account", "none"), true);

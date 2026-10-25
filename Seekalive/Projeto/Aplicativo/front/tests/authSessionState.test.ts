@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveAuthSession } from "@/context/authSessionState";
+import { resolveAuthSession } from "@/modules/auth/state/authSessionState";
 
 test("auth session resolution distinguishes an unavailable API from a signed-out session", async () => {
   const unavailable = await resolveAuthSession(async () => {

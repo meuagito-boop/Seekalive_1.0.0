@@ -1,7 +1,7 @@
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { accountEmails, accountFollowRequests, accounts, db } from "@workspace/db";
-import { accountViewsByIds } from "../../profiles/application/accountViews";
+import { accountViewsByIds } from "../../accounts/application/accountViews";
 import { activeAccountId, pageResult, parsePage, sendError } from "./routeSupport";
 
 const router: IRouter = Router();

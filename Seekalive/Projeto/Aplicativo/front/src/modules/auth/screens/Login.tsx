@@ -11,18 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { useAppContext } from "@/context/AppContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { AuthApiError } from "@/modules/auth/services/http";
 import {
-  AuthApiError,
   confirmDeviceLogin,
   confirmPasswordPolicyUpdate,
   loginAccount,
   resendDeviceLoginCode,
   updatePasswordPolicy,
-  type AuthResult,
-  type DeviceVerificationRequired,
-  type PasswordUpdateVerificationRequired,
-} from "@/services/authApi";
+} from "@/modules/auth/services/loginApi";
+import type { AuthResult, DeviceVerificationRequired, PasswordUpdateVerificationRequired } from "@/modules/auth/types";
 
 const schema = z.object({
   identifier: z.string().trim().min(3, "Informe seu nome de usuário ou e-mail"),

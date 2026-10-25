@@ -9,7 +9,7 @@ import { RichText } from "@/components/content/RichText";
 import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard";
 import { CommentThread } from "@/components/content/CommentThread";
 import { UnavailableState } from "@/components/content/StateBlocks";
-import { PostActionBar } from "@/components/post/PostActionBar";
+import { PostActionBar } from "@/modules/social/components/post/PostActionBar";
 
 export default function PostDetail() {
   const params = useParams<{ postId: string }>();

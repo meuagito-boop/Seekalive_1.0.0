@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { onboardingInterestSteps } from "@/data/onboardingInterestSteps";
-import { useAppContext } from "@/context/AppContext";
-import { useSocial } from "@/context/SocialContext";
-import { completeOnboarding as saveOnboarding } from "@/services/authApi";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { completeOnboarding as saveOnboarding } from "@/modules/onboarding/services/onboardingApi";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OnboardingInterests() {

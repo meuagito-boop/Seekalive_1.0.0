@@ -1,4 +1,5 @@
-import type { SeekReview, User } from "@/data/mockData";
+import type { SeekReview } from "@/modules/seek/types/review";
+import type { User } from "@/modules/profile/types/user";
 import type { SeekEvent } from "@/modules/seek/types/event";
 import { normalizeSeekText } from "./seekFilters";
 

@@ -1,4 +1,5 @@
-import type { SeekReview, User } from "./mockData";
+import type { SeekReview } from "@/modules/seek/types/review";
+import type { User } from "@/modules/profile/types/user";
 
 /** Fictional profiles for frontend preview only; photography is illustrative, not of these businesses. */
 export function demoSeekImage(kind: "cafe" | "food" | "beauty" | "market" | "services" | "events" | "cleaning" | "fitness") {

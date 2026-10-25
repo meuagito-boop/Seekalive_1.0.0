@@ -1,7 +1,7 @@
 import { BrandMark } from "@/components/brand/BrandMark";
 import { Link, useLocation } from "wouter";
 import { Bell, Mail, ShoppingCart, Settings, PenSquare } from "lucide-react";
-import { useSocial } from "@/context/SocialContext";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 
 const moduleNav = [
   { label: "Seek",    path: "/seek" },

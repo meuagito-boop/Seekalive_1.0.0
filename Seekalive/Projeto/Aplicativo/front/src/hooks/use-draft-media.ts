@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MEDIA_LIMITS, mediaService, type PreparedMedia } from "@/services/mediaService";
+import { MEDIA_LIMITS, mediaService, type PreparedMedia } from "@/modules/social/services/mediaService";
 
 export const MAX_MEDIA_ITEMS = MEDIA_LIMITS.count;
 

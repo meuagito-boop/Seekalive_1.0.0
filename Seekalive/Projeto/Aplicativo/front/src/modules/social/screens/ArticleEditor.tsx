@@ -2,15 +2,15 @@ import { useMemo, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { X, Loader2, Bold, Italic, Heading2, List, Quote, Eye, PenLine, Globe, Users, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/modules/app/state/SocialApplicationContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
 import { useDraftMedia } from "@/hooks/use-draft-media";
 import { MediaDraftGrid, MediaPickerButtons } from "@/components/content/MediaDraftGrid";
 import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard";
 import { ArticleBody, readingMinutes } from "@/components/content/RichText";
 import { ErrorState } from "@/components/content/StateBlocks";
 import { readReferenceFromSearch } from "@/lib/contentLinks";
-import type { ContentReference } from "@/types/social/contentReferences";
+import type { ContentReference } from "@/modules/app/content/contentReferences";
 import { handleTabKeyDown } from "@/lib/tabKeyboard";
 
 const TITLE_MAX = 160;
