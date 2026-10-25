@@ -11,4 +11,4 @@
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.
 - [Privacidade de sessões](session-device-privacy.md) — IP só via proxy confiável; novo IP exige código, com espera de 30/90 s; retenção e persistência ainda pendentes.
-- [Autorização de prompts](prompt-recommendations.md) — prompts rotulados como recomendação exigem análise de compatibilidade e decisão do usuário antes de implementar.
+- [Ordens e recomendações](prompt-recommendations.md) — cumprir instruções explícitas sem ampliar o escopo; discutir recomendações antes de implementá-las.
