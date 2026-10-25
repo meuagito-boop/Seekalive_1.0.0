@@ -11,7 +11,7 @@ Na primeira versão pública não haverá selo de verificação. A confirmação
 
 Em uma futura troca de e-mail, o endereço novo só se torna atual após ser confirmado; o endereço atual permanece ativo enquanto isso. O fluxo ainda não foi implementado e exige decisões adicionais de reautenticação, aviso ao endereço antigo e recuperação quando o titular perde acesso ao endereço atual.
 
-Para trocar e-mail ou senha, o titular deve informar a senha atual e confirmar um código enviado ao e-mail atual verificado. Na troca de e-mail, o novo endereço também precisa ser confirmado antes de substituir o atual. Troca voluntária de senha e de e-mail ainda não estão implementadas.
+Para trocar e-mail ou senha, o titular deve informar a senha atual e confirmar um código enviado ao e-mail atual verificado. Na troca de e-mail, o novo endereço também precisa ser confirmado antes de substituir o atual; depois da conclusão, enviar um aviso de segurança ao endereço antigo. Troca voluntária de senha e de e-mail ainda não estão implementadas.
 
 Essas regras também valem para contas antigas. Como a composição não pode ser lida do hash, no próximo login uma senha legada compatível é validada e recebe a versão atual; uma senha incompatível não cria sessão e exige atualização usando a senha atual. A migração marca sessões existentes como antigas, exige novo login e não apaga contas/conteúdo. Não aplicar a migração no banco principal de desenvolvimento sem explicar e obter autorização, pois invalida as sessões atuais.
 
