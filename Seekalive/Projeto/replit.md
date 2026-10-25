@@ -29,8 +29,8 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 
 - `Aplicativo/front` — current public app (Social, Seek and Shop UI)
 - `Aplicativo/back` — current API for the public app
-- `Gestor/front`, `Gestor/back` — scaffold for the future commercial operations app
-- `Painel/front`, `Painel/back` — scaffold for the future administration app
+- `../Projeto 3/Gestor/front`, `../Projeto 3/Gestor/back` — scaffold for the future commercial operations app
+- `../Projeto 2/Painel/front`, `../Projeto 2/Painel/back` — scaffold for the future administration app
 - `shared/contracts` — shared API validation contracts
 - `shared/api-spec` and `shared/api-client-react` — OpenAPI source and generated client
 - `infra/database` — Drizzle/PostgreSQL schema and database access
