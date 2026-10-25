@@ -9,9 +9,9 @@ A idade mínima definida para contas pessoais e comerciais é 18 anos autodeclar
 
 Na primeira versão pública não haverá selo de verificação. A confirmação de e-mail continua sendo um estado privado de autenticação e não deve aparecer como distintivo no perfil, em publicações ou em DTOs públicos. A coluna `accounts.is_verified` que ainda existe no schema de desenvolvimento é legado; não a projetar na API e não a remover do banco sem uma migração explícita.
 
-Em uma futura troca de e-mail, o endereço novo só se torna atual após ser confirmado; o endereço atual permanece ativo enquanto isso. O fluxo ainda não foi implementado e exige decisões adicionais de reautenticação, aviso ao endereço antigo e recuperação quando o titular perde acesso ao endereço atual.
+Na troca de e-mail, o endereço novo só se torna atual após ser confirmado; o endereço atual permanece ativo enquanto isso. A mudança exige senha atual e código enviado ao e-mail atual verificado; depois da conclusão, enviar aviso de segurança ao endereço antigo.
 
-Para trocar e-mail ou senha, o titular deve informar a senha atual e confirmar um código enviado ao e-mail atual verificado. Na troca de e-mail, o novo endereço também precisa ser confirmado antes de substituir o atual; depois da conclusão, enviar um aviso de segurança ao endereço antigo. Troca voluntária de senha e de e-mail ainda não estão implementadas.
+Para trocar e-mail ou senha, o titular deve informar a senha atual e confirmar um código enviado ao e-mail atual verificado. Na troca de e-mail, o novo endereço também precisa ser confirmado antes de substituir o atual; depois da conclusão, enviar um aviso de segurança ao endereço antigo. A troca de senha não substitui a regra de recuperação manual quando o e-mail atual estiver inacessível.
 
 Se perder acesso ao e-mail atual, o titular deverá entrar em contato com o suporte e passar por verificação adicional manual. A solicitação deve chegar ao e-mail do suporte e ao futuro Painel de Controle; não há recuperação automática que ignore o requisito de e-mail verificado. O método de verificação fica fora do escopo atual: não coletar documentos oficiais nesta etapa.
 
