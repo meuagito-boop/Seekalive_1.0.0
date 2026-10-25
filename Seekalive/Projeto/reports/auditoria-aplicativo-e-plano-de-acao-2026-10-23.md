@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.40
+**Versão do documento:** 2.41
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -15,7 +15,7 @@
 
 **Recuperação sem acesso ao e-mail:** solicitar contato manual com suporte e verificação adicional. A solicitação deverá chegar ao e-mail de suporte e ao futuro Painel de Controle; o método de verificação fica fora do escopo atual, sem coleta de documentos nesta etapa.
 
-**Exclusão de conta:** permitir solicitar exclusão permanente em Configurações; ocultar e desativar a conta imediatamente, preservar os dados e executar a exclusão após 7 dias. O titular pode cancelar até o fim desse período pelo login, com senha e código no e-mail verificado. Ao concluir, excluir publicações, mídias e comentários; mensagens diretas permanecem para os destinatários com o remetente anonimizado.
+**Exclusão de conta:** permitir solicitar exclusão permanente em Configurações; ocultar e desativar a conta imediatamente, preservar os dados e executar a exclusão após 7 dias. O titular pode cancelar até o fim desse período pelo login, com senha e código no e-mail verificado. Ao concluir, excluir publicações, mídias e comentários, remover relações sociais; mensagens diretas permanecem para os destinatários com o remetente anonimizado.
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
@@ -739,7 +739,8 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Autenticação da restauração confirmada:** exigir a senha correta e um código enviado ao e-mail verificado antes de reativar a conta. Sem essa confirmação, manter a exclusão programada.
 - **Conteúdo público confirmado:** ao concluir a exclusão, apagar publicações, mídias e comentários produzidos pela conta.
 - **Mensagens diretas confirmadas:** manter as mensagens na caixa dos destinatários e anonimizar o remetente como “Conta excluída”.
-- **Limite de interpretação:** destino de reações/relações e dados com retenção obrigatória ainda precisa de decisão.
+- **Relações sociais confirmadas:** remover seguidores, contas seguidas, pedidos pendentes e relações de Círculo quando a exclusão se tornar permanente; preservar esses dados durante os 7 dias para restauração.
+- **Limite de interpretação:** destino de reações/repostagens e dados com retenção obrigatória ainda precisa de decisão.
 - **Estado técnico:** não há solicitação de exclusão, fluxo de cancelamento, endpoint nem rotina de remoção implementados. Nenhum dado foi apagado ou migrado.
 - **Segurança:** não revelar que uma conta está em exclusão antes da validação das credenciais.
 - **Gate:** definir impacto em mensagens/relações e retenção antes de implementar a operação destrutiva.
@@ -798,3 +799,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.38 | 2026-10-24 | Exige senha e código enviado ao e-mail verificado para restaurar a conta durante o prazo de exclusão. |
 | 2.39 | 2026-10-24 | Define a remoção de publicações, mídias e comentários quando a exclusão permanente for concluída. |
 | 2.40 | 2026-10-24 | Mantém mensagens diretas para os destinatários e anonimiza o remetente após a exclusão permanente. |
+| 2.41 | 2026-10-24 | Remove seguidores, contas seguidas, pedidos pendentes e Círculo na exclusão definitiva, preservando-os durante o prazo de restauração. |
