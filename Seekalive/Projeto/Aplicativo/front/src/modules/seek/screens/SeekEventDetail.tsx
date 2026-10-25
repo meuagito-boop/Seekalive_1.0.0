@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "wouter";
 import { ArrowLeft, CalendarDays, MapPin, Share2, Users, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSocial } from "@/context/SocialContext";
+import { useSocial } from "@/modules/app/state/SocialContext";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 import { UnavailableState } from "@/components/content/StateBlocks";
 import type { SeekEvent } from "@/modules/seek/types/event";
@@ -21,7 +21,7 @@ export default function SeekEventDetail() {
     setEvent(null);
     setEventLoading(true);
     setFixtureError(false);
-    void import("@/data/demo/previewFixtures")
+    void import("@/modules/app/data/demo/previewFixtures")
       .then(({ developmentSeekEvents }) => {
         if (active) setEvent(developmentSeekEvents.find((item) => item.id === params.id) ?? null);
       })

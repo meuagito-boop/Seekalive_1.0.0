@@ -1,5 +1,5 @@
 import type { SeekEvent } from "@/modules/seek/types/event";
-import { demoSeekImage } from "@/data/demoSeekAccounts";
+import { demoSeekImage } from "@/modules/seek/data/demoSeekAccounts";
 
 const saturday = new Date();
 saturday.setUTCDate(saturday.getUTCDate() + ((6 - saturday.getUTCDay() + 7) % 7));

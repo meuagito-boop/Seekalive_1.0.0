@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Post } from "../src/data/mockData";
-import { getProfileMedia } from "../src/lib/postMedia";
+import type { Post } from "../src/modules/social/types/post";
+import { getProfileMedia } from "../src/modules/shared/content/postMedia";
 import { buildProfileTimeline } from "../src/modules/profile/utils/profileTimeline";
 
 function makePost(overrides: Partial<Post> = {}): Post {

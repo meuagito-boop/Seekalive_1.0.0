@@ -1,4 +1,4 @@
-import { accountStorageKey } from "@/data/accountScopedStorage";
+import { accountStorageKey } from "@/modules/shared/storage/accountScopedStorage";
 
 import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
 import { normalizeSeekText } from "@/modules/seek/utils/seekFilters";

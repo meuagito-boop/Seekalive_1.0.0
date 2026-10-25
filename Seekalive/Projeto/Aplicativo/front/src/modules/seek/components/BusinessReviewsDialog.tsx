@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "wouter";
 import { MessageSquareText, Star } from "lucide-react";
-import { useAppContext } from "@/context/AppContext";
-import { useSocial } from "@/context/SocialContext";
-import type { User } from "@/data/mockData";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import type { User } from "@/modules/profile/types/user";
 import {
   Dialog,
   DialogContent,

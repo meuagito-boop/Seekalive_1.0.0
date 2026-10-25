@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowUpRight, MapPin, Star, X, Store, CalendarDays, FileText, ShoppingBag } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { resolveReference, referenceKey, referenceDataVersion } from "@/services/referenceResolver";
-import type { ContentReference, ReferencePreview } from "@/types/social/contentReferences";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { resolveReference, referenceKey, referenceDataVersion } from "@/modules/shared/content/referenceResolver";
+import type { ContentReference, ReferencePreview } from "@/modules/shared/types/contentReference";
 import { ErrorState } from "./StateBlocks";
 
 const TYPE_META = {

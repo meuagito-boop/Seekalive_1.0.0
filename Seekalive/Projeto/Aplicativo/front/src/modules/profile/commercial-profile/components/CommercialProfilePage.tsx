@@ -5,34 +5,32 @@ import {
   ArrowLeft,
   Bookmark,
   Camera,
-  Check,
-  Clock3,
-  Film,
-  Globe,
   MapPin,
   MoreHorizontal,
   Share2,
   Star,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { PostCard } from "@/components/post/PostCard";
 import { BusinessReviewsDialog } from "@/modules/seek/components/BusinessReviewsDialog";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
-import { useToast } from "@/hooks/use-toast";
-import type { User } from "@/data/mockData";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { localActorId, useAccountScopedIds } from "@/modules/shared/storage/accountScopedStorage";
+import { useToast } from "@/modules/shared/hooks/useToast";
+import type { User } from "@/modules/profile/types/user";
 import { buildProfileTimeline } from "@/modules/profile/utils/profileTimeline";
-import { getProfileMedia } from "@/lib/postMedia";
-import { canReadPost } from "@/services/contentValidation";
-import { formatWeeklyHours, weeklyHoursRows } from "@/modules/profile/commercial-profile/utils/businessHours";
-import { handleTabKeyDown } from "@/lib/tabKeyboard";
+import { getProfileMedia } from "@/modules/shared/content/postMedia";
+import { canReadPost } from "@/modules/shared/content/contentValidation";
+import { handleTabKeyDown } from "@/modules/shared/ui/tabKeyboard";
+import { formatWeeklyHours } from "@/modules/profile/commercial-profile/utils/businessHours";
+import { CommercialInfoTab } from "./CommercialInfoTab";
+import { CommercialMediaTab, type CommercialMediaTabKey } from "./CommercialMediaTab";
+import { CommercialReviewsTab } from "./CommercialReviewsTab";
+import { CommercialArticlesTab } from "./CommercialArticlesTab";
+import { CommercialPostsTab } from "./CommercialPostsTab";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
 const profileTabs = ["Publicações", "Informações", "Avaliações", "Mídias", "Artigos"] as const;
 type ProfileTab = (typeof profileTabs)[number];
-type MediaTab = "Fotos" | "Vídeos";
 const serviceOptions = [
   { key: "delivery", label: "Delivery", description: "Entrega no endereço informado." },
   { key: "dineIn", label: "Atendimento no local", description: "Recebe clientes no estabelecimento." },
@@ -48,72 +46,6 @@ function priceLabel(level?: number) {
 
 function mapsUrl(address: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-}
-
-function ReviewEntry({
-  review,
-  viewer,
-  business,
-  getUserById,
-}: {
-  review: ReturnType<typeof useSocial>["reviews"][number];
-  viewer: User | null;
-  business: User;
-  getUserById: ReturnType<typeof useSocial>["getUserById"];
-}) {
-  const reviewer = review.reviewerId === viewer?.id
-    ? viewer
-    : getUserById(review.reviewerId);
-
-  return (
-    <article className="border-b border-border py-4 last:border-0">
-      <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={reviewer?.avatarUrl} alt="" />
-          <AvatarFallback>{reviewer?.displayName?.[0] ?? "S"}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            {reviewer ? (
-              <Link
-                href={`/profile/${reviewer.username}`}
-                className="text-sm font-semibold text-foreground no-underline hover:text-primary"
-              >
-                {reviewer.displayName}
-              </Link>
-            ) : (
-              <span className="text-sm font-semibold text-foreground">Conta Social</span>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {new Date(review.createdAt).toLocaleDateString("pt-BR", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-0.5" aria-label={`Nota ${review.rating} de 5`}>
-            {Array.from({ length: review.rating }, (_, index) => (
-              <Star key={index} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-            ))}
-          </div>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-            {review.comment}
-          </p>
-          {review.businessReply && (
-            <div className="mt-3 rounded-lg bg-muted/50 p-3">
-              <p className="text-xs font-semibold text-foreground">
-                Resposta de {business.displayName}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
-                {review.businessReply.content}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </article>
-  );
 }
 
 export function CommercialProfilePage({
@@ -137,7 +69,7 @@ export function CommercialProfilePage({
   const offeredServices = serviceOptions.filter(service => commercial?.serviceOptions?.[service.key] === true);
   const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
-  const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
+  const [activeMediaTab, setActiveMediaTab] = useState<CommercialMediaTabKey>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(false);
@@ -400,253 +332,57 @@ export function CommercialProfilePage({
         <div className="px-4 py-5 md:px-8">
           <div id="commercial-profile-panel-1" role="tabpanel" aria-labelledby="commercial-profile-tab-1"
             hidden={activeTab !== "Informações"} tabIndex={0}>
-          {activeTab === "Informações" && (
-            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="space-y-6">
-                <section>
-                  <h2 className="text-lg font-bold">Sobre este lugar</h2>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{user.bio}</p>
-                  {commercial.tags.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {commercial.tags.map((tag) => (
-                        <span key={tag} className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-muted-foreground">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </section>
-
-                {commercial.amenities && commercial.amenities.length > 0 && (
-                  <section>
-                    <h2 className="mb-3 text-lg font-bold">Recursos e comodidades</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {commercial.amenities.map((amenity) => (
-                        <span key={amenity} className="rounded-full border border-border px-3 py-1.5 text-sm text-muted-foreground">
-                          <Check className="mr-1 inline h-3.5 w-3.5 text-emerald-500" />
-                          {amenity}
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                <section>
-                  <h2 className="mb-3 text-lg font-bold">Serviços e formas de atendimento</h2>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    Confira como este comércio atende seus clientes.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {offeredServices.length > 0 ? offeredServices.map(service => (
-                      <article key={service.key} className="rounded-2xl border border-border p-4">
-                        <h3 className="font-semibold">{service.label}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
-                      </article>
-                    )) : (
-                      <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground sm:col-span-2">
-                        Este perfil ainda não informou serviços oferecidos.
-                      </p>
-                    )}
-                  </div>
-                </section>
-              </div>
-
-              <aside className="space-y-5">
-                <section className="rounded-2xl border border-border p-4">
-                  <h2 className="mb-2 font-bold">Informações do comércio</h2>
-                  <div className="divide-y divide-border">
-                    {commercial.weeklyHours ? (
-                      <div className="border-b border-border py-3 last:border-0">
-                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-                          <Clock3 className="h-4 w-4 text-muted-foreground" />
-                          Horário de funcionamento
-                        </div>
-                        <div className="space-y-1.5 pl-6">
-                          {weeklyHoursRows(commercial.weeklyHours).map(row => (
-                            <div key={row.label} className="flex justify-between gap-4 text-sm">
-                              <span className="text-muted-foreground">{row.label}</span>
-                              <span className="text-right">{row.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <InfoLine icon={<Clock3 className="h-4 w-4" />} title="Horário de funcionamento" value={openingHoursSummary} />
-                    )}
-                    <InfoLine icon={<MapPin className="h-4 w-4" />} title="Endereço" value={commercial.address} href={mapsUrl(commercial.address)} />
-                    <InfoLine icon={<Globe className="h-4 w-4" />} title="Site" value={user.website ?? "Não informado"} href={user.website} />
-                    <InfoLine title="Faixa de preço" value={priceLabel(commercial.priceLevel) || "Não informada"} />
-                  </div>
-                </section>
-              </aside>
-            </div>
-          )}
+            {activeTab === "Informações" && (
+              <CommercialInfoTab
+                user={user}
+                commercial={commercial}
+                offeredServices={offeredServices}
+                openingHoursSummary={openingHoursSummary}
+              />
+            )}
           </div>
 
           <div id="commercial-profile-panel-3" role="tabpanel" aria-labelledby="commercial-profile-tab-3"
             hidden={activeTab !== "Mídias"} tabIndex={0}>
-          {activeTab === "Mídias" && (
-            <section id="merchant-media" className="max-w-4xl scroll-mt-32">
-              <div className="mb-5">
-                <h2 className="text-xl font-bold">Mídias de {user.displayName}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Fotos e vídeos compartilhados por este comércio.</p>
-              </div>
-              <div role="tablist" aria-label="Tipo de mídia" className="mb-5 flex gap-2 border-b border-border">
-                {(["Fotos", "Vídeos"] as const).map((mediaTab, index) => (
-                  <button
-                    key={mediaTab}
-                    id={`commercial-media-tab-${index}`}
-                    aria-controls={`commercial-media-panel-${index}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeMediaTab === mediaTab}
-                    tabIndex={activeMediaTab === mediaTab ? 0 : -1}
-                    onKeyDown={(event) => handleTabKeyDown(event, index, 2, (nextIndex) => setActiveMediaTab(nextIndex === 0 ? "Fotos" : "Vídeos"))}
-                    onClick={() => setActiveMediaTab(mediaTab)}
-                    className={`border-b-2 px-4 py-3 text-sm font-semibold ${
-                      activeMediaTab === mediaTab
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {mediaTab} ({mediaTab === "Fotos" ? photos.length : videos.length})
-                  </button>
-                ))}
-              </div>
-
-              <div id="commercial-media-panel-0" role="tabpanel" aria-labelledby="commercial-media-tab-0"
-                hidden={activeMediaTab !== "Fotos"} tabIndex={0}>
-              {activeMediaTab === "Fotos" && (
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                  {photos.map((photo, index) => (
-                    <button
-                      type="button"
-                      key={photo}
-                      onClick={() => {
-                        setSelectedPhoto(index);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="group relative h-36 overflow-hidden rounded-xl bg-muted md:h-52"
-                      aria-label={`Exibir foto ${index + 1}`}
-                    >
-                      <img src={photo} alt={`${user.displayName}, foto ${index + 1}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                    </button>
-                  ))}
-                </div>
-              )}
-              </div>
-              <div id="commercial-media-panel-1" role="tabpanel" aria-labelledby="commercial-media-tab-1"
-                hidden={activeMediaTab !== "Vídeos"} tabIndex={0}>
-              {activeMediaTab === "Vídeos" && (videos.length ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {videos.map((video) => (
-                    <video key={video} src={video} controls playsInline className="aspect-video w-full rounded-xl bg-black" />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-border px-5 text-center">
-                  <Film className="h-8 w-8 text-muted-foreground" />
-                  <h3 className="mt-3 font-semibold">Ainda não há vídeos</h3>
-                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Os vídeos deste comércio aparecerão aqui.
-                  </p>
-                </div>
-              ))}
-              </div>
-            </section>
-          )}
+            {activeTab === "Mídias" && (
+              <CommercialMediaTab
+                user={user}
+                photos={photos}
+                videos={videos}
+                activeTab={activeMediaTab}
+                onTabChange={setActiveMediaTab}
+                onPhotoSelect={(index) => {
+                  setSelectedPhoto(index);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            )}
           </div>
 
           <div id="commercial-profile-panel-2" role="tabpanel" aria-labelledby="commercial-profile-tab-2"
             hidden={activeTab !== "Avaliações"} tabIndex={0}>
-          {activeTab === "Avaliações" && (
-            <section className="max-w-3xl">
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-bold">Avaliações de clientes</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Opiniões publicadas por contas do Seekalive.</p>
-                </div>
-                <Button onClick={() => setReviewsOpen(true)} className="rounded-full">
-                  <Star className="mr-2 h-4 w-4" />
-                  Escrever avaliação
-                </Button>
-              </div>
-
-              <div className="mb-5 grid gap-4 rounded-2xl border border-border p-4 sm:grid-cols-[150px_1fr] sm:p-5">
-                <div>
-                  <p className="text-4xl font-black">{rating === null ? "—" : rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
-                  <div className="mt-1 flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((score) => (
-                      <Star key={score} className={`h-4 w-4 ${rating !== null && score <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
-                    ))}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{allBusinessReviews.length} avaliações</p>
-                </div>
-                <div className="space-y-2">
-                  {ratingCounts.map(({ score, count }) => (
-                    <div key={score} className="flex items-center gap-2 text-xs">
-                      <span className="w-3 text-muted-foreground">{score}</span>
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-amber-400"
-                          style={{ width: `${allBusinessReviews.length ? (count / allBusinessReviews.length) * 100 : 0}%` }}
-                        />
-                      </div>
-                      <span className="w-5 text-right text-muted-foreground">{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {businessReviews.length ? (
-                businessReviews.map((review) => (
-                  <ReviewEntry
-                    key={review.id}
-                    review={review}
-                    viewer={currentUser}
-                    business={user}
-                    getUserById={getUserById}
-                  />
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center">
-                  <p className="font-semibold">{allBusinessReviews.length ? "Nenhuma avaliação visível" : "Ainda não há avaliações"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {allBusinessReviews.length ? "Algumas avaliações não estão disponíveis para esta conta." : "Compartilhe sua experiência para ajudar outras pessoas."}
-                  </p>
-                </div>
-              )}
-            </section>
-          )}
+            {activeTab === "Avaliações" && (
+              <CommercialReviewsTab
+                user={user}
+                viewer={currentUser}
+                allReviews={allBusinessReviews}
+                visibleReviews={businessReviews}
+                rating={rating}
+                ratingCounts={ratingCounts}
+                getUserById={getUserById}
+                onOpenReview={() => setReviewsOpen(true)}
+              />
+            )}
           </div>
 
           <div id="commercial-profile-panel-4" role="tabpanel" aria-labelledby="commercial-profile-tab-4"
             hidden={activeTab !== "Artigos"} tabIndex={0}>
-          {activeTab === "Artigos" && (
-            <section className="mx-auto max-w-2xl">
-              <h2 className="mb-4 text-xl font-bold">Artigos de {user.displayName}</h2>
-              {userArticles.length ? userArticles.map((post) => <PostCard key={post.id} post={post} />) : (
-                <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center text-sm text-muted-foreground">
-                  Nenhum artigo publicado por este perfil. Artigos de outras pessoas sobre este lugar aparecem nos perfis delas.
-                </div>
-              )}
-            </section>
-          )}
+            {activeTab === "Artigos" && <CommercialArticlesTab displayName={user.displayName} articles={userArticles} />}
           </div>
 
           <div id="commercial-profile-panel-0" role="tabpanel" aria-labelledby="commercial-profile-tab-0"
             hidden={activeTab !== "Publicações"} tabIndex={0}>
-          {activeTab === "Publicações" && (
-            <section className="mx-auto max-w-2xl">
-              <h2 className="mb-4 text-xl font-bold">Publicações de {user.displayName}</h2>
-              {timeline.length ? timeline.map(item => <PostCard key={item.key} post={item.post} repostedById={item.repostedById} />) : (
-                <div className="rounded-2xl border border-dashed border-border px-5 py-12 text-center text-sm text-muted-foreground">
-                  Este perfil comercial ainda não publicou nada no Social.
-                </div>
-              )}
-            </section>
-          )}
+            {activeTab === "Publicações" && <CommercialPostsTab displayName={user.displayName} timeline={timeline} />}
           </div>
         </div>
       </main>
@@ -677,34 +413,6 @@ export function CommercialProfilePage({
         open={reviewsOpen}
         onOpenChange={setReviewsOpen}
       />
-    </div>
-  );
-}
-
-function InfoLine({
-  icon,
-  title,
-  value,
-  href,
-}: {
-  icon?: React.ReactNode;
-  title: string;
-  value: string;
-  href?: string;
-}) {
-  return (
-    <div className="flex items-start gap-3 py-3.5">
-      <span className="mt-0.5 text-muted-foreground">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-muted-foreground">{title}</p>
-        {href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="mt-0.5 block break-words text-sm text-primary hover:underline">
-            {value}
-          </a>
-        ) : (
-          <p className="mt-0.5 break-words text-sm">{value}</p>
-        )}
-      </div>
     </div>
   );
 }

@@ -3,8 +3,8 @@ import { Redirect, Route, Switch, useLocation } from "wouter";
 import { AppLayout } from "@/modules/app/layouts/AppLayout";
 import { AppShell } from "@/modules/app/layouts/AppShell";
 import { SocialLayout } from "@/modules/social/components/layout/SocialLayout";
-import { SocialProvider } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
+import { SocialProvider } from "@/modules/app/state/SocialContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
 import { RouteLoadingFallback } from "@/modules/app/components/RouteLoadingFallback";
 
 const OnboardingInterests = lazy(() => import("@/modules/onboarding/screens/Interests"));

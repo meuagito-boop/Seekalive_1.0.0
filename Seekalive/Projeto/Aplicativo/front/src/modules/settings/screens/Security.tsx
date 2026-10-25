@@ -13,7 +13,7 @@ import {
   revokeTrustedDevice,
   type AuthSessionView,
   type TrustedDeviceView,
-} from "@/services/authApi";
+} from "@/modules/auth/services/sessionApi";
 
 function UnavailableRow({ icon: Icon, title, desc, control }: { icon: React.ElementType; title: string; desc: string; control?: React.ReactNode }) {
   return (

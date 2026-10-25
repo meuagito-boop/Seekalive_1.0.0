@@ -5,12 +5,12 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/modules/social/types/post";
 import { Link, useLocation } from "wouter";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { canReadPost } from "@/services/contentValidation";
-import { postPath } from "@/lib/contentLinks";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { canReadPost } from "@/modules/shared/content/contentValidation";
+import { postPath } from "@/modules/shared/content/contentLinks";
 
 function PostRow({ post, meta }: { post: Post; meta?: React.ReactNode }) {
   const { getUserById } = useSocial();

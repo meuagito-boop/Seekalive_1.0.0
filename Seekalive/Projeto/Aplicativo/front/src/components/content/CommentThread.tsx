@@ -2,10 +2,10 @@ import { useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Heart, CornerDownRight, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { formatTimeAgo } from "@/lib/formatters";
-import type { SocialComment } from "@/types/social/posts";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { formatTimeAgo } from "@/modules/shared/utils/formatters";
+import type { SocialComment } from "@/modules/social/types/content";
 import { renderInline } from "./RichText";
 import { ErrorState } from "./StateBlocks";
 

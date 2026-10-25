@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppProvider, useAppContext } from "@/context/AppContext";
+import { AppProvider, useAppContext } from "@/modules/app/state/AppContext";
 import { RouteLoadingFallback } from "@/modules/app/components/RouteLoadingFallback";
 
 const UnauthenticatedRoutes = lazy(() => import("@/modules/app/routes/UnauthenticatedRoutes"));

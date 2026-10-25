@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
-import { useAppContext } from "@/context/AppContext";
-import { canReadPost } from "@/services/contentValidation";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { canReadPost } from "@/modules/shared/content/contentValidation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search as SearchIcon, TrendingUp, Users, Hash } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PostCard } from "@/components/post/PostCard";
-import { formatCount } from "@/lib/formatters";
-import { useSocial } from "@/context/SocialContext";
-import { accountListToUsers, socialGraphApi } from "@/services/socialGraphApi";
-import { handleTabKeyDown } from "@/lib/tabKeyboard";
+import { PostCard } from "@/modules/social/components/post/PostCard";
+import { formatCount } from "@/modules/shared/utils/formatters";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { accountListToUsers, socialGraphApi } from "@/modules/social/services/socialGraphApi";
+import { handleTabKeyDown } from "@/modules/shared/ui/tabKeyboard";
 
 const tabs = [
   { label: "Publicações", id: "Posts" },

@@ -5,15 +5,15 @@ import { X, Globe, Users, Lock, Loader2, BookOpenText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
-import { useDraftMedia, MAX_MEDIA_ITEMS } from "@/hooks/use-draft-media";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { useDraftMedia, MAX_MEDIA_ITEMS } from "@/modules/shared/media/hooks/useDraftMedia";
 import { MediaDraftGrid, MediaPickerButtons } from "@/components/content/MediaDraftGrid";
 import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard";
 import { ErrorState } from "@/components/content/StateBlocks";
 import { renderInline } from "@/components/content/RichText";
-import { articleCreatePath, extractHashtags, extractMentions, readReferenceFromSearch, postPath } from "@/lib/contentLinks";
-import type { ContentReference } from "@/types/social/contentReferences";
+import { articleCreatePath, extractHashtags, extractMentions, readReferenceFromSearch, postPath } from "@/modules/shared/content/contentLinks";
+import type { ContentReference } from "@/modules/shared/types/contentReference";
 
 const MAX_CHARS = 280;
 

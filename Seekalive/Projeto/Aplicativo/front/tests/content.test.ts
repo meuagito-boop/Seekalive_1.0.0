@@ -3,25 +3,25 @@ import "./seekDiscovery.test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { makeDemoPost, makeDemoComment, makeDemoMessage, extractSocialTokens, validatePublication, canReadPost, assertCommentParent } from "../src/services/contentValidation";
-import { apiRequest, restContentAdapter } from "../src/services/contentService";
-import { resolveReference } from "../src/services/referenceResolver";
+import { makeDemoPost, makeDemoComment, makeDemoMessage, extractSocialTokens, validatePublication, canReadPost, assertCommentParent } from "../src/modules/shared/content/contentValidation";
+import { apiRequest, restContentAdapter } from "../src/modules/shared/content/contentService";
+import { resolveReference } from "../src/modules/shared/content/referenceResolver";
 import {
   mergeDevelopmentPreviewState,
   socialReducer,
   type SocialState,
-} from "../src/context/social/state";
+} from "../src/modules/app/state/socialState";
 import {
   followRequestIdsBetween,
   removeFollowEdgesForBlock,
-} from "../src/lib/followRelationships";
-import { mockUsers, mockNotifications, currentUser } from "../src/data/mockData";
-import { formatCount, formatTimeAgo } from "../src/lib/formatters";
-import type { PublishPostInput } from "../src/types/content";
-import { validateMediaFiles } from "../src/services/mediaService";
+} from "../src/modules/social/utils/followRelationships";
+import { mockUsers, mockNotifications, currentUser } from "../src/modules/app/data/demo/mockRecords";
+import { formatCount, formatTimeAgo } from "../src/modules/shared/utils/formatters";
+import type { PublishPostInput } from "../src/modules/social/types/content";
+import { validateMediaFiles } from "../src/modules/shared/media/mediaService";
 import { filterSeekBusinesses, matchesSeekSearch } from "../src/modules/seek/utils/seekFilters";
-import { saveStoredSeekReviews } from "../src/data/reviewStorage";
-import { myAccountToUser } from "../src/services/socialGraphApi";
+import { saveStoredSeekReviews } from "../src/modules/seek/data/reviewStorage";
+import { myAccountToUser } from "../src/modules/social/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
 import {
   accountStorageKey,
@@ -29,14 +29,14 @@ import {
   readAccountScopedIds,
   readAccountScopedIdsMap,
   writeAccountScopedIds,
-} from "../src/data/accountScopedStorage";
-import { getStoredAccounts, saveSocialAccount } from "../src/data/accountStorage";
+} from "../src/modules/shared/storage/accountScopedStorage";
+import { getStoredAccounts, saveSocialAccount } from "../src/modules/app/storage/accountStorage";
 import {
   getSocialAccountActivity,
   readSocialAccountActivityMap,
   saveSocialAccountActivityMap,
   updateSocialAccountActivity,
-} from "../src/data/socialAccountActivityStorage";
+} from "../src/modules/app/storage/socialAccountActivityStorage";
 
 const input: PublishPostInput = { content: "Minha opinião #café", authorId: "me", audience: "public" };
 const post = makeDemoPost(input);
@@ -254,15 +254,19 @@ test("bloquear cancela solicitações pendentes nas duas direções", () => {
 });
 test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
   const socialSource = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/context/SocialContext.tsx"),
+    join(process.cwd(), "Aplicativo/front/src/modules/app/state/SocialContext.tsx"),
+    "utf8",
+  );
+  const socialViewSource = readFileSync(
+    join(process.cwd(), "Aplicativo/front/src/modules/social/hooks/useSocialContextView.ts"),
     "utf8",
   );
   const blockedPageSource = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/pages/settings/Blocked.tsx"),
+    join(process.cwd(), "Aplicativo/front/src/modules/settings/screens/Blocked.tsx"),
     "utf8",
   );
   const relationshipSource = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/context/social/relationshipActions.ts"),
+    join(process.cwd(), "Aplicativo/front/src/modules/social/services/blockActions.ts"),
     "utf8",
   );
   const profileSource = readFileSync(
@@ -270,16 +274,16 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     "utf8",
   );
   assert.match(socialSource, /useAccountScopedIds\("seekalive-blocked-users", actorId\)/);
-  assert.match(socialSource, /isBlockedByViewer: blockedUserIdSet\.has\(user\.id\)/);
-  assert.match(socialSource, /blocksViewer: !isRemoteSocialSession && accountsBlockingViewerSet\.has\(user\.id\)/);
+  assert.match(socialViewSource, /isBlockedByViewer: blockedUserIdSet\.has\(user\.id\)/);
+  assert.match(socialViewSource, /blocksViewer: !isRemoteSocialSession && accountsBlockingViewerSet\.has\(user\.id\)/);
   assert.match(
-    socialSource,
+    socialViewSource,
     /isBlocked: blockedUserIdSet\.has\(user\.id\)\s*\|\|\s*\(!isRemoteSocialSession && accountsBlockingViewerSet\.has\(user\.id\)\)\s*\|\|\s*\(isRemoteSocialSession && user\.source === "server" && Boolean\(user\.isBlocked\)\)/,
   );
   assert.match(relationshipSource, /removeFollowEdgesForBlock\(viewer, target\)/);
   assert.match(relationshipSource, /followRequestIdsBetween\(state\.followRequests, viewer\.id, userId\)/);
-  assert.match(socialSource, /blockedAccountIds\.has\(notification\.actorId\)/);
-  assert.match(socialSource, /conversation\.participantIds\.some\(id => id !== actorId && blockedAccountIds\.has\(id\)\)/);
+  assert.match(socialViewSource, /blockedAccountIds\.has\(notification\.actorId\)/);
+  assert.match(socialViewSource, /conversation\.participantIds\.some\(\(id\) => id !== actorId && blockedAccountIds\.has\(id\)\)/);
   assert.match(blockedPageSource, /unblockUser\(userId\)/);
   assert.match(blockedPageSource, /isBlockedByViewer/);
   assert.doesNotMatch(blockedPageSource, /disabled/);
@@ -311,19 +315,24 @@ test("seguimentos escolhidos no onboarding permanecem vinculados à conta no nav
 });
 test("idade é coletada no cadastro, mas não exibida após a criação da conta", () => {
   const registration = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/pages/Register.tsx"),
+    join(process.cwd(), "Aplicativo/front/src/modules/auth/components/registration/PersonalRegistrationFields.tsx"),
+    "utf8",
+  );
+  const commercialRegistration = readFileSync(
+    join(process.cwd(), "Aplicativo/front/src/modules/auth/components/registration/CommercialRegistrationFields.tsx"),
     "utf8",
   );
   const accountSettings = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/pages/settings/Account.tsx"),
+    join(process.cwd(), "Aplicativo/front/src/modules/settings/screens/Account.tsx"),
     "utf8",
   );
   assert.match(registration, /data-testid="input-age"/);
+  assert.match(commercialRegistration, /data-testid="input-age"/);
   assert.doesNotMatch(accountSettings, /draft\.age|\bIdade\b/i);
 });
 test("alteração de nome de usuário sincroniza as fontes da conta e do Social", () => {
   const source = readFileSync(
-    join(process.cwd(), "Aplicativo/front/src/pages/settings/Account.tsx"),
+    join(process.cwd(), "Aplicativo/front/src/modules/settings/screens/Account.tsx"),
     "utf8",
   );
   const usernameHandler = source.split("async function submitUsername")[1]?.split("const disabled =")[0] ?? "";
@@ -371,7 +380,7 @@ test("marca Elo usa Seekalive e o mesmo símbolo no app e favicon", () => {
   const html = readFileSync(join(root, "index.html"), "utf8");
   assert.match(html, /<title>Seekalive<\/title>/);
   assert.match(html, /apple-touch-icon/);
-  for (const file of ["components/layout/Header.tsx", "components/layout/SocialDesktopHeader.tsx", "components/social/SocialDrawer.tsx", "pages/Login.tsx", "pages/Register.tsx", "pages/Splash.tsx"]) {
+  for (const file of ["modules/app/layouts/Header.tsx", "modules/app/layouts/SocialDesktopHeader.tsx", "modules/social/components/SocialDrawer.tsx", "modules/auth/screens/Login.tsx", "modules/auth/screens/Register.tsx", "modules/app/screens/Splash.tsx"]) {
     const source = readFileSync(join(root, "src", file), "utf8");
     assert.match(source, /<BrandMark/);
     assert.match(source, /Seekalive/);
@@ -386,8 +395,8 @@ test("marca Elo usa Seekalive e o mesmo símbolo no app e favicon", () => {
 
 test("mover menu não remove Social nem troca os destinos da barra inferior", () => {
   const root = join(process.cwd(), "Aplicativo/front/src");
-  const bottom = readFileSync(join(root, "components/layout/BottomNav.tsx"), "utf8");
-  const sidebar = readFileSync(join(root, "components/social/SocialSidebar.tsx"), "utf8");
+  const bottom = readFileSync(join(root, "modules/app/layouts/BottomNav.tsx"), "utf8");
+  const sidebar = readFileSync(join(root, "modules/social/components/SocialSidebar.tsx"), "utf8");
   assert.match(bottom, /href="\/seek" aria-label="Seek"/);
   assert.match(bottom, /href="\/feed" aria-label="Social"/);
   assert.match(bottom, /href="\/shop"/);

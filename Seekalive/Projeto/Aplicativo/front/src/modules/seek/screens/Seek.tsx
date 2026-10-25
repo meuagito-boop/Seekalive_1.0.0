@@ -9,7 +9,7 @@ import { DiscoveryCategories } from "@/modules/seek/components/DiscoveryCategori
 import type { DiscoveryCategory } from "@/modules/seek/components/DiscoveryCategories";
 import { DiscoveryFiltersPanel } from "@/modules/seek/components/DiscoveryFiltersPanel";
 import { DiscoveryLocationDialog } from "@/modules/seek/components/DiscoveryLocationDialog";
-import { handleTabKeyDown } from "@/lib/tabKeyboard";
+import { handleTabKeyDown } from "@/modules/shared/ui/tabKeyboard";
 
 type Tab = DiscoveryFilters["tab"];
 const TABS: { key: Tab; label: string }[] = [

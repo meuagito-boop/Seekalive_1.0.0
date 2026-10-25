@@ -5,11 +5,11 @@ import { Check, ChevronRight, X } from "lucide-react";
 import { SettingsSubheader } from "./SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getPrivacyPreferences, savePrivacyPreferences } from "@/data/appPreferences";
-import { useAppContext } from "@/context/AppContext";
-import { useSocial } from "@/context/SocialContext";
-import { toast } from "@/hooks/use-toast";
-import { socialGraphApi } from "@/services/socialGraphApi";
+import { getPrivacyPreferences, savePrivacyPreferences } from "@/modules/settings/data/preferences";
+import { useAppContext } from "@/modules/app/state/AppContext";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { toast } from "@/modules/shared/hooks/useToast";
+import { socialGraphApi } from "@/modules/social/services/socialGraphApi";
 
 function SettingRow({ label, desc, checked, onToggle, testId, disabled = false }: {
   label: string;

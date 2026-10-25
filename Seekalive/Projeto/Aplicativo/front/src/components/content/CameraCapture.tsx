@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Circle, Square, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MEDIA_LIMITS } from "@/services/mediaService";
+import { MEDIA_LIMITS } from "@/modules/shared/media/mediaService";
 
 export function CameraCapture({ type, onClose, onCapture, onChooseFile }: {
   type: "image" | "video" | null;

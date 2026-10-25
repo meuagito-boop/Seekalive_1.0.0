@@ -4,26 +4,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { PostCard } from "@/components/post/PostCard";
-import { formatCount } from "@/lib/formatters";
-import { useSocial } from "@/context/SocialContext";
-import { useAppContext } from "@/context/AppContext";
+import { formatCount } from "@/modules/shared/utils/formatters";
+import { useSocial } from "@/modules/app/state/SocialContext";
+import { useAppContext } from "@/modules/app/state/AppContext";
 import { CommercialProfilePage } from "@/modules/profile/commercial-profile/components/CommercialProfilePage";
+import { PersonalProfileTabs } from "@/modules/profile/personal-profile/components/PersonalProfileTabs";
 import { buildProfileTimeline } from "@/modules/profile/utils/profileTimeline";
-import { getProfileMedia } from "@/lib/postMedia";
-import { canReadPost } from "@/services/contentValidation";
-import { postPath } from "@/lib/contentLinks";
+import { getProfileMedia } from "@/modules/shared/content/postMedia";
+import { canReadPost } from "@/modules/shared/content/contentValidation";
 import { UnavailableState } from "@/components/content/StateBlocks";
-import { useToast } from "@/hooks/use-toast";
-import { handleTabKeyDown } from "@/lib/tabKeyboard";
-
-const tabs = [
-  { label: "Publicações", id: "Posts" },
-  { label: "Respostas", id: "Respostas" },
-  { label: "Mídias", id: "Mídias" },
-  { label: "Curtidas", id: "Curtidas" },
-  { label: "Artigos", id: "Artigos" },
-];
+import { useToast } from "@/modules/shared/hooks/useToast";
 
 export default function Profile() {
   const params = useParams<{ username: string }>();
@@ -398,91 +388,19 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div role="tablist" aria-label="Seções do perfil" className="flex overflow-x-auto border-b border-border sticky top-14 bg-background z-20 [scrollbar-width:none]">
-        {tabs.map((tab, i) => (
-          <button
-            key={tab.id}
-            id={`profile-tab-${i}`}
-            aria-controls={`profile-panel-${i}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === i}
-            tabIndex={activeTab === i ? 0 : -1}
-            onKeyDown={(event) => handleTabKeyDown(event, i, tabs.length, setActiveTab)}
-            onClick={() => setActiveTab(i)}
-            data-testid={`tab-profile-${tab.id}`}
-            className={`min-w-[96px] flex-1 shrink-0 whitespace-nowrap px-2 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === i ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div>
-        <div id="profile-panel-0" role="tabpanel" aria-labelledby="profile-tab-0" hidden={activeTab !== 0} tabIndex={0}>
-          {activeTab === 0 && (timeline.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground">
-              <p className="text-sm font-medium">Nenhuma publicação ainda.</p>
-            </div>
-          ) : timeline.map(item => <PostCard key={item.key} post={item.post} repostedById={item.repostedById} />))}
-        </div>
-        <div id="profile-panel-1" role="tabpanel" aria-labelledby="profile-tab-1" hidden={activeTab !== 1} tabIndex={0}>
-          {activeTab === 1 && (userComments.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">Nenhuma resposta ainda.</p></div>
-          ) : userComments.map(c => {
-            const target = posts.find(p => p.id === c.postId);
-            return (
-              <div key={c.id} className="border-b border-border px-4 py-3">
-                <p className="text-xs text-muted-foreground">
-                  {c.replyToCommentId ? "Respondeu a um comentário em " : "Comentou em "}
-                  {target && visibleToViewer(target)
-                    ? <Link href={postPath(target)} className="font-semibold text-primary hover:underline">{target.article?.title ?? (target.content.slice(0, 60) || "publicação")}</Link>
-                    : <span>publicação indisponível</span>}
-                </p>
-                <p className="mt-1 whitespace-pre-wrap text-sm">{c.content}</p>
-              </div>
-            );
-          }))}
-        </div>
-        <div id="profile-panel-2" role="tabpanel" aria-labelledby="profile-tab-2" hidden={activeTab !== 2} tabIndex={0}>
-          {activeTab === 2 && (userMedia.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground">
-              <p className="text-sm font-medium">Nenhuma mídia nesta conta ainda.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-1 p-1 sm:grid-cols-3">
-              {userMedia.map((media) => (
-                <div key={media.id} className="aspect-square overflow-hidden rounded-lg bg-muted">
-                  {media.type === "video" ? (
-                    <video src={media.url} controls playsInline className="h-full w-full object-cover" />
-                  ) : (
-                    <img src={media.url} alt={`Mídia de ${user.displayName}`} className="h-full w-full object-cover" />
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div id="profile-panel-3" role="tabpanel" aria-labelledby="profile-tab-3" hidden={activeTab !== 3} tabIndex={0}>
-          {activeTab === 3 && (!isMe ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">As curtidas de @{user.username} são privadas.</p></div>
-          ) : likedPosts.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">Você ainda não curtiu publicações.</p></div>
-          ) : likedPosts.map(post => <PostCard key={post.id} post={post} />))}
-        </div>
-        <div id="profile-panel-4" role="tabpanel" aria-labelledby="profile-tab-4" hidden={activeTab !== 4} tabIndex={0}>
-          {activeTab === 4 && (userArticles.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-              <p className="text-sm">Nenhum artigo ainda.</p>
-              {isMe && <Link href="/article/create" className="text-sm font-semibold text-primary hover:underline">Escrever artigo</Link>}
-            </div>
-          ) : userArticles.map(post => <PostCard key={post.id} post={post} />))}
-        </div>
-      </div>
+      <PersonalProfileTabs
+        user={user}
+        isMe={isMe}
+        activeTab={activeTab}
+        onActiveTabChange={setActiveTab}
+        timeline={timeline}
+        userComments={userComments}
+        posts={posts}
+        visibleToViewer={visibleToViewer}
+        userMedia={userMedia}
+        likedPosts={likedPosts}
+        userArticles={userArticles}
+      />
     </div>
   );
 }
