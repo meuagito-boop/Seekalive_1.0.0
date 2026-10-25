@@ -623,8 +623,6 @@ components:
           enum: [personal, commercial]
         isPrivate:
           type: boolean
-        isVerified:
-          type: boolean
         joinedAt:
           type: string
           format: date-time
@@ -646,7 +644,6 @@ components:
         - website
         - accountType
         - isPrivate
-        - isVerified
         - joinedAt
         - relationship
         - stats

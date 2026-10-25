@@ -49,7 +49,6 @@ test("perfil comercial autenticado √© hidratado da resposta privada do propriet√
       website: null,
       accountType: "commercial",
       isPrivate: false,
-      isVerified: true,
       joinedAt: "2026-10-24T00:00:00.000Z",
       relationship: {
         following: "none",

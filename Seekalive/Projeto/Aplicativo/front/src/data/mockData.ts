@@ -24,7 +24,6 @@ export interface User {
   onboardingCompleted?: boolean;
   commercialProfile?: CommercialProfile;
   isPrivate?: boolean;
-  isVerified?: boolean;
   stats: {
     posts: number;
     followers: number;
@@ -157,7 +156,6 @@ export const mockUsers: User[] = [
     website: "https://alex.dev",
     joinedAt: "2023-01-15T00:00:00Z",
     accountType: "personal",
-    isVerified: true,
     stats: { posts: 142, followers: 12050, following: 340, circles: 24 },
     isFollowing: true,
   },
@@ -171,7 +169,6 @@ export const mockUsers: User[] = [
     location: "New York, NY",
     joinedAt: "2023-03-22T00:00:00Z",
     accountType: "personal",
-    isVerified: true,
     stats: { posts: 89, followers: 34002, following: 210, circles: 18 },
     followingIds: ["me"],
     isFollowing: true,
@@ -226,7 +223,6 @@ export const mockUsers: User[] = [
     website: "https://anapereira.com",
     joinedAt: "2022-11-30T00:00:00Z",
     accountType: "personal",
-    isVerified: true,
     stats: { posts: 890, followers: 52000, following: 430, circles: 45 },
   },
   {
@@ -291,7 +287,6 @@ export const mockUsers: User[] = [
       tags: ["Carnes", "Almoço", "Jantar"],
     },
     stats: { posts: 18, followers: 4200, following: 120, circles: 0 },
-    isVerified: true,
   },
   {
     id: "biz2",
@@ -328,7 +323,6 @@ export const mockUsers: User[] = [
       tags: ["Drinks", "Petiscos", "Ao vivo"],
     },
     stats: { posts: 31, followers: 6900, following: 80, circles: 0 },
-    isVerified: true,
   },
   {
     id: "biz3",
@@ -365,7 +359,6 @@ export const mockUsers: User[] = [
       tags: ["Café especial", "Brunch", "Wi-Fi"],
     },
     stats: { posts: 46, followers: 8200, following: 90, circles: 0 },
-    isVerified: true,
   },
   {
     id: "biz4",
@@ -402,7 +395,6 @@ export const mockUsers: User[] = [
       tags: ["Musculação", "Pilates", "CrossFit"],
     },
     stats: { posts: 27, followers: 3100, following: 65, circles: 0 },
-    isVerified: true,
   },
   {
     id: "biz5",
@@ -439,7 +431,6 @@ export const mockUsers: User[] = [
       tags: ["Corte", "Barba", "Agendamento"],
     },
     stats: { posts: 22, followers: 5400, following: 48, circles: 0 },
-    isVerified: true,
   },
   {
     id: "biz6",
@@ -476,7 +467,6 @@ export const mockUsers: User[] = [
       tags: ["Livros", "Papelaria", "Café"],
     },
     stats: { posts: 15, followers: 7700, following: 110, circles: 0 },
-    isVerified: true,
   },
 ];
 

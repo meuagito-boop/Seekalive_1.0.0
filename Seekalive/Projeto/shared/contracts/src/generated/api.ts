@@ -64,7 +64,6 @@ export const GetMyAccountResponse = zod.object({
   "website": zod.url().regex(getMyAccountResponseAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -203,7 +202,6 @@ export const UpdateMyAccountResponse = zod.object({
   "website": zod.url().regex(updateMyAccountResponseAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -312,7 +310,6 @@ export const GetProfileByUsernameResponse = zod.object({
   "website": zod.url().regex(getProfileByUsernameResponseAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -381,7 +378,6 @@ export const GetProfileByAccountIdResponse = zod.object({
   "website": zod.url().regex(getProfileByAccountIdResponseWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -446,7 +442,6 @@ export const SearchAccountsResponse = zod.object({
   "website": zod.url().regex(searchAccountsResponseItemsItemWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -513,7 +508,6 @@ export const GetFollowersResponse = zod.object({
   "website": zod.url().regex(getFollowersResponseItemsItemWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -580,7 +574,6 @@ export const GetFollowingResponse = zod.object({
   "website": zod.url().regex(getFollowingResponseItemsItemWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -666,7 +659,6 @@ export const GetIncomingFollowRequestsResponse = zod.object({
   "website": zod.url().regex(getIncomingFollowRequestsResponseItemsItemAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -755,7 +747,6 @@ export const GetCircleResponse = zod.object({
   "website": zod.url().regex(getCircleResponseItemsItemAccountWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),
@@ -807,7 +798,6 @@ export const GetBlockedAccountsResponse = zod.object({
   "website": zod.url().regex(getBlockedAccountsResponseItemsItemWebsiteRegExp).nullable(),
   "accountType": zod.enum(['personal', 'commercial']),
   "isPrivate": zod.boolean(),
-  "isVerified": zod.boolean(),
   "joinedAt": zod.coerce.date(),
   "relationship": zod.object({
   "following": zod.enum(['none', 'pending', 'accepted']),

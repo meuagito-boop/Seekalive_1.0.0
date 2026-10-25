@@ -21,7 +21,6 @@ CREATE TABLE accounts (
   bio text NOT NULL DEFAULT '' CHECK (char_length(bio) <= 2000),
   location_label text, website_url text,
   avatar_asset_id uuid, cover_asset_id uuid,
-  is_verified boolean NOT NULL DEFAULT false,
   status text NOT NULL DEFAULT 'pending_verification'
     CHECK (status IN ('pending_verification', 'active', 'suspended', 'deleted')),
   created_at timestamptz NOT NULL DEFAULT now(),

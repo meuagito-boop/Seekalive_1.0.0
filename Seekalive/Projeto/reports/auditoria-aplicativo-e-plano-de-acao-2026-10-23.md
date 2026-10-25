@@ -1,11 +1,13 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.23
+**Versão do documento:** 2.24
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
+
+**Decisão de conta incorporada em 24/10/2026:** a primeira versão pública não terá selo de verificação. A confirmação de e-mail é privada e usada para autenticação; o contrato público e os componentes de perfil/publicação não devem expor nem exibir `isVerified`.
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
@@ -635,14 +637,14 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 6. **Só após o gate Social, implementar os bancos restantes de forma incremental.** Localização/PostGIS deve começar com dados de negócio validados, coordenadas e índice espacial; manter GPS do usuário explícito e não persistido por padrão. Em seguida decidir e implementar mídia/feed, mensagens/notificações, Seek, Shop e busca com consistência e testes próprios.
 7. **Fechar operação antes de qualquer uso fora do desenvolvimento.** Ensaiar cópia, contagem, validação, troca de conexão, rollback/compensação e restauração; documentar RPO/RTO e verificar que a falha de um domínio não vaza dados nem produz sucesso falso em outro.
 
-**Resultado desta fase:** auditoria concluída e plano registrado. A proposta inicial de ownership foi escrita em `docs/architecture/database-domains.md`; ela ainda aguarda decisões sobre unidades comerciais, salvos e verificação pública. Shop e Confiança e Segurança foram confirmados pelo usuário como bancos lógicos independentes, sem provisionamento. Foram feitas inspeções estáticas e uma consulta agregada somente leitura ao banco de desenvolvimento; não foram executados testes contra provedor externo, migrações ou operações de escrita. Nenhuma tabela, banco, conexão externa ou módulo foi alterado. O próximo passo é resolver as decisões em aberto, não aplicar DDL.
+**Resultado desta fase:** auditoria concluída e plano registrado. A proposta inicial de ownership foi escrita em `docs/architecture/database-domains.md`; ela ainda aguarda decisões sobre salvos e sobre eventual agrupamento de contas comerciais por marca/rede. Shop e Confiança e Segurança foram confirmados pelo usuário como bancos lógicos independentes, sem provisionamento. Foram feitas inspeções estáticas e uma consulta agregada somente leitura ao banco de desenvolvimento; não foram executados testes contra provedor externo, migrações ou operações de escrita. Nenhuma tabela, banco, conexão externa ou módulo foi alterado. O próximo passo é resolver as decisões em aberto, não aplicar DDL.
 
 ### 11.17 Proposta de propriedade dos dados por domínio — 24/10/2026
 
 - **Documento:** criada a proposta `docs/architecture/database-domains.md` e indexada em `docs/architecture/README.md`; o dicionário atual aponta para ela. Inclui matriz de ownership, mapeamento das tabelas atuais/propostas, fluxos e diagrama conceitual sem acesso direto entre bancos. A proposta separa a identidade única de Contas, credenciais de Segurança, perfil e relações, mídia, Feed, Mensagens, Notificações, Pesquisa, Seek e Localização/PostGIS.
 - **Shop:** o prompt lista dez bancos, mas omite Shop, embora o produto o trate como módulo distinto. O usuário confirmou um décimo primeiro banco lógico próprio, limitado inicialmente ao catálogo; pedidos, pagamentos e estoque continuam fora do escopo. Nenhum banco foi criado.
 - **Entidades transversais:** salvos, auditoria, pedidos de privacidade, outbox e idempotência foram mapeados ou marcados como pendentes. Denúncias e ações de moderação passam a pertencer ao domínio Confiança e Segurança, conforme decisão registrada na seção 11.19. O SQL atual possui FKs que atravessam os futuros domínios e não pode ser usado sem ser redesenhado.
-- **Campos atualmente misturados em `accounts`:** proposta de repartir identidade/idade/termos em Contas, apresentação/privacidade em Perfis/Relações e preferências de mensagens em Mensagens. Nome e sobrenome permanecem privados; somente o `displayName` escolhido pelo usuário aparece no perfil pessoal. O estado `isVerified` precisa separar confirmação de e-mail de eventual selo público/comercial.
+- **Campos atualmente misturados em `accounts`:** proposta de repartir identidade/idade/termos em Contas, apresentação/privacidade em Perfis/Relações e preferências de mensagens em Mensagens. Nome e sobrenome permanecem privados; somente o `displayName` escolhido pelo usuário aparece no perfil pessoal. A coluna legada `isVerified` do banco de desenvolvimento não representa selo público; confirmação de e-mail continua sendo estado privado de autenticação.
 - **Localização:** separar dados geográficos de endereço/identidade comercial, usar referência `location_id`, preservar GPS de usuário como efêmero e não ativar PostGIS até validar o provedor e resolver o gate Social.
 - **Fluxos:** registrados os contratos e falhas parciais que precisam de desenho antes de separar cadastro/verificação, login/sessão, perfil comercial, publicação com mídia/local, bloqueio/mensagens, indexação/notificações e exclusão de conta.
 - **Limite desta entrega:** é uma matriz recomendada, não uma aprovação final ou implementação. Nenhum banco foi criado, segredo alterado, conexão configurada, migração executada ou tabela movida.
@@ -679,6 +681,14 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Decisão confirmada:** o perfil pessoal mostra somente o nome de exibição escolhido pelo usuário.
 - **Privacidade:** nome e sobrenome informados no cadastro permanecem dados privados em Contas e não são copiados para a projeção pública do perfil.
 - **Estado técnico:** decisão documentada; não implica mudança de código ou banco nesta etapa.
+
+### 11.23 Decisão sobre selo público de verificação — 24/10/2026
+
+- **Decisão confirmada:** não oferecer selo público de verificação na primeira versão do aplicativo.
+- **Regra de conta:** confirmação de e-mail continua privada, como requisito de autenticação; não significa validação pública, comercial ou reputacional.
+- **Contrato e interface:** removido `isVerified` do DTO público, OpenAPI, tipos gerados e componentes de perfil/publicação. As fixtures demonstrativas também não atribuem o selo.
+- **Banco:** nenhuma migração foi executada. A coluna `accounts.is_verified` ainda permanece no schema ativo de desenvolvimento, mas não é selecionada nem retornada pelo endpoint público. O SQL proposto para a versão inicial já não inclui a coluna. A remoção do campo legado no banco ativo fica para uma migração revisada.
+- **Verificação:** `pnpm run typecheck`, 44 testes sociais, geração Orval e build do back passaram. O build do front passou com avisos de sourcemap e tamanho/divisão de bundle. O teste de API isolado não executou por falta de `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE` no shell; a asserção de regressão foi adicionada, mas aguarda ambiente de banco de desenvolvimento para ser executada. A captura de preview da rota de perfil mostrou a tela inicial de apresentação, portanto o perfil autenticado não pôde ser conferido visualmente neste ambiente.
 
 ### Histórico do documento
 
@@ -717,3 +727,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.21 | 2026-10-24 | Registra uma unidade física principal por conta comercial; áreas atendidas por prestadores e estrutura de marcas/redes seguem indefinidas. |
 | 2.22 | 2026-10-24 | Confirma que Seek mostra apenas o endereço principal e exclui áreas de atendimento/`business_service_areas` do modelo aprovado. |
 | 2.23 | 2026-10-24 | Confirma que o perfil pessoal publica somente `displayName`; nome e sobrenome do cadastro ficam privados. |
+| 2.24 | 2026-10-24 | Registra a ausência de selo público na primeira versão; remove `isVerified` do DTO/OpenAPI e da interface pública, sem migração no banco ativo. |

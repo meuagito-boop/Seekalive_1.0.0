@@ -96,7 +96,6 @@ export interface AccountView {
   website: string | null;
   accountType: AccountViewAccountType;
   isPrivate: boolean;
-  isVerified: boolean;
   joinedAt: string;
   relationship: RelationshipView;
   stats: AccountStats;

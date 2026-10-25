@@ -24,7 +24,6 @@ type PublicAccountRow = {
   websiteUrl: string | null;
   accountType: string;
   isPrivate: boolean;
-  isVerified: boolean;
   createdAt: Date;
   version: number;
 };
@@ -74,7 +73,6 @@ export async function findActiveAccountById(id: string): Promise<PublicAccountRo
       websiteUrl: accounts.websiteUrl,
       accountType: accounts.accountType,
       isPrivate: accounts.isPrivate,
-      isVerified: accounts.isVerified,
       createdAt: accounts.createdAt,
       version: accounts.version,
     })
@@ -100,7 +98,6 @@ async function findActiveAccountByUsername(username: string): Promise<PublicAcco
       websiteUrl: accounts.websiteUrl,
       accountType: accounts.accountType,
       isPrivate: accounts.isPrivate,
-      isVerified: accounts.isVerified,
       createdAt: accounts.createdAt,
       version: accounts.version,
     })
@@ -195,7 +192,6 @@ function buildAccountView(
     website: privateDetailsVisible ? row.websiteUrl : null,
     accountType: row.accountType,
     isPrivate: row.isPrivate,
-    isVerified: row.isVerified,
     joinedAt: row.createdAt.toISOString(),
     relationship,
     stats,
@@ -225,7 +221,6 @@ export async function accountViewsByIds(ids: string[], viewerId: string | null) 
       websiteUrl: accounts.websiteUrl,
       accountType: accounts.accountType,
       isPrivate: accounts.isPrivate,
-      isVerified: accounts.isVerified,
       createdAt: accounts.createdAt,
       version: accounts.version,
     })

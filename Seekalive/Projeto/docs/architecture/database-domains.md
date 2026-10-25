@@ -99,7 +99,7 @@ flowchart LR
 
 | Tabela atual (um único banco) | Destino proposto | Observação de migração |
 |---|---|---|
-| `accounts` | **Dividir por campo** entre Contas, Perfis/Relações e Mensagens. | Não copiar a linha inteira para mais de um lugar. Contas conserva ID, username, tipo/status, idade/termos e onboarding; Perfis/Relações conserva dados públicos e visibilidade; Mensagens conserva preferências de mensagens/leitura. `is_verified` precisa ser definido como estado de e-mail ou selo público — não misturar os dois. |
+| `accounts` | **Dividir por campo** entre Contas, Perfis/Relações e Mensagens. | Não copiar a linha inteira para mais de um lugar. Contas conserva ID, username, tipo/status, idade/termos e onboarding; Perfis/Relações conserva dados públicos e visibilidade; Mensagens conserva preferências de mensagens/leitura. A confirmação de e-mail é estado privado de Contas; a coluna `is_verified` legada do banco de desenvolvimento não representa um selo público e não deve ser projetada na API. |
 | `account_emails` | Contas | `account_id` continua global; confirmação é atualizada por operação autorizada da API depois de validar o desafio em Segurança. |
 | `password_credentials` | Segurança | Só hash Argon2id e versão da política; nenhuma senha em claro ou cópia em Contas. |
 | `auth_challenges` | Segurança | Desafios de uso único, finalidade, tentativas, expiração e consumo. |
@@ -122,7 +122,7 @@ flowchart LR
 | `isPrivate` | Perfis/Relações | A regra precisa ser consultada em cada leitura/interação relevante. |
 | `messagesPolicy`, `readReceipts` | Mensagens | O domínio de Mensagens aplica a preferência e também consulta bloqueio/visibilidade em Perfis/Relações. |
 | `onboardingCompletedAt`, `account_interests` | Contas | Estado/ respostas privadas; personalização não muda a política de privacidade do perfil. |
-| `isVerified` | **Pendente de definição** | Distinguir confirmação de e-mail (Contas) de eventual verificação pública/comercial (processo de confiança/moderação). Não permitir selo editável pelo titular. |
+| `isVerified` | **Não público na v1** | Não oferecer selo público de verificação. A confirmação de e-mail permanece privada e serve ao controle de acesso; não retornar `isVerified` em DTOs públicos. Qualquer selo futuro exige decisão e processo próprios. |
 | `version`, timestamps | Domínio dono de cada campo | Controle de concorrência local por domínio; evitar uma versão global alterada por gravações em bancos diferentes. |
 
 ## Entidades propostas em `schema-core.sql`
@@ -160,7 +160,6 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL. Para esta arquitetur
 1. **Escopo de Confiança e Segurança:** o banco próprio está confirmado para denúncias e ações de moderação; definir autorização dos moderadores, tipos de evidência, retenção, apelação e protocolo de remoção com os domínios donos.
 2. **Redes e marcas:** uma conta tem no máximo uma unidade física principal. Ainda não foi decidido se várias contas comerciais independentes podem ser vinculadas a uma marca/rede; não criar entidade-pai nem compartilhamento de seguidores, avaliações ou dados até haver essa regra.
 3. **Salvos/coleções:** confirmar se Perfis/Relações pode ser fonte de salvos globais tipados, ou se cada módulo deve guardar seu próprio favorito.
-4. **Selo verificado:** definir se `isVerified` significa e-mail confirmado ou selo público/comercial. A recomendação é armazenar esses estados separadamente e nunca deixar que o titular altere o selo.
 
 ## Ordem e critérios para adoção
 

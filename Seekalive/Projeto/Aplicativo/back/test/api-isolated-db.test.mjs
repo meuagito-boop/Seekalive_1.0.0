@@ -810,6 +810,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(publicProfile.body.account.id, commercial.account.id);
   assert.equal(publicProfile.body.visibility.canViewPublicContent, true);
   assert.deepEqual(publicProfile.body.posts, { items: [], nextCursor: null });
+  assert.equal("isVerified" in publicProfile.body.account, false);
   assert.equal("commercialProfile" in publicProfile.body.account, false);
   assert.equal("address" in publicProfile.body.account, false);
   assert.equal("email" in publicProfile.body.account, false);

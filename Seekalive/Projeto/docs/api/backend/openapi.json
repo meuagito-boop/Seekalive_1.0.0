@@ -23556,9 +23556,6 @@
           "isPrivate": {
             "type": "boolean"
           },
-          "isVerified": {
-            "type": "boolean"
-          },
           "joinedAt": {
             "type": "string",
             "format": "date-time"

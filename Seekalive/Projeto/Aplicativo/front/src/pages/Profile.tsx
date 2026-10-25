@@ -358,11 +358,6 @@ export default function Profile() {
           <div className="mb-4">
             <div className="flex min-w-0 items-center gap-2">
               <h1 className="min-w-0 break-words text-xl font-bold">{user.displayName}</h1>
-              {user.isVerified && (
-                <span className="w-5 h-5 shrink-0 bg-primary rounded-full flex items-center justify-center" aria-label="Conta verificada" title="Conta verificada">
-                  <Check className="w-3 h-3 text-white" />
-                </span>
-              )}
             </div>
             <p className="text-muted-foreground text-sm break-all">@{user.username}</p>
             {user.bio && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">{user.bio}</p>}

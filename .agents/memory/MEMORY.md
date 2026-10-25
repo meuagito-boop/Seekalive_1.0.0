@@ -1,6 +1,6 @@
 - [Privacidade e seguimento](private-follow-approval.md) — perfis privados exigem aprovação; seguidores aceitos veem conteúdo público, enquanto Círculo continua mútuo.
 - [Bloqueio por conta](blocking-policy.md) — bloqueio bilateral remove follows/pedidos; só o iniciador desbloqueia, histórico de mensagens é ocultado e restaurado.
-- [Autenticação Seekalive](seekalive-auth-strategy.md) — e-mail verificado e 18+; senha Argon2id com política atual aplicada às contas novas e antigas.
+- [Autenticação Seekalive](seekalive-auth-strategy.md) — e-mail verificado e 18+; senha Argon2id; sem selo público de verificação na primeira versão.
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
 - [Banco externo Seekalive](external-database.md) — PostgreSQL externo; Shop e Confiança e Segurança têm bancos lógicos próprios, ainda sem provedor/conexão.
 - [Localização comercial](commercial-location-cardinality.md) — cada conta tem um endereço principal no Seek; áreas de atendimento não fazem parte do escopo confirmado.

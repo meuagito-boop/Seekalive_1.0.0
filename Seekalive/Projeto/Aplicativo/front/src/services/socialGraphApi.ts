@@ -97,7 +97,6 @@ export function accountViewToUser(account: AccountView): User {
     joinedAt: account.joinedAt,
     accountType: account.accountType,
     isPrivate: account.isPrivate,
-    isVerified: account.isVerified,
     stats: { ...account.stats },
     isFollowing: account.relationship.following === "accepted",
     followRequestSent: account.relationship.following === "pending",

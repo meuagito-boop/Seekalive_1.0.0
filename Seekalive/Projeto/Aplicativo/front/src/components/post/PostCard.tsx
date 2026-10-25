@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { MoreHorizontal, Repeat2, BookOpenText, Trash2, Check } from "lucide-react";
+import { MoreHorizontal, Repeat2, BookOpenText, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -88,11 +88,6 @@ export function PostCard({ post, compact = false, repostedById }: PostCardProps)
               <Link href={`/profile/${author.username}`} className="text-sm font-bold leading-tight hover:underline">
                 {author.displayName}
               </Link>
-              {author.isVerified && (
-                <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary" aria-label="Verificado">
-                  <Check className="h-2.5 w-2.5 text-primary-foreground" />
-                </span>
-              )}
               <span className="text-sm text-muted-foreground">@{author.username}</span>
               <span className="text-sm text-muted-foreground">·</span>
               <time className="text-sm text-muted-foreground" dateTime={post.createdAt}>{formatTimeAgo(post.createdAt)}</time>

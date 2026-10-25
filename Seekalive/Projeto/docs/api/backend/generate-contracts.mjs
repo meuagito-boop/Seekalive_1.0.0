@@ -401,7 +401,7 @@ const schemas = {
     id: uuid, username: { type: "string", pattern: "^[a-z0-9_]{3,20}$" }, displayName: { type: "string", maxLength: 100 },
     bio: { type: "string", maxLength: 500 }, avatarUrl: { type: ["string", "null"] }, coverUrl: { type: ["string", "null"] },
     location: { type: ["string", "null"] }, website: { type: ["string", "null"], format: "uri" },
-    accountType: { type: "string", enum: ["personal", "commercial"] }, isPrivate: { type: "boolean" }, isVerified: { type: "boolean" },
+    accountType: { type: "string", enum: ["personal", "commercial"] }, isPrivate: { type: "boolean" },
     joinedAt: { type: "string", format: "date-time" }, businessProfile: { oneOf: [ref("BusinessProfile"), { type: "null" }] },
     relationship: ref("RelationshipView"), stats: ref("AccountStats"), version: { type: "integer" },
   }, ["id", "username", "displayName", "accountType", "joinedAt", "relationship", "stats", "version"]),
