@@ -1,8 +1,7 @@
-import { and, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
-import { accountInterests, accounts, db } from "@workspace/db";
 import { onboardingCompletionSchema } from "@workspace/api-zod";
 import { loadActiveSession, requireCsrf } from "../../../security/session";
+import { completeOnboarding } from "../application/completeOnboarding";
 
 const router: IRouter = Router();
 
@@ -32,22 +31,9 @@ router.post("/interests", requireCsrf, async (request, response) => {
     return;
   }
 
-  const interests = parsed.data.skipped ? [] : parsed.data.interests;
-  const completedAt = new Date();
-  await db.transaction(async (tx) => {
-    await tx.delete(accountInterests).where(eq(accountInterests.accountId, session.accountId));
-    if (interests.length > 0) {
-      await tx.insert(accountInterests).values(
-        interests.map((interestKey) => ({ accountId: session.accountId, interestKey })),
-      );
-    }
-    await tx
-      .update(accounts)
-      .set({ onboardingCompletedAt: completedAt, updatedAt: completedAt })
-      .where(and(eq(accounts.id, session.accountId), eq(accounts.status, "active")));
-  });
+  const interestCount = await completeOnboarding(session.accountId, parsed.data);
 
-  response.json({ onboardingCompleted: true, interestCount: interests.length });
+  response.json({ onboardingCompleted: true, interestCount });
 });
 
 export default router;
