@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 25/10/2026
-**Versão do documento:** 2.54
+**Versão do documento:** 2.55
 **Contas de usuários reais:** o aplicativo não foi lançado; não há população legada para migrar. Contas ou dados de teste no desenvolvimento não representam usuários reais.
 **Reconhecimento de instalação:** após senha correta, um navegador/app com token de instalação ativo pode abrir sessão. Uma instalação sem token recebe código no e-mail verificado e não recebe sessão até confirmar. O primeiro erro permite novo código após 30 s; o segundo, após 90 s; o terceiro bloqueia a conta e encaminha ao suporte. IP não identifica nem autoriza uma instalação e não é persistido.
 **Status atualizado em 25/10/2026:** O projeto permanece em desenvolvimento; produção não foi alterada. A tela Configurações > Segurança lista e revoga instalações confiáveis. Login, confirmação do código, reenvio, troca de senha confirmada por e-mail, revogação após troca/reset e bloqueio após três códigos incorretos foram testados na API em schema temporário isolado, removido ao final. Os typechecks e os oito testes de limites de segurança passaram. A mudança do schema está no código, mas ainda não foi aplicada ao banco principal de desenvolvimento. A verificação E2E no navegador continua pendente, assim como o tratamento administrativo de desbloqueio: hoje o contato é manual pelo endereço de suporte e ainda não existe operação no Painel. O cookie web tem limite prático de 400 dias e pode ser apagado pelo navegador; nesses casos a pessoa confirma novamente a instalação. Isso não fecha o gate de conta nem torna a Social pronta para produção: páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos; o e-mail e banco externo não estão habilitados para produção. O Social completo e validado continua sendo pré-requisito para Seek/Shop. O banco externo ainda não foi provisionado/conectado. O PostgreSQL de desenvolvimento é versão 16.10; PostGIS 3.5.3 está disponível, mas não instalado. Regras mantidas: uma unidade comercial principal, sem áreas de atendimento, e somente o nome público escolhido no perfil pessoal; nome, sobrenome e idade de cadastro permanecem privados.
@@ -12,7 +12,7 @@
 **Migração externa preparada em 25/10/2026:** Drizzle gerou, sem conexão ao banco, a migração inicial versionada para as 11 tabelas de conta/social. Ela se destina a um banco vazio, não é delta para o banco de desenvolvimento existente e não foi aplicada. `migrate` exige alvo explícito; o pós-merge continua fixado no banco Replit de desenvolvimento. O provedor externo permanece sem conexão.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
-**Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
+**Fora do escopo funcional:** `Gestor` e `Painel` — os diretórios reais e seus READMEs foram conferidos apenas para confirmar a localização; nenhuma implementação ou arquivo desses módulos foi alterado.
 
 **Decisão de conta incorporada em 24/10/2026:** a primeira versão pública não terá selo de verificação. A confirmação de e-mail é privada e usada para autenticação; o contrato público e os componentes de perfil/publicação não devem expor nem exibir `isVerified`.
 
@@ -798,6 +798,67 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 
 ### Histórico do documento
 
+## 12. Complemento — auditoria da separação por domínio (25/10/2026)
+
+### 12.1 Escopo, método e limites
+
+- Foram feitas três revisões independentes e somente de leitura: frontend; backend; contratos, infraestrutura, configuração e documentação. As conclusões abaixo foram conferidas contra os arquivos indicados antes das correções.
+- O inventário principal identificou 175 arquivos de código em `Aplicativo/front/src`, 87 em `Aplicativo/back/src`, 5 em `shared/contracts/src`, 10 em `infra/database/src` e 4 em `scripts/src`. Código gerado, `dist` e dependências foram excluídos da análise de fonte. Outros pacotes compartilhados, documentos e configurações foram examinados seletivamente.
+- **Limite importante:** esta passagem não foi uma leitura manual, linha a linha, de todos os arquivos do repositório. Houve inspeção ampla das pastas e leitura aprofundada de caminhos representativos de maior risco; portanto, não afirmo que o aplicativo esteja perfeito, sem erros, nem que esta revisão substitua uma auditoria exaustiva de cada arquivo.
+- O projeto permanece em desenvolvimento. Nenhum banco, schema, integração externa ou ambiente de produção foi acessado ou alterado nesta passagem.
+- A árvore real foi confirmada: `Seekalive/Projeto 2/Painel` e `Seekalive/Projeto 3/Gestor` são diretórios irmãos de `Seekalive/Projeto` dentro da raiz `Seekalive`. Os READMEs desses scaffolds existem e não foram modificados. As cópias vazias e redundantes `Seekalive/Projeto/Painel` e `Seekalive/Projeto/Gestor` foram removidas após confirmar que não continham arquivos nem subpastas.
+
+### 12.2 Correções executadas
+
+| Área | Evidência e correção | Estado |
+|---|---|---|
+| Contrato de @ | Cadastro e edição de perfil repetiam a mesma regra de normalização e validação. A regra agora tem uma única definição em `shared/contracts/src/username.ts`, reutilizada pelos dois contratos. | Corrigido; testes de normalização e entradas inválidas adicionados. |
+| Privacidade de mídias | `getProfileMedia` repetia as condições de leitura de publicações. Agora delega a `canReadPost`, mantendo o filtro pelo titular do perfil. | Corrigido; testes cobrem perfil privado, seguidor aprovado, Círculo e dono. |
+| Timeline pessoal/comercial | As duas páginas montavam e ordenavam publicações e repostagens com a mesma regra. A montagem foi centralizada em `components/profile/profileTimeline.ts`. | Corrigido; teste confirma ordenação e exclusão de publicação não legível. |
+| Privacidade do perfil na API | A regra de acesso a conteúdo privado estava duplicada entre a projeção da conta e a rota pública. Foi centralizada em `profileVisibility.ts`. A rota também reutiliza o relacionamento já consultado ao compor a resposta, evitando uma segunda consulta potencialmente divergente. | Corrigido; quatro testes focados de visibilidade passaram. |
+| Teste Social desatualizado | Um teste ainda procurava o reducer e a política de bloqueio em `SocialContext.tsx`, embora já tivessem sido separados em `context/social/state.ts` e `relationshipActions.ts`. O teste foi corrigido para verificar os módulos que realmente possuem essas responsabilidades; nenhuma lógica foi movida de volta nem escondida. | Corrigido; suíte Social passou. |
+| Localização dos aplicativos futuros | `README.md` e ADR divergiam do caminho real de Gestor/Painel. Ambos agora registram os diretórios irmãos corretos na raiz `Seekalive`. | Corrigido; caminhos conferidos no disco. |
+| Alvo de banco | `replit.md` dizia que o seletor externo estava inativo, mas o código e seus testes aceitam seleção explícita de banco externo. A documentação agora distingue a capacidade disponível do alvo padrão de desenvolvimento, que continua sendo o PostgreSQL gerenciado da Replit. | Corrigido apenas na documentação; nenhum seletor foi ativado. |
+
+### 12.3 Achados ainda abertos e motivo
+
+Não foi confirmado defeito crítico ou alto no escopo inspecionado. Isso **não** significa ausência de riscos não observados.
+
+| Severidade | Achado | Próxima ação sem mascarar o problema |
+|---|---|---|
+| Média | `accountEmailChangeRoutes.ts` e `accountPasswordChangeRoutes.ts` mantêm operações de banco, transações e orquestração de desafios dentro de rotas de apresentação. | Separar cada caso de uso na camada `application`, preservando respostas HTTP e efeitos de segurança, com testes de regressão antes de considerar essa pasta concluída. |
+| Média / decisão de domínio | `profiles/application/accountViews.ts` consulta tabelas de follow/bloqueio do Social, e o Social importa a checagem de bloqueio desse arquivo de Profiles. O grafo de importação observado é acíclico, mas a propriedade do comportamento está cruzada entre domínios. | Definir a fronteira de leitura Profiles–Social antes de mover consultas ou tabelas. Não alterado por exigir decisão arquitetural e validação de regressões de privacidade. |
+| Média | `ProfileEdit.tsx` reúne campos pessoais/comerciais, validação, conversão, atualização remota e modo demonstrativo. | Separar schemas/adaptadores e os fluxos pessoal/comercial, mantendo a página como composição; acrescentar testes por tipo de conta. |
+| Média/baixa | `SocialContext.tsx` ainda reúne projeções de estado, persistência local e carregamento remoto, apesar das ações já estarem separadas. | Continuar extraindo apenas unidades testáveis e coesas; não criar arquivos por função trivial. |
+| Baixa | `content.test.ts` e o teste de integração autenticada da API cobrem vários domínios no mesmo arquivo. | Organizar por comportamento/domínio sem perder os cenários de integração que comprovam regras entre módulos. |
+| Média, desempenho | O build do frontend gera um chunk JavaScript de 1.080,02 kB, acima do limite de aviso de 500 kB. Também informa que `mockData.ts` é importado estática e dinamicamente, impedindo sua separação em chunk. | Investigar divisão real de carregamento e dependências; não aumentar o limite de aviso nem suprimir a mensagem como substituto de correção. |
+
+### 12.4 Verificações executadas
+
+| Verificação | Resultado |
+|---|---|
+| `pnpm run test:social` | Aprovado: 48 testes, 48 passaram, 0 falharam. |
+| `node --test Aplicativo/back/test/username-policy.test.mjs Aplicativo/back/test/profile-visibility.test.mjs` | Aprovado: 4 testes, 4 passaram. |
+| `pnpm --filter @workspace/api-spec run codegen` | Aprovado: Orval 8.44.0 regenerou os artefatos; `typecheck:libs` passou e nenhum arquivo gerado ficou alterado no diff. Zod do catálogo: 4.6.7. |
+| `PORT=5000 BASE_PATH=/ pnpm run build` | Aprovado: typecheck do workspace e builds de frontend, backend e sandbox concluídos. |
+| `git diff --check` | Aprovado: sem erros de whitespace no diff rastreado. |
+| Integração da API com banco isolado | Não executada nesta passagem: não houve alteração de persistência; logo, o comportamento completo de rotas com banco não foi revalidado aqui. Nenhum schema foi criado ou alterado. |
+| Workflows de desenvolvimento | Frontend reiniciado e pronto na porta 5000; API reiniciada e registrou `Server listening` na porta 8080. |
+| Preview visual | Aprovado em viewport 402 × 874: a tela inicial renderizou sem erro de navegador; logs mostram apenas mensagens informativas do Vite/React. |
+
+O build foi concluído sem erros, mas **não sem avisos**: sourcemaps de alguns componentes UI não localizaram a origem original; Rollup retirou anotações de pureza em dependências Zod; o bundle do frontend excede 500 kB, a importação de `mockData.ts` não permite code-splitting, e o backend produziu `dist/index.mjs` com 2,6 MB. Esses avisos foram mantidos visíveis e estão listados acima, sem elevar limites ou desabilitar checagens.
+
+### 12.5 Sequência de ação recomendada
+
+1. Concluir `accounts/auth`: decompor troca de e-mail/senha e demais fluxos de conta em casos de uso independentes, com testes de segurança e contrato preservado.
+2. Resolver a propriedade das consultas de relacionamento e bloqueio entre Profiles e Social; depois centralizar a leitura sem duplicar políticas.
+3. Separar a edição de perfil pessoal e comercial em schemas, adaptadores e comandos próprios, com a interface mantendo um padrão visual compartilhado.
+4. Reduzir a concentração de responsabilidades no provider Social e organizar os testes por domínio, preservando os testes ponta a ponta que atravessam módulos.
+5. Tratar o aviso de bundle com divisão de carregamento real e verificar novamente o preview.
+6. Executar testes de API com banco temporário isolado apenas na etapa que validar alterações de persistência, com confirmação explícita de alvo de desenvolvimento e descarte do schema temporário.
+
+Esta passagem não autoriza avançar para Seek/Shop, modificar Gestor/Painel, ativar banco externo ou alterar produção. A conclusão de cada etapa depende de testes e revisão do diff; nenhuma etapa futura é declarada pronta antecipadamente.
+
 | Versão | Data | Atualização |
 |---|---|---|
 | 1.1 | 2026-10-23 | Consolida os resultados da auditoria complementar, scanners e plano coordenado de remediação com dependências e critérios de aceite. |
@@ -864,3 +925,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.52 | 2026-10-24 | Configura o encaminhamento validado do IP no preview via Vite, mantém `trust proxy = false`, exige IP confiável para criar sessão e registra testes, limites e pendências de persistência. |
 | 2.53 | 2026-10-25 | Substitui IP por token revogável por instalação; registra confirmação por e-mail, esperas, bloqueio, revogação de dispositivos e senha, testes isolados e a migração ainda pendente no banco principal. |
 | 2.54 | 2026-10-25 | Gera uma migração SQL inicial versionada para as 11 tabelas de conta/social sem conectar ao banco; exige alvo explícito para migrações manuais e mantém a alteração do banco principal pendente. |
+| 2.55 | 2026-10-25 | Registra auditoria de separação por domínio com três revisões independentes; corrige contratos, visibilidade de mídias, timelines, leitura de perfil e documentação; lista limites e riscos ainda não resolvidos sem alterar banco ou produção. |

@@ -7,6 +7,7 @@ import {
   accounts,
   db,
 } from "@workspace/db";
+import { canViewPrivateProfileContent } from "./profileVisibility";
 
 export type PublicAccountRow = {
   id: string;
@@ -145,9 +146,12 @@ function buildAccountView(
   relationship: RelationshipView,
   stats: { posts: number; followers: number; following: number; circles: number },
 ) {
-  const privateDetailsVisible = !row.isPrivate
-    || viewerId === row.id
-    || relationship.following === "accepted";
+  const privateDetailsVisible = canViewPrivateProfileContent(
+    row.isPrivate,
+    viewerId,
+    row.id,
+    relationship.following,
+  );
   return {
     id: row.id,
     username: row.username,
@@ -166,9 +170,13 @@ function buildAccountView(
   };
 }
 
-export async function accountView(row: PublicAccountRow, viewerId: string | null) {
+export async function accountView(
+  row: PublicAccountRow,
+  viewerId: string | null,
+  knownRelationship?: RelationshipView,
+) {
   const [relationship, stats] = await Promise.all([
-    relationshipFor(viewerId, row.id),
+    knownRelationship ? Promise.resolve(knownRelationship) : relationshipFor(viewerId, row.id),
     accountStats(row.id),
   ]);
   return buildAccountView(row, viewerId, relationship, stats);

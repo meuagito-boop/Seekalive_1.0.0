@@ -1,4 +1,5 @@
 import type { Post } from "@/data/mockData";
+import { canReadPost } from "@/services/contentValidation";
 
 export type PostMediaType = "image" | "video";
 
@@ -23,10 +24,12 @@ export function getProfileMedia(
   return posts
     .filter((post) =>
       post.authorId === accountId &&
-      (
-        isOwner ||
-        (!authorIsPrivate || approvedFollower) &&
-        (post.audience === "public" || (canViewCirclePosts && post.audience === "circles"))
+      canReadPost(
+        post,
+        isOwner ? accountId : undefined,
+        canViewCirclePosts,
+        authorIsPrivate,
+        approvedFollower,
       ),
     )
     .flatMap((post) =>

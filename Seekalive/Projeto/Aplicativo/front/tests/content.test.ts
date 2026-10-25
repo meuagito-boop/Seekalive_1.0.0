@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { makeDemoPost, makeDemoComment, makeDemoMessage, extractSocialTokens, validatePublication, canReadPost, assertCommentParent } from "../src/services/contentValidation";
 import { apiRequest, restContentAdapter } from "../src/services/contentService";
 import { resolveReference } from "../src/services/referenceResolver";
-import { socialReducer, type SocialState } from "../src/context/SocialContext";
+import { socialReducer, type SocialState } from "../src/context/social/state";
 import {
   followRequestIdsBetween,
   removeFollowEdgesForBlock,
@@ -242,6 +242,10 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     join(process.cwd(), "Aplicativo/front/src/pages/settings/Blocked.tsx"),
     "utf8",
   );
+  const relationshipSource = readFileSync(
+    join(process.cwd(), "Aplicativo/front/src/context/social/relationshipActions.ts"),
+    "utf8",
+  );
   const profileSource = readFileSync(
     join(process.cwd(), "Aplicativo/front/src/pages/Profile.tsx"),
     "utf8",
@@ -253,8 +257,8 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     socialSource,
     /isBlocked: blockedUserIdSet\.has\(user\.id\)\s*\|\|\s*\(!isRemoteSocialSession && accountsBlockingViewerSet\.has\(user\.id\)\)\s*\|\|\s*\(isRemoteSocialSession && user\.source === "server" && Boolean\(user\.isBlocked\)\)/,
   );
-  assert.match(socialSource, /removeFollowEdgesForBlock\(viewer, target\)/);
-  assert.match(socialSource, /followRequestIdsBetween\(state\.followRequests, viewer\.id, userId\)/);
+  assert.match(relationshipSource, /removeFollowEdgesForBlock\(viewer, target\)/);
+  assert.match(relationshipSource, /followRequestIdsBetween\(state\.followRequests, viewer\.id, userId\)/);
   assert.match(socialSource, /blockedAccountIds\.has\(notification\.actorId\)/);
   assert.match(socialSource, /conversation\.participantIds\.some\(id => id !== actorId && blockedAccountIds\.has\(id\)\)/);
   assert.match(blockedPageSource, /unblockUser\(userId\)/);

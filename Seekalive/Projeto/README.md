@@ -5,8 +5,8 @@ Repositório do produto Seekalive. O diretório `Seekalive/Projeto` concentra o 
 ## Estrutura
 
 - `Aplicativo/` — aplicativo público atual, com interface e API.
-- `Gestor/` — estrutura reservada ao futuro aplicativo de gestão comercial.
-- `Painel/` — estrutura reservada ao futuro painel administrativo.
+- `../Projeto 3/Gestor/` — estrutura reservada ao futuro aplicativo de gestão comercial, ao lado de `Projeto` na raiz de `Seekalive`.
+- `../Projeto 2/Painel/` — estrutura reservada ao futuro painel administrativo, ao lado de `Projeto` na raiz de `Seekalive`.
 - `shared/` — contratos, especificação OpenAPI e cliente compartilhado.
 - `infra/` — banco de dados e infraestrutura comum.
 - `docs/` — arquitetura, módulos e documentação da API.
@@ -23,4 +23,4 @@ Os comandos são executados a partir de `Seekalive/Projeto`:
 - `pnpm run typecheck` — verificação de tipos do workspace.
 - `pnpm run test:social` — testes atuais de interface e regras sociais.
 
-Gestor e Painel são apenas estruturas iniciais; ainda não possuem funcionalidades implementadas nem workflows de produção.
+Gestor e Painel são apenas estruturas iniciais nos diretórios irmãos indicados acima; ainda não possuem funcionalidades implementadas nem workflows de produção.

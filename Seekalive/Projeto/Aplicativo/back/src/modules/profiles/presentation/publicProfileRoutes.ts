@@ -7,6 +7,7 @@ import {
   isBlockedBetween,
   relationshipFor,
 } from "../application/accountViews";
+import { canViewPrivateProfileContent } from "../application/profileVisibility";
 import type { PublicAccountRow } from "../application/accountViews";
 import { sendError } from "./routeSupport";
 
@@ -25,10 +26,13 @@ async function respondWithProfile(
     return;
   }
   const relationship = await relationshipFor(viewerId, row.id);
-  const canViewPublicContent = !row.isPrivate
-    || viewerId === row.id
-    || relationship.following === "accepted";
-  const account = await accountView(row, viewerId);
+  const canViewPublicContent = canViewPrivateProfileContent(
+    row.isPrivate,
+    viewerId,
+    row.id,
+    relationship.following,
+  );
+  const account = await accountView(row, viewerId, relationship);
   response.json({
     account,
     visibility: {

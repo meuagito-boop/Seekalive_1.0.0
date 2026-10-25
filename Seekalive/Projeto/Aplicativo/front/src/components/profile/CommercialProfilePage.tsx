@@ -23,6 +23,7 @@ import { useAppContext } from "@/context/AppContext";
 import { localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@/data/mockData";
+import { buildProfileTimeline } from "@/components/profile/profileTimeline";
 import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/services/contentValidation";
 import { formatWeeklyHours, weeklyHoursRows } from "@/lib/businessHours";
@@ -168,13 +169,7 @@ export function CommercialProfilePage({
   });
   const userPosts = visiblePosts.filter((post) => post.authorId === user.id);
   const userArticles = userPosts.filter((post) => post.format === "article");
-  const timeline = [
-    ...userPosts.map(post => ({ key: post.id, post, at: post.createdAt, repostedById: undefined as string | undefined })),
-    ...repostEntries.filter(entry => entry.authorId === user.id).flatMap(entry => {
-      const post = visiblePosts.find(item => item.id === entry.postId);
-      return post ? [{ key: entry.id, post, at: entry.createdAt, repostedById: entry.authorId }] : [];
-    }),
-  ].sort((a, b) => b.at.localeCompare(a.at));
+  const timeline = buildProfileTimeline(visiblePosts, repostEntries, user.id, () => true);
 
   useEffect(() => {
     setSelectedPhoto(0);

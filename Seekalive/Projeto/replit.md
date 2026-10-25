@@ -12,7 +12,7 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 - Development uses the Replit-managed PostgreSQL database through `DATABASE_URL`. The post-merge script synchronizes only the development schema with Drizzle.
 - PostgreSQL schemas separate domain ownership inside each environment: all 12 approved domain schemas are prepared in development; `accounts`, `security`, `profiles`, and `seek` currently contain tables, while the other eight remain empty until their backend slices are implemented.
 - Replit keeps development and production databases separate. Production schema changes must go through Replit Publish; never run development push or direct DDL against production.
-- Do not expose or replace `DATABASE_URL`. An external PostgreSQL selector remains inactive and must not be enabled without a new explicit decision.
+- Do not expose or replace `DATABASE_URL`. The connection code supports selecting an external PostgreSQL target explicitly, but development defaults to Replit-managed PostgreSQL and the external target is not selected by default. Do not enable it or configure an external URL without an explicit decision.
 
 ## Stack
 

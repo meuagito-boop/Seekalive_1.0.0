@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { usernameSchema } from "./username";
 
 export const PASSWORD_POLICY_VERSION = 1;
 export const SUPPORT_EMAIL = "admseekalive@gmail.com";
@@ -13,7 +14,7 @@ export const passwordPolicySchema = z
   .regex(/[\p{P}\p{S}]/u, "Inclua ao menos um caractere especial.");
 
 const sharedRegistrationFields = {
-  username: z.string().trim().toLowerCase().min(3).max(20).regex(/^[a-z0-9_]+$/),
+  username: usernameSchema,
   email: z.string().trim().toLowerCase().email().max(254),
   password: passwordPolicySchema,
   passwordConfirmation: passwordPolicySchema,

@@ -243,14 +243,14 @@ content_type = "application/octet-stream"
 id = "X5TS5SNABC0LtRzHLvY-b"
 uri = "file://Seekalive/Projeto/reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md"
 type = "text"
-title = "Auditoria Seekalive + plano coordenado"
-description = "Documento atualizado com os resultados da última auditoria e um plano Now/Next/Later de 12 pacotes, com prioridade, dependências, critérios de aceite, limites de provedores e bloqueios de lançamento."
+title = "Auditoria do Seekalive — versão 2.55"
+description = "Relatório atualizado com achados, correções, verificações e plano de ação por domínio."
 logical_id = "ccace8f7-8599-4c5d-9761-64034e43b5b2"
-content_hash = "sha256:ac80add9f03e45bbef373b3f1dc3433e97050db713148b15b75d9bc3ca68cd3b"
-size = 77220
-mtime_ms = 1792783990778
-storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/ccace8f7-8599-4c5d-9761-64034e43b5b2/ea5a50d9-2c8f-4b3f-88d9-f9b4e3e590d7"
-storage_version_token = "1792784017721683"
+content_hash = "sha256:4efd07bb79c3d61e7bb7dce6c674e95f6eaa24264c1fd04924ed7dc1f3c93130"
+size = 181213
+mtime_ms = 1792938674962
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/ccace8f7-8599-4c5d-9761-64034e43b5b2/d0fa6223-40f0-4174-a8f2-7080caa19873"
+storage_version_token = "1792938688841743"
 content_type = "text/markdown"
 
 [[outputs]]

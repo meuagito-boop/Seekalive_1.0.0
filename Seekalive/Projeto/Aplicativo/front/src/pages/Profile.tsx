@@ -9,6 +9,7 @@ import { currentUser as mockCurrentUser, formatCount } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { CommercialProfilePage } from "@/components/profile/CommercialProfilePage";
+import { buildProfileTimeline } from "@/components/profile/profileTimeline";
 import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/services/contentValidation";
 import { postPath } from "@/lib/contentLinks";
@@ -123,13 +124,7 @@ export default function Profile() {
     return !!author && !author.isBlocked && canReadPost(p, viewer.id, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false);
   };
   // Authored posts plus repost distribution records (original author preserved).
-  const timeline = [
-    ...posts.filter(p => p.authorId === user.id && visibleToViewer(p)).map(p => ({ key: p.id, post: p, at: p.createdAt, repostedById: undefined as string | undefined })),
-    ...repostEntries.filter(r => r.authorId === user.id).flatMap(r => {
-      const p = posts.find(x => x.id === r.postId);
-      return p && visibleToViewer(p) ? [{ key: r.id, post: p, at: r.createdAt, repostedById: r.authorId }] : [];
-    }),
-  ].sort((a, b) => b.at.localeCompare(a.at));
+  const timeline = buildProfileTimeline(posts, repostEntries, user.id, visibleToViewer);
   const userArticles = posts.filter(p => p.authorId === user.id && p.format === "article" && visibleToViewer(p));
   const userComments = postComments.filter(c => {
     const target = posts.find(post => post.id === c.postId);

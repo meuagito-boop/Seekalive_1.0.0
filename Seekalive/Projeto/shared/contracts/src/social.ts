@@ -1,6 +1,6 @@
 import { z } from "zod";
+import { usernameSchema } from "./username";
 
-const usernameSchema = z.string().trim().toLowerCase().min(3).max(20).regex(/^[a-z0-9_]+$/);
 const commercialAccountPatchSchema = z.object({
   address: z.string().trim().min(5).max(250),
   postalCode: z.string().trim().min(5).max(20),
