@@ -104,7 +104,7 @@ flowchart LR
 | `password_credentials` | Segurança | Só hash Argon2id e versão da política; nenhuma senha em claro ou cópia em Contas. |
 | `auth_challenges` | Segurança | Desafios de uso único, finalidade, tentativas, expiração e consumo. |
 | `sessions` | Segurança | Sessão/csrf revogável, referenciando UUID da conta sem FK cruzada. |
-| `business_profiles` | **Dividir**: perfil público básico em Perfis/Relações; listagem, até um endereço físico principal e operação comercial em Seek; município canônico e coordenadas/geometria em Localização. | A conta comercial não é criada de novo. O `account_id` e o `location_id` ligam os contextos por contrato. Seek é dono do endereço declarado; Localização é dona da representação geográfica validada. Decisão do usuário: no máximo uma unidade física principal por conta. Ainda não foi decidido se o perfil pode informar regiões onde um prestador atende. |
+| `business_profiles` | **Dividir**: perfil público básico em Perfis/Relações; listagem, até um endereço físico principal e operação comercial em Seek; município canônico e coordenadas/geometria em Localização. | A conta comercial não é criada de novo. O `account_id` e o `location_id` ligam os contextos por contrato. Seek é dono do endereço declarado; Localização é dona da representação geográfica validada. Decisão do usuário: no máximo uma unidade física principal por conta; no Seek, mostrar somente esse endereço, sem região de atendimento. |
 | `account_interests` | Contas (recomendação) | Manter as respostas originais privadas. Algoritmos recebem somente projeção autorizada e necessária; definir consentimento, edição e exclusão antes de usar em ranking. |
 | `account_follows` | Perfis/Relações | A relação é aceita; chave composta de UUIDs no mesmo banco. |
 | `account_follow_requests` | Perfis/Relações | Pedido pendente não concede visibilidade; aprovação cria follow efetivo no mesmo domínio. |
@@ -117,8 +117,8 @@ flowchart LR
 | `id` | Contas | UUID global estável, nunca e-mail/username. |
 | `username`, `accountType`, `status` | Contas | Unicidade e estado do ciclo de vida centralizados; mudanças propagadas por contrato. |
 | `age`, termos aceitos | Contas | Privados; idade não é devolvida nem mesmo em Configurações. |
-| `firstName`, `lastName` | Contas inicialmente | Dados de cadastro privados, a menos que o usuário escolha publicá-los no perfil. |
-| `displayName`, `bio`, `locationLabel`, `websiteUrl` | Perfis/Relações | Apenas a projeção pública aprovada; `locationLabel` é texto, não coordenada. |
+| `firstName`, `lastName` | Contas | Dados privados de cadastro; não são enviados na projeção pública pessoal. |
+| `displayName`, `bio`, `locationLabel`, `websiteUrl` | Perfis/Relações | Só `displayName` escolhido pelo usuário identifica publicamente a pessoa; `locationLabel` é texto, não coordenada. |
 | `isPrivate` | Perfis/Relações | A regra precisa ser consultada em cada leitura/interação relevante. |
 | `messagesPolicy`, `readReceipts` | Mensagens | O domínio de Mensagens aplica a preferência e também consulta bloqueio/visibilidade em Perfis/Relações. |
 | `onboardingCompletedAt`, `account_interests` | Contas | Estado/ respostas privadas; personalização não muda a política de privacidade do perfil. |
@@ -134,7 +134,7 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL. Para esta arquitetur
 - **Perfis/Relações:** campos públicos de perfil que hoje estão em `accounts`, privacidade, `follows`, `blocks`, `mutes` e, conforme a decisão de produto, `saved_resources`.
 - **Mídias:** `media_assets`; `post_media` permanece como relação no Feed. Avatar, capa, galeria, feed, Seek e Shop guardam apenas IDs de mídia.
 - **Feed:** `posts`, `post_media`, `post_mentions`, `hashtags`, `post_hashtags`, `comments`, `comment_likes`, `post_likes`, `reposts`, `post_references`.
-- **Seek:** `business_profiles` (dados da listagem, não a identidade), `business_hours`, `business_hour_exceptions`, `business_reviews`, `seek_events`, `event_interests`. `business_service_areas` aparece no SQL não aprovado, mas não deve ser criada até o usuário confirmar essa funcionalidade e suas regras.
+- **Seek:** `business_profiles` (dados da listagem, não a identidade), `business_hours`, `business_hour_exceptions`, `business_reviews`, `seek_events`, `event_interests`. Não incluir `business_service_areas`: o usuário decidiu que o perfil mostra somente o endereço principal, sem área geográfica de atendimento.
 - **Shop:** `shop_items`; separar o domínio exige adicionar seu banco ao escopo, ainda não especificado no prompt.
 - **Mensagens:** `conversations`, `conversation_participants`, `messages`.
 - **Notificações:** `notifications`, `push_subscriptions`.
@@ -158,11 +158,9 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL. Para esta arquitetur
 ## Decisões que ainda precisam do usuário
 
 1. **Escopo de Confiança e Segurança:** o banco próprio está confirmado para denúncias e ações de moderação; definir autorização dos moderadores, tipos de evidência, retenção, apelação e protocolo de remoção com os domínios donos.
-2. **Nome público:** confirmar se nome/sobrenome informados no cadastro são privados por padrão e se só `displayName` aparece no perfil. A proposta mantém nome civil e idade em Contas, e nome público em Perfis/Relações.
-3. **Redes e marcas:** uma conta tem no máximo uma unidade física principal. Ainda não foi decidido se várias contas comerciais independentes podem ser vinculadas a uma marca/rede; não criar entidade-pai nem compartilhamento de seguidores, avaliações ou dados até haver essa regra.
-4. **Área de atendimento:** ainda não foi confirmado se prestadores podem publicar cidades, regiões ou raios onde atendem. A tabela `business_service_areas` do SQL de proposta não é requisito aprovado.
-5. **Salvos/coleções:** confirmar se Perfis/Relações pode ser fonte de salvos globais tipados, ou se cada módulo deve guardar seu próprio favorito.
-6. **Selo verificado:** definir se `isVerified` significa e-mail confirmado ou selo público/comercial. A recomendação é armazenar esses estados separadamente e nunca deixar que o titular altere o selo.
+2. **Redes e marcas:** uma conta tem no máximo uma unidade física principal. Ainda não foi decidido se várias contas comerciais independentes podem ser vinculadas a uma marca/rede; não criar entidade-pai nem compartilhamento de seguidores, avaliações ou dados até haver essa regra.
+3. **Salvos/coleções:** confirmar se Perfis/Relações pode ser fonte de salvos globais tipados, ou se cada módulo deve guardar seu próprio favorito.
+4. **Selo verificado:** definir se `isVerified` significa e-mail confirmado ou selo público/comercial. A recomendação é armazenar esses estados separadamente e nunca deixar que o titular altere o selo.
 
 ## Ordem e critérios para adoção
 
@@ -171,4 +169,4 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL. Para esta arquitetur
 - Só depois criar configuração por domínio, permissões mínimas e migrações versionadas. Não sobrescrever `DATABASE_URL`, não reutilizar uma credencial superusuária e manter o destino de pós-merge atual até validação e autorização próprias.
 - Testar cada banco em isolamento: criação limpa, falha de conexão, autorização, operações parciais/idempotentes, exportação, backup, restauração e migração reversível. PostGIS requer testar SRID, validação, `geography(Point,4326)` ou alternativa justificada, GiST e plano de consulta.
 
-**Conclusão:** o usuário aprovou Shop como décimo primeiro banco lógico, limitado por ora ao catálogo, e Confiança e Segurança como décimo segundo, inicialmente para denúncias e ações de moderação. Também decidiu que cada conta comercial tem no máximo uma unidade física principal. A existência de áreas de atendimento para prestadores continua sem decisão. A matriz continua sendo proposta para os demais limites. As aprovações não criam bancos, não configuram conexões e não autorizam migrações.
+**Conclusão:** o usuário aprovou Shop como décimo primeiro banco lógico, limitado por ora ao catálogo, e Confiança e Segurança como décimo segundo, inicialmente para denúncias e ações de moderação. Também decidiu que cada conta comercial tem no máximo uma unidade física principal e que o Seek mostrará somente esse endereço, sem áreas de atendimento. A matriz continua sendo proposta para os demais limites. As aprovações não criam bancos, não configuram conexões e não autorizam migrações.

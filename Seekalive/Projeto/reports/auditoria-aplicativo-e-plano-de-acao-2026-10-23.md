@@ -1,8 +1,8 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.21
-**Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.20) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal. O suporte a áreas de atendimento por prestadores ainda não foi decidido. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
+**Versão do documento:** 2.23
+**Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
@@ -642,7 +642,7 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Documento:** criada a proposta `docs/architecture/database-domains.md` e indexada em `docs/architecture/README.md`; o dicionário atual aponta para ela. Inclui matriz de ownership, mapeamento das tabelas atuais/propostas, fluxos e diagrama conceitual sem acesso direto entre bancos. A proposta separa a identidade única de Contas, credenciais de Segurança, perfil e relações, mídia, Feed, Mensagens, Notificações, Pesquisa, Seek e Localização/PostGIS.
 - **Shop:** o prompt lista dez bancos, mas omite Shop, embora o produto o trate como módulo distinto. O usuário confirmou um décimo primeiro banco lógico próprio, limitado inicialmente ao catálogo; pedidos, pagamentos e estoque continuam fora do escopo. Nenhum banco foi criado.
 - **Entidades transversais:** salvos, auditoria, pedidos de privacidade, outbox e idempotência foram mapeados ou marcados como pendentes. Denúncias e ações de moderação passam a pertencer ao domínio Confiança e Segurança, conforme decisão registrada na seção 11.19. O SQL atual possui FKs que atravessam os futuros domínios e não pode ser usado sem ser redesenhado.
-- **Campos atualmente misturados em `accounts`:** proposta de repartir identidade/idade/termos em Contas, apresentação/privacidade em Perfis/Relações e preferências de mensagens em Mensagens. O estado `isVerified` precisa separar confirmação de e-mail de eventual selo público/comercial.
+- **Campos atualmente misturados em `accounts`:** proposta de repartir identidade/idade/termos em Contas, apresentação/privacidade em Perfis/Relações e preferências de mensagens em Mensagens. Nome e sobrenome permanecem privados; somente o `displayName` escolhido pelo usuário aparece no perfil pessoal. O estado `isVerified` precisa separar confirmação de e-mail de eventual selo público/comercial.
 - **Localização:** separar dados geográficos de endereço/identidade comercial, usar referência `location_id`, preservar GPS de usuário como efêmero e não ativar PostGIS até validar o provedor e resolver o gate Social.
 - **Fluxos:** registrados os contratos e falhas parciais que precisam de desenho antes de separar cadastro/verificação, login/sessão, perfil comercial, publicação com mídia/local, bloqueio/mensagens, indexação/notificações e exclusão de conta.
 - **Limite desta entrega:** é uma matriz recomendada, não uma aprovação final ou implementação. Nenhum banco foi criado, segredo alterado, conexão configurada, migração executada ou tabela movida.
@@ -664,9 +664,21 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 ### 11.20 Decisão sobre localização principal comercial — 24/10/2026
 
 - **Decisão confirmada:** cada conta comercial pode ter no máximo uma unidade/endereço físico principal.
-- **Ponto não decidido:** o usuário ainda não confirmou se prestadores podem publicar áreas atendidas. A tabela `business_service_areas` consta no SQL de proposta, mas não é requisito aprovado e não deve ser criada ainda.
+- **Decisão confirmada em 24/10/2026:** o Seek mostra somente o endereço principal; não oferece regiões/cidades/raios de atendimento. Excluir `business_service_areas` do schema futuro.
 - **Não decidido:** eventual relação entre várias contas comerciais independentes que pertençam à mesma marca/rede. Não criar entidade-pai, conta compartilhada ou agregação de avaliações sem regra explícita.
 - **Estado técnico:** registrado em `docs/architecture/database-domains.md`; sem alteração de schema, banco, conexão ou dados.
+
+### 11.21 Decisão sobre áreas de atendimento no Seek — 24/10/2026
+
+- **Decisão confirmada:** o perfil comercial no Seek mostra apenas seu endereço físico principal; prestadores não cadastram cidades, regiões ou raios onde atendem.
+- **Consequência arquitetural:** excluir `business_service_areas` do modelo aprovado. A tabela que aparece em `schema-core.sql` permanece parte de uma proposta não aprovada e não será criada.
+- **Estado técnico:** decisão documentada; nenhum schema, banco ou dado foi alterado.
+
+### 11.22 Decisão sobre nome público no perfil pessoal — 24/10/2026
+
+- **Decisão confirmada:** o perfil pessoal mostra somente o nome de exibição escolhido pelo usuário.
+- **Privacidade:** nome e sobrenome informados no cadastro permanecem dados privados em Contas e não são copiados para a projeção pública do perfil.
+- **Estado técnico:** decisão documentada; não implica mudança de código ou banco nesta etapa.
 
 ### Histórico do documento
 
@@ -703,3 +715,5 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.19 | 2026-10-24 | Registra a confirmação de Shop como décimo primeiro banco lógico, limitado ao catálogo, sem provisionar conexão ou migração. |
 | 2.20 | 2026-10-24 | Registra Confiança e Segurança de Conteúdo como décimo segundo banco lógico para denúncias e moderação; logs gerais e implementação permanecem pendentes. |
 | 2.21 | 2026-10-24 | Registra uma unidade física principal por conta comercial; áreas atendidas por prestadores e estrutura de marcas/redes seguem indefinidas. |
+| 2.22 | 2026-10-24 | Confirma que Seek mostra apenas o endereço principal e exclui áreas de atendimento/`business_service_areas` do modelo aprovado. |
+| 2.23 | 2026-10-24 | Confirma que o perfil pessoal publica somente `displayName`; nome e sobrenome do cadastro ficam privados. |

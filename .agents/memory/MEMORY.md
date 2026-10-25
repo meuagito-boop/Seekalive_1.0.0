@@ -3,7 +3,8 @@
 - [Autenticação Seekalive](seekalive-auth-strategy.md) — e-mail verificado e 18+; senha Argon2id com política atual aplicada às contas novas e antigas.
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
 - [Banco externo Seekalive](external-database.md) — PostgreSQL externo; Shop e Confiança e Segurança têm bancos lógicos próprios, ainda sem provedor/conexão.
-- [Localização comercial](commercial-location-cardinality.md) — cada conta comercial tem no máximo um endereço físico principal; áreas atendidas são separadas.
+- [Localização comercial](commercial-location-cardinality.md) — cada conta tem um endereço principal no Seek; áreas de atendimento não fazem parte do escopo confirmado.
+- [Nome público do perfil pessoal](personal-profile-name.md) — o perfil publica somente o nome de exibição; nome e sobrenome do cadastro ficam privados.
 - [Back-end em etapas](backend-staged-rollout.md) — resolver segurança/conta antes das páginas sociais; não sair de Social até estar pronto para produção.
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.
