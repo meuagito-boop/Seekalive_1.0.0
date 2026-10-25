@@ -13,3 +13,4 @@
 - [Privacidade de sessões](session-device-privacy.md) — IP só via proxy confiável; novo IP exige código, com espera de 30/90 s; retenção e persistência ainda pendentes.
 - [Ordens e recomendações](prompt-recommendations.md) — cumprir instruções explícitas sem ampliar o escopo; discutir recomendações antes de implementá-las.
 - [Códigos de erro da API](api-error-taxonomy.md) — status HTTP 4xx/5xx separados de códigos numéricos de domínio iniciados em 1000, sempre com chave textual estável.
+- [Fronteiras de bundle no workspace](workspace-bundle-boundaries.md) — compile fontes TypeScript locais e externalize npm somente com dependências runtime declaradas e verificadas.

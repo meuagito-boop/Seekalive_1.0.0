@@ -900,6 +900,27 @@ Esta etapa continua a auditoria com foco no bundle inicial do frontend e nos ale
 
 **Escopo que continua aberto:** esta remediação fecha o problema do bundle e os alertas citados acima, mas não declara concluída a auditoria arquitetural de todos os domínios do repositório nem a validação visual de todas as rotas autenticadas. O projeto permanece em desenvolvimento; Gestor e Painel não foram alterados. A próxima execução deve continuar o plano de auditoria nos módulos ainda não verificados, sem ampliar este resultado para “perfeito” ou “pronto para produção”.
 
+### 12.8 Empacotamento do backend — 25/10/2026
+
+Após a autorização para externalizar as dependências e validar no desenvolvimento, o build do backend passou a compilar o código TypeScript interno do workspace e deixar os pacotes npm instalados como imports resolvidos em runtime. Os aliases apontam os contratos e o banco para o código-fonte local antes do empacotamento; `pg` e `zod` foram declarados também como dependências diretas do servidor, pois aparecem nos imports do bundle gerado.
+
+| Verificação | Resultado | Limite |
+|---|---|---|
+| Tamanho do artefato do servidor | `dist/index.mjs` caiu de aproximadamente **2,6 MB para 242,6 kB**; build sem aviso de bundle grande. | O arquivo agora depende das dependências de runtime instaladas junto ao servidor; não é mais um pacote autônomo. |
+| Runtime após mudança | O workflow `API Server` foi reiniciado; o servidor iniciou na porta 8080 e `GET /api/healthz` pelo preview retornou `{"status":"ok"}` com HTTP 200. | Validação em desenvolvimento, não em deployment. A configuração real de empacotamento/instalação de produção ainda precisa ser validada antes de publicar. |
+| Cobertura | `pnpm test`: 87 aprovados; typecheck e build do workspace passaram. A auditoria de dependências, SAST e HoundDog continuou com 0 achados cada. `git diff --check` passou. | Nenhuma migração ou escrita no banco foi executada. |
+
+O projeto continua em desenvolvimento. A tela pública inicial foi conferida no preview; telas autenticadas não foram inspecionadas visualmente nesta etapa. O plano amplo de auditoria por domínio permanece aberto, assim como os testes de integração autenticados que precisam de banco de desenvolvimento.
+
+### 12.9 Avisos restantes da build frontend — 25/10/2026
+
+| Aviso | Resultado da investigação |
+|---|---|
+| Sourcemap em `tooltip`, `avatar`, `label`, `dropdown-menu` e `sheet` | Os cinco componentes carregavam a diretiva `"use client"`, sem semântica neste aplicativo Vite/React. As diretivas foram removidas somente desses arquivos; uma nova build não repetiu os avisos de sourcemap. Mapas de origem não foram desativados. |
+| Anotações de pureza em Zod | O registro consultado indica `4.6.7` como versão mais recente; é também a versão instalada no catálogo. Rollup relata duas posições de comentário incompatíveis e remove apenas os comentários, não instruções executáveis. Não há atualização compatível identificada nesta revisão. |
+
+As duas mensagens de Rollup permanecem visíveis e documentadas; não foram filtradas, nem foi alterado o código de `node_modules`. Não são vulnerabilidades e o build conclui, mas não se afirma que a saída esteja sem qualquer aviso de terceiro. A build continua sem avisos de tamanho dos bundles frontend e backend e sem erros de sourcemap.
+
 | Versão | Data | Atualização |
 |---|---|---|
 | 1.1 | 2026-10-23 | Consolida os resultados da auditoria complementar, scanners e plano coordenado de remediação com dependências e critérios de aceite. |
@@ -972,3 +993,5 @@ Esta etapa continua a auditoria com foco no bundle inicial do frontend e nos ale
 | 2.58 | 2026-10-25 | Consolida correções de sessão, concorrência na verificação de e-mail, acessibilidade de abas, dependências dentro da política de maturidade, remoção de plugin sem uso, build raiz e auditoria de limpeza; registra 86 testes, scanners e o risco baixo de esbuild pendente de decisão. |
 | 2.59 | 2026-10-25 | Registra a decisão de manter a toolchain atual, documentar o alerta baixo de esbuild e não contornar a janela de maturidade nem iniciar a migração major. |
 | 2.60 | 2026-10-25 | Revoga o estado anterior de alerta pendente; remove `esbuild@0.27.3`, dados demonstrativos da build de produção e dependência Recharts sem uso; registra 87 testes, build sem aviso de chunk e três scanners sem achados. |
+| 2.61 | 2026-10-25 | Externaliza dependências npm do backend após autorização, mantém código de workspace compilado, reduz `dist/index.mjs` para 242,6 kB e registra health check de desenvolvimento aprovado; validação de deployment permanece pendente. |
+| 2.62 | 2026-10-25 | Remove diretivas client-only de componentes Vite que causavam avisos de sourcemap; registra dois avisos benignos de comentários Zod ainda emitidos pelo Rollup, sem ocultá-los. |
