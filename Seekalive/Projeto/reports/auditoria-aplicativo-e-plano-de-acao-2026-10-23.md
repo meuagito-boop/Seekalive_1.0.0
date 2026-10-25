@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.48
+**Versão do documento:** 2.49
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -19,7 +19,7 @@
 
 **Exportação de dados:** não oferecer recurso de exportação na primeira versão. Verificar as obrigações de privacidade aplicáveis antes do lançamento público; a decisão de escopo não presume dispensa dessas obrigações.
 
-**Sessões:** registrar o IP observado em cada sessão autenticada, web ou celular. IP não identifica com precisão um aparelho nem um local físico; captura confiável do IP do cliente depende da configuração de proxy confiável, que não está autorizada nesta etapa.
+**Sessões:** registrar o IP observado em cada sessão autenticada, web ou celular. Enviar código ao e-mail verificado quando o IP de uma nova sessão diferir do IP da sessão anterior. IP não identifica com precisão um aparelho nem um local físico; captura confiável do IP do cliente depende da configuração de proxy confiável, que não está autorizada nesta etapa.
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
@@ -767,7 +767,8 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Privacidade:** IP é dado pessoal. Restringir acesso, não gravá-lo em logs de aplicação em texto claro e definir retenção e visibilidade na tela de sessões antes de implementar.
 - **Escopo explícito:** esta decisão não autoriza GPS, fingerprinting ou coleta de user-agent para identificar aparelho.
 - **Dependência:** a configuração atual não confia em cabeçalhos encaminhados por proxy. Não alterar proxy nem confiar em IP informado pelo cliente; a captura do IP original depende de configuração de proxy confiável, fora do escopo autorizado nesta etapa.
-- **Pendente:** a regra do código de login ainda está ambígua entre exigir código em toda nova sessão e exigir quando o IP mudar. Não inferir que IP diferente significa local físico diferente.
+- **Autenticação de nova sessão confirmada:** exigir código enviado ao e-mail verificado quando o IP observado da nova sessão for diferente do IP da sessão registrada imediatamente antes. Não interpretar a diferença como prova de outro aparelho ou local físico.
+- **Pendente:** definir o primeiro acesso de contas existentes sem IP anterior, além de retenção do IP e se ele será exibido ao titular na lista de sessões.
 - **Estado técnico:** a decisão foi registrada, mas a captura e persistência do IP por sessão não foram implementadas nem verificadas.
 
 ### Histórico do documento
@@ -832,3 +833,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.46 | 2026-10-24 | Retém apenas o mínimo exigido por obrigação aplicável, com acesso restrito e prazo definido; categorias e prazos dependem de revisão. |
 | 2.47 | 2026-10-24 | Não oferece exportação de dados na primeira versão e exige verificar obrigações de privacidade antes do lançamento. |
 | 2.48 | 2026-10-24 | Registra IP por sessão como requisito; documenta limites de precisão, privacidade e dependência de proxy confiável sem alterar sua configuração. |
+| 2.49 | 2026-10-24 | Exige código de login por e-mail quando o IP da nova sessão difere do IP da sessão anterior; deixa pendente o primeiro acesso sem IP registrado. |
