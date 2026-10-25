@@ -2,14 +2,14 @@ import { useParams, useLocation, Link, Redirect } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { formatCount } from "@/modules/shared/utils/formatters";
-import { getPostMediaType } from "@/modules/shared/content/postMedia";
-import { useReadablePost } from "@/modules/social/hooks/useReadablePost";
+import { formatCount } from "@/lib/formatters";
+import { getPostMediaType } from "@/lib/postMedia";
+import { useReadablePost } from "@/hooks/use-readable-post";
 import { RichText } from "@/components/content/RichText";
 import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard";
 import { CommentThread } from "@/components/content/CommentThread";
 import { UnavailableState } from "@/components/content/StateBlocks";
-import { PostActionBar } from "@/modules/social/components/post/PostActionBar";
+import { PostActionBar } from "@/components/post/PostActionBar";
 
 export default function PostDetail() {
   const params = useParams<{ postId: string }>();

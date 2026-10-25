@@ -4,11 +4,11 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { onboardingInterestSteps } from "@/modules/onboarding/data/interestSteps";
-import { useAppContext } from "@/modules/app/state/AppContext";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import { completeOnboarding as saveOnboarding } from "@/modules/onboarding/services/onboardingApi";
-import { useToast } from "@/modules/shared/hooks/useToast";
+import { onboardingInterestSteps } from "@/data/onboardingInterestSteps";
+import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/context/SocialContext";
+import { completeOnboarding as saveOnboarding } from "@/services/authApi";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OnboardingInterests() {
   const [selected, setSelected] = useState<Set<string>>(new Set());

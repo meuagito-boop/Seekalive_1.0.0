@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Image, Video, Trash2 } from "lucide-react";
-import type { PreparedMedia } from "@/modules/shared/media/mediaService";
-import { MAX_MEDIA_ITEMS } from "@/modules/shared/media/hooks/useDraftMedia";
+import type { PreparedMedia } from "@/services/mediaService";
+import { MAX_MEDIA_ITEMS } from "@/hooks/use-draft-media";
 import { CameraCapture } from "./CameraCapture";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 

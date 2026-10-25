@@ -3,11 +3,10 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/modules/shared/hooks/useToast";
+import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { useAppContext } from "@/modules/app/state/AppContext";
-import { AuthApiError } from "@/modules/auth/services/http";
-import { confirmEmail, resendVerification } from "@/modules/auth/services/emailVerificationApi";
+import { useAppContext } from "@/context/AppContext";
+import { AuthApiError, confirmEmail, resendVerification } from "@/services/authApi";
 
 export default function VerifyEmail() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);

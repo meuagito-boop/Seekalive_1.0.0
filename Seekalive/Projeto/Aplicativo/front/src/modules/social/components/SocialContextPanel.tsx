@@ -4,8 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Star, Users, TrendingUp } from "lucide-react";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import { useAppContext } from "@/modules/app/state/AppContext";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
 import type { SeekEvent } from "@/modules/seek/types/event";
 
 function PanelCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
@@ -31,7 +31,7 @@ export function SocialContextPanel() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     let active = true;
-    void import("@/modules/app/data/demo/previewFixtures")
+    void import("@/data/demo/previewFixtures")
       .then(({ developmentSeekEvents }) => {
         if (active) setUpcomingEvents(developmentSeekEvents.slice(0, 2));
       })

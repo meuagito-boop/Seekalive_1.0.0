@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Clock, LocateFixed, Loader2, MapPin, RotateCcw, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useAppContext } from "@/modules/app/state/AppContext";
-import { localActorId } from "@/modules/shared/storage/accountScopedStorage";
+import { useAppContext } from "@/context/AppContext";
+import { localActorId } from "@/data/accountScopedStorage";
 import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
 import { locationErrorMessage, readRecentLocations, requestDeviceLocation, searchCities } from "@/modules/seek/services/seekLocationService";
 

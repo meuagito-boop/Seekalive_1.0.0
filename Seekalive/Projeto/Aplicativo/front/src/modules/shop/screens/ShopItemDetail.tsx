@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "wouter";
 import { ArrowLeft, Share2, ShoppingCart, Star, Store, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSocial } from "@/modules/app/state/SocialContext";
+import { useSocial } from "@/context/SocialContext";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 import { UnavailableState } from "@/components/content/StateBlocks";
 import { useSavedShopItems } from "@/modules/shop/hooks/useSavedShopItems";
@@ -23,7 +23,7 @@ export default function ShopItemDetail() {
     setItem(null);
     setItemLoading(true);
     setFixtureError(false);
-    void import("@/modules/app/data/demo/previewFixtures")
+    void import("@/data/demo/previewFixtures")
       .then(({ developmentShopItems }) => {
         if (active) setItem(developmentShopItems.find((product) => product.id === params.id) ?? null);
       })

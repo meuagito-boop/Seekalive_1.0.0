@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import accountEmailChangeRouter from "./accountEmailChangeRouter";
-import accountPasswordChangeRouter from "./accountPasswordChangeRouter";
+import accountEmailChangeRouter from "./accountEmailChangeRoutes";
+import accountPasswordChangeRouter from "./accountPasswordChangeRoutes";
 
 const router: IRouter = Router();
 

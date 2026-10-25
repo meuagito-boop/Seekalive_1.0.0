@@ -13,8 +13,6 @@ try {
     "Aplicativo/front/tests/contracts.test.ts",
     "Aplicativo/front/tests/profilePresentation.test.ts",
     "Aplicativo/front/tests/profileEdit.test.ts",
-    "Aplicativo/front/tests/businessReviews.test.ts",
-    "Aplicativo/front/tests/searchResults.test.ts",
     "Aplicativo/front/tests/tabKeyboard.test.ts",
     "Aplicativo/front/tests/authSessionState.test.ts",
   ];

@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { UserPlus, Hash, Store, ArrowLeft, Star } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import { useAppContext } from "@/modules/app/state/AppContext";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
 import { Link, useLocation } from "wouter";
 
 const demoSuggestTopics = [

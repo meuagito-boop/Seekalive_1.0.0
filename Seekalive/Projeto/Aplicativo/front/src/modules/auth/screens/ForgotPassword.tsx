@@ -9,7 +9,7 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { confirmPasswordReset, requestPasswordReset } from "@/modules/auth/services/passwordApi";
+import { confirmPasswordReset, requestPasswordReset } from "@/services/authApi";
 
 export default function ForgotPassword() {
   const [step, setStep] = useState<"request" | "confirm" | "done">("request");

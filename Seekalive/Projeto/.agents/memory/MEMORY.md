@@ -5,4 +5,3 @@
 - [Interface Social e Seek](social-interface-rules.md) — Laranja, navegação sem redundância e nenhum sucesso simulado ao retirar avisos de demonstração.
 - [Identidade visual Seekalive](seekalive-brand.md) — Elo aprovado para o aplicativo; grafia correta é Seekalive, somente com S inicial maiúsculo.
 - [Localização do Seek](seek-location.md) — Catálogo IBGE versionado; GPS explícito e sem persistência; não simular distâncias nem catálogo real com exemplos.
-- [Separação modular obrigatória](modular-ownership-rule.md) — Uma responsabilidade por arquivo, por domínio; concluir e validar a etapa atual antes de avançar, sem mexer em portas fora do escopo.

@@ -2,14 +2,14 @@ import { Router, type IRouter } from "express";
 import { setAuthEmailDeliveryForTests } from "../infrastructure/emailDelivery";
 import accountSecurityRouter from "./accountSecurityRoutes";
 import csrfRouter from "./csrfRoutes";
-import deviceVerificationRouter from "./deviceVerificationRouter";
-import emailVerificationRouter from "./emailVerificationRouter";
+import deviceVerificationRouter from "./deviceVerificationRoutes";
+import emailVerificationRouter from "./emailVerificationRoutes";
 import loginRouter from "./loginRoutes";
-import passwordResetRouter from "./passwordResetRouter";
-import passwordUpdateRouter from "./passwordUpdateRouter";
+import passwordResetRouter from "./passwordResetRoutes";
+import passwordUpdateRouter from "./passwordUpdateRoutes";
 import registrationRouter from "./registrationRoutes";
-import sessionRouter from "./sessionRouter";
-import trustedDeviceRouter from "./trustedDeviceRouter";
+import sessionRouter from "./sessionRoutes";
+import trustedDeviceRouter from "./trustedDeviceRoutes";
 
 const router: IRouter = Router();
 

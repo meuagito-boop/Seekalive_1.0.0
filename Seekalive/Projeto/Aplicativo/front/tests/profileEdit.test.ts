@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { MyAccountResponse } from "@workspace/api-client-react";
-import type { User } from "@/modules/profile/types/user";
+import type { User } from "@/data/mockData";
 import type { ProfileEditFormValues } from "@/modules/profile/types/profileEditSchema";
 import {
   buildCommercialPreviewUser,

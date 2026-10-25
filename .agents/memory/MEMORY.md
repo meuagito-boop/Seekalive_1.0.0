@@ -14,4 +14,3 @@
 - [Ordens e recomendações](prompt-recommendations.md) — cumprir instruções explícitas sem ampliar o escopo; discutir recomendações antes de implementá-las.
 - [Códigos de erro da API](api-error-taxonomy.md) — status HTTP 4xx/5xx separados de códigos numéricos de domínio iniciados em 1000, sempre com chave textual estável.
 - [Fronteiras de bundle no workspace](workspace-bundle-boundaries.md) — compile fontes TypeScript locais e externalize npm somente com dependências runtime declaradas e verificadas.
-- [Testes de refatoração frontend](frontend-refactor-tests.md) — testes de contrato do front também inspecionam caminhos e locais de implementação; atualize-os junto com a estrutura.

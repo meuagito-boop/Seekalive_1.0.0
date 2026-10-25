@@ -3,11 +3,12 @@ import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { AccountPatch, MyAccountResponse } from "@workspace/api-client-react";
-import { useAppContext } from "@/modules/app/state/AppContext";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import { myAccountToUser, socialGraphApi } from "@/modules/social/services/socialGraphApi";
+import { useAppContext } from "@/context/AppContext";
+import { useSocial } from "@/context/SocialContext";
+import { myAccountToUser, socialGraphApi } from "@/services/socialGraphApi";
 import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
-import { useBusinessHoursEditor } from "@/modules/profile/commercial-profile/hooks/useBusinessHoursEditor";
+import { formatWeeklyHours, hasInvalidOpenHours, makeWeeklyHours } from "@/modules/profile/commercial-profile/utils/businessHours";
+import type { BusinessDayHours, BusinessDayKey, WeeklyOpeningHours } from "@/modules/profile/commercial-profile/types/businessHours";
 import {
   profileEditSchema,
   serviceStatus,
@@ -37,7 +38,6 @@ export function useProfileEditController() {
   const currentUser = signedInUser;
   const isServerAccount = isAuthenticated && !isDevelopmentPreview;
   const profile = currentUser?.commercialProfile;
-  const businessHours = useBusinessHoursEditor(profile);
   const [ownerProfile, setOwnerProfile] = useState<MyAccountResponse | null>(null);
   const [accountLoadError, setAccountLoadError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -52,6 +52,11 @@ export function useProfileEditController() {
           label: `${profile.cityName}, ${profile.cityState}`,
         }
       : null);
+  const [weeklyHours, setWeeklyHours] = useState<WeeklyOpeningHours>(() =>
+    makeWeeklyHours(profile?.weeklyHours, profile?.openingHours));
+  const [hoursTouched, setHoursTouched] = useState(false);
+  const [hoursError, setHoursError] = useState("");
+
   const form = useForm<ProfileEditFormValues>({
     resolver: zodResolver(profileEditSchema),
     defaultValues: {
@@ -138,6 +143,15 @@ export function useProfileEditController() {
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short" }).format(value)
     : "";
 
+  function updateDayHours(day: BusinessDayKey, changes: Partial<BusinessDayHours>) {
+    setHoursTouched(true);
+    setHoursError("");
+    setWeeklyHours((previous) => ({
+      ...previous,
+      [day]: { ...previous[day], ...changes },
+    }));
+  }
+
   async function onSubmit(values: ProfileEditFormValues) {
     setSaveError("");
     if (currentUser?.accountType === "personal") {
@@ -154,11 +168,18 @@ export function useProfileEditController() {
       form.setError("displayName", { type: "validate", message: "Informe o nome da empresa ou estabelecimento." });
       return;
     }
-    if (currentUser?.accountType === "commercial" && !businessHours.validate()) return;
-    const {
-      weeklyHours: nextWeeklyHours,
-      openingHours: nextOpeningHours,
-    } = businessHours.getNextValues();
+    if (currentUser?.accountType === "commercial" && hoursTouched && hasInvalidOpenHours(weeklyHours)) {
+      setHoursError("Informe horários válidos para cada dia marcado como aberto.");
+      return;
+    }
+
+    const nextWeeklyHours = hoursTouched ? weeklyHours : profile?.weeklyHours;
+    const formattedHours = formatWeeklyHours(weeklyHours);
+    const nextOpeningHours = hoursTouched
+      ? formattedHours === "Horário não informado" ? undefined : formattedHours
+      : profile?.weeklyHours
+        ? formatWeeklyHours(profile.weeklyHours)
+        : profile?.openingHours;
 
     if (!currentUser) {
       setSaveError("Entre na sua conta para editar o perfil.");
@@ -233,7 +254,7 @@ export function useProfileEditController() {
     formatChangeDate,
     form,
     goTo: setLocation,
-    hoursError: businessHours.hoursError,
+    hoursError,
     isSaving,
     isServerAccount,
     onSubmit,
@@ -242,9 +263,9 @@ export function useProfileEditController() {
     publicNameLocked,
     saveError,
     setDiscoveryCity,
-    updateDayHours: businessHours.updateDayHours,
+    updateDayHours,
     usernameChangeDate,
     usernameLocked,
-    weeklyHours: businessHours.weeklyHours,
+    weeklyHours,
   };
 }

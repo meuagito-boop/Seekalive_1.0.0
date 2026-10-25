@@ -4,17 +4,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, Clock3, Play, BookOpenText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PostCard } from "@/modules/social/components/post/PostCard";
+import { PostCard } from "@/components/post/PostCard";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 import { EmptyState } from "@/components/content/StateBlocks";
-import type { Post } from "@/modules/social/types/post";
-import { formatCount } from "@/modules/shared/utils/formatters";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import { useAppContext } from "@/modules/app/state/AppContext";
-import { canReadPost } from "@/modules/shared/content/contentValidation";
-import { getPostMediaType } from "@/modules/shared/content/postMedia";
-import { useToast } from "@/modules/shared/hooks/useToast";
-import { handleTabKeyDown } from "@/modules/shared/ui/tabKeyboard";
+import type { Post } from "@/data/mockData";
+import { formatCount } from "@/lib/formatters";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
+import { canReadPost } from "@/services/contentValidation";
+import { getPostMediaType } from "@/lib/postMedia";
+import { useToast } from "@/hooks/use-toast";
+import { handleTabKeyDown } from "@/lib/tabKeyboard";
 
 const feedTabs = ["Para você", "Seguindo", "Artigos", "Vídeos"] as const;
 

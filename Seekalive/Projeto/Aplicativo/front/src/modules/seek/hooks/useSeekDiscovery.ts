@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import { useAppContext } from "@/modules/app/state/AppContext";
-import { accountStorageKey, localActorId, useAccountScopedIds } from "@/modules/shared/storage/accountScopedStorage";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
+import { accountStorageKey, localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
 import { buildSeekItems, defaultDiscoveryFilters, filterDiscovery, validateDiscoveryFilters } from "@/modules/seek/utils/seekDiscovery";
 import type { DiscoveryFilters, DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
 import { readRecentLocations, rememberManualLocation } from "@/modules/seek/services/seekLocationService";
@@ -12,7 +12,7 @@ const EVENT_SAVED_KEY = "seekalive-seek-saved-events";
 const SCROLL_KEY = "seekalive-seek-scroll";
 const EXAMPLES_KEY = "seekalive-seek-demo-preview";
 type DevelopmentSeekFixtures = Pick<
-  typeof import("@/modules/app/data/demo/previewFixtures"),
+  typeof import("@/data/demo/previewFixtures"),
   "developmentExampleAccountIds" | "developmentSeekEvents"
 >;
 
@@ -65,7 +65,7 @@ export function useSeekDiscovery() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     let active = true;
-    void import("@/modules/app/data/demo/previewFixtures")
+    void import("@/data/demo/previewFixtures")
       .then(({ developmentExampleAccountIds, developmentSeekEvents }) => {
         if (active) setDevelopmentFixtures({ developmentExampleAccountIds, developmentSeekEvents });
       })

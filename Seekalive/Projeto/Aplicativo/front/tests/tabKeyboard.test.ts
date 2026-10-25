@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getTabKeyboardIndex, handleTabKeyDown } from "../src/modules/shared/ui/tabKeyboard";
+import { getTabKeyboardIndex, handleTabKeyDown } from "../src/lib/tabKeyboard";
 
 test("tab keyboard navigation wraps horizontally and supports Home/End", () => {
   assert.equal(getTabKeyboardIndex("ArrowRight", 0, 4), 1);

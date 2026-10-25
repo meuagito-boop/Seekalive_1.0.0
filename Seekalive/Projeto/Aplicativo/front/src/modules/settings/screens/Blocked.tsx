@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Ban } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useSocial } from "@/modules/app/state/SocialContext";
+import { useSocial } from "@/context/SocialContext";
 import { SettingsSubheader } from "./SettingsSubheader";
-import { useToast } from "@/modules/shared/hooks/useToast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsBlocked() {
   const {

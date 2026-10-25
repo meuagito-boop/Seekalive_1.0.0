@@ -76,7 +76,7 @@ export default function Shop() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     let active = true;
-    void import("@/modules/app/data/demo/previewFixtures")
+    void import("@/data/demo/previewFixtures")
       .then(({ developmentShopItems, developmentShopStores }) => {
         if (active) setShopData({ items: developmentShopItems, stores: developmentShopStores });
       })

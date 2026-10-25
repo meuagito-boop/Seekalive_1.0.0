@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { PenSquare, BookOpenText, Link2, Repeat2, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { ContentReference } from "@/modules/shared/types/contentReference";
-import { articleCreatePath, composePath } from "@/modules/shared/content/contentLinks";
+import type { ContentReference } from "@/types/social/contentReferences";
+import { articleCreatePath, composePath } from "@/lib/contentLinks";
 
 interface ShareContentDialogProps {
   open: boolean;

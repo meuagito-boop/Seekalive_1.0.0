@@ -3,9 +3,9 @@ import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, Image, Smile, Check, CheckCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatTimeAgo } from "@/modules/shared/utils/formatters";
-import { useSocial } from "@/modules/app/state/SocialContext";
-import { useAppContext } from "@/modules/app/state/AppContext";
+import { formatTimeAgo } from "@/lib/formatters";
+import { useSocial } from "@/context/SocialContext";
+import { useAppContext } from "@/context/AppContext";
 import { UnavailableState } from "@/components/content/StateBlocks";
 
 export default function MessageDetail() {

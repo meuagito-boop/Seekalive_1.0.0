@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { SettingsSubheader, SectionTitle } from "./SettingsSubheader";
-import { getAppearancePreferences, saveAppearancePreferences } from "@/modules/settings/data/preferences";
-import { useAppContext } from "@/modules/app/state/AppContext";
-import { localActorId } from "@/modules/shared/storage/accountScopedStorage";
+import { getAppearancePreferences, saveAppearancePreferences } from "@/data/appPreferences";
+import { useAppContext } from "@/context/AppContext";
+import { localActorId } from "@/data/accountScopedStorage";
 
 const fontSizes = [
   { label: "Padrão", px: 16 },
