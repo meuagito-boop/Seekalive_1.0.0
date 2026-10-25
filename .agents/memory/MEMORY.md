@@ -4,7 +4,7 @@
 - [Ciclo de vida da conta](account-lifecycle.md) — pedido exige senha+código; exclusão em 7 dias; retenção mínima; exportação fora da primeira versão.
 - [Nome de usuário](username-policy.md) — primeira troca após 30 dias do registro; trocas seguintes a cada 30 dias; @ antigo bloqueado a todos por 30 dias.
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
-- [Banco externo Seekalive](external-database.md) — PostgreSQL externo; Shop e Confiança e Segurança têm bancos lógicos próprios, ainda sem provedor/conexão.
+- [Banco e schemas por domínio](database-domains-replit.md) — PostgreSQL gerenciado da Replit; schemas separam ownership lógico, não instâncias físicas ou credenciais.
 - [Localização comercial](commercial-location-cardinality.md) — cada conta tem um endereço principal no Seek; áreas de atendimento não fazem parte do escopo confirmado.
 - [Nome público e identificador](personal-profile-name.md) — pessoa exibe nome+sobrenome e comércio exibe empresa, sempre separados do @ exclusivo.
 - [Back-end em etapas](backend-staged-rollout.md) — resolver conta antes das páginas públicas; Social precisa estar pronto antes de Seek/Shop; Painel gerirá app e Gestor depois.

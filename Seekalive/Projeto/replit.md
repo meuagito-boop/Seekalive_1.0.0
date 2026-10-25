@@ -9,10 +9,10 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run generate` — generate versioned SQL from the Drizzle schema without connecting to a database
-- `SEEKALIVE_DB_MIGRATION_TARGET=external pnpm --filter @workspace/db run migrate` — manually apply pending migrations to the explicitly selected external PostgreSQL; requires `SEEKALIVE_EXTERNAL_DATABASE_URL`
-- The configured post-merge script remains the development-only Replit schema sync. External migrations are never selected implicitly and are not run on startup or post-merge.
-- No external database or production database is connected. Replit Publish is not a migration mechanism for an external database; production migration operations are not configured.
-- Runtime development uses `DATABASE_URL` unless `SEEKALIVE_DATABASE_TARGET=external` is explicitly selected. Keep database connection strings in Secrets.
+- Development uses the Replit-managed PostgreSQL database through `DATABASE_URL`. The post-merge script synchronizes only the development schema with Drizzle.
+- PostgreSQL schemas separate domain ownership inside each environment: all 12 approved domain schemas are prepared in development; `accounts`, `security`, `profiles`, and `seek` currently contain tables, while the other eight remain empty until their backend slices are implemented.
+- Replit keeps development and production databases separate. Production schema changes must go through Replit Publish; never run development push or direct DDL against production.
+- Do not expose or replace `DATABASE_URL`. An external PostgreSQL selector remains inactive and must not be enabled without a new explicit decision.
 
 ## Stack
 

@@ -1258,7 +1258,7 @@ router.post(
       await tx
         .update(authChallenges)
         .set({
-          consumedAt: now,
+          consumedAt: sql`COALESCE(${authChallenges.consumedAt}, ${now})`,
           pendingEmail: null,
           pendingPasswordHash: null,
           basePasswordHash: null,
@@ -1274,7 +1274,6 @@ router.post(
               "reset_password",
               "device_login",
             ]),
-            isNull(authChallenges.consumedAt),
           ),
         );
       return { kind: "updated" as const };

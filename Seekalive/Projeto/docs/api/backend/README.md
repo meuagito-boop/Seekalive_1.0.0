@@ -2,7 +2,7 @@
 
 **Atualizado:** 25/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
 
-> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. A migração inicial SQL versionada cobre as 11 tabelas atuais de conta/social e foi gerada sem conexão; não foi aplicada a nenhum banco. A mudança mais recente do schema de autenticação foi exercitada somente em schema temporário; ainda não foi aplicada ao banco principal de desenvolvimento. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. Nenhum dado ou schema de produção foi alterado. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
+> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. O PostgreSQL gerenciado da Replit está ativo em desenvolvimento: os 12 schemas lógicos foram criados; 12 tabelas ocupam `accounts`, `security`, `profiles` e `seek`, e os outros oito schemas permanecem vazios. A migração preservou as tabelas existentes e criou as estruturas que faltavam; todos os registros continuam vazios. Produção não foi consultada, alterada ou publicada. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. Publicações, mídias, avaliações, mensagens e outros domínios ainda precisam de implementação.
 
 ## Como utilizar este pacote
 
@@ -11,11 +11,11 @@
 3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
 4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
 5. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
-6. Revisar `data-dictionary.md`, a migração versionada em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o schema Drizzle atual, a migração inicial para banco vazio e o modelo relacional futuro. **Não executar SQL sem revisar o alvo; a migração exige `SEEKALIVE_DB_MIGRATION_TARGET` explícito.**
+6. Revisar `data-dictionary.md`, as migrations em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o schema Drizzle aplicado no desenvolvimento, o histórico versionado e o modelo relacional futuro. **Não executar SQL sem revisar o alvo; não usar o migrador no banco atual de desenvolvimento, que é sincronizado pelo `push`.**
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL de referência e a migração inicial versionada do schema de conta/social. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
+O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, OpenAPI, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regere os contratos e o HTML depois de alterar as fontes e mantenha o ZIP sincronizado com as migrations atuais. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
 
 ## 1. Produto
 
@@ -118,7 +118,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 
 **Extensões ainda sujeitas a decisão:** checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.
 
-**Direção implementada nesta etapa:** autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio de contas sem e-mail confirmado; perfis, configurações de privacidade e relações sociais essenciais também usam a API. O schema Drizzle atualizado foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI separa rotas ativas das propostas. **Bloqueio atual:** o envio de e-mail não está integrado; por isso, o servidor não cria conta real e responde `503` quando não há envio configurado. O schema completo dos demais domínios continua proposto e não foi aplicado à produção.
+**Direção implementada nesta etapa:** autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio de contas sem e-mail confirmado; perfis, configurações de privacidade e relações sociais essenciais também usam a API. O schema Drizzle atualizado foi aplicado somente no banco de desenvolvimento. O contrato OpenAPI separa rotas ativas das propostas. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; ainda falta validar o fluxo completo de cadastro/confirmação no navegador e a produção não está configurada. Sem configuração de envio, o servidor responde `503` e não cria conta. O schema completo dos demais domínios continua proposto e não foi aplicado à produção.
 
 ## 5. Links e versões
 

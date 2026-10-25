@@ -730,7 +730,7 @@ const spec = {
   info: {
     title: "Seekalive API",
     version: "0.3.1-device-security",
-    description: "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados no desenvolvimento. Envio Resend e banco externo não estão habilitados para produção; os demais contratos seguem como proposta.",
+    description: "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados no desenvolvimento. O PostgreSQL gerenciado da Replit contém os schemas ativos de desenvolvimento; produção não foi publicada nem alterada. O envio Resend foi testado em desenvolvimento, mas não está habilitado para produção; os demais contratos seguem como proposta.",
     contact: { name: "Seekalive API" },
   },
   servers: [{ url: "/api", description: "Prefixo de mesma origem, encaminhado pelo proxy de desenvolvimento do frontend." }],
@@ -768,7 +768,7 @@ const lines = [
   "",
   `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. OpenAPI 3.1 em \`openapi.json\`: **${R.length} operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
   "",
-  "> **ATIVA** significa que o handler existe no código. A alteração de instalações confiáveis ainda não foi aplicada ao banco principal de desenvolvimento (faltam `trusted_devices` e `accounts.security_locked_at`); esse fluxo foi testado somente em schema temporário. Não considerar operável no banco principal até aplicar a migração. Produção não foi alterada.",
+  "> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A suíte de API isolada passou após a sincronização, criando e removendo seu schema temporário. Produção não foi consultada, alterada ou publicada.",
   "",
   "## Respostas, paginação e autenticação",
   "",

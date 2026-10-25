@@ -2,7 +2,7 @@
 
 ## Situação da auditoria
 
-Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL de desenvolvimento; o envio de códigos via Resend foi testado em desenvolvimento. Não há configuração de e-mail habilitada para produção, domínio de produção confirmado ou banco externo conectado. O fluxo para gerar SQL versionado e aplicar migrações externas com alvo explícito está preparado, mas ainda não foi aplicado. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
+Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL gerenciado da Replit no desenvolvimento; a produção permanece separada e não foi publicada. O envio de códigos via Resend foi testado em desenvolvimento, mas o E2E completo e a configuração de produção permanecem pendentes. Não há banco PostgreSQL externo escolhido ou conectado. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
 
 Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding, perfil/privacidade e relações sociais essenciais listadas como **ATIVA** em `endpoints.md`. As outras rotas são propostas. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.
 
@@ -10,7 +10,7 @@ Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding
 
 | Necessidade | Opção / situação | Referência oficial |
 |---|---|---|
-| Banco relacional | PostgreSQL com Drizzle no desenvolvimento. A mudança de instalações confiáveis está no código e foi testada somente em schema temporário; a migração versionada existe para inicializar um banco externo vazio, mas ainda não foi aplicada. Banco externo não conectado; nenhuma produção foi alterada | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
+| Banco relacional | PostgreSQL gerenciado da Replit com Drizzle. No desenvolvimento, 12 schemas lógicos estão preparados; 12 tabelas estão distribuídas em `accounts`, `security`, `profiles` e `seek`. Produção é separada e continua sem publicação. | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
 | Fotos e vídeos | Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca `blob:` como URL de backend | [Replit Object Storage](https://docs.replit.com/features/data-and-storage/object-storage) |
 | Autenticação | API própria, sem Clerk/OIDC. Resend foi testado no desenvolvimento; falta E2E completo e configuração própria para produção | Confirmar remetente/domínio e testar o fluxo completo antes de abrir cadastro real |
 | Cidades brasileiras | O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render | [API de localidades do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&orderBy=nome) |
@@ -27,17 +27,17 @@ Para atualizar: baixar de novo a fonte oficial, validar unicidade do código, qu
 
 ## Configuração (nomes, nunca valores)
 
-Os nomes a seguir são inventário de proposta para deployment; não afirmam que já existam:
+Os nomes a seguir descrevem configuração por ambiente; não afirmam que todos estejam configurados:
 
 | Nome sugerido | Uso / tratamento |
 |---|---|
 | `SESSION_SECRET` | Já consta como secret disponível no ambiente. Não ler nem exibir seu valor. Antes de produção, confirmar rotação, comprimento e uso; preferir sessão criptograficamente segura gerada pelo servidor/provedor |
-| `DATABASE_URL` | String de conexão do PostgreSQL; cadastrar somente pelo fluxo de Secrets. Não escrever em `.env` versionado ou log |
+| `DATABASE_URL` | Conexão gerenciada pelo ambiente Replit. Não exibir, sobrescrever, copiar para `.env` versionado ou incluir em logs |
 | `SITE_ORIGIN` | Origem oficial para validação de redirecionamento/links; configurar por ambiente após confirmação do domínio de produção |
 | `OBJECT_STORAGE_BUCKET` | Identificador do bucket; credenciais ficam no serviço integrado, não no código |
 | `EMAIL_PROVIDER_*`, `MAPS_PROVIDER_*` | Só definir depois da escolha explícita do fornecedor e usando Secrets para credenciais |
 
-Segredos de desenvolvimento e produção devem ter escopos separados. Não reutilizar banco de desenvolvimento para dados de usuários reais. Nunca pedir ao usuário para colar senha, token ou chave no chat.
+Segredos e bancos de desenvolvimento/produção devem permanecer separados. Não reutilizar banco de desenvolvimento para dados de usuários reais. Nunca pedir ao usuário para colar senha, token ou chave no chat.
 
 ## Operação e monitoramento
 
@@ -46,6 +46,6 @@ Segredos de desenvolvimento e produção devem ter escopos separados. Não reuti
 - Medir latência/erros por rota, filas de uploads, falhas de e-mail/push e atrasos de outbox; alertar sem incluir conteúdo do usuário.
 - Retentar tarefas externas com backoff e chave de idempotência; mensagens irrecuperáveis vão para fila de falhas monitorada.
 - Ter backup/retention e teste de restauração do banco antes de habilitar dados reais; planejar ciclo de vida/exclusão de mídia separadamente.
-- Antes de publicar, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente certo, migrações aplicadas deliberadamente e health/readiness.
+- Antes de publicar, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente certo, schema promovido pelo fluxo Replit Publish e health/readiness. Não fazer lançamento público até o sistema completo ser aprovado.
 
 Mais referências de plataforma: [Storage e bancos no Replit](https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases) e [Troubleshooting](https://docs.replit.com/build/troubleshooting).

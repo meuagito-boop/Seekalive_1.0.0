@@ -1,12 +1,12 @@
 # Seekalive core data dictionary
 
-**Status:** o schema Drizzle em código é a fonte de verdade. As alterações anteriores de identidade foram aplicadas ao banco principal de desenvolvimento; a tabela `trusted_devices` e os novos campos de segurança ainda não foram aplicados a esse banco. Foram exercitados somente em schema temporário isolado, depois removido. `schema-core.sql` permanece proposta de referência; não é migration nem foi executado. Produção não foi alterada.
+**Status:** o schema Drizzle em código é a fonte de verdade. Os 12 schemas lógicos estão criados no PostgreSQL de desenvolvimento; 12 tabelas ficam em `accounts`, `security`, `profiles` e `seek`, enquanto os outros oito schemas estão vazios. As dez tabelas existentes, vazias, foram movidas sem exclusão; as tabelas e campos que faltavam foram criados. Todos os conjuntos de dados continuam vazios. Os testes HTTP passam em schema temporário isolado, removido ao fim da execução. `schema-core.sql` permanece proposta de referência; não é migration nem foi executado. Produção não foi alterada.
 
 ## Sources and boundaries
 
 Reviewed frontend contracts in the account, profile, social, Seek, Shop, messaging and settings flows. The current commercial-review UI requires a 1–5 rating, a 10–500 character comment and a 3–500 character business reply. This document remains a proposal, not an implemented backend contract.
 
-- A proposta de ownership para separar bancos lógicos está em `../../architecture/database-domains.md`. Ela não substitui o schema Drizzle atual, não muda o banco ativo e não autoriza executar `schema-core.sql`.
+- O mapa de ownership efetivamente aplicado no desenvolvimento está em `../../architecture/database-domains.md`. Ele define schemas lógicos dentro da instância Replit, não bancos físicos ou credenciais separados. `schema-core.sql` continua sendo uma proposta e não deve ser executado como migração.
 - One `accounts` identity is personal **or** commercial. A commercial profile extends that identity; it is not a separate login/account.
 - Círculo exists only when two accounts follow one another and both follow edges are effective/accepted. It is derived from `follows`, not an independent request, invitation, membership, or table. One-way following is not Círculo; removing either edge removes the derived membership.
 - Shuffle and Comunidades are out of product scope. There are no community/group entities, roles, memberships, invitations, or group posts.

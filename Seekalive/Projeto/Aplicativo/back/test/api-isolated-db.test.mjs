@@ -826,7 +826,8 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
 
   const oldUsernameRegistration = await request("/api/v1/auth/register", {
     method: "POST",
-    auth: preAuth,
+    auth: await createPreAuth(),
+    clientIp: "203.0.113.50",
     body: {
       ...personalRegistration,
       email: `reserved-${suffix}@example.com`,
@@ -848,7 +849,8 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
 
   const reclaimedUsernameRegistration = await request("/api/v1/auth/register", {
     method: "POST",
-    auth: preAuth,
+    auth: await createPreAuth(),
+    clientIp: "203.0.113.51",
     body: {
       ...personalRegistration,
       email: `reclaimed-${suffix}@example.com`,
@@ -1208,6 +1210,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   const rejectedConcurrentUsernameChange = concurrentUsernameChanges.find((result) => result.response.status === 409);
   assert.equal(rejectedConcurrentUsernameChange?.body.error.code, "USERNAME_UNAVAILABLE");
+  const personalAfterConcurrentRename = await request("/api/v1/accounts/me", { auth: personal });
+  assert.equal(personalAfterConcurrentRename.response.status, 200);
+  const currentPersonalUsername = personalAfterConcurrentRename.body.account.username;
+  assert.ok([`pnew_${suffix}`, contestedUsername].includes(currentPersonalUsername));
   assert.ok(accountSearch.body.items.some((account) => account.id === commercial.account.id));
   const unauthenticatedSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
@@ -1245,10 +1251,29 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(followRequest.response.status, 200);
   assert.equal(followRequest.body.status, "pending");
-  const profileWhileRequestPending = await request(`/api/v1/profiles/${personal.account.username}`, {
+  const currentProfileIdentity = await pool.query(
+    `SELECT account.username, account.status, email.verified_at
+     FROM ${quoteGeneratedSchema(schemaName)}.accounts AS account
+     INNER JOIN ${quoteGeneratedSchema(schemaName)}.account_emails AS email
+       ON email.account_id = account.id
+     WHERE account.id = $1`,
+    [personal.account.id],
+  );
+  assert.equal(currentProfileIdentity.rowCount, 1);
+  assert.equal(currentProfileIdentity.rows[0].username, currentPersonalUsername);
+  assert.equal(currentProfileIdentity.rows[0].status, "active");
+  assert.ok(currentProfileIdentity.rows[0].verified_at);
+  const profileBlocksBeforeBlockTest = await pool.query(
+    `SELECT 1 FROM ${quoteGeneratedSchema(schemaName)}.account_blocks
+     WHERE (blocker_id = $1 AND blocked_id = $2)
+        OR (blocker_id = $2 AND blocked_id = $1)`,
+    [personal.account.id, commercial.account.id],
+  );
+  assert.equal(profileBlocksBeforeBlockTest.rowCount, 0);
+  const profileWhileRequestPending = await request(`/api/v1/profiles/${currentPersonalUsername}`, {
     auth: commercial,
   });
-  assert.equal(profileWhileRequestPending.response.status, 200);
+  assert.equal(profileWhileRequestPending.response.status, 200, JSON.stringify(profileWhileRequestPending.body));
   assert.equal(profileWhileRequestPending.body.visibility.canViewPublicContent, false);
   assert.equal(profileWhileRequestPending.body.visibility.canViewCircleContent, false);
   const privateFollowersBeforeApproval = await request(
@@ -1266,7 +1291,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(accepted.response.status, 200);
   assert.equal(accepted.body.status, "accepted");
-  const profileAfterApproval = await request(`/api/v1/profiles/${personal.account.username}`, {
+  const profileAfterApproval = await request(`/api/v1/profiles/${currentPersonalUsername}`, {
     auth: commercial,
   });
   assert.equal(profileAfterApproval.response.status, 200);
@@ -1284,7 +1309,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.ok(personalCircle.body.items.some((item) => item.account.id === commercial.account.id && item.isMutual));
   const commercialCircle = await request("/api/v1/social/circles", { auth: commercial });
   assert.ok(commercialCircle.body.items.some((item) => item.account.id === personal.account.id && item.isMutual));
-  const profileAfterMutualFollow = await request(`/api/v1/profiles/${personal.account.username}`, {
+  const profileAfterMutualFollow = await request(`/api/v1/profiles/${currentPersonalUsername}`, {
     auth: commercial,
   });
   assert.equal(profileAfterMutualFollow.body.visibility.canViewCircleContent, true);
@@ -1326,7 +1351,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(searchAfterBlock.response.status, 200);
   assert.ok(!searchAfterBlock.body.items.some((account) => account.id === commercial.account.id));
   const reverseSearchAfterBlock = await request(
-    `/api/v1/social/accounts?q=${encodeURIComponent(personal.account.username)}`,
+    `/api/v1/social/accounts?q=${encodeURIComponent(currentPersonalUsername)}`,
     { auth: commercial },
   );
   assert.equal(reverseSearchAfterBlock.response.status, 200);
@@ -1337,7 +1362,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   assert.equal(blockerCannotViewBlockedProfile.response.status, 404);
   const blockedCannotViewBlockerProfile = await request(
-    `/api/v1/profiles/${personal.account.username}`,
+    `/api/v1/profiles/${currentPersonalUsername}`,
     { auth: commercial },
   );
   assert.equal(blockedCannotViewBlockerProfile.response.status, 404);
@@ -1396,7 +1421,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   const requestsAfterBlock = await request("/api/v1/social/follow-requests", { auth: personal });
   assert.deepEqual(requestsAfterBlock.body.items, []);
 
-  assert.equal(emailMessages.length, 2, "Verification messages must be captured by the in-memory test sink.");
+  assert.equal(emailMessages.length, 3, "Personal, commercial and reclaimed-username verifications must use the test sink.");
   assert.equal(await publicSchemaFingerprint(), publicSchemaBefore, "API tests changed the public schema.");
 });
 

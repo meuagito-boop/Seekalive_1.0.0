@@ -2,7 +2,7 @@
 
 Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **138 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
-> **ATIVA** significa que o handler existe no código. A alteração de instalações confiáveis ainda não foi aplicada ao banco principal de desenvolvimento (faltam `trusted_devices` e `accounts.security_locked_at`); esse fluxo foi testado somente em schema temporário. Não considerar operável no banco principal até aplicar a migração. Produção não foi alterada.
+> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A suíte de API isolada passou após a sincronização, criando e removendo seu schema temporário. Produção não foi consultada, alterada ou publicada.
 
 ## Respostas, paginação e autenticação
 

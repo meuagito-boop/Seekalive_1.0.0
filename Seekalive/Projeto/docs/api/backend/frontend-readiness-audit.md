@@ -22,8 +22,8 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 
 | Área | Estado atual | Prontidão |
 |---|---|---|
-| Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
-| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação, troca de senha, sessões e instalações confiáveis chamam a API | Falta E2E no navegador; o schema mais recente de instalações ainda não foi aplicado ao banco principal de desenvolvimento |
+| Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; guard do cliente complementa a autorização independente da API | Parcial |
+| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação, troca de senha, sessões e instalações confiáveis chamam a API | Falta E2E no navegador; o schema está aplicado no banco principal de desenvolvimento |
 | Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados; idade é coletada no cadastro, permanece somente no servidor para a regra de 18+ e nunca é retornada após a criação; e-mail é somente para o titular. `/profile/edit` e conteúdo do perfil público ainda não estão ligados a essa edição | Parcial; falta E2E autenticado e integração das páginas públicas |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
@@ -34,20 +34,19 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há busca/avaliações/eventos reais no servidor | Parcial |
 | Avaliações | Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500 | Parcial |
 | Shop | Catálogo ilustrativo e itens salvos separados por conta no navegador; checkout é explicitamente indisponível | Parcial por escopo |
-| Configurações | Preferências de privacidade, notificações e aparência separadas por conta no navegador; recursos de segurança e ações sensíveis explicitamente indisponíveis | Parcial |
+| Configurações | Conta, privacidade e segurança usam a API em sessão real; notificações e aparência ainda ficam no navegador; ações sensíveis adicionais aguardam implementação | Parcial |
 
 ## Bloqueios e falhas concretas
 
-### P0 — Autenticação e identidade inexistentes
+### Autenticação e identidade — núcleo implementado; E2E visual pendente
 
-- `pages/Register.tsx` valida e cria um perfil local, usa ID baseado no nome de usuário e grava dados de conta no navegador. A senha não é armazenada — isso é correto para o protótipo, mas significa que não existe credencial utilizável no backend.
-- `pages/Login.tsx` não envia usuário/e-mail e senha para um serviço; a tela apresenta o fluxo como não conectado. Após sair, a conta local não pode ser autenticada novamente pelo login.
+- O cadastro pessoal/comercial, a confirmação de e-mail e o login passam pela API; a API cria uma identidade Social única e, para conta comercial, sua extensão no mesmo fluxo. A senha não é persistida no navegador.
+- O login envia usuário ou e-mail e senha à API; conta sem e-mail confirmado não recebe sessão nem acessa recursos protegidos.
 - `ForgotPassword.tsx` solicita e confirma a redefinição pela API. A suíte isolada valida os casos principais; o fluxo visual completo e o recebimento de e-mail na tela ainda exigem E2E separado.
 - `SettingsSecurity.tsx` consulta sessões e instalações próprias e permite revogação individual ou em lote. A sessão/instalação atual fica marcada; a interface não inventa modelo, navegador ou localização. O token reconhece uma instalação do navegador/app, não prova identidade do aparelho físico. MFA geral e histórico detalhado continuam indisponíveis.
-- `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
-- O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
+- O estado local de demonstração não equivale a sessão autenticada; a autorização real continua no servidor e na sessão da API.
 
-**Atualização de autenticação em 24/10:** cadastro, login, verificação de e-mail e onboarding usam a API. A política é Argon2id com senha de 8–128 caracteres, uma maiúscula, uma minúscula, um número e um caractere especial. O frontend e a API suportam migração de credenciais anteriores sem tentar inferir a senha a partir do hash. As regras foram exercitadas em schema temporário isolado e as colunas/restrição foram aplicadas e verificadas no banco principal de desenvolvimento, que estava sem contas, credenciais e sessões ativas.
+**Atualização de autenticação em 25/10:** cadastro, login, verificação de e-mail, onboarding, configurações de conta/privacidade/segurança usam a API. A política exige Argon2id e senha de 8–128 caracteres com uma maiúscula, uma minúscula, um número e um caractere especial. O schema necessário está aplicado no banco principal de desenvolvimento, que permanece sem contas, credenciais ou sessões.
 
 **Regras confirmadas:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão. Na confirmação, uma conta legada com política de senha antiga é ativada sem sessão e segue para login; senha legada compatível é promovida após validação, e senha incompatível exige atualização com a senha atual.
 
@@ -55,11 +54,11 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 
 O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a regra de composição é aplicada a novas senhas e a atualizações obrigatórias. O campo de senha permanece apenas em memória durante o fluxo e não é salvo em `localStorage`.
 
-### P0 — O frontend ainda não consome perfil e relações da API
+### Integração gradual — conteúdo e relações ainda incompletos
 
 - `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha e gestão de sessões), onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens e notificações continuam sem handlers.
-- A autenticação e o onboarding usam a API. As telas de perfil, privacidade, seguir, pedidos, Círculo e bloqueio ainda não consomem os endpoints ativos. `services/contentService.ts` continua apontando para `demoContentAdapter`.
-- A chamada remota encontrada no frontend é para o catálogo público do IBGE, não para a API Seekalive.
+- Configurações de conta, privacidade e segurança usam endpoints ativos. O feed e conteúdos permanecem no `demoContentAdapter`; seguir, pedidos e Círculo ainda precisam concluir a integração visual com as rotas disponíveis.
+- O catálogo público do IBGE é uma integração externa de dados; cadastro, autenticação e configurações usam a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.
 
 **Antes de integrar as telas de perfil/relações:** escolher o cliente/base URL, configurar roteamento/CORS, mapear erros/paginação e manter as demonstrações separadas; falha de rede nunca deve acionar fallback silencioso para fixtures.
@@ -134,7 +133,7 @@ Os contratos de domínio comercial e avaliação ainda são propostas e precisam
 
 | Módulo | Rotas/páginas | Fontes atuais |
 |---|---|---|
-| Acesso e cadastro | `/`, `/login`, `/register`, `/forgot-password`, `/verify-email` | `AppContext`, `accountStorage`, validação local |
+| Acesso e cadastro | `/`, `/login`, `/register`, `/forgot-password`, `/verify-email` | API própria para conta real; estado local separado apenas para demonstração de desenvolvimento |
 | Onboarding | `/onboarding/interests`, `/onboarding/suggestions` | preferências locais e sugestões mock |
 | Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | `SocialContext`, fixtures restritas ao desenvolvimento, reducer; `contentService` demo |
 | Perfis e relações | `/profile`, `/profile/:username`, `/profile/edit`, seguidores/seguindo, `/circles` | dados públicos/conteúdo ainda usam estado local em partes; `/profile/edit` não substitui os dados privados de Configurações > Conta |

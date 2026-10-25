@@ -3,7 +3,7 @@
   "info": {
     "title": "Seekalive API",
     "version": "0.3.1-device-security",
-    "description": "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados no desenvolvimento. Envio Resend e banco externo não estão habilitados para produção; os demais contratos seguem como proposta.",
+    "description": "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados no desenvolvimento. O PostgreSQL gerenciado da Replit contém os schemas ativos de desenvolvimento; produção não foi publicada nem alterada. O envio Resend foi testado em desenvolvimento, mas não está habilitado para produção; os demais contratos seguem como proposta.",
     "contact": {
       "name": "Seekalive API"
     }

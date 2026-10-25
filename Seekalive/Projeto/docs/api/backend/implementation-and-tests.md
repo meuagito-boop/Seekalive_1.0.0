@@ -1,11 +1,11 @@
 # Plano de implementação e testes
 
-Este documento registra a implementação já existente e organiza as próximas fatias do backend. O projeto ainda usa o PostgreSQL gerenciado da Replit. O usuário decidiu mover o backend para PostgreSQL hospedado fora da Replit; o provedor ainda não foi conectado e nenhum banco externo foi criado. Até a transição ser concluída, não considerar a troca ativa nem alterar `DATABASE_URL`.
+Este documento registra a implementação existente e organiza as próximas fatias do backend. O PostgreSQL gerenciado da Replit é a escolha atual para desenvolvimento e produção, em instâncias separadas por ambiente. Em desenvolvimento, os 12 domínios já têm schemas lógicos; Contas, Segurança, Perfis/Relações e Seek contêm as 12 tabelas implementadas, e os outros schemas estão vazios até as próximas etapas. Isso não é lançamento: produção não foi alterada nem publicada.
 
 ## Antes de implementar
 
 1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail, recuperação, troca de senha confirmada por e-mail, gestão de sessões e instalações confiáveis. Conta só recebe sessão após e-mail confirmado e política de senha vigente. Uma instalação sem token ativo recebe código por e-mail antes da sessão; IP não é identidade do dispositivo. Troca/reset de senha revoga todas as sessões e instalações e exige novo login/código. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
-2. Conectar e provisionar o provedor PostgreSQL externo escolhido; definir ambientes, backup e retenção antes de apontar o backend para ele.
+2. A base PostgreSQL de desenvolvimento está ativa. Definir e testar backup, retenção e restauração antes de lançar; a base de produção permanece separada e recebe schema pelo fluxo Publish somente quando o sistema estiver pronto.
 3. Confirmar armazenamento de mídia, limites, formatos e retenção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.
 5. Revisar `schema-core.sql`, constraints, migrações, termos de privacidade e matriz de autorização.
@@ -15,12 +15,12 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fase 1 — Infraestrutura segura e identidade (núcleo implementado)
 
-- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política e onboarding estão implementados no código. A versão de senha e a restrição de idade foram aplicadas ao schema principal de desenvolvimento; a nova tabela de instalações e o campo de bloqueio por segurança ainda estão somente no código e no teste de schema isolado. Produção não foi alterada.
+- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política e onboarding estão implementados no código. No banco principal de desenvolvimento, as tabelas atuais foram movidas sem exclusão para seus schemas de domínio, o Drizzle criou as tabelas/colunas que faltavam e preparou os demais schemas vazios, incluindo instalações confiáveis e bloqueio por segurança. Produção não foi alterada.
 - O teste direto do Resend foi recebido em desenvolvimento, mas a suíte de API usa e-mail em memória; o fluxo E2E de cadastro via Resend deve ser validado separadamente. Produção não é presumida nem habilitada.
 - A política definida é 8–128 caracteres, com uma maiúscula, minúscula, número e caractere especial; o hash usa Argon2id. A recuperação por código de e-mail está implementada: somente contas ativas e verificadas são elegíveis; resposta anti-enumeração; HMAC-SHA256; expiração em 10 minutos; cinco tentativas; uso único; limites de IP e conta; redefinição, consumo do desafio e revogação de sessões em transação.
 - A recuperação não cria sessão após a troca. A entrega é iniciada depois da resposta HTTP e não tem outbox persistente; em falha de envio o código é invalidado, e a pessoa pode solicitar outro após o intervalo de segurança. O envio Resend foi testado em desenvolvimento, mas produção permanece desativada até configuração própria.
 - Gestão de sessões implementada: listagem paginada de sessões próprias; revogação de sessão; encerramento das demais; lista de instalações confiáveis e revogação individual ou em lote. Ownership é aplicado no banco e escritas exigem CSRF. Instalações usam token opaco por navegador/app, guardado no servidor somente como hash; não se armazena IP, fingerprint ou user-agent como identidade. Na web, cookie persistente tem limite prático de 400 dias e o navegador pode apagá-lo; nesse caso, a pessoa confirma novamente. MFA geral e app nativo ainda não existem.
-- Aceite verificado em schema temporário isolado: conta anônima/não verificada não acessa recursos; contas legadas sem senha compatível não recebem sessão; senha nova é aplicada somente após senha atual e código de e-mail; troca e reset revogam sessões e dispositivos; login em instalação desconhecida não cria sessão antes do código; reenvio respeita os intervalos; terceiro erro bloqueia a conta e informa suporte. O schema temporário foi removido; a mudança ainda não foi aplicada ao banco principal de desenvolvimento.
+- Verificação atual em schema temporário isolado: a suíte `test:api-isolated-db` passou com 5/5 testes após a mudança dos schemas. Cobertura inclui cadastro/verificação, privacidade e relações, bloqueio, instalações confiáveis, alteração de senha/e-mail e revogação de sessões. O schema temporário foi removido ao fim; o banco principal de desenvolvimento permanece vazio e nenhuma alteração foi feita em produção.
 - Aceite: build de produção não carrega registros fictícios de demonstração; páginas sem endpoint/dados mostram estados vazios, enquanto o preview de desenvolvimento mantém as fixtures para revisão visual.
 
 ### Fase 2 — Conta única, perfil e relacionamentos (API essencial implementada; frontend parcial)
@@ -85,15 +85,14 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL atualmente conectado ao runtime de desenvolvimento é gerenciado pela Replit. O pós-merge permanece como sincronização de schema desse banco de desenvolvimento; não é o fluxo para aplicar migrações externas. O usuário escolheu preparar o backend para PostgreSQL externo, ainda não conectado. Foi preparado um fluxo Drizzle de SQL versionado: `generate` cria arquivos sem conexão; `migrate` exige `SEEKALIVE_DB_MIGRATION_TARGET` explícito e só aplica ao URL selecionado. Nenhuma migração externa foi executada. Replit Publish não aplica schema a banco externo, e o processo de migração de produção não está configurado. Não sobrescrever `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` cria dados somente em schema aleatório e força o destino Replit de desenvolvimento.
+O PostgreSQL gerenciado da Replit é o banco ativo de desenvolvimento; a base de produção é separada. O pós-merge executa Drizzle `push` somente no banco de desenvolvimento. A migração versionada `0003` move as tabelas atuais sem apagar registros; `0004` prepara os outros oito schemas vazios. O banco existente foi sincronizado com `push`, não pelo migrador. `generate` cria SQL versionado sem conexão. Não rodar `migrate` sobre o banco atual de desenvolvimento, pois o histórico de migrations não foi aplicado nele; não sobrescrever `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Alterações de produção devem ocorrer exclusivamente pelo fluxo Replit Publish após o sistema estar completo e o lançamento ser aprovado.
 
-#### Seleção de conexão externa
+#### Seleção de conexão
 
-- `SEEKALIVE_EXTERNAL_DATABASE_URL`: segredo PostgreSQL externo; deve ficar disponível somente ao backend.
-- `SEEKALIVE_DATABASE_TARGET=external`: seleciona o banco externo para o runtime. Sem essa opção, o runtime continua usando `DATABASE_URL`.
-- `SEEKALIVE_DB_MIGRATION_TARGET=external`: obrigatório para selecionar o banco externo em `migrate`; migrações sem alvo explícito falham, mesmo que o runtime tenha destino padrão. O pós-merge de desenvolvimento continua selecionando Replit.
-- Para ativar a conexão externa, primeiro provisionar o banco, configurar a URL pelo fluxo seguro de Secrets, revisar os arquivos SQL e aplicar a migração ao banco externo de desenvolvimento. Só depois selecionar o alvo externo para o runtime. Hoje nenhum segredo ou seletor externo está ativo; nenhum banco foi alterado nesta etapa.
-- Verificação atual: os seletores passam em testes sem conexão. A geração de migração usa configuração sem credenciais; `migrate` requer alvo explícito. O SQL gerado é uma migração inicial para banco vazio, não um delta automático para um banco existente.
+- O runtime usa `DATABASE_URL`, fornecida pela instância gerenciada da Replit. Não copiar ou imprimir seu valor.
+- `SEEKALIVE_DB_MIGRATION_TARGET=replit` seleciona explicitamente o destino de desenvolvimento para `push`; o pós-merge já aplica essa proteção.
+- Um seletor técnico para PostgreSQL externo permanece inativo no código legado. A escolha atual é PostgreSQL gerenciado da Replit; não habilitar destinos externos nem criar outra conexão sem nova decisão explícita.
+- A migration versionada é útil para criar um banco limpo; o banco Replit existente é sincronizado pelo `push`. Não misturar os dois fluxos no mesmo banco.
 
 ### Integração HTTP com schema isolado (A02)
 
@@ -103,12 +102,12 @@ Para executar em um runtime comprovadamente de desenvolvimento:
 2. Execute `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE='<nome-do-banco-dev>' pnpm --filter @workspace/scripts run test:api-isolated-db`.
 3. O executor valida o opt-in, o banco-alvo e o ambiente antes de criar um schema aleatório `seekalive_test_<id>`. O push normal do Drizzle fica limitado a esse schema; as tabelas são qualificadas explicitamente. A suíte usa um coletor de e-mail em memória, testa cadastro/verificação e relações sociais e remove apenas o schema criado por ela ao encerrar. Também compara o catálogo `public` antes e depois.
 
-Não execute em produção, não remova nem sobrescreva marcadores válidos para contornar o bloqueio e não use `push-force`. A [documentação do Replit](https://docs.replit.com/features/project-setup/configuration) identifica um runtime publicado por `REPLIT_DEPLOYMENT=1`; quando essa variável está ausente, o Repl está em desenvolvimento. `REPLIT_DEV_DOMAIN` identifica o domínio de desenvolvimento. `REPLIT_ENVIRONMENT` não é o marcador documentado e não deve bloquear testes sozinho. Em 24/10/2026, este workspace foi confirmado em desenvolvimento (`REPLIT_DEPLOYMENT` ausente e domínio dev presente); o guard antigo interpretou incorretamente `REPLIT_ENVIRONMENT=production`. Depois da correção, a suíte `test:api-isolated-db` passou em `heliumdb`: criou e removeu o schema temporário, e confirmou que `public` permaneceu inalterado. Nenhuma escrita foi feita em produção.
+Não execute em produção, não remova nem sobrescreva marcadores válidos para contornar o bloqueio e não use `push-force`. A [documentação do Replit](https://docs.replit.com/features/project-setup/configuration) identifica um runtime publicado por `REPLIT_DEPLOYMENT=1`; quando essa variável está ausente, o Repl está em desenvolvimento. `REPLIT_DEV_DOMAIN` identifica o domínio de desenvolvimento. `REPLIT_ENVIRONMENT` não é o marcador documentado e não deve bloquear testes sozinho. Em 25/10/2026, este workspace foi confirmado em desenvolvimento; o push final foi idempotente (`No changes detected`) e a suíte `test:api-isolated-db` passou em 5/5: criou e removeu o schema temporário e confirmou que o schema `public` permaneceu inalterado. Nenhuma escrita foi feita em produção.
 
 ## Decisões que permanecem abertas
 
 - Contrato detalhado da API própria e UX final de cadastro/verificação/recuperação.
-- Região, ambiente e operação do PostgreSQL.
+- Rotina de backup, retenção, restauração e política regional do PostgreSQL antes do lançamento.
 - Object Storage, política de URL pública/assinada e limites de vídeo.
 - Fornecedor de geocodificação/mapas (se houver), consentimento e retenção.
 - Provedor de e-mail/push.
