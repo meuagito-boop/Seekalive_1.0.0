@@ -8,6 +8,13 @@
       "when": 1792907783905,
       "tag": "0000_high_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792909350220,
+      "tag": "0001_ancient_spitfire",
+      "breakpoints": true
     }
   ]
 }

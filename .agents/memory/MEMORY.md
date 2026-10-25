@@ -6,7 +6,7 @@
 - [Dados de demonstração Seekalive](seekalive-demo-data.md) — fixtures só no dev; mockups fictícios em produção apenas como imagens estáticas, sem registros ou interação.
 - [Banco externo Seekalive](external-database.md) — PostgreSQL externo; Shop e Confiança e Segurança têm bancos lógicos próprios, ainda sem provedor/conexão.
 - [Localização comercial](commercial-location-cardinality.md) — cada conta tem um endereço principal no Seek; áreas de atendimento não fazem parte do escopo confirmado.
-- [Nome público do perfil pessoal](personal-profile-name.md) — o perfil publica somente o nome de exibição; nome e sobrenome do cadastro ficam privados.
+- [Nome público e identificador](personal-profile-name.md) — pessoa exibe nome+sobrenome e comércio exibe empresa, sempre separados do @ exclusivo.
 - [Back-end em etapas](backend-staged-rollout.md) — resolver conta antes das páginas públicas; Social precisa estar pronto antes de Seek/Shop; Painel gerirá app e Gestor depois.
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.

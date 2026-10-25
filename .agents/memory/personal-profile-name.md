@@ -3,8 +3,8 @@ name: Nome público do perfil pessoal
 description: Regra de visibilidade para nome e sobrenome do cadastro pessoal.
 ---
 
-O perfil pessoal do Seekalive mostra somente o nome de exibição escolhido pelo usuário. Nome e sobrenome coletados no cadastro permanecem privados e não entram na projeção pública.
+No perfil pessoal, o nome e o sobrenome aparecem publicamente como o nome da pessoa, separados do @. No perfil comercial, aparece o nome do estabelecimento ou da empresa, também separado do @. O @ é o identificador social exclusivo da conta, não uma parte do nome.
 
-**Why:** o usuário escolheu explicitamente separar o nome de cadastro do nome público do perfil.
+**Why:** em 25 de outubro de 2026, o usuário esclareceu que nomes iguais são permitidos, enquanto o @ identifica cada conta de forma exclusiva.
 
-**How to apply:** manter primeiro e último nome em dados privados de Contas; enviar ao perfil público apenas `displayName` e os demais campos que tiverem autorização pública.
+**How to apply:** projetar o nome pessoal como `firstName + lastName` ou o nome comercial como `displayName`, sempre mostrando `username` em campo próprio. O nome público e o @ têm controles de alteração independentes, cada um com intervalo de 30 dias; a regra de reserva do @ fica em [username-policy.md](username-policy.md).

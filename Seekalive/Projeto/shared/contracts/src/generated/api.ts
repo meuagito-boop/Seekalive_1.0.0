@@ -83,6 +83,8 @@ export const GetMyAccountResponse = zod.object({
   "email": zod.email().max(getMyAccountResponseEmailMax).describe('Verified email address visible only to the authenticated owner.'),
   "firstName": zod.string().max(getMyAccountResponseFirstNameMax).nullable(),
   "lastName": zod.string().max(getMyAccountResponseLastNameMax).nullable(),
+  "publicNameChangeAvailableAt": zod.coerce.date().describe('The next date and time when the owner may change the personal or commercial public name.'),
+  "usernameChangeAvailableAt": zod.coerce.date().describe('The next date and time when the owner may change the account\'s social identifier.'),
   "commercialProfile": zod.union([zod.object({
   "categoryKey": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneCategoryKeyMax),
   "discoveryKind": zod.enum(['place', 'provider']),
@@ -109,9 +111,6 @@ export const updateMyAccountBodyFirstNameMax = 80;
 
 export const updateMyAccountBodyLastNameMin = 2;
 export const updateMyAccountBodyLastNameMax = 80;
-
-export const updateMyAccountBodyAgeMin = 18;
-export const updateMyAccountBodyAgeMax = 120;
 
 export const updateMyAccountBodyCommercialProfileAddressMin = 5;
 export const updateMyAccountBodyCommercialProfileAddressMax = 250;
@@ -140,11 +139,10 @@ export const updateMyAccountBodyWebsiteRegExp = new RegExp('^https?:/');
 
 
 export const UpdateMyAccountBody = zod.object({
-  "username": zod.string().min(updateMyAccountBodyUsernameMin).max(updateMyAccountBodyUsernameMax).optional().describe('Username is trimmed and normalized to lowercase before validation.'),
-  "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional().describe('For commercial accounts, the public business or service-provider name.'),
-  "firstName": zod.string().min(updateMyAccountBodyFirstNameMin).max(updateMyAccountBodyFirstNameMax).optional().describe('Personal account only; must be paired with lastName.'),
-  "lastName": zod.string().min(updateMyAccountBodyLastNameMin).max(updateMyAccountBodyLastNameMax).optional().describe('Personal account only; must be paired with firstName.'),
-  "age": zod.int().min(updateMyAccountBodyAgeMin).max(updateMyAccountBodyAgeMax).optional(),
+  "username": zod.string().min(updateMyAccountBodyUsernameMin).max(updateMyAccountBodyUsernameMax).optional().describe('Username is trimmed and normalized to lowercase before validation. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.'),
+  "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional().describe('For commercial accounts, the public business or service-provider name. A name change is allowed 30 days after registration or the previous name change.'),
+  "firstName": zod.string().min(updateMyAccountBodyFirstNameMin).max(updateMyAccountBodyFirstNameMax).optional().describe('Personal account only; must be paired with lastName. The public name can be changed once every 30 days.'),
+  "lastName": zod.string().min(updateMyAccountBodyLastNameMin).max(updateMyAccountBodyLastNameMax).optional().describe('Personal account only; must be paired with firstName. The public name can be changed once every 30 days.'),
   "commercialProfile": zod.object({
   "address": zod.string().min(updateMyAccountBodyCommercialProfileAddressMin).max(updateMyAccountBodyCommercialProfileAddressMax),
   "postalCode": zod.string().min(updateMyAccountBodyCommercialProfilePostalCodeMin).max(updateMyAccountBodyCommercialProfilePostalCodeMax),
@@ -156,7 +154,7 @@ export const UpdateMyAccountBody = zod.object({
   "location": zod.string().max(updateMyAccountBodyLocationMax).nullish(),
   "website": zod.url().max(updateMyAccountBodyWebsiteMax).regex(updateMyAccountBodyWebsiteRegExp).nullish().describe('When provided, the URL must use HTTP or HTTPS.'),
   "version": zod.int().min(1)
-}).describe('Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. Age is collected only during registration and cannot be read or changed through this endpoint. The server rejects fields that do not match the authenticated account type.\n')
+}).describe('Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. Public name and username changes are each limited to once every 30 days, beginning 30 days after registration. A previous username remains unavailable to every account for 30 days after a change. Age is collected only during registration and cannot be read or changed through this endpoint. The server rejects fields that do not match the authenticated account type.\n')
 
 export const updateMyAccountResponseAccountDisplayNameMax = 100;
 
@@ -221,6 +219,8 @@ export const UpdateMyAccountResponse = zod.object({
   "email": zod.email().max(updateMyAccountResponseEmailMax).describe('Verified email address visible only to the authenticated owner.'),
   "firstName": zod.string().max(updateMyAccountResponseFirstNameMax).nullable(),
   "lastName": zod.string().max(updateMyAccountResponseLastNameMax).nullable(),
+  "publicNameChangeAvailableAt": zod.coerce.date().describe('The next date and time when the owner may change the personal or commercial public name.'),
+  "usernameChangeAvailableAt": zod.coerce.date().describe('The next date and time when the owner may change the account\'s social identifier.'),
   "commercialProfile": zod.union([zod.object({
   "categoryKey": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneCategoryKeyMax),
   "discoveryKind": zod.enum(['place', 'provider']),

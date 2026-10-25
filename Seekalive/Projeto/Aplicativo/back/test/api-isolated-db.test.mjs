@@ -39,6 +39,7 @@ const {
   accountFollows,
   accountFollowRequests,
   accountInterests,
+  accountUsernameReservations,
   accounts,
   authChallenges,
   commercialProfiles,
@@ -65,6 +66,7 @@ const modelTables = [
   accountFollows,
   accountFollowRequests,
   accountBlocks,
+  accountUsernameReservations,
 ];
 const expectedTables = [
   "account_blocks",
@@ -72,6 +74,7 @@ const expectedTables = [
   "account_follow_requests",
   "account_follows",
   "account_interests",
+  "account_username_reservations",
   "accounts",
   "auth_challenges",
   "business_profiles",
@@ -718,8 +721,43 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(personalOwnerProfile.body.firstName, "Conta");
   assert.equal(personalOwnerProfile.body.lastName, "Isolada");
   assert.equal(personalOwnerProfile.body.commercialProfile, null);
+  assert.ok(Date.parse(personalOwnerProfile.body.publicNameChangeAvailableAt) > Date.now());
+  assert.ok(Date.parse(personalOwnerProfile.body.usernameChangeAvailableAt) > Date.now());
   assert.equal("email" in personalOwnerProfile.body.account, false);
   assert.equal("age" in personalOwnerProfile.body.account, false);
+
+  const earlyPersonalNameChange = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: {
+      firstName: "Nome Novo",
+      lastName: "Sobrenome Novo",
+      version: personalOwnerProfile.body.account.version,
+    },
+  });
+  assert.equal(earlyPersonalNameChange.response.status, 409);
+  assert.equal(earlyPersonalNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+
+  const earlyPersonalUsernameChange = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: {
+      username: `pnew_${suffix}`,
+      version: personalOwnerProfile.body.account.version,
+    },
+  });
+  assert.equal(earlyPersonalUsernameChange.response.status, 409);
+  assert.equal(earlyPersonalUsernameChange.body.error.code, "USERNAME_CHANGE_COOLDOWN");
+
+  await pool.query(
+    `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
+     SET created_at = now() - interval '31 days' WHERE id = $1`,
+    [personal.account.id],
+  );
+  const eligiblePersonalProfile = await request("/api/v1/accounts/me", { auth: personal });
+  assert.equal(eligiblePersonalProfile.response.status, 200);
+  assert.ok(Date.parse(eligiblePersonalProfile.body.publicNameChangeAvailableAt) < Date.now());
+  assert.ok(Date.parse(eligiblePersonalProfile.body.usernameChangeAvailableAt) < Date.now());
 
   const updatedPersonalProfile = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -727,14 +765,80 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     body: {
       firstName: "Conta Revisada",
       lastName: "Isolada",
-      version: personalOwnerProfile.body.account.version,
+      username: `pnew_${suffix}`,
+      version: eligiblePersonalProfile.body.account.version,
     },
   });
   assert.equal(updatedPersonalProfile.response.status, 200, JSON.stringify(updatedPersonalProfile.body));
   assert.equal(updatedPersonalProfile.body.account.displayName, "Conta Revisada Isolada");
+  assert.equal(updatedPersonalProfile.body.account.username, `pnew_${suffix}`);
   assert.equal(updatedPersonalProfile.body.firstName, "Conta Revisada");
   assert.equal("age" in updatedPersonalProfile.body, false);
   assert.equal(updatedPersonalProfile.body.email, personalRegistration.email.toLowerCase());
+  assert.ok(Date.parse(updatedPersonalProfile.body.publicNameChangeAvailableAt) > Date.now());
+  assert.ok(Date.parse(updatedPersonalProfile.body.usernameChangeAvailableAt) > Date.now());
+
+  const immediateSecondNameChange = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: {
+      firstName: "Outro Nome",
+      lastName: "Outro Sobrenome",
+      version: updatedPersonalProfile.body.account.version,
+    },
+  });
+  assert.equal(immediateSecondNameChange.response.status, 409);
+  assert.equal(immediateSecondNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+
+  const immediateSecondUsernameChange = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: personal,
+    body: {
+      username: `psecond_${suffix}`,
+      version: updatedPersonalProfile.body.account.version,
+    },
+  });
+  assert.equal(immediateSecondUsernameChange.response.status, 409);
+  assert.equal(immediateSecondUsernameChange.body.error.code, "USERNAME_CHANGE_COOLDOWN");
+
+  const oldUsernameAvailability = await request(
+    `/api/v1/accounts/availability?username=${encodeURIComponent(personalRegistration.username)}`,
+    { auth: personal },
+  );
+  assert.equal(oldUsernameAvailability.response.status, 200);
+  assert.equal(oldUsernameAvailability.body.available, false);
+
+  const oldUsernameRegistration = await request("/api/v1/auth/register", {
+    method: "POST",
+    auth: preAuth,
+    body: {
+      ...personalRegistration,
+      email: `reserved-${suffix}@example.com`,
+    },
+  });
+  assert.equal(oldUsernameRegistration.response.status, 409);
+  assert.equal(oldUsernameRegistration.body.error.code, "USERNAME_UNAVAILABLE");
+
+  await pool.query(
+    `UPDATE ${quoteGeneratedSchema(schemaName)}.account_username_reservations
+     SET reserved_until = now() - interval '1 second' WHERE username = $1`,
+    [personalRegistration.username],
+  );
+  const expiredUsernameAvailability = await request(
+    `/api/v1/accounts/availability?username=${encodeURIComponent(personalRegistration.username)}`,
+    { auth: personal },
+  );
+  assert.equal(expiredUsernameAvailability.body.available, true);
+
+  const reclaimedUsernameRegistration = await request("/api/v1/auth/register", {
+    method: "POST",
+    auth: preAuth,
+    body: {
+      ...personalRegistration,
+      email: `reclaimed-${suffix}@example.com`,
+    },
+  });
+  assert.equal(reclaimedUsernameRegistration.response.status, 202, JSON.stringify(reclaimedUsernameRegistration.body));
 
   const personalCommercialFieldAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -953,12 +1057,31 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     countryName: "Brasil",
   });
 
+  const earlyCommercialNameChange = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: commercial,
+    body: {
+      displayName: "Nome Comercial Novo",
+      version: commercialOwnerProfile.body.account.version,
+    },
+  });
+  assert.equal(earlyCommercialNameChange.response.status, 409);
+  assert.equal(earlyCommercialNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+
+  await pool.query(
+    `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
+     SET created_at = now() - interval '31 days' WHERE id = $1`,
+    [commercial.account.id],
+  );
+  const eligibleCommercialProfile = await request("/api/v1/accounts/me", { auth: commercial });
+  assert.ok(Date.parse(eligibleCommercialProfile.body.publicNameChangeAvailableAt) < Date.now());
+
   const usernameAlreadyTaken = await request("/api/v1/accounts/me", {
     method: "PATCH",
-    auth: personal,
+    auth: commercial,
     body: {
-      username: commercial.account.username,
-      version: updatedPersonalProfile.body.account.version,
+      username: updatedPersonalProfile.body.account.username,
+      version: eligibleCommercialProfile.body.account.version,
     },
   });
   assert.equal(usernameAlreadyTaken.response.status, 409);
@@ -976,11 +1099,12 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
         stateName: "Rio de Janeiro",
         countryName: "Brasil",
       },
-      version: commercialOwnerProfile.body.account.version,
+      version: eligibleCommercialProfile.body.account.version,
     },
   });
   assert.equal(updatedCommercialProfile.response.status, 200, JSON.stringify(updatedCommercialProfile.body));
   assert.equal(updatedCommercialProfile.body.account.displayName, "Comércio Revisado A02");
+  assert.ok(Date.parse(updatedCommercialProfile.body.publicNameChangeAvailableAt) > Date.now());
   assert.equal("age" in updatedCommercialProfile.body, false);
   assert.deepEqual(updatedCommercialProfile.body.commercialProfile, {
     categoryKey: "cafes",
@@ -1018,11 +1142,56 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal("email" in publicProfileAfterCommercialEdit.body.account, false);
   assert.equal("age" in publicProfileAfterCommercialEdit.body.account, false);
 
+  const immediateSecondCommercialNameChange = await request("/api/v1/accounts/me", {
+    method: "PATCH",
+    auth: commercial,
+    body: {
+      displayName: "Outra Empresa",
+      version: updatedCommercialProfile.body.account.version,
+    },
+  });
+  assert.equal(immediateSecondCommercialNameChange.response.status, 409);
+  assert.equal(immediateSecondCommercialNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+
   const accountSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
     { auth: personal },
   );
   assert.equal(accountSearch.response.status, 200, JSON.stringify(accountSearch.body));
+
+  await pool.query(
+    `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
+     SET username_changed_at = now() - interval '31 days'
+     WHERE id = $1`,
+    [personal.account.id],
+  );
+  const currentPersonal = await request("/api/v1/accounts/me", { auth: personal });
+  const currentCommercial = await request("/api/v1/accounts/me", { auth: commercial });
+  const contestedUsername = `race_${suffix}`;
+  const concurrentUsernameChanges = await Promise.all([
+    request("/api/v1/accounts/me", {
+      method: "PATCH",
+      auth: personal,
+      body: {
+        username: contestedUsername,
+        version: currentPersonal.body.account.version,
+      },
+    }),
+    request("/api/v1/accounts/me", {
+      method: "PATCH",
+      auth: commercial,
+      body: {
+        username: contestedUsername,
+        version: currentCommercial.body.account.version,
+      },
+    }),
+  ]);
+  assert.deepEqual(
+    concurrentUsernameChanges.map((result) => result.response.status).sort(),
+    [200, 409],
+  );
+  const rejectedConcurrentUsernameChange = concurrentUsernameChanges.find((result) => result.response.status === 409);
+  assert.equal(rejectedConcurrentUsernameChange?.body.error.code, "USERNAME_UNAVAILABLE");
   assert.ok(accountSearch.body.items.some((account) => account.id === commercial.account.id));
   const unauthenticatedSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,

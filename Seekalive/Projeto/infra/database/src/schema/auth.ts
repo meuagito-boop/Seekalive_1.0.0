@@ -31,6 +31,8 @@ export const accounts = applicationTable(
     accountType: varchar("account_type", { length: 16 }).notNull(),
     status: varchar("status", { length: 32 }).default("pending_verification").notNull(),
     securityLockedAt: timestamp("security_locked_at", { withTimezone: true }),
+    publicNameChangedAt: timestamp("public_name_changed_at", { withTimezone: true }),
+    usernameChangedAt: timestamp("username_changed_at", { withTimezone: true }),
     isPrivate: boolean("is_private").default(false).notNull(),
     isVerified: boolean("is_verified").default(false).notNull(),
     messagesPolicy: varchar("messages_policy", { length: 16 }).default("everyone").notNull(),
@@ -43,6 +45,20 @@ export const accounts = applicationTable(
   (table) => [
     uniqueIndex("accounts_username_unique").on(table.username),
     check("accounts_age_adult_range", sql`${table.age} >= 18 AND ${table.age} <= 120`),
+  ],
+);
+
+export const accountUsernameReservations = applicationTable(
+  "account_username_reservations",
+  {
+    username: varchar("username", { length: 20 }).primaryKey(),
+    accountId: uuid("account_id").references(() => accounts.id, { onDelete: "set null" }),
+    reservedUntil: timestamp("reserved_until", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("account_username_reservations_account_id_index").on(table.accountId),
+    index("account_username_reservations_expiry_index").on(table.reservedUntil),
   ],
 );
 

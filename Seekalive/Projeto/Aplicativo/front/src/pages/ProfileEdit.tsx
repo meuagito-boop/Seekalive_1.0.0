@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { AccountPatch, MyAccountResponse } from "@workspace/api-client-react";
 import { CommercialDiscoveryCity } from "@/components/seek/CommercialDiscoveryCity";
 import type { DiscoveryLocation } from "@/lib/seekDiscovery";
 import { useForm } from "react-hook-form";
@@ -15,13 +16,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { currentUser as mockCurrentUser } from "@/data/mockData";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
+import { myAccountToUser, socialGraphApi } from "@/services/socialGraphApi";
 import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/types/businessHours";
 import { emptyWeeklyHours, formatWeeklyHours, hasInvalidOpenHours, makeWeeklyHours } from "@/lib/businessHours";
 import { UnavailableState } from "@/components/content/StateBlocks";
 
 const schema = z.object({
-  displayName: z.string().min(2),
-  username: z.string().min(3).regex(/^[a-z0-9_]+$/),
+  firstName: z.string().trim().max(80),
+  lastName: z.string().trim().max(80),
+  displayName: z.string().trim().max(100),
+  username: z.string().trim().min(3).max(20).regex(/^[a-z0-9_]+$/),
   bio: z.string().max(160),
   location: z.string().max(50).optional(),
   website: z.string().url("URL inválida").optional().or(z.literal("")),
@@ -57,10 +61,20 @@ const serviceFields = [
 
 export default function ProfileEdit() {
   const [, setLocation] = useLocation();
-  const { currentUser: signedInUser, updateAccount } = useAppContext();
+  const {
+    currentUser: signedInUser,
+    isAuthenticated,
+    isDevelopmentPreview,
+    updateAccount,
+  } = useAppContext();
   const { addUser } = useSocial();
   const currentUser = signedInUser ?? (import.meta.env.DEV ? mockCurrentUser : null);
+  const isServerAccount = isAuthenticated && !isDevelopmentPreview;
   const profile = currentUser?.commercialProfile;
+  const [ownerProfile, setOwnerProfile] = useState<MyAccountResponse | null>(null);
+  const [accountLoadError, setAccountLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [discoveryCity, setDiscoveryCity] = useState<DiscoveryLocation | null>(() =>
     profile?.cityId && profile.cityName && profile.cityState
       ? { id: profile.cityId, city: profile.cityName, state: profile.cityState, source: "manual", label: `${profile.cityName}, ${profile.cityState}` }
@@ -73,6 +87,8 @@ export default function ProfileEdit() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      firstName: currentUser?.firstName ?? currentUser?.displayName.split(/\s+/)[0] ?? "",
+      lastName: currentUser?.lastName ?? currentUser?.displayName.split(/\s+/).slice(1).join(" ") ?? "",
       displayName: currentUser?.displayName ?? "",
       username: currentUser?.username ?? "",
       bio: currentUser?.bio ?? "",
@@ -89,6 +105,55 @@ export default function ProfileEdit() {
     },
   });
 
+  useEffect(() => {
+    if (!isServerAccount || !signedInUser) return;
+    let active = true;
+    setAccountLoadError("");
+    socialGraphApi.getMyAccount()
+      .then((response) => {
+        if (!active) return;
+        setOwnerProfile(response);
+        const user = myAccountToUser(response);
+        updateAccount(user);
+        addUser(user);
+        const commercial = response.commercialProfile;
+        form.reset({
+          firstName: response.firstName ?? "",
+          lastName: response.lastName ?? "",
+          displayName: response.account.displayName,
+          username: response.account.username,
+          bio: response.account.bio,
+          location: response.account.location ?? "",
+          website: response.account.website ?? "",
+          businessAddress: commercial?.address ?? "",
+          priceLevel: currentUser?.commercialProfile?.priceLevel?.toString() ?? "",
+          serviceDelivery: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.delivery),
+          serviceDineIn: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.dineIn),
+          serviceTableService: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.tableService),
+          serviceReservations: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.reservations),
+          serviceAppointments: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.appointments),
+          serviceTakeout: serviceStatus(currentUser?.commercialProfile?.serviceOptions?.takeout),
+        });
+        if (commercial) {
+          setDiscoveryCity({
+            id: "",
+            city: commercial.cityName,
+            state: commercial.stateName,
+            source: "manual",
+            label: `${commercial.cityName}, ${commercial.stateName}`,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setAccountLoadError(error instanceof Error ? error.message : "Não foi possível carregar os dados da conta.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [isServerAccount, signedInUser?.id]);
+
   if (!currentUser) {
     return (
       <UnavailableState
@@ -99,6 +164,22 @@ export default function ProfileEdit() {
     );
   }
   const activeUser = currentUser;
+  const publicNameChangeDate = ownerProfile?.publicNameChangeAvailableAt
+    ? new Date(ownerProfile.publicNameChangeAvailableAt)
+    : null;
+  const usernameChangeDate = ownerProfile?.usernameChangeAvailableAt
+    ? new Date(ownerProfile.usernameChangeAvailableAt)
+    : null;
+  const publicNameLocked = isServerAccount && (
+    !publicNameChangeDate || publicNameChangeDate.getTime() > Date.now()
+  );
+  const usernameLocked = isServerAccount && (
+    !usernameChangeDate || usernameChangeDate.getTime() > Date.now()
+  );
+  const formatChangeDate = (value: Date | null) => value
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short" }).format(value)
+    : "";
+
   function updateDayHours(day: BusinessDayKey, changes: Partial<BusinessDayHours>) {
     setHoursTouched(true);
     setHoursError("");
@@ -108,7 +189,21 @@ export default function ProfileEdit() {
     }));
   }
 
-  function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormValues) {
+    setSaveError("");
+    if (activeUser.accountType === "personal") {
+      if (values.firstName.trim().length < 2) {
+        form.setError("firstName", { type: "validate", message: "Informe seu nome." });
+        return;
+      }
+      if (values.lastName.trim().length < 2) {
+        form.setError("lastName", { type: "validate", message: "Informe seu sobrenome." });
+        return;
+      }
+    } else if (values.displayName.trim().length < 2) {
+      form.setError("displayName", { type: "validate", message: "Informe o nome da empresa ou estabelecimento." });
+      return;
+    }
     if (activeUser.accountType === "commercial" && hoursTouched && hasInvalidOpenHours(weeklyHours)) {
       setHoursError("Informe horários válidos para cada dia marcado como aberto.");
       return;
@@ -132,9 +227,99 @@ export default function ProfileEdit() {
       : profile?.weeklyHours
         ? formatWeeklyHours(profile.weeklyHours)
         : profile?.openingHours;
+
+    if (isServerAccount) {
+      if (!ownerProfile) {
+        setSaveError(accountLoadError || "Aguarde o carregamento dos dados da conta antes de salvar.");
+        return;
+      }
+      const nextUsername = values.username.trim().replace(/^@/, "").toLowerCase();
+      const usernameChanged = nextUsername !== ownerProfile.account.username;
+      if (
+        usernameChanged
+        && !window.confirm(
+          "Ao alterar seu @, o anterior ficará indisponível para todas as contas, inclusive você, por 30 dias. Depois desse prazo, outra conta poderá usá-lo. Deseja continuar?",
+        )
+      ) {
+        return;
+      }
+
+      const patch: AccountPatch = { version: ownerProfile.account.version };
+      if (usernameChanged) patch.username = nextUsername;
+      if (activeUser.accountType === "personal") {
+        if (
+          values.firstName.trim() !== (ownerProfile.firstName ?? "")
+          || values.lastName.trim() !== (ownerProfile.lastName ?? "")
+        ) {
+          patch.firstName = values.firstName.trim();
+          patch.lastName = values.lastName.trim();
+        }
+      } else if (values.displayName.trim() !== ownerProfile.account.displayName) {
+        patch.displayName = values.displayName.trim();
+      }
+      if (values.bio.trim() !== ownerProfile.account.bio) patch.bio = values.bio.trim();
+      if ((values.location?.trim() || null) !== (ownerProfile.account.location ?? null)) {
+        patch.location = values.location?.trim() || null;
+      }
+      if ((values.website?.trim() || null) !== (ownerProfile.account.website ?? null)) {
+        patch.website = values.website?.trim() || null;
+      }
+      if (activeUser.accountType === "commercial" && ownerProfile.commercialProfile) {
+        const currentCommercial = ownerProfile.commercialProfile;
+        const nextAddress = businessAddress?.trim() || currentCommercial.address;
+        const nextCity = discoveryCity?.city ?? currentCommercial.cityName;
+        const nextState = discoveryCity?.state ?? currentCommercial.stateName;
+        if (
+          nextAddress !== currentCommercial.address
+          || nextCity !== currentCommercial.cityName
+          || nextState !== currentCommercial.stateName
+        ) {
+          patch.commercialProfile = {
+            address: nextAddress,
+            postalCode: currentCommercial.postalCode,
+            cityName: nextCity,
+            stateName: nextState,
+            countryName: currentCommercial.countryName,
+          };
+        }
+      }
+      if (Object.keys(patch).length === 1) {
+        setSaveError("Nenhuma alteração disponível para salvar nesta etapa.");
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const response = await socialGraphApi.updateMyAccount(patch);
+        setOwnerProfile(response);
+        const mappedUser = myAccountToUser(response);
+        const updatedUser = {
+          ...activeUser,
+          ...mappedUser,
+          commercialProfile: activeUser.commercialProfile && mappedUser.commercialProfile
+            ? { ...activeUser.commercialProfile, ...mappedUser.commercialProfile }
+            : mappedUser.commercialProfile,
+        };
+        updateAccount(updatedUser);
+        addUser(updatedUser);
+        setLocation(`/profile/${updatedUser.username}`);
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : "Não foi possível salvar as alterações.");
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
     const updatedUser = {
       ...activeUser,
       ...profileValues,
+      firstName: activeUser.accountType === "personal" ? values.firstName.trim() : activeUser.firstName,
+      lastName: activeUser.accountType === "personal" ? values.lastName.trim() : activeUser.lastName,
+      displayName: activeUser.accountType === "personal"
+        ? `${values.firstName.trim()} ${values.lastName.trim()}`.trim()
+        : values.displayName.trim(),
+      username: values.username.trim().replace(/^@/, "").toLowerCase(),
       location: values.location || undefined,
       website: values.website || undefined,
       commercialProfile: activeUser.commercialProfile
@@ -172,8 +357,14 @@ export default function ProfileEdit() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="font-bold text-lg">Editar perfil</h1>
-        <Button type="submit" form="edit-form" className="rounded-full h-8 px-5 text-sm font-semibold" data-testid="button-save">
-          Salvar
+        <Button
+          type="submit"
+          form="edit-form"
+          disabled={isSaving || (isServerAccount && !ownerProfile)}
+          className="rounded-full h-8 px-5 text-sm font-semibold"
+          data-testid="button-save"
+        >
+          {isSaving ? "Salvando…" : "Salvar"}
         </Button>
       </div>
 
@@ -202,35 +393,86 @@ export default function ProfileEdit() {
       >
         <Form {...form}>
           <form id="edit-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <FormField
-              control={form.control}
-              name="displayName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm text-muted-foreground">Nome de exibição</FormLabel>
-                  <FormControl>
-                    <Input {...field} data-testid="input-display-name" className="h-12 bg-card border-border rounded-xl" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {activeUser.accountType === "personal" ? (
+              <>
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm text-muted-foreground">Nome</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={publicNameLocked} data-testid="input-first-name" className="h-12 bg-card border-border rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm text-muted-foreground">Sobrenome</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={publicNameLocked} data-testid="input-last-name" className="h-12 bg-card border-border rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            ) : (
+              <FormField
+                control={form.control}
+                name="displayName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm text-muted-foreground">Nome da empresa ou estabelecimento</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled={publicNameLocked} data-testid="input-display-name" className="h-12 bg-card border-border rounded-xl" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {publicNameLocked && publicNameChangeDate && (
+              <p className="text-xs text-muted-foreground" data-testid="name-change-availability">
+                O nome público poderá ser alterado novamente em{" "}
+                <time dateTime={publicNameChangeDate.toISOString()}>{formatChangeDate(publicNameChangeDate)}</time>.
+              </p>
+            )}
             <FormField
               control={form.control}
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm text-muted-foreground">Username</FormLabel>
+                  <FormLabel className="text-sm text-muted-foreground">Identificador social (@)</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
-                      <Input {...field} data-testid="input-username" className="h-12 bg-card border-border rounded-xl pl-8" />
+                      <Input {...field} disabled={usernameLocked} data-testid="input-username" className="h-12 bg-card border-border rounded-xl pl-8" />
                     </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <p className="text-xs text-muted-foreground">
+              O nome identifica a pessoa ou empresa; o @ é exclusivo e identifica a conta. Ao trocar o @, o anterior fica indisponível para todos por 30 dias.
+              {usernameLocked && usernameChangeDate && (
+                <>
+                  {" "}Você poderá alterá-lo novamente em{" "}
+                  <time dateTime={usernameChangeDate.toISOString()}>{formatChangeDate(usernameChangeDate)}</time>.
+                </>
+              )}
+            </p>
+            {(accountLoadError || saveError) && (
+              <p role="alert" className="text-sm text-destructive">
+                {saveError || accountLoadError}
+              </p>
+            )}
             <FormField
               control={form.control}
               name="bio"
@@ -301,6 +543,12 @@ export default function ProfileEdit() {
                     <h3 className="text-sm font-semibold">Dias e horários de funcionamento</h3>
                     <p className="mt-1 text-xs text-muted-foreground">Defina cada dia separadamente. Dias sem informação não serão exibidos como horário confirmado.</p>
                   </div>
+                  {isServerAccount && (
+                    <p className="text-xs text-muted-foreground">
+                      Horários, faixa de preço e serviços ainda não estão conectados ao servidor; nesta conta, a edição deles está temporariamente desativada.
+                    </p>
+                  )}
+                  <fieldset disabled={isServerAccount} className="min-w-0 space-y-5 disabled:opacity-60">
                   <div className="space-y-2">
                     {businessDays.map(day => {
                       const value = weeklyHours[day.key] ?? emptyWeeklyHours()[day.key];
@@ -351,7 +599,6 @@ export default function ProfileEdit() {
                     })}
                   </div>
                   {hoursError && <p role="alert" className="text-sm text-destructive">{hoursError}</p>}
-                </section>
                 <FormField
                   control={form.control}
                   name="priceLevel"
@@ -405,6 +652,8 @@ export default function ProfileEdit() {
                     ))}
                   </div>
                 </div>
+                  </fieldset>
+              </section>
               </section>
             )}
           </form>

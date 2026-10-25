@@ -665,11 +665,26 @@ components:
         lastName:
           type: [string, "null"]
           maxLength: 80
+        publicNameChangeAvailableAt:
+          type: string
+          format: date-time
+          description: The next date and time when the owner may change the personal or commercial public name.
+        usernameChangeAvailableAt:
+          type: string
+          format: date-time
+          description: The next date and time when the owner may change the account's social identifier.
         commercialProfile:
           oneOf:
             - $ref: "#/components/schemas/OwnerCommercialProfile"
             - type: "null"
-      required: [account, email, firstName, lastName, commercialProfile]
+      required:
+        - account
+        - email
+        - firstName
+        - lastName
+        - publicNameChangeAvailableAt
+        - usernameChangeAvailableAt
+        - commercialProfile
     OwnerCommercialProfile:
       type: object
       description: Full commercial registration details returned only to the authenticated owner.
@@ -723,8 +738,11 @@ components:
         Account type is never changed by this endpoint. Personal accounts use
         firstName and lastName together; their combined public name cannot
         exceed 100 characters. Commercial accounts use displayName and the
-        complete commercialProfile object. Age is collected only during
-        registration and cannot be read or changed through this endpoint.
+        complete commercialProfile object. Public name and username changes
+        are each limited to once every 30 days, beginning 30 days after
+        registration. A previous username remains unavailable to every account
+        for 30 days after a change. Age is collected only during registration
+        and cannot be read or changed through this endpoint.
         The server rejects fields
         that do not match the authenticated account type.
       properties:
@@ -732,26 +750,22 @@ components:
           type: string
           minLength: 3
           maxLength: 20
-          description: Username is trimmed and normalized to lowercase before validation.
+          description: Username is trimmed and normalized to lowercase before validation. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.
         displayName:
           type: string
           minLength: 2
           maxLength: 100
-          description: For commercial accounts, the public business or service-provider name.
+          description: For commercial accounts, the public business or service-provider name. A name change is allowed 30 days after registration or the previous name change.
         firstName:
           type: string
           minLength: 2
           maxLength: 80
-          description: Personal account only; must be paired with lastName.
+          description: Personal account only; must be paired with lastName. The public name can be changed once every 30 days.
         lastName:
           type: string
           minLength: 2
           maxLength: 80
-          description: Personal account only; must be paired with firstName.
-        age:
-          type: integer
-          minimum: 18
-          maximum: 120
+          description: Personal account only; must be paired with firstName. The public name can be changed once every 30 days.
         commercialProfile:
           $ref: "#/components/schemas/CommercialAccountPatch"
         bio:

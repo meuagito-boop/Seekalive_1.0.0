@@ -1,9 +1,10 @@
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import argon2 from "argon2";
-import { and, desc, eq, gt, inArray, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, lt, lte, ne, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   accountEmails,
+  accountUsernameReservations,
   accounts,
   authChallenges,
   commercialProfiles,
@@ -12,6 +13,7 @@ import {
   sessions,
   trustedDevices,
 } from "@workspace/db";
+import { lockUsernameClaims } from "../../accounts/application/usernamePolicy";
 import {
   challengeConfirmSchema,
   challengeResendSchema,
@@ -432,7 +434,15 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
   const username = registration.username.toLowerCase();
   const email = registration.email.toLowerCase();
   const [usernameMatch] = await db.select({ id: accounts.id }).from(accounts).where(eq(accounts.username, username)).limit(1);
-  if (usernameMatch) {
+  const [usernameReservation] = await db
+    .select({ username: accountUsernameReservations.username })
+    .from(accountUsernameReservations)
+    .where(and(
+      eq(accountUsernameReservations.username, username),
+      gt(accountUsernameReservations.reservedUntil, new Date()),
+    ))
+    .limit(1);
+  if (usernameMatch || usernameReservation) {
     sendError(response, 409, "USERNAME_UNAVAILABLE", "Esse nome de usuário não está disponível.");
     return;
   }
@@ -464,6 +474,29 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
 
   try {
     const account = await db.transaction(async (tx) => {
+      await lockUsernameClaims(tx, [username]);
+      const now = new Date();
+      await tx
+        .delete(accountUsernameReservations)
+        .where(and(
+          eq(accountUsernameReservations.username, username),
+          lte(accountUsernameReservations.reservedUntil, now),
+        ));
+      const [existingUsername] = await tx
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(eq(accounts.username, username))
+        .limit(1);
+      const [activeReservation] = await tx
+        .select({ username: accountUsernameReservations.username })
+        .from(accountUsernameReservations)
+        .where(and(
+          eq(accountUsernameReservations.username, username),
+          gt(accountUsernameReservations.reservedUntil, now),
+        ))
+        .limit(1);
+      if (existingUsername || activeReservation) return null;
+
       const [created] = await tx
         .insert(accounts)
         .values({
@@ -500,6 +533,11 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
       }
       return created;
     });
+
+    if (!account) {
+      sendError(response, 409, "USERNAME_UNAVAILABLE", "Esse nome de usuário não está disponível.");
+      return;
+    }
 
     try {
       await deliverVerificationCode(delivery, account, email);

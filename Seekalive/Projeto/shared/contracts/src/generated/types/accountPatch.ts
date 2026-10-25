@@ -8,38 +8,33 @@
 import type { CommercialAccountPatch } from './commercialAccountPatch';
 
 /**
- * Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. Age is collected only during registration and cannot be read or changed through this endpoint. The server rejects fields that do not match the authenticated account type.
+ * Version is required and at least one editable field must be provided. Account type is never changed by this endpoint. Personal accounts use firstName and lastName together; their combined public name cannot exceed 100 characters. Commercial accounts use displayName and the complete commercialProfile object. Public name and username changes are each limited to once every 30 days, beginning 30 days after registration. A previous username remains unavailable to every account for 30 days after a change. Age is collected only during registration and cannot be read or changed through this endpoint. The server rejects fields that do not match the authenticated account type.
  */
 export interface AccountPatch {
   /**
-     * Username is trimmed and normalized to lowercase before validation.
+     * Username is trimmed and normalized to lowercase before validation. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.
      * @minLength 3
      * @maxLength 20
      */
   username?: string;
   /**
-     * For commercial accounts, the public business or service-provider name.
+     * For commercial accounts, the public business or service-provider name. A name change is allowed 30 days after registration or the previous name change.
      * @minLength 2
      * @maxLength 100
      */
   displayName?: string;
   /**
-     * Personal account only; must be paired with lastName.
+     * Personal account only; must be paired with lastName. The public name can be changed once every 30 days.
      * @minLength 2
      * @maxLength 80
      */
   firstName?: string;
   /**
-     * Personal account only; must be paired with firstName.
+     * Personal account only; must be paired with firstName. The public name can be changed once every 30 days.
      * @minLength 2
      * @maxLength 80
      */
   lastName?: string;
-  /**
-     * @minimum 18
-     * @maximum 120
-     */
-  age?: number;
   commercialProfile?: CommercialAccountPatch;
   /** @maxLength 500 */
   bio?: string;

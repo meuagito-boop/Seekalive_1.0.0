@@ -28,5 +28,9 @@ export interface MyAccountResponse {
      * @nullable
      */
   lastName: string | null;
+  /** The next date and time when the owner may change the personal or commercial public name. */
+  publicNameChangeAvailableAt: Date;
+  /** The next date and time when the owner may change the account's social identifier. */
+  usernameChangeAvailableAt: Date;
   commercialProfile: OwnerCommercialProfile | null;
 }

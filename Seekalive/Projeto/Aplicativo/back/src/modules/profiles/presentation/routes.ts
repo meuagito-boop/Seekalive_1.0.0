@@ -1,10 +1,11 @@
-import { and, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, count, eq, gt, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   accountEmails,
   accountFollows,
   accountFollowRequests,
   accountBlocks,
+  accountUsernameReservations,
   accounts,
   commercialProfiles,
   db,
@@ -12,6 +13,11 @@ import {
 import { accountPatchSchema, privacyWriteSchema } from "@workspace/api-zod";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { loadActiveSession, requireCsrf } from "../../../security/session";
+import {
+  lockUsernameClaims,
+  nextIdentityChangeAt,
+  USERNAME_RESERVATION_MS,
+} from "../../accounts/application/usernamePolicy";
 
 const router: IRouter = Router();
 const emptyPage = { items: [], nextCursor: null };
@@ -347,8 +353,18 @@ router.get("/accounts/availability", createAuthRateLimit("account-availability",
     sendError(response, 400, "VALIDATION_ERROR", "Informe um nome de usuário válido.");
     return;
   }
-  const [match] = await db.select({ id: accounts.id }).from(accounts).where(eq(accounts.username, username)).limit(1);
-  response.json({ available: !match, normalizedUsername: username });
+  const now = new Date();
+  const [[match], [reservation]] = await Promise.all([
+    db.select({ id: accounts.id }).from(accounts).where(eq(accounts.username, username)).limit(1),
+    db.select({ username: accountUsernameReservations.username })
+      .from(accountUsernameReservations)
+      .where(and(
+        eq(accountUsernameReservations.username, username),
+        gt(accountUsernameReservations.reservedUntil, now),
+      ))
+      .limit(1),
+  ]);
+  response.json({ available: !match && !reservation, normalizedUsername: username });
 });
 
 async function loadOwnerAccount(accountId: string) {
@@ -367,6 +383,8 @@ async function loadOwnerAccount(accountId: string) {
       accountType: accounts.accountType,
       firstName: accounts.firstName,
       lastName: accounts.lastName,
+      publicNameChangedAt: accounts.publicNameChangedAt,
+      usernameChangedAt: accounts.usernameChangedAt,
       categoryKey: commercialProfiles.categoryKey,
       discoveryKind: commercialProfiles.discoveryKind,
       address: commercialProfiles.address,
@@ -406,6 +424,10 @@ async function loadOwnerAccount(accountId: string) {
   }
 
   const account = await accountView(row, accountId);
+  const identityChangeDates = {
+    publicNameChangeAvailableAt: nextIdentityChangeAt(ownerDetails.publicNameChangedAt, row.createdAt).toISOString(),
+    usernameChangeAvailableAt: nextIdentityChangeAt(ownerDetails.usernameChangedAt, row.createdAt).toISOString(),
+  };
   if (ownerDetails.accountType === "commercial") {
     const {
       categoryKey,
@@ -431,6 +453,7 @@ async function loadOwnerAccount(accountId: string) {
         email: verifiedEmail.email,
         firstName: ownerDetails.firstName,
         lastName: ownerDetails.lastName,
+        ...identityChangeDates,
         commercialProfile: {
           categoryKey,
           discoveryKind,
@@ -451,6 +474,7 @@ async function loadOwnerAccount(accountId: string) {
       email: verifiedEmail.email,
       firstName: ownerDetails.firstName,
       lastName: ownerDetails.lastName,
+      ...identityChangeDates,
       commercialProfile: null,
     },
   };
@@ -487,63 +511,134 @@ router.patch(
       return;
     }
     const patch = parsed.data;
-    const [owner] = await db
-      .select({ accountType: accounts.accountType })
-      .from(accounts)
-      .where(and(eq(accounts.id, accountId), eq(accounts.status, "active")))
-      .limit(1);
-    if (!owner) {
-      sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
-      return;
-    }
-
-    const hasPersonalNames = patch.firstName !== undefined || patch.lastName !== undefined;
-    if (
-      (owner.accountType === "personal" && (
-        patch.commercialProfile !== undefined
-        || (patch.displayName !== undefined && !hasPersonalNames)
-      ))
-      || (owner.accountType === "commercial" && hasPersonalNames)
-    ) {
-      sendError(response, 400, "ACCOUNT_FIELD_NOT_ALLOWED", "Os campos enviados não correspondem ao tipo desta conta.");
-      return;
-    }
-
-    const personalDisplayName = hasPersonalNames
-      ? `${patch.firstName} ${patch.lastName}`.trim()
-      : undefined;
-    if (
-      personalDisplayName !== undefined
-      && patch.displayName !== undefined
-      && patch.displayName !== personalDisplayName
-    ) {
-      sendError(response, 400, "ACCOUNT_NAME_MISMATCH", "O nome público deve corresponder ao nome e sobrenome.");
-      return;
-    }
-
     try {
       const result = await db.transaction(async (tx) => {
+        const [owner] = await tx
+          .select({
+            accountType: accounts.accountType,
+            username: accounts.username,
+            firstName: accounts.firstName,
+            lastName: accounts.lastName,
+            displayName: accounts.displayName,
+            createdAt: accounts.createdAt,
+            publicNameChangedAt: accounts.publicNameChangedAt,
+            usernameChangedAt: accounts.usernameChangedAt,
+            version: accounts.version,
+          })
+          .from(accounts)
+          .where(and(eq(accounts.id, accountId), eq(accounts.status, "active")))
+          .for("update")
+          .limit(1);
+        if (!owner) return { kind: "account_not_found" as const };
+        if (owner.version !== patch.version) return { kind: "version_conflict" as const };
+
+        const hasPersonalNames = patch.firstName !== undefined || patch.lastName !== undefined;
+        if (
+          (owner.accountType === "personal" && (
+            patch.commercialProfile !== undefined
+            || (patch.displayName !== undefined && !hasPersonalNames)
+          ))
+          || (owner.accountType === "commercial" && hasPersonalNames)
+        ) {
+          return { kind: "account_field_not_allowed" as const };
+        }
+
+        const personalDisplayName = hasPersonalNames
+          ? `${patch.firstName} ${patch.lastName}`.trim()
+          : undefined;
+        if (
+          personalDisplayName !== undefined
+          && patch.displayName !== undefined
+          && patch.displayName !== personalDisplayName
+        ) {
+          return { kind: "account_name_mismatch" as const };
+        }
+
+        const personalNameChanged = owner.accountType === "personal"
+          && patch.firstName !== undefined
+          && patch.lastName !== undefined
+          && (patch.firstName !== owner.firstName || patch.lastName !== owner.lastName);
+        const commercialNameChanged = owner.accountType === "commercial"
+          && patch.displayName !== undefined
+          && patch.displayName !== owner.displayName;
+        const publicNameChanged = personalNameChanged || commercialNameChanged;
+        const usernameChanged = patch.username !== undefined && patch.username !== owner.username;
+        const now = new Date();
+        const publicNameAvailableAt = nextIdentityChangeAt(owner.publicNameChangedAt, owner.createdAt);
+        const usernameAvailableAt = nextIdentityChangeAt(owner.usernameChangedAt, owner.createdAt);
+
+        if (publicNameChanged && now < publicNameAvailableAt) {
+          return {
+            kind: "name_change_cooldown" as const,
+            availableAt: publicNameAvailableAt,
+          };
+        }
+        if (usernameChanged && now < usernameAvailableAt) {
+          return {
+            kind: "username_change_cooldown" as const,
+            availableAt: usernameAvailableAt,
+          };
+        }
+
         if (patch.commercialProfile) {
           const [commercialProfile] = await tx
             .select({ accountId: commercialProfiles.accountId })
             .from(commercialProfiles)
             .where(eq(commercialProfiles.accountId, accountId))
             .limit(1);
-          if (!commercialProfile) return "commercial_profile_missing" as const;
+          if (!commercialProfile) return { kind: "commercial_profile_missing" as const };
+        }
+
+        if (usernameChanged && patch.username) {
+          await lockUsernameClaims(tx, [owner.username, patch.username]);
+          await tx
+            .delete(accountUsernameReservations)
+            .where(and(
+              eq(accountUsernameReservations.username, patch.username),
+              lte(accountUsernameReservations.reservedUntil, now),
+            ));
+          const [claimedAccount] = await tx
+            .select({ id: accounts.id })
+            .from(accounts)
+            .where(eq(accounts.username, patch.username))
+            .limit(1);
+          const [activeReservation] = await tx
+            .select({ username: accountUsernameReservations.username })
+            .from(accountUsernameReservations)
+            .where(and(
+              eq(accountUsernameReservations.username, patch.username),
+              gt(accountUsernameReservations.reservedUntil, now),
+            ))
+            .limit(1);
+          if (claimedAccount || activeReservation) {
+            return { kind: "username_unavailable" as const };
+          }
+
+          await tx.insert(accountUsernameReservations).values({
+            username: owner.username,
+            accountId,
+            reservedUntil: new Date(now.getTime() + USERNAME_RESERVATION_MS),
+          });
         }
 
         const [updated] = await tx
           .update(accounts)
           .set({
-            ...(patch.username === undefined ? {} : { username: patch.username }),
+            ...(usernameChanged && patch.username
+              ? { username: patch.username, usernameChangedAt: now }
+              : {}),
             ...(owner.accountType === "commercial" && patch.displayName !== undefined
-              ? { displayName: patch.displayName }
+              ? {
+                  displayName: patch.displayName,
+                  ...(commercialNameChanged ? { publicNameChangedAt: now } : {}),
+                }
               : {}),
             ...(owner.accountType === "personal" && personalDisplayName !== undefined
               ? {
                   firstName: patch.firstName,
                   lastName: patch.lastName,
                   displayName: personalDisplayName,
+                  ...(personalNameChanged ? { publicNameChangedAt: now } : {}),
                 }
               : {}),
             ...(patch.bio === undefined ? {} : { bio: patch.bio }),
@@ -562,7 +657,7 @@ router.patch(
             eq(accounts.status, "active"),
           ))
           .returning({ id: accounts.id });
-        if (!updated) return "version_conflict" as const;
+        if (!updated) return { kind: "version_conflict" as const };
 
         if (owner.accountType === "commercial" && patch.commercialProfile) {
           await tx
@@ -570,19 +665,58 @@ router.patch(
             .set({ ...patch.commercialProfile, updatedAt: new Date() })
             .where(eq(commercialProfiles.accountId, accountId));
         }
-        return "updated" as const;
+        return { kind: "updated" as const };
       });
 
-      if (result === "version_conflict") {
+      if (result.kind === "account_not_found") {
+        sendError(response, 404, "ACCOUNT_NOT_FOUND", "Conta não encontrada.");
+        return;
+      }
+      if (result.kind === "account_field_not_allowed") {
+        sendError(response, 400, "ACCOUNT_FIELD_NOT_ALLOWED", "Os campos enviados não correspondem ao tipo desta conta.");
+        return;
+      }
+      if (result.kind === "account_name_mismatch") {
+        sendError(response, 400, "ACCOUNT_NAME_MISMATCH", "O nome público deve corresponder ao nome e sobrenome.");
+        return;
+      }
+      if (result.kind === "name_change_cooldown") {
+        sendError(
+          response,
+          409,
+          "NAME_CHANGE_COOLDOWN",
+          `Você poderá alterar o nome público novamente em ${result.availableAt.toISOString()}.`,
+        );
+        return;
+      }
+      if (result.kind === "username_change_cooldown") {
+        sendError(
+          response,
+          409,
+          "USERNAME_CHANGE_COOLDOWN",
+          `Você poderá alterar o @ novamente em ${result.availableAt.toISOString()}.`,
+        );
+        return;
+      }
+      if (result.kind === "username_unavailable") {
+        sendError(response, 409, "USERNAME_UNAVAILABLE", "Esse nome de usuário não está disponível.");
+        return;
+      }
+      if (result.kind === "version_conflict") {
         sendError(response, 409, "VERSION_CONFLICT", "O perfil mudou em outra solicitação. Atualize e tente novamente.");
         return;
       }
-      if (result === "commercial_profile_missing") {
+      if (result.kind === "commercial_profile_missing") {
         sendError(response, 409, "ACCOUNT_PROFILE_INCOMPLETE", "Os dados comerciais precisam ser revisados antes da edição.");
         return;
       }
     } catch (error) {
-      if (databaseErrorCode(error) === "23505") {
+      if (
+        databaseErrorCode(error) === "23505"
+        && ["accounts_username_unique", "account_username_reservations_pkey"].includes(
+          (error as { constraint?: string }).constraint ?? "",
+        )
+      ) {
         sendError(response, 409, "USERNAME_UNAVAILABLE", "Esse nome de usuário não está disponível.");
         return;
       }
