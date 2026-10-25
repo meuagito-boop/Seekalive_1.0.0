@@ -34,6 +34,7 @@ import type {
   AccountPatch,
   AccountUnavailableResponse,
   AccountView,
+  ArticleCreate,
   ChallengeConfirmInput,
   CirclePage,
   ConflictResponse,
@@ -47,11 +48,15 @@ import type {
   GetFollowersParams,
   GetFollowingParams,
   GetIncomingFollowRequestsParams,
+  GetSocialAccountPostsParams,
   HealthStatus,
   InternalErrorResponse,
   MyAccountResponse,
   NotFoundResponse,
   PasswordChangeCodeResponse,
+  Post,
+  PostCreate,
+  PostPage,
   PrivacySettings,
   PrivacySettingsWrite,
   ProfileResponse,
@@ -2322,3 +2327,566 @@ export const useUnblockAccount = <TError = ErrorType<UnauthorizedResponse | Forb
       return useMutation(getUnblockAccountMutationOptions(options), queryClient);
     }
 
+export const getCreateSocialPostUrl = () => {
+
+
+
+
+  return `/api/v1/social/posts`
+}
+
+/**
+ * The authenticated account is always the author. The optional authorId is accepted only for compatibility and must equal the session account. Media uploads are not enabled; media fields are rejected.
+ * @summary Create a text publication
+ */
+export const createSocialPost = async (postCreate: PostCreate, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Post>(getCreateSocialPostUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(postCreate)
+  }
+);}
+
+
+
+
+
+export const getCreateSocialPostMutationKey = () => ['createSocialPost'] as const;
+
+export const getCreateSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialPost>>, TError,CreateSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSocialPost>>, TError,CreateSocialPostMutationVariables, TContext> => {
+
+const mutationKey = getCreateSocialPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSocialPost>>, CreateSocialPostMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSocialPost(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof createSocialPost>>>
+    export type CreateSocialPostMutationBody = BodyType<PostCreate>
+    export type CreateSocialPostMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>
+    export type CreateSocialPostMutationVariables = {data: BodyType<PostCreate>}
+
+    /**
+ * @summary Create a text publication
+ */
+export const useCreateSocialPost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialPost>>, TError,CreateSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createSocialPost>>,
+        TError,
+        CreateSocialPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateSocialPostMutationOptions(options), queryClient);
+    }
+
+export const getGetSocialPostUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}`
+}
+
+/**
+ * @summary Read a publication when its current audience permits
+ */
+export const getSocialPost = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getGetSocialPostUrl(postId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialPostQueryKey = (postId: string,) => {
+    return [
+    `/api/v1/social/posts/${postId}`
+    ] as const;
+    }
+
+
+export const getGetSocialPostQueryOptions = <TData = Awaited<ReturnType<typeof getSocialPost>>, TError = ErrorType<NotFoundResponse>>(postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPost>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialPostQueryKey(postId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialPost>>> = ({ signal }) => getSocialPost(postId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: postId !== null && postId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialPost>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialPostQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialPost>>>
+export type GetSocialPostQueryError = ErrorType<NotFoundResponse>
+
+
+export function useGetSocialPost<TData = Awaited<ReturnType<typeof getSocialPost>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPost>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialPost>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialPost>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialPost<TData = Awaited<ReturnType<typeof getSocialPost>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPost>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialPost>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialPost>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialPost<TData = Awaited<ReturnType<typeof getSocialPost>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPost>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read a publication when its current audience permits
+ */
+
+export function useGetSocialPost<TData = Awaited<ReturnType<typeof getSocialPost>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPost>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialPostQueryOptions(postId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeleteSocialPostUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}`
+}
+
+/**
+ * @summary Delete the authenticated account's publication
+ */
+export const deleteSocialPost = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteSocialPostUrl(postId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteSocialPostMutationKey = () => ['deleteSocialPost'] as const;
+
+export const getDeleteSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialPost>>, TError,DeleteSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteSocialPost>>, TError,DeleteSocialPostMutationVariables, TContext> => {
+
+const mutationKey = getDeleteSocialPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteSocialPost>>, DeleteSocialPostMutationVariables> = (props) => {
+          const {postId} = props ?? {};
+
+          return  deleteSocialPost(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSocialPost>>>
+
+    export type DeleteSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type DeleteSocialPostMutationVariables = {postId: string}
+
+    /**
+ * @summary Delete the authenticated account's publication
+ */
+export const useDeleteSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialPost>>, TError,DeleteSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteSocialPost>>,
+        TError,
+        DeleteSocialPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteSocialPostMutationOptions(options), queryClient);
+    }
+
+export const getCreateSocialArticleUrl = () => {
+
+
+
+
+  return `/api/v1/social/articles`
+}
+
+/**
+ * @summary Create a text-only article
+ */
+export const createSocialArticle = async (articleCreate: ArticleCreate, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Post>(getCreateSocialArticleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(articleCreate)
+  }
+);}
+
+
+
+
+
+export const getCreateSocialArticleMutationKey = () => ['createSocialArticle'] as const;
+
+export const getCreateSocialArticleMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialArticle>>, TError,CreateSocialArticleMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSocialArticle>>, TError,CreateSocialArticleMutationVariables, TContext> => {
+
+const mutationKey = getCreateSocialArticleMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSocialArticle>>, CreateSocialArticleMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSocialArticle(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSocialArticleMutationResult = NonNullable<Awaited<ReturnType<typeof createSocialArticle>>>
+    export type CreateSocialArticleMutationBody = BodyType<ArticleCreate>
+    export type CreateSocialArticleMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>
+    export type CreateSocialArticleMutationVariables = {data: BodyType<ArticleCreate>}
+
+    /**
+ * @summary Create a text-only article
+ */
+export const useCreateSocialArticle = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialArticle>>, TError,CreateSocialArticleMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createSocialArticle>>,
+        TError,
+        CreateSocialArticleMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateSocialArticleMutationOptions(options), queryClient);
+    }
+
+export const getGetSocialArticleUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/articles/${postId}`
+}
+
+/**
+ * @summary Read an article when its current audience permits
+ */
+export const getSocialArticle = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getGetSocialArticleUrl(postId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialArticleQueryKey = (postId: string,) => {
+    return [
+    `/api/v1/social/articles/${postId}`
+    ] as const;
+    }
+
+
+export const getGetSocialArticleQueryOptions = <TData = Awaited<ReturnType<typeof getSocialArticle>>, TError = ErrorType<NotFoundResponse>>(postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialArticle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialArticleQueryKey(postId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialArticle>>> = ({ signal }) => getSocialArticle(postId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: postId !== null && postId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialArticle>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialArticleQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialArticle>>>
+export type GetSocialArticleQueryError = ErrorType<NotFoundResponse>
+
+
+export function useGetSocialArticle<TData = Awaited<ReturnType<typeof getSocialArticle>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialArticle>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialArticle>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialArticle>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialArticle<TData = Awaited<ReturnType<typeof getSocialArticle>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialArticle>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialArticle>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialArticle>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialArticle<TData = Awaited<ReturnType<typeof getSocialArticle>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialArticle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read an article when its current audience permits
+ */
+
+export function useGetSocialArticle<TData = Awaited<ReturnType<typeof getSocialArticle>>, TError = ErrorType<NotFoundResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialArticle>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialArticleQueryOptions(postId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetSocialAccountPostsUrl = (accountId: string,
+    params?: GetSocialAccountPostsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/accounts/${accountId}/posts?${stringifiedParams}` : `/api/v1/social/accounts/${accountId}/posts`
+}
+
+/**
+ * Results use stable chronological pagination and re-check profile privacy, approved follows, mutual Círculo membership, and bilateral blocks.
+ * @summary List currently readable posts or articles on an account profile
+ */
+export const getSocialAccountPosts = async (accountId: string,
+    params?: GetSocialAccountPostsParams, options?: Parameters<typeof customFetch>[1]): Promise<PostPage> => {
+
+  return customFetch<PostPage>(getGetSocialAccountPostsUrl(accountId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialAccountPostsQueryKey = (accountId: string,
+    params?: GetSocialAccountPostsParams,) => {
+    return [
+    `/api/v1/social/accounts/${accountId}/posts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSocialAccountPostsQueryOptions = <TData = Awaited<ReturnType<typeof getSocialAccountPosts>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(accountId: string,
+    params?: GetSocialAccountPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialAccountPosts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialAccountPostsQueryKey(accountId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialAccountPosts>>> = ({ signal }) => getSocialAccountPosts(accountId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: accountId !== null && accountId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialAccountPosts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialAccountPostsQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialAccountPosts>>>
+export type GetSocialAccountPostsQueryError = ErrorType<ValidationErrorResponse | NotFoundResponse>
+
+
+export function useGetSocialAccountPosts<TData = Awaited<ReturnType<typeof getSocialAccountPosts>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ accountId: string,
+    params: undefined |  GetSocialAccountPostsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialAccountPosts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialAccountPosts>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialAccountPosts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialAccountPosts<TData = Awaited<ReturnType<typeof getSocialAccountPosts>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetSocialAccountPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialAccountPosts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialAccountPosts>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialAccountPosts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialAccountPosts<TData = Awaited<ReturnType<typeof getSocialAccountPosts>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetSocialAccountPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialAccountPosts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List currently readable posts or articles on an account profile
+ */
+
+export function useGetSocialAccountPosts<TData = Awaited<ReturnType<typeof getSocialAccountPosts>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ accountId: string,
+    params?: GetSocialAccountPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialAccountPosts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialAccountPostsQueryOptions(accountId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}

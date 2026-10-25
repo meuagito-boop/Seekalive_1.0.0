@@ -130,7 +130,7 @@ export interface ProfileVisibility {
 export type ProfileContentPageItemsItem = { [key: string]: unknown };
 
 /**
- * Content page shape reserved for profile content modules not yet connected to the backend.
+ * Generic paginated content shape used by media modules not yet connected to the backend.
  */
 export interface ProfileContentPage {
   items: ProfileContentPageItemsItem[];
@@ -255,11 +255,63 @@ export interface MyAccountResponse {
   commercialProfile: OwnerCommercialProfile | null;
 }
 
+export type PostAudience = typeof PostAudience[keyof typeof PostAudience];
+
+
+export const PostAudience = {
+  public: 'public',
+  circles: 'circles',
+  private: 'private',
+} as const;
+
+export type PostFormat = typeof PostFormat[keyof typeof PostFormat];
+
+
+export const PostFormat = {
+  text: 'text',
+  article: 'article',
+} as const;
+
+export type PostArticle = {
+  /** @maxLength 160 */
+  title: string;
+  /** @maxLength 50000 */
+  body: string;
+};
+
+export interface Post {
+  id: string;
+  authorId: string;
+  /** @maxLength 280 */
+  content: string;
+  createdAt: string;
+  audience: PostAudience;
+  type: 'text';
+  format: PostFormat;
+  article?: PostArticle;
+  /** @minimum 0 */
+  likes: number;
+  /** @minimum 0 */
+  comments: number;
+  /** @minimum 0 */
+  reposts: number;
+  /** @minimum 0 */
+  shares: number;
+  isLiked: boolean;
+  isReposted: boolean;
+}
+
+export interface PostPage {
+  items: Post[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
 export interface ProfileResponse {
   account: AccountView;
   visibility: ProfileVisibility;
-  posts: ProfileContentPage;
-  articles: ProfileContentPage;
+  posts: PostPage;
+  articles: PostPage;
   media: ProfileContentPage;
 }
 
@@ -418,6 +470,72 @@ export interface FollowState {
   updatedAt: string;
 }
 
+export type PostCreateAudience = typeof PostCreateAudience[keyof typeof PostCreateAudience];
+
+
+export const PostCreateAudience = {
+  public: 'public',
+  circles: 'circles',
+  private: 'private',
+} as const;
+
+export type PostCreateFormat = typeof PostCreateFormat[keyof typeof PostCreateFormat];
+
+
+export const PostCreateFormat = {
+  text: 'text',
+} as const;
+
+/**
+ * Text-only post. Media fields and third-party URLs are not accepted.
+ */
+export interface PostCreate {
+  /** Optional compatibility field; must match the authenticated account. */
+  authorId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 280
+     */
+  content: string;
+  audience: PostCreateAudience;
+  format?: PostCreateFormat;
+}
+
+export type ArticleCreateAudience = typeof ArticleCreateAudience[keyof typeof ArticleCreateAudience];
+
+
+export const ArticleCreateAudience = {
+  public: 'public',
+  circles: 'circles',
+  private: 'private',
+} as const;
+
+export type ArticleCreateArticle = {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 50000
+     */
+  body: string;
+};
+
+/**
+ * Text-only article. Media and external reference previews are not enabled in this slice.
+ */
+export interface ArticleCreate {
+  /** Optional compatibility field; must match the authenticated account. */
+  authorId?: string;
+  /** @maxLength 280 */
+  content?: string;
+  audience: ArticleCreateAudience;
+  format?: 'article';
+  article: ArticleCreateArticle;
+}
+
 /**
  * Missing, expired, or unverified account session
  */
@@ -531,4 +649,26 @@ limit?: PageLimitParameter;
  */
 cursor?: PageCursorParameter;
 };
+
+export type GetSocialAccountPostsParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+format?: GetSocialAccountPostsFormat;
+};
+
+export type GetSocialAccountPostsFormat = typeof GetSocialAccountPostsFormat[keyof typeof GetSocialAccountPostsFormat];
+
+
+export const GetSocialAccountPostsFormat = {
+  all: 'all',
+  text: 'text',
+  article: 'article',
+} as const;
 

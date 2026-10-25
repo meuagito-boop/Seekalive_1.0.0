@@ -14,6 +14,8 @@ tags:
     description: Public profile views and account settings
   - name: social-graph
     description: Follows, private follow requests, mutual circles, and blocks
+  - name: feed
+    description: Text posts and articles with server-enforced audience visibility
   - name: auth-security
     description: Authenticated e-mail and password changes
 paths:
@@ -598,6 +600,154 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/social/posts:
+    post:
+      operationId: createSocialPost
+      tags: [feed]
+      summary: Create a text publication
+      description: >
+        The authenticated account is always the author. The optional authorId
+        is accepted only for compatibility and must equal the session account.
+        Media uploads are not enabled; media fields are rejected.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostCreate"
+      responses:
+        "201":
+          description: Publication created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/social/posts/{postId}:
+    parameters:
+      - $ref: "#/components/parameters/PostId"
+    get:
+      operationId: getSocialPost
+      tags: [feed]
+      summary: Read a publication when its current audience permits
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Readable publication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteSocialPost
+      tags: [feed]
+      summary: Delete the authenticated account's publication
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Publication deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/articles:
+    post:
+      operationId: createSocialArticle
+      tags: [feed]
+      summary: Create a text-only article
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleCreate"
+      responses:
+        "201":
+          description: Article created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/social/articles/{postId}:
+    parameters:
+      - $ref: "#/components/parameters/PostId"
+    get:
+      operationId: getSocialArticle
+      tags: [feed]
+      summary: Read an article when its current audience permits
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Readable article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/accounts/{accountId}/posts:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+      - $ref: "#/components/parameters/PageLimit"
+      - $ref: "#/components/parameters/PageCursor"
+    get:
+      operationId: getSocialAccountPosts
+      tags: [feed]
+      summary: List currently readable posts or articles on an account profile
+      description: >
+        Results use stable chronological pagination and re-check profile privacy,
+        approved follows, mutual Círculo membership, and bilateral blocks.
+      security:
+        - sessionCookie: []
+        - {}
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, text, article]
+            default: all
+      responses:
+        "200":
+          description: Paginated readable content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
   securitySchemes:
     sessionCookie:
@@ -611,6 +761,13 @@ components:
   parameters:
     AccountId:
       name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PostId:
+      name: postId
       in: path
       required: true
       schema:
@@ -876,7 +1033,7 @@ components:
       required: [canViewPublicContent, canViewCircleContent]
     ProfileContentPage:
       type: object
-      description: Content page shape reserved for profile content modules not yet connected to the backend.
+      description: Generic paginated content shape used by media modules not yet connected to the backend.
       properties:
         items:
           type: array
@@ -1032,9 +1189,9 @@ components:
         visibility:
           $ref: "#/components/schemas/ProfileVisibility"
         posts:
-          $ref: "#/components/schemas/ProfileContentPage"
+          $ref: "#/components/schemas/PostPage"
         articles:
-          $ref: "#/components/schemas/ProfileContentPage"
+          $ref: "#/components/schemas/PostPage"
         media:
           $ref: "#/components/schemas/ProfileContentPage"
       required: [account, visibility, posts, articles, media]
@@ -1205,4 +1362,118 @@ components:
           type: string
           format: date-time
       required: [status, updatedAt]
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        content:
+          type: string
+          maxLength: 280
+        createdAt:
+          type: string
+          format: date-time
+        audience:
+          type: string
+          enum: [public, circles, private]
+        type:
+          type: string
+          const: text
+        format:
+          type: string
+          enum: [text, article]
+        article:
+          type: object
+          properties:
+            title:
+              type: string
+              maxLength: 160
+            body:
+              type: string
+              maxLength: 50000
+          required: [title, body]
+        likes:
+          type: integer
+          minimum: 0
+        comments:
+          type: integer
+          minimum: 0
+        reposts:
+          type: integer
+          minimum: 0
+        shares:
+          type: integer
+          minimum: 0
+        isLiked:
+          type: boolean
+        isReposted:
+          type: boolean
+      required: [id, authorId, content, createdAt, audience, type, format, likes, comments, reposts, shares, isLiked, isReposted]
+    PostCreate:
+      type: object
+      description: Text-only post. Media fields and third-party URLs are not accepted.
+      properties:
+        authorId:
+          type: string
+          format: uuid
+          description: Optional compatibility field; must match the authenticated account.
+        content:
+          type: string
+          minLength: 1
+          maxLength: 280
+        audience:
+          type: string
+          enum: [public, circles, private]
+        format:
+          type: string
+          enum: [text]
+      required: [content, audience]
+      additionalProperties: false
+    ArticleCreate:
+      type: object
+      description: Text-only article. Media and external reference previews are not enabled in this slice.
+      properties:
+        authorId:
+          type: string
+          format: uuid
+          description: Optional compatibility field; must match the authenticated account.
+        content:
+          type: string
+          maxLength: 280
+          default: ""
+        audience:
+          type: string
+          enum: [public, circles, private]
+        format:
+          type: string
+          const: article
+        article:
+          type: object
+          properties:
+            title:
+              type: string
+              minLength: 1
+              maxLength: 160
+            body:
+              type: string
+              minLength: 1
+              maxLength: 50000
+          required: [title, body]
+          additionalProperties: false
+      required: [audience, article]
+      additionalProperties: false
+    PostPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
 

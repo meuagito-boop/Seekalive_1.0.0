@@ -6,13 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AccountView } from './accountView';
+import type { PostPage } from './postPage';
 import type { ProfileContentPage } from './profileContentPage';
 import type { ProfileVisibility } from './profileVisibility';
 
 export interface ProfileResponse {
   account: AccountView;
   visibility: ProfileVisibility;
-  posts: ProfileContentPage;
-  articles: ProfileContentPage;
+  posts: PostPage;
+  articles: PostPage;
   media: ProfileContentPage;
 }

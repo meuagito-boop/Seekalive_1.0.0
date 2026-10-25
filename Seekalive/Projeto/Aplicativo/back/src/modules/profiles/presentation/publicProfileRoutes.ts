@@ -9,6 +9,7 @@ import { canViewPrivateProfileContent } from "../../accounts/application/account
 import type { PublicAccountRow } from "../../accounts/application/accountViews";
 import { getRelationshipFor } from "../../social/application/getRelationshipFor";
 import { isBlockedBetween } from "../../social/application/isBlockedBetween";
+import { listProfilePosts } from "../../feed/application/listProfilePosts";
 import { sendError } from "./routeSupport";
 
 const router: IRouter = Router();
@@ -33,14 +34,18 @@ async function respondWithProfile(
     relationship.following,
   );
   const account = await accountView(row, viewerId, relationship);
+  const [posts, articles] = await Promise.all([
+    listProfilePosts(row.id, viewerId, 20, null, "text"),
+    listProfilePosts(row.id, viewerId, 20, null, "article"),
+  ]);
   response.json({
     account,
     visibility: {
       canViewPublicContent,
       canViewCircleContent: relationship.inCircle || viewerId === row.id,
     },
-    posts: emptyPage,
-    articles: emptyPage,
+    posts: posts ?? emptyPage,
+    articles: articles ?? emptyPage,
     media: emptyPage,
   });
 }

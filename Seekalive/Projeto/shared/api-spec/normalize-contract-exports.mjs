@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const indexPath = path.resolve(directory, "../contracts/src/index.ts");
+const apiClientPath = path.resolve(
+  directory,
+  "../api-client-react/src/generated/api.ts",
+);
 const allowedGeneratedExports = new Set([
   'export * from "./generated/api";',
   'export * from "./generated/types";',
@@ -13,6 +17,7 @@ const allowedGeneratedExports = new Set([
 const allowedPackageExports = new Set([
   'export * from "./auth";',
   'export * from "./social";',
+  'export * from "./feed";',
   'export * from "./errorCodes";',
   'export * as GeneratedTypes from "./generated/types";',
 ]);
@@ -33,6 +38,7 @@ if (unexpectedLines.length > 0) {
 await Promise.all([
   access(path.resolve(directory, "../contracts/src/generated/api.ts")),
   access(path.resolve(directory, "../contracts/src/generated/types/index.ts")),
+  access(apiClientPath),
 ]);
 
 // Orval's split Zod output appends a star export for generated/types. Those
@@ -43,8 +49,11 @@ const exports = [
   'export * as GeneratedTypes from "./generated/types";',
   'export * from "./auth";',
   'export * from "./social";',
+  'export * from "./feed";',
   'export * from "./errorCodes";',
   "",
 ].join("\n");
 
 await writeFile(indexPath, exports, "utf8");
+const generatedClient = await readFile(apiClientPath, "utf8");
+await writeFile(apiClientPath, `${generatedClient.trimEnd()}\n`, "utf8");

@@ -408,6 +408,34 @@ export const getProfileByUsernameResponseAccountStatsFollowingMin = 0;
 export const getProfileByUsernameResponseAccountStatsCirclesMin = 0;
 
 
+export const getProfileByUsernameResponsePostsItemsItemContentMax = 280;
+
+export const getProfileByUsernameResponsePostsItemsItemArticleTitleMax = 160;
+
+export const getProfileByUsernameResponsePostsItemsItemArticleBodyMax = 50000;
+
+export const getProfileByUsernameResponsePostsItemsItemLikesMin = 0;
+
+export const getProfileByUsernameResponsePostsItemsItemCommentsMin = 0;
+
+export const getProfileByUsernameResponsePostsItemsItemRepostsMin = 0;
+
+export const getProfileByUsernameResponsePostsItemsItemSharesMin = 0;
+
+export const getProfileByUsernameResponseArticlesItemsItemContentMax = 280;
+
+export const getProfileByUsernameResponseArticlesItemsItemArticleTitleMax = 160;
+
+export const getProfileByUsernameResponseArticlesItemsItemArticleBodyMax = 50000;
+
+export const getProfileByUsernameResponseArticlesItemsItemLikesMin = 0;
+
+export const getProfileByUsernameResponseArticlesItemsItemCommentsMin = 0;
+
+export const getProfileByUsernameResponseArticlesItemsItemRepostsMin = 0;
+
+export const getProfileByUsernameResponseArticlesItemsItemSharesMin = 0;
+
 
 
 export const GetProfileByUsernameResponse = zod.object({
@@ -443,17 +471,53 @@ export const GetProfileByUsernameResponse = zod.object({
   "canViewCircleContent": zod.boolean()
 }),
   "posts": zod.object({
-  "items": zod.array(zod.record(zod.string(), zod.unknown())),
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(getProfileByUsernameResponsePostsItemsItemContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(getProfileByUsernameResponsePostsItemsItemArticleTitleMax),
+  "body": zod.string().max(getProfileByUsernameResponsePostsItemsItemArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(getProfileByUsernameResponsePostsItemsItemLikesMin),
+  "comments": zod.int().min(getProfileByUsernameResponsePostsItemsItemCommentsMin),
+  "reposts": zod.int().min(getProfileByUsernameResponsePostsItemsItemRepostsMin),
+  "shares": zod.int().min(getProfileByUsernameResponsePostsItemsItemSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean()
+})),
   "nextCursor": zod.string().nullable()
-}).describe('Content page shape reserved for profile content modules not yet connected to the backend.'),
+}),
   "articles": zod.object({
-  "items": zod.array(zod.record(zod.string(), zod.unknown())),
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(getProfileByUsernameResponseArticlesItemsItemContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(getProfileByUsernameResponseArticlesItemsItemArticleTitleMax),
+  "body": zod.string().max(getProfileByUsernameResponseArticlesItemsItemArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(getProfileByUsernameResponseArticlesItemsItemLikesMin),
+  "comments": zod.int().min(getProfileByUsernameResponseArticlesItemsItemCommentsMin),
+  "reposts": zod.int().min(getProfileByUsernameResponseArticlesItemsItemRepostsMin),
+  "shares": zod.int().min(getProfileByUsernameResponseArticlesItemsItemSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean()
+})),
   "nextCursor": zod.string().nullable()
-}).describe('Content page shape reserved for profile content modules not yet connected to the backend.'),
+}),
   "media": zod.object({
   "items": zod.array(zod.record(zod.string(), zod.unknown())),
   "nextCursor": zod.string().nullable()
-}).describe('Content page shape reserved for profile content modules not yet connected to the backend.')
+}).describe('Generic paginated content shape used by media modules not yet connected to the backend.')
 })
 
 
@@ -949,5 +1013,276 @@ export const UnblockAccountParams = zod.object({
 })
 
 export const UnblockAccountResponse = zod.void()
+
+
+/**
+ * The authenticated account is always the author. The optional authorId is accepted only for compatibility and must equal the session account. Media uploads are not enabled; media fields are rejected.
+ * @summary Create a text publication
+ */
+export const createSocialPostBodyContentMax = 280;
+
+
+
+export const CreateSocialPostBody = zod.object({
+  "authorId": zod.uuid().optional().describe('Optional compatibility field; must match the authenticated account.'),
+  "content": zod.string().min(1).max(createSocialPostBodyContentMax),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "format": zod.enum(['text']).optional()
+}).describe('Text-only post. Media fields and third-party URLs are not accepted.')
+
+export const createSocialPostResponseContentMax = 280;
+
+export const createSocialPostResponseArticleTitleMax = 160;
+
+export const createSocialPostResponseArticleBodyMax = 50000;
+
+export const createSocialPostResponseLikesMin = 0;
+
+export const createSocialPostResponseCommentsMin = 0;
+
+export const createSocialPostResponseRepostsMin = 0;
+
+export const createSocialPostResponseSharesMin = 0;
+
+
+
+export const CreateSocialPostResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(createSocialPostResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(createSocialPostResponseArticleTitleMax),
+  "body": zod.string().max(createSocialPostResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(createSocialPostResponseLikesMin),
+  "comments": zod.int().min(createSocialPostResponseCommentsMin),
+  "reposts": zod.int().min(createSocialPostResponseRepostsMin),
+  "shares": zod.int().min(createSocialPostResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean()
+})
+
+
+/**
+ * @summary Read a publication when its current audience permits
+ */
+export const GetSocialPostParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const getSocialPostResponseContentMax = 280;
+
+export const getSocialPostResponseArticleTitleMax = 160;
+
+export const getSocialPostResponseArticleBodyMax = 50000;
+
+export const getSocialPostResponseLikesMin = 0;
+
+export const getSocialPostResponseCommentsMin = 0;
+
+export const getSocialPostResponseRepostsMin = 0;
+
+export const getSocialPostResponseSharesMin = 0;
+
+
+
+export const GetSocialPostResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(getSocialPostResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(getSocialPostResponseArticleTitleMax),
+  "body": zod.string().max(getSocialPostResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(getSocialPostResponseLikesMin),
+  "comments": zod.int().min(getSocialPostResponseCommentsMin),
+  "reposts": zod.int().min(getSocialPostResponseRepostsMin),
+  "shares": zod.int().min(getSocialPostResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean()
+})
+
+
+/**
+ * @summary Delete the authenticated account's publication
+ */
+export const DeleteSocialPostParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const DeleteSocialPostResponse = zod.void()
+
+
+/**
+ * @summary Create a text-only article
+ */
+export const createSocialArticleBodyContentDefault = ``;
+export const createSocialArticleBodyContentMax = 280;
+
+export const createSocialArticleBodyArticleTitleMax = 160;
+
+export const createSocialArticleBodyArticleBodyMax = 50000;
+
+
+
+export const CreateSocialArticleBody = zod.object({
+  "authorId": zod.uuid().optional().describe('Optional compatibility field; must match the authenticated account.'),
+  "content": zod.string().max(createSocialArticleBodyContentMax).default(createSocialArticleBodyContentDefault),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "format": zod.literal("article").optional(),
+  "article": zod.object({
+  "title": zod.string().min(1).max(createSocialArticleBodyArticleTitleMax),
+  "body": zod.string().min(1).max(createSocialArticleBodyArticleBodyMax)
+})
+}).describe('Text-only article. Media and external reference previews are not enabled in this slice.')
+
+export const createSocialArticleResponseContentMax = 280;
+
+export const createSocialArticleResponseArticleTitleMax = 160;
+
+export const createSocialArticleResponseArticleBodyMax = 50000;
+
+export const createSocialArticleResponseLikesMin = 0;
+
+export const createSocialArticleResponseCommentsMin = 0;
+
+export const createSocialArticleResponseRepostsMin = 0;
+
+export const createSocialArticleResponseSharesMin = 0;
+
+
+
+export const CreateSocialArticleResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(createSocialArticleResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(createSocialArticleResponseArticleTitleMax),
+  "body": zod.string().max(createSocialArticleResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(createSocialArticleResponseLikesMin),
+  "comments": zod.int().min(createSocialArticleResponseCommentsMin),
+  "reposts": zod.int().min(createSocialArticleResponseRepostsMin),
+  "shares": zod.int().min(createSocialArticleResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean()
+})
+
+
+/**
+ * @summary Read an article when its current audience permits
+ */
+export const GetSocialArticleParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const getSocialArticleResponseContentMax = 280;
+
+export const getSocialArticleResponseArticleTitleMax = 160;
+
+export const getSocialArticleResponseArticleBodyMax = 50000;
+
+export const getSocialArticleResponseLikesMin = 0;
+
+export const getSocialArticleResponseCommentsMin = 0;
+
+export const getSocialArticleResponseRepostsMin = 0;
+
+export const getSocialArticleResponseSharesMin = 0;
+
+
+
+export const GetSocialArticleResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(getSocialArticleResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(getSocialArticleResponseArticleTitleMax),
+  "body": zod.string().max(getSocialArticleResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(getSocialArticleResponseLikesMin),
+  "comments": zod.int().min(getSocialArticleResponseCommentsMin),
+  "reposts": zod.int().min(getSocialArticleResponseRepostsMin),
+  "shares": zod.int().min(getSocialArticleResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean()
+})
+
+
+/**
+ * Results use stable chronological pagination and re-check profile privacy, approved follows, mutual Círculo membership, and bilateral blocks.
+ * @summary List currently readable posts or articles on an account profile
+ */
+export const GetSocialAccountPostsParams = zod.object({
+  "accountId": zod.uuid()
+})
+
+export const getSocialAccountPostsQueryLimitDefault = 20;
+export const getSocialAccountPostsQueryLimitMax = 100;
+
+export const getSocialAccountPostsQueryCursorMax = 32;
+
+export const getSocialAccountPostsQueryFormatDefault = `all`;
+
+export const GetSocialAccountPostsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(getSocialAccountPostsQueryLimitMax).default(getSocialAccountPostsQueryLimitDefault),
+  "cursor": zod.coerce.string().max(getSocialAccountPostsQueryCursorMax).optional(),
+  "format": zod.enum(['all', 'text', 'article']).default(getSocialAccountPostsQueryFormatDefault)
+})
+
+export const getSocialAccountPostsResponseItemsItemContentMax = 280;
+
+export const getSocialAccountPostsResponseItemsItemArticleTitleMax = 160;
+
+export const getSocialAccountPostsResponseItemsItemArticleBodyMax = 50000;
+
+export const getSocialAccountPostsResponseItemsItemLikesMin = 0;
+
+export const getSocialAccountPostsResponseItemsItemCommentsMin = 0;
+
+export const getSocialAccountPostsResponseItemsItemRepostsMin = 0;
+
+export const getSocialAccountPostsResponseItemsItemSharesMin = 0;
+
+
+
+export const GetSocialAccountPostsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(getSocialAccountPostsResponseItemsItemContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(getSocialAccountPostsResponseItemsItemArticleTitleMax),
+  "body": zod.string().max(getSocialAccountPostsResponseItemsItemArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(getSocialAccountPostsResponseItemsItemLikesMin),
+  "comments": zod.int().min(getSocialAccountPostsResponseItemsItemCommentsMin),
+  "reposts": zod.int().min(getSocialAccountPostsResponseItemsItemRepostsMin),
+  "shares": zod.int().min(getSocialAccountPostsResponseItemsItemSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean()
+})),
+  "nextCursor": zod.string().nullable()
+})
 
 

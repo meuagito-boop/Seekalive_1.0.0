@@ -38,7 +38,13 @@ app.use((request, response, next) => {
   next();
 });
 app.use(cookieParser());
-app.use(express.json({ limit: "32kb" }));
+const defaultJsonParser = express.json({ limit: "32kb" });
+const articleJsonParser = express.json({ limit: "256kb" });
+app.use((request, response, next) => {
+  const isArticleWrite = request.method === "POST"
+    && /^\/api\/v1\/social\/articles\/?$/.test(request.path);
+  (isArticleWrite ? articleJsonParser : defaultJsonParser)(request, response, next);
+});
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);

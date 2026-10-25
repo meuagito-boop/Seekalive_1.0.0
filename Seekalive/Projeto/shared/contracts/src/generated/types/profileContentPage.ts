@@ -8,7 +8,7 @@
 import type { ProfileContentPageItemsItem } from './profileContentPageItemsItem';
 
 /**
- * Content page shape reserved for profile content modules not yet connected to the backend.
+ * Generic paginated content shape used by media modules not yet connected to the backend.
  */
 export interface ProfileContentPage {
   items: ProfileContentPageItemsItem[];

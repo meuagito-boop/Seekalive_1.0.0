@@ -81,3 +81,31 @@ test("CSRF rejections use the same traceable error contract", async () => {
   assert.equal(body.error.code, 1106);
   assertRequestId(response, body);
 });
+
+test("article requests allow the declared article length while other JSON bodies retain the 32 KB cap", async () => {
+  const largeArticle = await fetch(`${baseUrl}/api/v1/social/articles`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      audience: "public",
+      article: {
+        title: "T".repeat(160),
+        body: "x".repeat(40_000),
+      },
+    }),
+  });
+  assert.equal(largeArticle.status, 403);
+  const largeArticleBody = await largeArticle.json();
+  assert.equal(largeArticleBody.error.key, "CSRF_REJECTED");
+  assertRequestId(largeArticle, largeArticleBody);
+
+  const largeOtherRequest = await fetch(`${baseUrl}/api/v1/onboarding/interests`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ interests: ["x".repeat(40_000)] }),
+  });
+  assert.equal(largeOtherRequest.status, 413);
+  const largeOtherBody = await largeOtherRequest.json();
+  assert.equal(largeOtherBody.error.key, "PAYLOAD_TOO_LARGE");
+  assertRequestId(largeOtherRequest, largeOtherBody);
+});

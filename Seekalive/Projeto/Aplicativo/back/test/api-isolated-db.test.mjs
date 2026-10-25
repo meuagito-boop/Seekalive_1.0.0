@@ -44,6 +44,7 @@ const {
   authChallenges,
   commercialProfiles,
   db,
+  feedPosts,
   passwordCredentials,
   pool,
   sessions,
@@ -67,6 +68,7 @@ const modelTables = [
   accountFollowRequests,
   accountBlocks,
   accountUsernameReservations,
+  feedPosts,
 ];
 const expectedTables = [
   "account_blocks",
@@ -78,6 +80,7 @@ const expectedTables = [
   "accounts",
   "auth_challenges",
   "business_profiles",
+  "feed_posts",
   "password_credentials",
   "sessions",
   "trusted_devices",
@@ -1252,6 +1255,109 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(followRequest.response.status, 200);
   assert.equal(followRequest.body.status, "pending");
+  const createdPublicPost = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: personal,
+    body: {
+      content: "Publicação de teste",
+      audience: "public",
+    },
+  });
+  assert.equal(createdPublicPost.response.status, 201, JSON.stringify(createdPublicPost.body));
+  assert.equal(createdPublicPost.body.authorId, personal.account.id);
+  assert.equal(createdPublicPost.body.format, "text");
+  assert.equal(createdPublicPost.body.likes, 0);
+  const createdCirclePost = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: personal,
+    body: {
+      content: "Publicação do Círculo",
+      audience: "circles",
+    },
+  });
+  assert.equal(createdCirclePost.response.status, 201);
+  const createdPrivatePost = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: personal,
+    body: {
+      content: "Publicação só para a titular",
+      audience: "private",
+    },
+  });
+  assert.equal(createdPrivatePost.response.status, 201);
+  const createdArticle = await request("/api/v1/social/articles", {
+    method: "POST",
+    auth: personal,
+    body: {
+      audience: "public",
+      article: {
+        title: "Artigo de teste",
+        body: "Texto do artigo de teste.",
+      },
+    },
+  });
+  assert.equal(createdArticle.response.status, 201, JSON.stringify(createdArticle.body));
+  assert.equal(createdArticle.body.format, "article");
+  assert.equal(createdArticle.body.article.title, "Artigo de teste");
+  const firstOwnerPostPage = await request(
+    `/api/v1/social/accounts/${personal.account.id}/posts?limit=1&format=all`,
+    { auth: personal },
+  );
+  assert.equal(firstOwnerPostPage.response.status, 200);
+  assert.equal(firstOwnerPostPage.body.items.length, 1);
+  assert.ok(firstOwnerPostPage.body.nextCursor);
+  const secondOwnerPostPage = await request(
+    `/api/v1/social/accounts/${personal.account.id}/posts?limit=1&format=all&cursor=${encodeURIComponent(firstOwnerPostPage.body.nextCursor)}`,
+    { auth: personal },
+  );
+  assert.equal(secondOwnerPostPage.response.status, 200);
+  assert.equal(secondOwnerPostPage.body.items.length, 1);
+  assert.notEqual(secondOwnerPostPage.body.items[0].id, firstOwnerPostPage.body.items[0].id);
+  const reusedCursor = await request(
+    `/api/v1/social/accounts/${commercial.account.id}/posts?limit=1&format=all&cursor=${encodeURIComponent(firstOwnerPostPage.body.nextCursor)}`,
+    { auth: personal },
+  );
+  assert.equal(reusedCursor.response.status, 400);
+
+  const forgedPost = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: commercial,
+    body: {
+      authorId: personal.account.id,
+      content: "Tentativa de publicar em outra conta",
+      audience: "public",
+    },
+  });
+  assert.equal(forgedPost.response.status, 403);
+  assert.equal(forgedPost.body.error.key, "CONTENT_AUTHOR_MISMATCH");
+  const unsupportedMediaPost = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: personal,
+    body: {
+      content: "",
+      audience: "public",
+      format: "media",
+      mediaUrls: ["blob:local-only"],
+      mediaTypes: ["image"],
+    },
+  });
+  assert.equal(unsupportedMediaPost.response.status, 422);
+  assert.equal(unsupportedMediaPost.body.error.key, "CONTENT_MEDIA_NOT_READY");
+
+  const deniedPendingPost = await request(`/api/v1/social/posts/${createdPublicPost.body.id}`, {
+    auth: commercial,
+  });
+  assert.equal(deniedPendingPost.response.status, 404);
+  const deniedPendingArticle = await request(`/api/v1/social/articles/${createdArticle.body.id}`, {
+    auth: commercial,
+  });
+  assert.equal(deniedPendingArticle.response.status, 404);
+  const deniedPendingProfilePosts = await request(
+    `/api/v1/social/accounts/${personal.account.id}/posts?format=all`,
+    { auth: commercial },
+  );
+  assert.equal(deniedPendingProfilePosts.response.status, 200);
+  assert.deepEqual(deniedPendingProfilePosts.body.items, []);
   const currentProfileIdentity = await pool.query(
     `SELECT account.username, account.status, email.verified_at
      FROM ${quoteGeneratedSchema(schemaName)}.accounts AS account
@@ -1298,6 +1404,13 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(profileAfterApproval.response.status, 200);
   assert.equal(profileAfterApproval.body.visibility.canViewPublicContent, true);
   assert.equal(profileAfterApproval.body.visibility.canViewCircleContent, false);
+  assert.ok(profileAfterApproval.body.posts.items.some((post) => post.id === createdPublicPost.body.id));
+  assert.ok(profileAfterApproval.body.articles.items.some((post) => post.id === createdArticle.body.id));
+  assert.ok(!profileAfterApproval.body.posts.items.some((post) => post.id === createdCirclePost.body.id));
+  const deniedPrivatePost = await request(`/api/v1/social/posts/${createdPrivatePost.body.id}`, {
+    auth: commercial,
+  });
+  assert.equal(deniedPrivatePost.response.status, 404);
 
   const reciprocalFollow = await request(`/api/v1/social/accounts/${commercial.account.id}/follow`, {
     method: "PUT",
@@ -1314,6 +1427,24 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: commercial,
   });
   assert.equal(profileAfterMutualFollow.body.visibility.canViewCircleContent, true);
+  const visibleCirclePost = await request(`/api/v1/social/posts/${createdCirclePost.body.id}`, {
+    auth: commercial,
+  });
+  assert.equal(visibleCirclePost.response.status, 200);
+  const ownerPrivatePost = await request(`/api/v1/social/posts/${createdPrivatePost.body.id}`, {
+    auth: personal,
+  });
+  assert.equal(ownerPrivatePost.response.status, 200);
+  const articleRead = await request(`/api/v1/social/articles/${createdArticle.body.id}`, {
+    auth: commercial,
+  });
+  assert.equal(articleRead.response.status, 200);
+
+  const deniedDeleteByOtherAccount = await request(`/api/v1/social/posts/${createdPublicPost.body.id}`, {
+    method: "DELETE",
+    auth: commercial,
+  });
+  assert.equal(deniedDeleteByOtherAccount.response.status, 404);
 
   await request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
     method: "DELETE",
@@ -1414,6 +1545,18 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   ]);
   assert.equal(reblocked.response.status, 204);
   assert.ok([200, 404].includes(acceptDuringBlock.response.status));
+  const hiddenPostAfterBlock = await request(`/api/v1/social/posts/${createdPublicPost.body.id}`, {
+    auth: commercial,
+  });
+  assert.equal(hiddenPostAfterBlock.response.status, 404);
+  const ownerDelete = await request(`/api/v1/social/posts/${createdPrivatePost.body.id}`, {
+    method: "DELETE",
+    auth: personal,
+  });
+  assert.equal(ownerDelete.response.status, 204);
+  const [deletedPrivatePost] = await db.select().from(feedPosts)
+    .where(eq(feedPosts.id, createdPrivatePost.body.id));
+  assert.equal(deletedPrivatePost, undefined);
   const relationshipsAfterAcceptRace = await db
     .select()
     .from(accountFollows)
