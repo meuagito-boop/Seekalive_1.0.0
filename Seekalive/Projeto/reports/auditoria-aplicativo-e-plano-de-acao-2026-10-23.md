@@ -1,8 +1,8 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.20
-**Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.19) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; as decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
+**Versão do documento:** 2.21
+**Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.20) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal. O suporte a áreas de atendimento por prestadores ainda não foi decidido. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
 **Fora do escopo:** `Gestor` e `Painel` — não foram auditados nem alterados.  
@@ -652,7 +652,7 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Decisão confirmada:** Shop terá banco lógico próprio, além dos dez domínios listados no prompt.
 - **Escopo aprovado:** propriedade do catálogo de produtos/ofertas no domínio Shop. Isso não aprova carrinho, pedidos, estoque, pagamentos, frete ou entrega.
 - **Estado técnico:** decisão documentada em `docs/architecture/database-domains.md`; nenhum banco ou segredo foi provisionado, nenhuma conexão foi ativada e nenhuma migração foi executada.
-- **Próxima decisão pendente:** cardinalidade de localizações/unidades por conta comercial.
+- **Próxima decisão pendente:** regra para vincular contas comerciais independentes a uma marca/rede, caso isso seja necessário.
 
 ### 11.19 Decisão sobre Confiança e Segurança de Conteúdo — 24/10/2026
 
@@ -660,6 +660,13 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Escopo inicial:** receber referências tipadas a contas, posts, mensagens, avaliações, eventos e itens do Shop; controlar a fila de denúncias e as ações de moderação, sem FK para bancos de outros domínios.
 - **Não incluído automaticamente:** logs gerais de auditoria, credenciais/sessões, toda evidência de conteúdo, ou funcionalidades do Painel. Definir papéis, retenção, apelação e como solicitar ao domínio proprietário uma remoção/suspensão antes de criar schema.
 - **Estado técnico:** a decisão está registrada no mapa; nenhum banco, segredo, conexão ou migração foi criado.
+
+### 11.20 Decisão sobre localização principal comercial — 24/10/2026
+
+- **Decisão confirmada:** cada conta comercial pode ter no máximo uma unidade/endereço físico principal.
+- **Ponto não decidido:** o usuário ainda não confirmou se prestadores podem publicar áreas atendidas. A tabela `business_service_areas` consta no SQL de proposta, mas não é requisito aprovado e não deve ser criada ainda.
+- **Não decidido:** eventual relação entre várias contas comerciais independentes que pertençam à mesma marca/rede. Não criar entidade-pai, conta compartilhada ou agregação de avaliações sem regra explícita.
+- **Estado técnico:** registrado em `docs/architecture/database-domains.md`; sem alteração de schema, banco, conexão ou dados.
 
 ### Histórico do documento
 
@@ -695,3 +702,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.18 | 2026-10-24 | Registra a matriz proposta de propriedade das tabelas por domínio, fluxos entre bancos, lacunas de Shop/Trust & Safety e decisões ainda necessárias; nenhuma alteração no banco. |
 | 2.19 | 2026-10-24 | Registra a confirmação de Shop como décimo primeiro banco lógico, limitado ao catálogo, sem provisionar conexão ou migração. |
 | 2.20 | 2026-10-24 | Registra Confiança e Segurança de Conteúdo como décimo segundo banco lógico para denúncias e moderação; logs gerais e implementação permanecem pendentes. |
+| 2.21 | 2026-10-24 | Registra uma unidade física principal por conta comercial; áreas atendidas por prestadores e estrutura de marcas/redes seguem indefinidas. |
