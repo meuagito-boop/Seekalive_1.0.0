@@ -5,7 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./modules";
 import { logger } from "./common/logger";
 import { sendApiError } from "./common/apiErrors";
-import { isHttpErrorCode } from "@workspace/api-zod";
+import { isHttpStatusCode } from "@workspace/api-zod";
 
 const app: Express = express();
 
@@ -61,7 +61,7 @@ app.use((error: unknown, _request: express.Request, response: express.Response, 
       : requestError.status && requestError.status >= 400 && requestError.status < 500
         ? requestError.status
         : 500;
-  const status = isHttpErrorCode(candidateStatus) ? candidateStatus : 500;
+  const status = isHttpStatusCode(candidateStatus) ? candidateStatus : 500;
   logger.error({ errorName: requestError.name ?? "Error", errorCode: requestError.code }, "API request failed");
   const key = status === 400
     ? "INVALID_REQUEST"

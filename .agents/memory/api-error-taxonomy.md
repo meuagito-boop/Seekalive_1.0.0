@@ -3,8 +3,8 @@ name: API error code taxonomy
 description: Keep HTTP status codes separate from numeric domain codes and stable textual error keys.
 ---
 
-Keep HTTP status values in the shared error registry as a separate transport catalog, with one unique entry per supported status. Reserve HTTP family 300 for future catalog expansion if more than 100 HTTP error entries are needed. JSON application errors use unique numeric codes starting at 1000, grouped by domain families such as 1000 general, 1100 authentication, 1200 accounts, and 1300 social; every response carries both that code and a stable textual key.
+Keep HTTP status values in the shared registry as transport metadata; a standard status may repeat across responses and is not the error identifier. The JSON `error.code` plus stable `key` uniquely identifies each application error, using 1000+ codes grouped by domain (1000 general, 1100 authentication, 1200 accounts, 1300 social). Reserve HTTP family 300 only for a future HTTP-specific catalog expansion if more than 100 entries are needed.
 
-**Why:** The user explicitly reserved the 400 family for HTTP, permitted the 300 family for HTTP catalog overflow, and clarified that application error families may use 1000, 1100, 1200, and higher.
+**Why:** The user requires distinct numbers for distinct error types, reserves family 400 for HTTP and allows family 300 for HTTP overflow, while application error families may use 1000, 1100, 1200, and higher.
 
-**How to apply:** Keep HTTP statuses and domain error codes as distinct fields and catalogs. Give every application error a unique 1000+ code and stable key; never reuse a numeric code for different error meanings.
+**How to apply:** Keep the standard HTTP status separate from the response's error identifier. Verify `API_ERROR_CODES` has no duplicate values and never assign one application code to different error meanings.

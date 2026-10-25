@@ -14,9 +14,9 @@ export const API_ERROR_FAMILIES = {
   PLATFORM: 1800,
 } as const;
 
-// One entry per supported HTTP error status. The response status is transport metadata;
-// API_ERROR_CODES below remains the unique application/domain error identifier.
-export const HTTP_ERROR_CODES = {
+// A status is transport metadata and may appear on many responses. It is not the error identifier;
+// API_ERROR_CODES below carries the unique application/domain error code in the JSON body.
+export const HTTP_STATUS_CODES = {
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
@@ -89,20 +89,22 @@ export const API_ERROR_CODES = {
   EMAIL_DELIVERY_UNAVAILABLE: 1803,
 } as const;
 
-const allRegisteredNumbers = [
-  ...Object.values(HTTP_ERROR_CODES),
-  ...Object.values(API_ERROR_CODES),
-];
-if (new Set(allRegisteredNumbers).size !== allRegisteredNumbers.length) {
-  throw new Error("HTTP and application error numbers must be unique.");
+const applicationErrorNumbers = Object.values(API_ERROR_CODES);
+if (new Set(applicationErrorNumbers).size !== applicationErrorNumbers.length) {
+  throw new Error("Each application error type must have a unique numeric code.");
 }
 
-const httpErrorCodeSet: ReadonlySet<number> = new Set(Object.values(HTTP_ERROR_CODES));
-export function isHttpErrorCode(status: number): status is HttpErrorCode {
-  return httpErrorCodeSet.has(status);
+const registeredHttpStatuses = Object.values(HTTP_STATUS_CODES);
+if (new Set(registeredHttpStatuses).size !== registeredHttpStatuses.length) {
+  throw new Error("Each HTTP status must have one unique catalog entry.");
+}
+
+const httpStatusSet: ReadonlySet<number> = new Set(registeredHttpStatuses);
+export function isHttpStatusCode(status: number): status is HttpStatusCode {
+  return httpStatusSet.has(status);
 }
 
 export type ApiErrorKey = keyof typeof API_ERROR_CODES;
 export type ApiErrorCode = (typeof API_ERROR_CODES)[ApiErrorKey];
-export type HttpErrorKey = keyof typeof HTTP_ERROR_CODES;
-export type HttpErrorCode = (typeof HTTP_ERROR_CODES)[HttpErrorKey];
+export type HttpStatusKey = keyof typeof HTTP_STATUS_CODES;
+export type HttpStatusCode = (typeof HTTP_STATUS_CODES)[HttpStatusKey];

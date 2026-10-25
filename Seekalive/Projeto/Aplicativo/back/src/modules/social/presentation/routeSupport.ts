@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
-import type { ApiErrorKey, HttpErrorCode } from "@workspace/api-zod";
+import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
 import { sendApiError } from "../../../common/apiErrors";
 import { loadActiveSession } from "../../../security/session";
 
 export function sendError(
   response: Response,
-  status: HttpErrorCode,
+  status: HttpStatusCode,
   key: ApiErrorKey,
   message: string,
   additional: Record<string, unknown> = {},

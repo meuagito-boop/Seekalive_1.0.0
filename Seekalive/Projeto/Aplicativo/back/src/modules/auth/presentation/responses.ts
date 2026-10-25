@@ -1,10 +1,10 @@
 import type { Response } from "express";
-import type { ApiErrorKey, HttpErrorCode } from "@workspace/api-zod";
+import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
 import { sendApiError, sendApiValidationError } from "../../../common/apiErrors";
 
 export function sendError(
   response: Response,
-  status: HttpErrorCode,
+  status: HttpStatusCode,
   key: ApiErrorKey,
   message: string,
   additional: Record<string, unknown> = {},
