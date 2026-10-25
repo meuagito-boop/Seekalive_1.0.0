@@ -28,6 +28,48 @@ test("Express keeps proxy trust disabled by default", () => {
   assert.equal(app.get("trust proxy"), false);
 });
 
+test("the frontend selects the rightmost valid IP in the forwarded chain", async () => {
+  const { extractForwardedClientIp } = await import(
+    "../../Aplicativo/front/src/server/forwarded-client-ip.ts"
+  );
+  assert.equal(
+    extractForwardedClientIp("198.51.100.10, 203.0.113.42"),
+    "203.0.113.42",
+  );
+  assert.equal(
+    extractForwardedClientIp(["198.51.100.10", "2001:db8::42"]),
+    "2001:db8::42",
+  );
+  assert.equal(extractForwardedClientIp("spoofed, not-an-ip"), null);
+});
+
+test("the backend accepts the internal client IP only from the loopback Vite proxy", async () => {
+  const { getTrustedClientIp, isLoopbackProxyAddress } = await import(
+    "../../Aplicativo/back/src/security/request-origin.ts"
+  );
+  const makeRequest = (remoteAddress, forwardedClientIp) => ({
+    socket: { remoteAddress },
+    get(name) {
+      return name.toLowerCase() === "x-seekalive-client-ip"
+        ? forwardedClientIp
+        : undefined;
+    },
+  });
+
+  assert.equal(isLoopbackProxyAddress("127.0.0.1"), true);
+  assert.equal(isLoopbackProxyAddress("::ffff:127.0.0.1"), true);
+  assert.equal(isLoopbackProxyAddress("203.0.113.9"), false);
+  assert.equal(
+    getTrustedClientIp(makeRequest("::ffff:127.0.0.1", "203.0.113.42")),
+    "203.0.113.42",
+  );
+  assert.equal(
+    getTrustedClientIp(makeRequest("203.0.113.9", "198.51.100.10")),
+    null,
+  );
+  assert.equal(getTrustedClientIp(makeRequest("127.0.0.1", "forged")), null);
+});
+
 test("database write guards use Replit's published-runtime marker", () => {
   const isolatedTest = readFileSync(
     path.resolve(here, "../../Aplicativo/back/test/api-isolated-db.test.mjs"),
@@ -45,10 +87,8 @@ test("database write guards use Replit's published-runtime marker", () => {
 });
 
 test("spoofed X-Forwarded-For cannot bypass the login IP rate limit", async () => {
-  process.env.SESSION_SECRET ??= "isolated-security-test-secret-that-is-long-enough";
-  process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:1/unused";
   const { createAuthRateLimit } = await import(
-    "../../Aplicativo/back/src/security/session.ts"
+    "../../Aplicativo/back/src/security/request-origin.ts"
   );
   const express = backendRequire("express");
   const app = express();

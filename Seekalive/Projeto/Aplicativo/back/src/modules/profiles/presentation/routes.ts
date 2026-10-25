@@ -10,7 +10,8 @@ import {
   db,
 } from "@workspace/db";
 import { accountPatchSchema, privacyWriteSchema } from "@workspace/api-zod";
-import { createAuthRateLimit, loadActiveSession, requireCsrf } from "../../../security/session";
+import { createAuthRateLimit } from "../../../security/request-origin";
+import { loadActiveSession, requireCsrf } from "../../../security/session";
 
 const router: IRouter = Router();
 const emptyPage = { items: [], nextCursor: null };

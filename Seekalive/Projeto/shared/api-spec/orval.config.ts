@@ -1,4 +1,4 @@
-import { defineConfig, InputTransformerFn } from "orval";
+import { defineConfig, type InputTransformerFn } from "orval";
 import path from "path";
 import { fileURLToPath } from "node:url";
 

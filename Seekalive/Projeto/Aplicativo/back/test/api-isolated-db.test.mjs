@@ -220,8 +220,9 @@ function cookieValue(response, name) {
   return cookie;
 }
 
-async function request(path, { method = "GET", body, auth } = {}) {
+async function request(path, { method = "GET", body, auth, clientIp = "203.0.113.42" } = {}) {
   const headers = new Headers();
+  if (clientIp !== null) headers.set("x-seekalive-client-ip", clientIp);
   if (body !== undefined) headers.set("content-type", "application/json");
   if (auth?.cookie) headers.set("cookie", auth.cookie);
   if (auth?.csrfToken) headers.set("x-csrf-token", auth.csrfToken);
@@ -236,6 +237,24 @@ async function request(path, { method = "GET", body, auth } = {}) {
     body: text ? JSON.parse(text) : null,
   };
 }
+
+test("login and email verification fail closed when the trusted proxy provides no client IP", async () => {
+  const login = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: "not-a-real-account", password: "invalid" },
+    clientIp: null,
+  });
+  assert.equal(login.response.status, 503);
+  assert.equal(login.body.error.code, "CLIENT_IP_UNAVAILABLE");
+
+  const verification = await request("/api/v1/auth/verification/confirm", {
+    method: "POST",
+    body: { email: "not-a-real-account@example.com", code: "000000" },
+    clientIp: null,
+  });
+  assert.equal(verification.response.status, 503);
+  assert.equal(verification.body.error.code, "CLIENT_IP_UNAVAILABLE");
+});
 
 async function createPreAuth() {
   const { response, body } = await request("/api/v1/auth/csrf");

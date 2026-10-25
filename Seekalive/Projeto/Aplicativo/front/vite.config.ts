@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { extractForwardedClientIp } from "./src/server/forwarded-client-ip";
 
 const rawPort = process.env.PORT;
 
@@ -75,6 +76,15 @@ export default defineConfig({
         changeOrigin: false,
         configure(proxy) {
           proxy.on("proxyReq", (proxyRequest, request) => {
+            const forwardedClientIp = extractForwardedClientIp(
+              request.headers["x-forwarded-for"],
+            );
+            proxyRequest.removeHeader("x-forwarded-for");
+            proxyRequest.removeHeader("x-seekalive-client-ip");
+            if (forwardedClientIp) {
+              proxyRequest.setHeader("x-seekalive-client-ip", forwardedClientIp);
+            }
+
             const origin = request.headers.origin;
             if (origin) {
               try {

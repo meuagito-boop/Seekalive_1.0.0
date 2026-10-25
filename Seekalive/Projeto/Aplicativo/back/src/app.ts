@@ -7,6 +7,8 @@ import { logger } from "./common/logger";
 
 const app: Express = express();
 
+app.set("trust proxy", false);
+
 app.use(
   pinoHttp({
     logger,

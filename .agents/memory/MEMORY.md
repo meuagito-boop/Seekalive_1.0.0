@@ -10,4 +10,5 @@
 - [Back-end em etapas](backend-staged-rollout.md) — resolver conta antes das páginas públicas; Social precisa estar pronto antes de Seek/Shop; Painel gerirá app e Gestor depois.
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.
-- [Privacidade de sessões](session-device-privacy.md) — novo IP exige código; espera 30 s, 90 s e bloqueio no terceiro erro; primeira sessão cria IP-base.
+- [Privacidade de sessões](session-device-privacy.md) — IP só via proxy confiável; novo IP exige código, com espera de 30/90 s; retenção e persistência ainda pendentes.
+- [Autorização de prompts](prompt-recommendations.md) — prompts rotulados como recomendação exigem análise de compatibilidade e decisão do usuário antes de implementar.

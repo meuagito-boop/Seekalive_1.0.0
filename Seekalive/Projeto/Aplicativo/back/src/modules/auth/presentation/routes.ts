@@ -25,9 +25,12 @@ import {
 } from "@workspace/api-zod";
 import { logger } from "../../../common/logger";
 import {
+  createAuthRateLimit,
+  requireTrustedClientIp,
+} from "../../../security/request-origin";
+import {
   clearSessionCookie,
   constantTimeEquals,
-  createAuthRateLimit,
   csrfHash,
   hashPasswordResetCode,
   hashToken,
@@ -363,7 +366,7 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
   }
 });
 
-router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireTrustedClientIp, requireCsrf, async (request, response) => {
   const parsed = loginRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     sendValidationError(response, parsed.error.issues);
@@ -767,7 +770,7 @@ router.post("/verification", createAuthRateLimit("verify-resend", 3, 15 * 60 * 1
   response.status(202).json({ status: "verification_required", message: genericVerificationMessage });
 });
 
-router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 15 * 60 * 1000), requireTrustedClientIp, requireCsrf, async (request, response) => {
   const parsed = verificationConfirmSchema.safeParse(request.body);
   if (!parsed.success) {
     sendValidationError(response, parsed.error.issues);

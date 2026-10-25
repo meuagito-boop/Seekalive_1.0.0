@@ -8,7 +8,8 @@ import {
   accounts,
   db,
 } from "@workspace/db";
-import { createAuthRateLimit, loadActiveSession, requireCsrf } from "../../../security/session";
+import { createAuthRateLimit } from "../../../security/request-origin";
+import { loadActiveSession, requireCsrf } from "../../../security/session";
 import { accountView, accountViewsByIds, findActiveAccountById, isBlockedBetween } from "../../profiles/presentation/routes";
 
 const router: IRouter = Router();
