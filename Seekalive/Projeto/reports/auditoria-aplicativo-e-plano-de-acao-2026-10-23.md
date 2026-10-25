@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.46
+**Versão do documento:** 2.47
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -16,6 +16,8 @@
 **Recuperação sem acesso ao e-mail:** solicitar contato manual com suporte e verificação adicional. A solicitação deverá chegar ao e-mail de suporte e ao futuro Painel de Controle; o método de verificação fica fora do escopo atual, sem coleta de documentos nesta etapa.
 
 **Exclusão de conta:** permitir solicitar exclusão permanente em Configurações mediante senha atual e código no e-mail verificado; ocultar e desativar a conta imediatamente, preservar os dados e executar a exclusão após 7 dias. O titular pode cancelar até o fim desse período pelo login, com senha e código no e-mail verificado. Ao concluir, excluir publicações, mídias, comentários, curtidas, repostagens e itens salvos, atualizar contagens e remover relações sociais; mensagens diretas permanecem para os destinatários com o remetente anonimizado.
+
+**Exportação de dados:** não oferecer recurso de exportação na primeira versão. Verificar as obrigações de privacidade aplicáveis antes do lançamento público; a decisão de escopo não presume dispensa dessas obrigações.
 **Tipo de revisão:** auditoria estática de engenharia e verificação operacional não destrutiva. Esta versão registra a execução posterior do pacote A01; os achados da auditoria original permanecem datados e contextualizados.
 
 ## 1. Parecer executivo
@@ -752,6 +754,12 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 
 ### Histórico do documento
 
+### 11.29 Exportação de dados da conta — 24/10/2026
+
+- **Decisão confirmada:** não oferecer, na primeira versão, download ou exportação dos dados da conta, nem por Configurações nem por solicitação ao suporte.
+- **Estado técnico:** não há interface, endpoint ou fluxo de suporte para exportação.
+- **Gate de lançamento:** antes do lançamento público, revisar as obrigações de privacidade aplicáveis. Se houver exigência de acesso/portabilidade, definir um canal compatível sem presumir que a função foi dispensada.
+
 | Versão | Data | Atualização |
 |---|---|---|
 | 1.1 | 2026-10-23 | Consolida os resultados da auditoria complementar, scanners e plano coordenado de remediação com dependências e critérios de aceite. |
@@ -810,3 +818,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.44 | 2026-10-24 | Exige senha atual e código no e-mail verificado antes de agendar a exclusão permanente. |
 | 2.45 | 2026-10-24 | Não envia e-mail adicional após agendar a exclusão; mantém somente o e-mail de código para autorizar o pedido. |
 | 2.46 | 2026-10-24 | Retém apenas o mínimo exigido por obrigação aplicável, com acesso restrito e prazo definido; categorias e prazos dependem de revisão. |
+| 2.47 | 2026-10-24 | Não oferece exportação de dados na primeira versão e exige verificar obrigações de privacidade antes do lançamento. |
