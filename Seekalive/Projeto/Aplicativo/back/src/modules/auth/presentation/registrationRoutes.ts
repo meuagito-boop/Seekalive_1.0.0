@@ -1,18 +1,15 @@
-import { and, eq, gt, lte } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   accountEmails,
   accountUsernameReservations,
   accounts,
-  commercialProfiles,
   db,
-  passwordCredentials,
 } from "@workspace/db";
 import {
   PASSWORD_POLICY_VERSION,
   registerRequestSchema,
 } from "@workspace/api-zod";
-import { lockUsernameClaims } from "../../accounts/application/usernamePolicy";
 import { logger } from "../../../common/logger";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
@@ -20,6 +17,7 @@ import {
   deliverVerificationCode,
 } from "../application/emailVerification";
 import { hashPassword } from "../application/passwordHashing";
+import { createRegistrationAccount } from "../application/registration/createRegistrationAccount";
 import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { sendError, sendValidationError } from "./responses";
 
@@ -89,71 +87,14 @@ router.post(
       return;
     }
 
-    const displayName = registration.accountType === "personal"
-      ? `${registration.firstName} ${registration.lastName}`.trim()
-      : registration.businessName.trim();
     const passwordHash = await hashPassword(registration.password);
 
     try {
-      const account = await db.transaction(async (tx) => {
-        await lockUsernameClaims(tx, [username]);
-        const now = new Date();
-        await tx
-          .delete(accountUsernameReservations)
-          .where(and(
-            eq(accountUsernameReservations.username, username),
-            lte(accountUsernameReservations.reservedUntil, now),
-          ));
-        const [existingUsername] = await tx
-          .select({ id: accounts.id })
-          .from(accounts)
-          .where(eq(accounts.username, username))
-          .limit(1);
-        const [activeReservation] = await tx
-          .select({ username: accountUsernameReservations.username })
-          .from(accountUsernameReservations)
-          .where(and(
-            eq(accountUsernameReservations.username, username),
-            gt(accountUsernameReservations.reservedUntil, now),
-          ))
-          .limit(1);
-        if (existingUsername || activeReservation) return null;
-
-        const [created] = await tx
-          .insert(accounts)
-          .values({
-            username,
-            firstName: registration.accountType === "personal" ? registration.firstName.trim() : null,
-            lastName: registration.accountType === "personal" ? registration.lastName.trim() : null,
-            age: registration.age,
-            acceptedTermsVersion: CURRENT_TERMS_VERSION,
-            displayName,
-            accountType: registration.accountType,
-            status: "pending_verification",
-          })
-          .returning({ id: accounts.id, username: accounts.username, displayName: accounts.displayName });
-        if (!created) throw new Error("Account insert returned no row.");
-
-        await tx.insert(accountEmails).values({ accountId: created.id, emailNormalized: email });
-        await tx.insert(passwordCredentials).values({
-          accountId: created.id,
-          passwordHash,
-          passwordPolicyVersion: PASSWORD_POLICY_VERSION,
-        });
-
-        if (registration.accountType === "commercial") {
-          await tx.insert(commercialProfiles).values({
-            accountId: created.id,
-            categoryKey: registration.categoryKey,
-            discoveryKind: registration.discoveryKind,
-            address: registration.address,
-            postalCode: registration.postalCode,
-            cityName: registration.city,
-            stateName: registration.state,
-            countryName: registration.country,
-          });
-        }
-        return created;
+      const account = await createRegistrationAccount(registration, {
+        username,
+        email,
+        passwordHash,
+        acceptedTermsVersion: CURRENT_TERMS_VERSION,
       });
 
       if (!account) {
