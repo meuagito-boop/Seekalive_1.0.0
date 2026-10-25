@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.44
+**Versão do documento:** 2.45
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -738,6 +738,7 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Cancelamento pelo login:** ao tentar entrar durante os 7 dias, depois de validar as credenciais, mostrar o tempo restante e perguntar se o titular quer restaurar a conta. Se não quiser, manter a exclusão programada e bloquear o acesso.
 - **Autenticação da restauração confirmada:** exigir a senha correta e um código enviado ao e-mail verificado antes de reativar a conta. Sem essa confirmação, manter a exclusão programada.
 - **Autenticação do pedido:** aplicar a regra já estabelecida para ações sensíveis da conta: senha atual e código enviado ao e-mail verificado antes de agendar a exclusão.
+- **E-mail após o pedido:** não enviar uma mensagem separada depois de agendar a exclusão; somente o e-mail com o código para autorizar o pedido.
 - **Conteúdo público confirmado:** ao concluir a exclusão, apagar publicações, mídias e comentários produzidos pela conta.
 - **Mensagens diretas confirmadas:** manter as mensagens na caixa dos destinatários e anonimizar o remetente como “Conta excluída”.
 - **Relações sociais confirmadas:** remover seguidores, contas seguidas, pedidos pendentes e relações de Círculo quando a exclusão se tornar permanente; preservar esses dados durante os 7 dias para restauração.
@@ -806,3 +807,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.42 | 2026-10-24 | Remove curtidas e repostagens da conta e atualiza as contagens quando a exclusão permanente ocorrer. |
 | 2.43 | 2026-10-24 | Apaga a coleção de itens salvos quando a exclusão permanente ocorrer, preservando-a durante o prazo de restauração. |
 | 2.44 | 2026-10-24 | Exige senha atual e código no e-mail verificado antes de agendar a exclusão permanente. |
+| 2.45 | 2026-10-24 | Não envia e-mail adicional após agendar a exclusão; mantém somente o e-mail de código para autorizar o pedido. |
