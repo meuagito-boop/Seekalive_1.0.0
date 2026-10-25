@@ -55,7 +55,8 @@ test("unknown API paths return a JSON 404 with the request ID", async () => {
   assert.equal(response.status, 404);
   assert.match(response.headers.get("content-type") ?? "", /application\/json/i);
   const body = await response.json();
-  assert.equal(body.error.code, "NOT_FOUND");
+  assert.equal(body.error.key, "NOT_FOUND");
+  assert.equal(body.error.code, 1003);
   assertRequestId(response, body);
 });
 
@@ -63,7 +64,8 @@ test("protected profile routes return a traceable authentication error", async (
   const response = await fetch(`${baseUrl}/api/v1/accounts/me`);
   assert.equal(response.status, 401);
   const body = await response.json();
-  assert.equal(body.error.code, "UNAUTHENTICATED");
+  assert.equal(body.error.key, "UNAUTHENTICATED");
+  assert.equal(body.error.code, 1101);
   assertRequestId(response, body);
 });
 
@@ -75,6 +77,7 @@ test("CSRF rejections use the same traceable error contract", async () => {
   });
   assert.equal(response.status, 403);
   const body = await response.json();
-  assert.equal(body.error.code, "CSRF_REJECTED");
+  assert.equal(body.error.key, "CSRF_REJECTED");
+  assert.equal(body.error.code, 1106);
   assertRequestId(response, body);
 });

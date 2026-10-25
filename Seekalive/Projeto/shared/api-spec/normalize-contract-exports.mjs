@@ -13,6 +13,7 @@ const allowedGeneratedExports = new Set([
 const allowedPackageExports = new Set([
   'export * from "./auth";',
   'export * from "./social";',
+  'export * from "./errorCodes";',
   'export * as GeneratedTypes from "./generated/types";',
 ]);
 const existingLines = (await readFile(indexPath, "utf8"))
@@ -42,6 +43,7 @@ const exports = [
   'export * as GeneratedTypes from "./generated/types";',
   'export * from "./auth";',
   'export * from "./social";',
+  'export * from "./errorCodes";',
   "",
 ].join("\n");
 

@@ -1,12 +1,13 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { accountEmails, accounts, db } from "@workspace/db";
+import type { ApiErrorKey, HttpErrorCode } from "@workspace/api-zod";
 import { nextIdentityChangeAt } from "../../accounts/application/usernamePolicy";
 import { accountView, findActiveAccountById } from "./accountViews";
 
 export type OwnerProfileFailure = {
   ok: false;
-  status: number;
-  code: string;
+  status: HttpErrorCode;
+  code: ApiErrorKey;
   message: string;
 };
 

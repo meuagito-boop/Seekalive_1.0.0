@@ -356,7 +356,8 @@ test("login and email verification do not require an IP to recognize the device"
     clientIp: null,
   });
   assert.equal(login.response.status, 401);
-  assert.equal(login.body.error.code, "INVALID_CREDENTIALS");
+  assert.equal(login.body.error.key, "INVALID_CREDENTIALS");
+  assert.equal(login.body.error.code, 1104);
 
   const verification = await request("/api/v1/auth/verification/confirm", {
     method: "POST",
@@ -365,7 +366,7 @@ test("login and email verification do not require an IP to recognize the device"
     clientIp: null,
   });
   assert.equal(verification.response.status, 400);
-  assert.equal(verification.body.error.code, "INVALID_VERIFICATION_CODE");
+  assert.equal(verification.body.error.key, "INVALID_VERIFICATION_CODE");
 });
 
 async function createPreAuth() {
@@ -512,7 +513,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: preAuth,
   });
   assert.equal(loginBeforeVerification.response.status, 403);
-  assert.equal(loginBeforeVerification.body.error.code, "EMAIL_NOT_VERIFIED");
+  assert.equal(loginBeforeVerification.body.error.key, "EMAIL_NOT_VERIFIED");
 
   const personal = await confirmAccount(pendingPersonal, preAuth);
   assert.equal(personal.account.accountType, "personal");
@@ -547,7 +548,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: legacyLoginPreAuth,
   });
   assert.equal(legacyLogin.response.status, 403);
-  assert.equal(legacyLogin.body.error.code, "PASSWORD_UPDATE_REQUIRED");
+  assert.equal(legacyLogin.body.error.key, "PASSWORD_UPDATE_REQUIRED");
   assert.equal(
     responseCookies(legacyLogin.response).some((cookie) => cookie.startsWith("__Host-seekalive_session=")),
     false,
@@ -643,7 +644,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: await createPreAuth(),
   });
   assert.equal(wrongResetCode.response.status, 400);
-  assert.equal(wrongResetCode.body.error.code, "INVALID_PASSWORD_RESET");
+  assert.equal(wrongResetCode.body.error.key, "INVALID_PASSWORD_RESET");
 
   const resetPassword = await request("/api/v1/auth/password/reset/confirm", {
     method: "POST",
@@ -681,7 +682,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: await createPreAuth(),
   });
   assert.equal(replayedResetCode.response.status, 400);
-  assert.equal(replayedResetCode.body.error.code, "INVALID_PASSWORD_RESET");
+  assert.equal(replayedResetCode.body.error.key, "INVALID_PASSWORD_RESET");
 
   const resetPasswordLogin = await request("/api/v1/auth/login", {
     method: "POST",
@@ -725,7 +726,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: await createPreAuth(),
   });
   assert.equal(expiredResetConfirmation.response.status, 400);
-  assert.equal(expiredResetConfirmation.body.error.code, "INVALID_PASSWORD_RESET");
+  assert.equal(expiredResetConfirmation.body.error.key, "INVALID_PASSWORD_RESET");
 
   const currentSession = await request("/api/v1/auth/session", { auth: personal });
   assert.equal(currentSession.response.status, 200);
@@ -752,7 +753,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(earlyPersonalNameChange.response.status, 409);
-  assert.equal(earlyPersonalNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+  assert.equal(earlyPersonalNameChange.body.error.key, "NAME_CHANGE_COOLDOWN");
 
   const earlyPersonalUsernameChange = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -763,7 +764,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(earlyPersonalUsernameChange.response.status, 409);
-  assert.equal(earlyPersonalUsernameChange.body.error.code, "USERNAME_CHANGE_COOLDOWN");
+  assert.equal(earlyPersonalUsernameChange.body.error.key, "USERNAME_CHANGE_COOLDOWN");
 
   await pool.query(
     `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
@@ -804,7 +805,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(immediateSecondNameChange.response.status, 409);
-  assert.equal(immediateSecondNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+  assert.equal(immediateSecondNameChange.body.error.key, "NAME_CHANGE_COOLDOWN");
 
   const immediateSecondUsernameChange = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -815,7 +816,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(immediateSecondUsernameChange.response.status, 409);
-  assert.equal(immediateSecondUsernameChange.body.error.code, "USERNAME_CHANGE_COOLDOWN");
+  assert.equal(immediateSecondUsernameChange.body.error.key, "USERNAME_CHANGE_COOLDOWN");
 
   const oldUsernameAvailability = await request(
     `/api/v1/accounts/availability?username=${encodeURIComponent(personalRegistration.username)}`,
@@ -834,7 +835,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(oldUsernameRegistration.response.status, 409);
-  assert.equal(oldUsernameRegistration.body.error.code, "USERNAME_UNAVAILABLE");
+  assert.equal(oldUsernameRegistration.body.error.key, "USERNAME_UNAVAILABLE");
 
   await pool.query(
     `UPDATE ${quoteGeneratedSchema(schemaName)}.account_username_reservations
@@ -873,7 +874,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(personalCommercialFieldAttempt.response.status, 400);
-  assert.equal(personalCommercialFieldAttempt.body.error.code, "ACCOUNT_FIELD_NOT_ALLOWED");
+  assert.equal(personalCommercialFieldAttempt.body.error.key, "ACCOUNT_FIELD_NOT_ALLOWED");
 
   const personalAgeEditAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -888,7 +889,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     body: { bio: "Atualização antiga", version: personalOwnerProfile.body.account.version },
   });
   assert.equal(personalStaleVersionAttempt.response.status, 409);
-  assert.equal(personalStaleVersionAttempt.body.error.code, "VERSION_CONFLICT");
+  assert.equal(personalStaleVersionAttempt.body.error.key, "VERSION_CONFLICT");
   const storedPersonalAge = await pool.query(
     `SELECT age FROM ${quoteGeneratedSchema(schemaName)}.accounts WHERE id = $1`,
     [personal.account.id],
@@ -1084,7 +1085,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(earlyCommercialNameChange.response.status, 409);
-  assert.equal(earlyCommercialNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+  assert.equal(earlyCommercialNameChange.body.error.key, "NAME_CHANGE_COOLDOWN");
 
   await pool.query(
     `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
@@ -1103,7 +1104,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(usernameAlreadyTaken.response.status, 409);
-  assert.equal(usernameAlreadyTaken.body.error.code, "USERNAME_UNAVAILABLE");
+  assert.equal(usernameAlreadyTaken.body.error.key, "USERNAME_UNAVAILABLE");
 
   const updatedCommercialProfile = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -1149,7 +1150,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(commercialPersonalFieldAttempt.response.status, 400);
-  assert.equal(commercialPersonalFieldAttempt.body.error.code, "ACCOUNT_FIELD_NOT_ALLOWED");
+  assert.equal(commercialPersonalFieldAttempt.body.error.key, "ACCOUNT_FIELD_NOT_ALLOWED");
 
   const publicProfileAfterCommercialEdit = await request(
     `/api/v1/profiles/${commercial.account.username}`,
@@ -1169,7 +1170,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(immediateSecondCommercialNameChange.response.status, 409);
-  assert.equal(immediateSecondCommercialNameChange.body.error.code, "NAME_CHANGE_COOLDOWN");
+  assert.equal(immediateSecondCommercialNameChange.body.error.key, "NAME_CHANGE_COOLDOWN");
 
   const accountSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
@@ -1209,7 +1210,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     [200, 409],
   );
   const rejectedConcurrentUsernameChange = concurrentUsernameChanges.find((result) => result.response.status === 409);
-  assert.equal(rejectedConcurrentUsernameChange?.body.error.code, "USERNAME_UNAVAILABLE");
+  assert.equal(rejectedConcurrentUsernameChange?.body.error.key, "USERNAME_UNAVAILABLE");
   const personalAfterConcurrentRename = await request("/api/v1/accounts/me", { auth: personal });
   assert.equal(personalAfterConcurrentRename.response.status, 200);
   const currentPersonalUsername = personalAfterConcurrentRename.body.account.username;
@@ -1467,7 +1468,7 @@ test("unknown installations require email confirmation; password changes revoke 
     clientIp,
   });
   assert.equal(wrongAttempt.response.status, 400);
-  assert.equal(wrongAttempt.body.error.code, "INVALID_DEVICE_CODE");
+  assert.equal(wrongAttempt.body.error.key, "INVALID_DEVICE_CODE");
   assert.equal(wrongAttempt.body.error.attemptsRemaining, 2);
 
   await db
@@ -1602,7 +1603,7 @@ test("three incorrect device codes lock the account and expose the configured su
     clientIp,
   });
   assert.equal(blockedLogin.response.status, 423);
-  assert.equal(blockedLogin.body.error.code, "SECURITY_LOCKED");
+  assert.equal(blockedLogin.body.error.key, "SECURITY_LOCKED");
   assert.equal(blockedLogin.body.error.supportEmail, "admseekalive@gmail.com");
 });
 
@@ -1641,7 +1642,7 @@ test("authenticated e-mail and password changes verify both mailboxes and revoke
     clientIp,
   });
   assert.equal(wrongCurrentPassword.response.status, 401);
-  assert.equal(wrongCurrentPassword.body.error.code, "INVALID_CURRENT_PASSWORD");
+  assert.equal(wrongCurrentPassword.body.error.key, "INVALID_CURRENT_PASSWORD");
 
   const emailRequest = await request("/api/v1/auth/account/email/change/request", {
     method: "POST",

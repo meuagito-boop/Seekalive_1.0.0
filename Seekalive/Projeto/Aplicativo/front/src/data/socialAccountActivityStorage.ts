@@ -1,4 +1,4 @@
-import type { SocialRepost } from "@/types/content";
+import type { SocialRepost } from "@/types/social/posts";
 
 const STORAGE_KEY = "seekalive-social-account-activity";
 

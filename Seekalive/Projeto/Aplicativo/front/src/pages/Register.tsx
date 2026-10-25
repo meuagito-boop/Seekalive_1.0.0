@@ -153,7 +153,7 @@ export default function Register() {
       toast({ title: "Confirme seu e-mail", description: result.message });
       setLocation("/verify-email");
     } catch (error) {
-      if (error instanceof AuthApiError && error.code === "USERNAME_UNAVAILABLE") {
+      if (error instanceof AuthApiError && error.key === "USERNAME_UNAVAILABLE") {
         form.setError("username", { type: "server", message: error.message });
         return;
       }

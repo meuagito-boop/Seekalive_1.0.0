@@ -83,7 +83,7 @@ export default function Login() {
   }
 
   function handleAuthFailure(error: unknown, fallback: string) {
-    if (error instanceof AuthApiError && error.code === "SECURITY_LOCKED") {
+    if (error instanceof AuthApiError && error.key === "SECURITY_LOCKED") {
       setSupportEmail(error.supportEmail ?? null);
       setDeviceChallenge(null);
       setPasswordUpdateChallenge(null);
@@ -106,7 +106,7 @@ export default function Login() {
       }
       applyLoginResult(result);
     } catch (error) {
-      if (error instanceof AuthApiError && error.code === "PASSWORD_UPDATE_REQUIRED") {
+      if (error instanceof AuthApiError && error.key === "PASSWORD_UPDATE_REQUIRED") {
         setPasswordUpdateRequired(true);
         passwordUpdateForm.reset();
         toast({
@@ -115,7 +115,7 @@ export default function Login() {
         });
         return;
       }
-      if (error instanceof AuthApiError && error.code === "EMAIL_NOT_VERIFIED") {
+      if (error instanceof AuthApiError && error.key === "EMAIL_NOT_VERIFIED") {
         if (values.identifier.includes("@")) {
           sessionStorage.setItem("seekalive:pending-email", values.identifier.trim().toLowerCase());
         }
@@ -205,7 +205,7 @@ export default function Login() {
           ? { ...current, resendAvailableAt: error.resendAvailableAt! }
           : current);
       }
-      if (error instanceof AuthApiError && error.code === "INVALID_DEVICE_CODE" && error.attemptsRemaining !== undefined) {
+      if (error instanceof AuthApiError && error.key === "INVALID_DEVICE_CODE" && error.attemptsRemaining !== undefined) {
         toast({
           title: "Código incorreto",
           description: `Restam ${error.attemptsRemaining} ${error.attemptsRemaining === 1 ? "tentativa" : "tentativas"}. O botão de reenvio mostra quando poderá solicitar outro código.`,

@@ -1,4 +1,4 @@
-import type { ShopItem } from "@/types/content";
+import type { ShopItem } from "@/types/shop/item";
 
 // Explicit demonstration catalog. No prices or availability are live.
 export const demoShopItems: ShopItem[] = [

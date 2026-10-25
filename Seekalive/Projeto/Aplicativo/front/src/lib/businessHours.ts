@@ -1,4 +1,4 @@
-import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/types/businessHours";
+import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/types/profiles/commercial/businessHours";
 
 const unknownDay = (): BusinessDayHours => ({ status: "unknown", opensAt: "", closesAt: "" });
 

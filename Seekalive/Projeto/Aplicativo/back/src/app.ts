@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./modules";
 import { logger } from "./common/logger";
+import { sendApiError } from "./common/apiErrors";
+import { isHttpErrorCode } from "@workspace/api-zod";
 
 const app: Express = express();
 
@@ -42,13 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", router);
 
 app.use((_request, response) => {
-  response.status(404).json({
-    error: {
-      code: "NOT_FOUND",
-      message: "Recurso não encontrado.",
-      requestId: response.locals.requestId ?? "unknown",
-    },
-  });
+  sendApiError(response, 404, "NOT_FOUND", "Recurso não encontrado.");
 });
 
 app.use((error: unknown, _request: express.Request, response: express.Response, next: express.NextFunction) => {
@@ -58,21 +54,22 @@ app.use((error: unknown, _request: express.Request, response: express.Response, 
   }
 
   const requestError = error as { type?: string; status?: number; name?: string; code?: string };
-  const status = requestError.type === "entity.too.large"
+  const candidateStatus = requestError.type === "entity.too.large"
     ? 413
     : requestError.type === "entity.parse.failed"
       ? 400
       : requestError.status && requestError.status >= 400 && requestError.status < 500
         ? requestError.status
         : 500;
+  const status = isHttpErrorCode(candidateStatus) ? candidateStatus : 500;
   logger.error({ errorName: requestError.name ?? "Error", errorCode: requestError.code }, "API request failed");
-  response.status(status).json({
-    error: {
-      code: status === 400 ? "INVALID_REQUEST" : status === 413 ? "PAYLOAD_TOO_LARGE" : "INTERNAL_ERROR",
-      message: status === 500 ? "Não foi possível concluir a solicitação." : "Solicitação inválida.",
-      requestId: response.locals.requestId ?? "unknown",
-    },
-  });
+  const key = status === 400
+    ? "INVALID_REQUEST"
+    : status === 413
+      ? "PAYLOAD_TOO_LARGE"
+      : "INTERNAL_ERROR";
+  const message = status === 500 ? "Não foi possível concluir a solicitação." : "Solicitação inválida.";
+  sendApiError(response, status, key, message);
 });
 
 export default app;

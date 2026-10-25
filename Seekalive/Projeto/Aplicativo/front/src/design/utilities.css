@@ -1,0 +1,25 @@
+@layer utilities {
+  .sk-glow {
+    box-shadow: var(--brand-glow);
+  }
+
+  .sk-glow-lg {
+    box-shadow: var(--brand-glow-lg);
+  }
+
+  .sk-card {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--seekalive-radius-lg);
+  }
+
+  .sk-card-raised {
+    background: var(--surface-raised);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--seekalive-radius-lg);
+  }
+
+  .sk-page {
+    @apply flex flex-col min-h-full pb-6;
+  }
+}

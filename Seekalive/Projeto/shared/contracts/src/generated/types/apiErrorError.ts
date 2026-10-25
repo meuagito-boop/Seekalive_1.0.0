@@ -8,7 +8,14 @@
 import type { ApiErrorErrorDetailsItem } from './apiErrorErrorDetailsItem';
 
 export type ApiErrorError = {
-  code: string;
+  /**
+     * Unique numeric application/domain error code. HTTP response status is separate transport metadata and is catalogued in shared/contracts/src/errorCodes.ts.
+     * @minimum 1000
+     * @maximum 1899
+     */
+  code: number;
+  /** Stable symbolic error key for client-side handling. */
+  key: string;
   message: string;
   requestId: string;
   details?: ApiErrorErrorDetailsItem[];

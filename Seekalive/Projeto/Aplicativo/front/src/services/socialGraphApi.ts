@@ -26,8 +26,10 @@ import type {
   PrivacySettingsWrite,
   ProfileResponse,
 } from "@workspace/api-client-react";
+import { API_ERROR_CODES, type ApiErrorKey } from "@workspace/api-zod";
 import type { FollowRequest, User } from "@/data/mockData";
 import { getCsrfToken } from "@/services/authApi";
+import { readApiError } from "@/services/apiErrors";
 
 type RequestOptions = Parameters<typeof getMyAccount>[0];
 
@@ -35,7 +37,8 @@ export class SocialGraphApiError extends Error {
   constructor(
     message: string,
     readonly status?: number,
-    readonly code?: string,
+    readonly code?: number,
+    readonly key?: ApiErrorKey,
   ) {
     super(message);
     this.name = "SocialGraphApiError";
@@ -47,21 +50,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalizeError(error: unknown): SocialGraphApiError {
-  if (!isRecord(error)) {
-    return new SocialGraphApiError("Não foi possível concluir a solicitação.");
-  }
-
-  const nestedError = isRecord(error.data) && isRecord(error.data.error)
-    ? error.data.error
-    : undefined;
-  const message = typeof nestedError?.message === "string"
-    ? nestedError.message
-    : error instanceof Error
-      ? error.message
-      : "Não foi possível concluir a solicitação.";
-  const status = typeof error.status === "number" ? error.status : undefined;
-  const code = typeof nestedError?.code === "string" ? nestedError.code : undefined;
-  return new SocialGraphApiError(message, status, code);
+  const fallbackMessage = error instanceof Error
+    ? error.message
+    : "Não foi possível concluir a solicitação.";
+  const parsed = readApiError(error, fallbackMessage);
+  const status = isRecord(error) && typeof error.status === "number" ? error.status : undefined;
+  return new SocialGraphApiError(parsed.message, status, parsed.code, parsed.key);
 }
 
 async function request<T>(operation: () => Promise<T>): Promise<T> {
@@ -129,6 +123,7 @@ export function myAccountToUser(response: MyAccountResponse): User {
     throw new SocialGraphApiError(
       "O perfil comercial da conta está incompleto. Os dados não foram substituídos por exemplos.",
       500,
+      API_ERROR_CODES.ACCOUNT_PROFILE_INCOMPLETE,
       "ACCOUNT_PROFILE_INCOMPLETE",
     );
   }

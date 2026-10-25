@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[0_0_16px_hsl(24_95%_53%_/_0.25)] hover:opacity-90 hover:shadow-[0_0_22px_hsl(24_95%_53%_/_0.4)] active:scale-[0.97]",
+          "bg-primary text-primary-foreground shadow-[0_0_16px_hsl(var(--primary)/0.25)] hover:opacity-90 hover:shadow-[0_0_22px_hsl(var(--primary)/0.4)] active:scale-[0.97]",
         secondary:
           "bg-secondary text-secondary-foreground border border-border hover:bg-muted active:scale-[0.97]",
         ghost:
@@ -24,7 +24,7 @@ const buttonVariants = cva(
         link:
           "text-primary underline-offset-4 hover:underline p-0 h-auto",
         brand:
-          "bg-primary text-primary-foreground font-bold rounded-full shadow-[0_0_20px_hsl(24_95%_53%_/_0.3)] hover:opacity-90 hover:shadow-[0_0_28px_hsl(24_95%_53%_/_0.45)] active:scale-[0.97]",
+          "bg-primary text-primary-foreground font-bold rounded-full shadow-[0_0_20px_hsl(var(--primary)/0.3)] hover:opacity-90 hover:shadow-[0_0_28px_hsl(var(--primary)/0.45)] active:scale-[0.97]",
       },
       size: {
         default: "min-h-9 px-4 py-2",

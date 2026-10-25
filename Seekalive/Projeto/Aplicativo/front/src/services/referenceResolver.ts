@@ -1,5 +1,5 @@
 import type { Post, SeekReview, User } from "@/data/mockData";
-import type { ContentReference, ReferencePreview } from "@/types/content";
+import type { ContentReference, ReferencePreview } from "@/types/social/contentReferences";
 import { demoShopItems } from "@/data/demoCatalog";
 import { demoSeekEvents } from "@/data/demoSeekEvents";
 import { canReadPost, referenceSchema, ContentServiceError } from "./contentValidation";

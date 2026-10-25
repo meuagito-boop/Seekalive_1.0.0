@@ -1,4 +1,4 @@
-import type { SeekEvent } from "@/types/content";
+import type { SeekEvent } from "@/types/seek/event";
 import { demoSeekImage } from "./demoSeekAccounts";
 
 const saturday = new Date();

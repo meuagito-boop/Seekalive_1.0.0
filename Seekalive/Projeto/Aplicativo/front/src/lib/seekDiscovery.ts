@@ -1,5 +1,5 @@
 import type { SeekReview, User } from "@/data/mockData";
-import type { SeekEvent } from "@/types/content";
+import type { SeekEvent } from "@/types/seek/event";
 import { normalizeSeekText } from "./seekFilters";
 
 export interface DiscoveryLocation {

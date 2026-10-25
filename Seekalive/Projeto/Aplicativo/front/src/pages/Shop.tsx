@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Star, Heart, Tag, Store, ChevronRight, Package, Zap, Eye } from "lucide-react";
 import { demoShopItems, demoStores } from "@/data/demoCatalog";
-import type { ShopItem } from "@/types/content";
+import type { ShopItem } from "@/types/shop/item";
 import { useSavedShopItems } from "@/hooks/use-saved-shop-items";
 
 const shopCategories = [

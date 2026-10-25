@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { accountPatchSchema } from "@workspace/api-zod";
+import { sendApiValidationError } from "../../../common/apiErrors";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
 import { loadOwnerProfile } from "../application/ownerProfile";
@@ -28,14 +29,7 @@ router.patch(
     if (!accountId) return;
     const parsed = accountPatchSchema.safeParse(request.body);
     if (!parsed.success) {
-      response.status(400).json({
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Confira os campos do perfil.",
-          details: parsed.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
-          requestId: response.locals.requestId ?? "unknown",
-        },
-      });
+      sendApiValidationError(response, parsed.error.issues, "Confira os campos do perfil.");
       return;
     }
 

@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { accounts, db } from "@workspace/db";
 import { privacyWriteSchema } from "@workspace/api-zod";
+import { sendApiValidationError } from "../../../common/apiErrors";
 import { requireCsrf } from "../../../security/session";
 import { activeAccountId, sendError } from "./routeSupport";
 
@@ -37,14 +38,7 @@ router.put("/accounts/me/privacy", requireCsrf, async (request, response) => {
   if (!accountId) return;
   const parsed = privacyWriteSchema.safeParse(request.body);
   if (!parsed.success) {
-    response.status(400).json({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Confira as opções de privacidade.",
-        details: parsed.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
-        requestId: response.locals.requestId ?? "unknown",
-      },
-    });
+    sendApiValidationError(response, parsed.error.issues, "Confira as opções de privacidade.");
     return;
   }
   const [updated] = await db

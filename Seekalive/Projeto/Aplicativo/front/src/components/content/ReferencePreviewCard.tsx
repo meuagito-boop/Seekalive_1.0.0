@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { resolveReference, referenceKey, referenceDataVersion } from "@/services/referenceResolver";
-import type { ContentReference, ReferencePreview } from "@/types/content";
+import type { ContentReference, ReferencePreview } from "@/types/social/contentReferences";
 import { ErrorState } from "./StateBlocks";
 
 const TYPE_META = {

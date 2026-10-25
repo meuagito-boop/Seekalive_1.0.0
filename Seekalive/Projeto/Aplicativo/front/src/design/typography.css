@@ -1,0 +1,45 @@
+@layer utilities {
+  .sk-text-display {
+    font-size: var(--font-size-display);
+    font-weight: var(--font-weight-display);
+    line-height: var(--line-height-display);
+    letter-spacing: -0.025em;
+  }
+
+  .sk-text-page-title {
+    font-size: var(--font-size-page-title);
+    font-weight: var(--font-weight-page-title);
+    line-height: var(--line-height-page-title);
+    letter-spacing: -0.015em;
+  }
+
+  .sk-text-section-title {
+    font-size: var(--font-size-section-title);
+    font-weight: var(--font-weight-section-title);
+    line-height: var(--line-height-section-title);
+    letter-spacing: -0.005em;
+  }
+
+  .sk-text-body {
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+  }
+
+  .sk-text-body-sm {
+    font-size: var(--font-size-body-sm);
+    line-height: var(--line-height-body-sm);
+  }
+
+  .sk-text-caption {
+    font-size: var(--font-size-caption);
+    line-height: var(--line-height-caption);
+  }
+
+  .sk-text-meta {
+    font-size: var(--font-size-meta);
+    font-weight: var(--font-weight-meta);
+    line-height: var(--line-height-meta);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}

@@ -1,27 +1,19 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, ReactNode } from "react";
-import {
-  Post, User, Notification, Conversation, Message, SeekReview, FollowRequest,
-  mockPosts, mockUsers, mockNotifications, mockConversations, mockMessages, mockSeekReviews,
-  currentUser as demoCurrentUser,
-} from "@/data/mockData";
-import { getStoredAccounts, saveSocialAccount } from "@/data/accountStorage";
-import { getStoredFollowRequests, saveStoredFollowRequests } from "@/data/followRequestStorage";
-import { getStoredSeekReviews, saveStoredSeekReviews } from "@/data/reviewStorage";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
+import type { ReactNode } from "react";
+import { currentUser as demoCurrentUser } from "@/data/mockData";
+import type { FollowRequest, User } from "@/data/mockData";
+import { saveSocialAccount } from "@/data/accountStorage";
+import { saveStoredFollowRequests } from "@/data/followRequestStorage";
 import { useAppContext } from "@/context/AppContext";
 import { toast } from "@/hooks/use-toast";
-import type { PublishPostInput, SocialComment, SocialRepost } from "@/types/content";
-import { contentService, ContentServiceError } from "@/services/contentService";
+import { ContentServiceError } from "@/services/contentService";
 import {
   accountViewToUser,
   followRequestToModel,
   myAccountToUser,
-  SocialGraphApiError,
   socialGraphApi,
 } from "@/services/socialGraphApi";
-import { canReadPost, assertCommentParent, makeDemoMessage } from "@/services/contentValidation";
-import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
-import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
-import { getPrivacyPreferences } from "@/data/appPreferences";
+import { canReadPost } from "@/services/contentValidation";
 import {
   getAccountBlockProjection,
   readAccountScopedIdsMap,
@@ -36,297 +28,19 @@ import {
 import type { SocialAccountActivity } from "@/data/socialAccountActivityStorage";
 import {
   areMutualFollowers,
-  followRequestIdsBetween,
-  removeFollowEdgesForBlock,
   viewerFollowsUser,
 } from "@/lib/followRelationships";
-
-// ── State shape ──────────────────────────────────────────────────────
-export interface SocialState {
-  posts: Post[];
-  users: User[];
-  notifications: Notification[];
-  conversations: Conversation[];
-  messages: Message[];
-  reviews: SeekReview[];
-  postComments: SocialComment[];
-  repostEntries: SocialRepost[];
-  followRequests: FollowRequest[];
-}
-
-// ── Actions ──────────────────────────────────────────────────────────
-type Action =
-  | { type: "TOGGLE_LIKE"; postId: string }
-  | { type: "TOGGLE_REPOST"; postId: string; actorId: string }
-  | { type: "ADD_COMMENT"; comment: SocialComment }
-  | { type: "TOGGLE_COMMENT_LIKE"; commentId: string }
-  | { type: "DELETE_POST"; postId: string }
-  | { type: "TOGGLE_BOOKMARK"; postId: string }
-  | { type: "INCREMENT_COMMENTS"; postId: string }
-  | { type: "ADD_USER"; user: User }
-  | { type: "UPDATE_USER"; user: User }
-  | { type: "UPSERT_SEEK_REVIEW"; review: SeekReview }
-  | { type: "REPLY_TO_SEEK_REVIEW"; reviewId: string; businessAccountId: string; content: string }
-  | { type: "ADD_POST"; post: Post }
-  | { type: "MARK_ALL_NOTIFICATIONS_READ" }
-  | { type: "MARK_NOTIFICATION_READ"; id: string }
-  | { type: "MARK_CONVERSATION_READ"; convId: string }
-  | { type: "SEND_MESSAGE"; message: Message }
-  | { type: "ADD_FOLLOW_REQUEST"; request: FollowRequest }
-  | { type: "REMOVE_FOLLOW_REQUEST"; requestId: string };
-
-
-// ── Reducer ──────────────────────────────────────────────────────────
-export function socialReducer(state: SocialState, action: Action): SocialState {
-  switch (action.type) {
-
-    case "TOGGLE_LIKE":
-      return {
-        ...state,
-        posts: state.posts.map(p =>
-          p.id !== action.postId ? p : {
-            ...p,
-            isLiked: !p.isLiked,
-            likes: p.isLiked ? Math.max(0, p.likes - 1) : p.likes + 1,
-          }
-        ),
-      };
-
-    case "TOGGLE_REPOST": {
-      const existing = state.repostEntries.find(entry => entry.postId === action.postId && entry.authorId === action.actorId);
-      return {
-        ...state,
-        repostEntries: existing
-          ? state.repostEntries.filter(entry => entry.id !== existing.id)
-          : [{ id: `repost_${action.actorId}_${action.postId}`, postId: action.postId, authorId: action.actorId, createdAt: new Date().toISOString() }, ...state.repostEntries],
-        posts: state.posts.map(p =>
-          p.id !== action.postId ? p : {
-            ...p,
-            isReposted: !existing,
-            reposts: existing ? Math.max(0, p.reposts - 1) : p.reposts + 1,
-          }
-        ),
-      };
-    }
-    case "ADD_COMMENT":
-      if (state.postComments.some(comment => comment.id === action.comment.id)) return state;
-      return {
-        ...state,
-        postComments: [...state.postComments, action.comment],
-        posts: state.posts.map(post => post.id === action.comment.postId ? { ...post, comments: post.comments + 1 } : post),
-      };
-    case "TOGGLE_COMMENT_LIKE":
-      return {
-        ...state,
-        postComments: state.postComments.map(comment => comment.id === action.commentId
-          ? { ...comment, isLiked: !comment.isLiked, likes: comment.isLiked ? Math.max(0, comment.likes - 1) : comment.likes + 1 } : comment),
-      };
-    case "DELETE_POST":
-      return {
-        ...state,
-        posts: state.posts.filter(post => post.id !== action.postId),
-        postComments: state.postComments.filter(comment => comment.postId !== action.postId),
-        repostEntries: state.repostEntries.filter(entry => entry.postId !== action.postId),
-      };
-
-    case "TOGGLE_BOOKMARK":
-      return {
-        ...state,
-        posts: state.posts.map(p =>
-          p.id !== action.postId ? p : {
-            ...p,
-            isBookmarked: !p.isBookmarked,
-          }
-        ),
-      };
-
-    case "INCREMENT_COMMENTS":
-      return {
-        ...state,
-        posts: state.posts.map(p =>
-          p.id !== action.postId ? p : { ...p, comments: p.comments + 1 }
-        ),
-      };
-
-    case "ADD_USER":
-      return {
-        ...state,
-        users: state.users.some((user) => user.id === action.user.id)
-          ? state.users.map((user) => user.id === action.user.id ? action.user : user)
-          : [...state.users, action.user],
-      };
-
-    case "UPDATE_USER":
-      return {
-        ...state,
-        users: state.users.map((user) => user.id === action.user.id ? action.user : user),
-      };
-
-    case "UPSERT_SEEK_REVIEW": {
-      const existing = state.reviews.find(
-        (review) =>
-          review.businessAccountId === action.review.businessAccountId &&
-          review.reviewerId === action.review.reviewerId,
-      );
-      if (!existing) return { ...state, reviews: [...state.reviews, action.review] };
-
-      return {
-        ...state,
-        reviews: state.reviews.map((review) =>
-          review.id === existing.id
-            ? { ...action.review, id: existing.id, businessReply: existing.businessReply }
-            : review,
-        ),
-      };
-    }
-
-    case "REPLY_TO_SEEK_REVIEW":
-      return {
-        ...state,
-        reviews: state.reviews.map((review) =>
-          review.id !== action.reviewId || review.businessAccountId !== action.businessAccountId
-            ? review
-            : {
-                ...review,
-                businessReply: {
-                  content: action.content,
-                  createdAt: new Date().toISOString(),
-                },
-              },
-        ),
-      };
-
-    case "ADD_POST":
-      return { ...state, posts: [action.post, ...state.posts] };
-
-    case "MARK_ALL_NOTIFICATIONS_READ":
-      return {
-        ...state,
-        notifications: state.notifications.map(n => ({ ...n, isRead: true })),
-      };
-
-    case "MARK_NOTIFICATION_READ":
-      return {
-        ...state,
-        notifications: state.notifications.map(n =>
-          n.id !== action.id ? n : { ...n, isRead: true }
-        ),
-      };
-
-    case "MARK_CONVERSATION_READ":
-      return {
-        ...state,
-        conversations: state.conversations.map(c =>
-          c.id !== action.convId ? c : { ...c, unreadCount: 0 }
-        ),
-        messages: state.messages.map(m =>
-          m.conversationId !== action.convId ? m : { ...m, isRead: true }
-        ),
-      };
-
-    case "SEND_MESSAGE": {
-      const newMsg = action.message;
-      const conversation = state.conversations.find(item => item.id === newMsg.conversationId);
-      if (!conversation?.participantIds.includes(newMsg.senderId) || state.messages.some(item => item.id === newMsg.id)) return state;
-      return {
-        ...state,
-        messages: [...state.messages, newMsg],
-        conversations: state.conversations.map(c =>
-          c.id !== newMsg.conversationId ? c : { ...c, lastMessage: newMsg, unreadCount: 0 }
-        ),
-      };
-    }
-
-    case "ADD_FOLLOW_REQUEST":
-      if (state.followRequests.some(request =>
-        request.requesterId === action.request.requesterId &&
-        request.targetId === action.request.targetId
-      )) return state;
-      return { ...state, followRequests: [...state.followRequests, action.request] };
-
-    case "REMOVE_FOLLOW_REQUEST":
-      return {
-        ...state,
-        followRequests: state.followRequests.filter(request => request.id !== action.requestId),
-      };
-
-    default:
-      return state;
-  }
-}
-
-// ── Initial state ─────────────────────────────────────────────────────
-const initialState: SocialState = {
-  posts: import.meta.env.DEV
-    ? [...demoIntegrationPosts, ...mockPosts].map(p => ({ ...p, isLiked: false, isBookmarked: false, isReposted: false }))
-    : [],
-  users: import.meta.env.DEV ? [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts] : [],
-  notifications: import.meta.env.DEV ? [...mockNotifications] : [],
-  conversations: import.meta.env.DEV ? [...mockConversations] : [],
-  messages: import.meta.env.DEV ? [...mockMessages] : [],
-  reviews: import.meta.env.DEV ? [...mockSeekReviews, ...demoSeekReviews] : [],
-  postComments: [],
-  repostEntries: [],
-  followRequests: [],
-};
-
-function createInitialState(): SocialState {
-  const usersById = new Map([...initialState.users, ...getStoredAccounts()].map((user) => [user.id, user]));
-  const reviewsById = new Map([...initialState.reviews, ...getStoredSeekReviews()].map((review) => [review.id, review]));
-  return {
-    ...initialState,
-    users: [...usersById.values()],
-    reviews: [...reviewsById.values()],
-    followRequests: getStoredFollowRequests(),
-  };
-}
+import { createSocialRelationshipActions } from "@/context/social/relationshipActions";
+import { createSocialPostActions } from "@/context/social/postActions";
+import { createSocialReviewActions } from "@/context/social/reviewActions";
+import { createSocialInboxActions } from "@/context/social/inboxActions";
+import {
+  createInitialState,
+  socialReducer,
+} from "@/context/social/state";
+import type { SocialContextType } from "@/context/social/types";
 
 // ── Context ───────────────────────────────────────────────────────────
-interface SocialContextType extends SocialState {
-  dispatch: React.Dispatch<Action>;
-  // Derived selectors
-  getPostById: (id: string) => Post | undefined;
-  getUserById: (id: string) => User | undefined;
-  getConversationMessages: (convId: string) => Message[];
-  unreadNotifications: number;
-  unreadMessages: number;
-  incomingFollowRequests: FollowRequest[];
-  isRemoteSocialSession: boolean;
-  socialGraphLoading: boolean;
-  socialGraphError: string | null;
-  retrySocialGraph: () => void;
-  loadRemoteProfile: (username: string) => Promise<User | null>;
-  upsertRemoteUser: (user: User) => void;
-  // Action helpers
-  toggleLike: (postId: string) => void;
-  toggleRepost: (postId: string, actorId?: string) => void;
-  publishPost: (input: PublishPostInput) => Promise<Post>;
-  addComment: (postId: string, content: string, authorId: string, replyToCommentId?: string) => Promise<SocialComment>;
-  toggleCommentLike: (commentId: string) => void;
-  deletePost: (postId: string, authorId: string) => Promise<void>;
-  toggleBookmark: (postId: string) => void;
-  toggleFollow: (userId: string) => Promise<boolean>;
-  blockUser: (userId: string) => Promise<boolean>;
-  unblockUser: (userId: string) => Promise<boolean>;
-  acceptFollowRequest: (requestId: string) => Promise<boolean>;
-  declineFollowRequest: (requestId: string) => Promise<boolean>;
-  addUser: (user: User) => void;
-  updateUser: (user: User) => void;
-  addPost: (
-    content: string,
-    audience: "public" | "circles" | "private",
-    authorId: string,
-    mediaUrls?: string[],
-    mediaTypes?: ("image" | "video")[],
-  ) => void;
-  markAllNotificationsRead: () => void;
-  markNotificationRead: (id: string) => void;
-  markConversationRead: (convId: string) => void;
-  sendMessage: (convId: string, content: string) => void;
-  upsertSeekReview: (review: SeekReview) => void;
-  replyToSeekReview: (reviewId: string, businessAccountId: string, content: string) => void;
-}
-
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 // ── Provider ──────────────────────────────────────────────────────────
@@ -518,29 +232,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     return post;
   }
 
-  function showRelationshipError(title: string, error: unknown) {
-    const message = error instanceof Error
-      ? error.message
-      : "Não foi possível concluir a solicitação.";
-    toast({ title, description: message, variant: "destructive" });
-  }
-
   function showRefreshWarning() {
     toast({
       title: "Alteração salva",
       description: "Não foi possível atualizar todos os dados exibidos. Recarregue a tela.",
       variant: "destructive",
     });
-  }
-
-  async function refreshRemoteAccount(accountId: string): Promise<User> {
-    const isCurrentAccount = accountId === currentUser?.id;
-    const user = isCurrentAccount
-      ? myAccountToUser(await socialGraphApi.getMyAccount())
-      : accountViewToUser(await socialGraphApi.getProfileByAccountId(accountId));
-    dispatch({ type: "ADD_USER", user });
-    if (accountId === currentUser?.id) updateAccount(user);
-    return user;
   }
 
   const loadRemoteProfile = useCallback(async (username: string): Promise<User | null> => {
@@ -558,298 +255,41 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     user: { ...user, source: "server" },
   }), []);
 
-  async function handleToggleFollow(userId: string): Promise<boolean> {
-    const target = state.users.find((user) => user.id === userId);
-    if (!viewer || !target || target.id === viewer.id
-      || blockedUserIdSet.has(userId) || accountsBlockingViewerSet.has(userId)) return false;
-
-    if (isRemoteSocialSession) {
-      if (target.source !== "server") {
-        toast({
-          title: "Conta de demonstração",
-          description: "Perfis de exemplo não podem ser seguidos pela conta real.",
-        });
-        return false;
-      }
-      try {
-        const previousFollowing = Boolean(target.isFollowing);
-        const result = previousFollowing || target.followRequestSent
-          ? null
-          : await socialGraphApi.follow(userId);
-        if (previousFollowing || target.followRequestSent) {
-          await socialGraphApi.unfollow(userId);
-          dispatch({
-            type: "UPDATE_USER",
-            user: { ...target, isFollowing: false, followRequestSent: false, isInCircle: false },
-          });
-        } else if (result) {
-          dispatch({
-            type: "UPDATE_USER",
-            user: {
-              ...target,
-              isFollowing: result.status === "accepted",
-              followRequestSent: result.status === "pending",
-              isInCircle: false,
-            },
-          });
-        }
-      } catch (error) {
-        showRelationshipError("Não foi possível atualizar o seguimento", error);
-        return false;
-      }
-
-      try {
-        await Promise.all([
-          refreshRemoteAccount(userId),
-          currentUser ? refreshRemoteAccount(currentUser.id) : Promise.resolve(null),
-        ]);
-      } catch {
-        showRefreshWarning();
-      }
-      return true;
-    }
-
-    const pendingRequest = state.followRequests.find((request) =>
-      request.requesterId === viewer.id && request.targetId === userId
-    );
-    if (pendingRequest) {
-      dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId: pendingRequest.id });
-      return true;
-    }
-
-    const wasFollowing = viewerFollowsUser(viewer, target);
-    if (!wasFollowing && target.isPrivate) {
-      dispatch({
-        type: "ADD_FOLLOW_REQUEST",
-        request: {
-          id: `follow_request_${viewer.id}_${target.id}`,
-          requesterId: viewer.id,
-          targetId: target.id,
-          createdAt: new Date().toISOString(),
-        },
-      });
-      return true;
-    }
-
-    const targetFollowsViewer = (target.followingIds ?? []).includes(viewer.id);
-    const wasMutual = wasFollowing && targetFollowsViewer;
-    const willBeMutual = !wasFollowing && targetFollowsViewer;
-    const nextFollowingIds = (viewer.followingIds ?? []).filter((id) => id !== userId);
-    if (!wasFollowing) nextFollowingIds.push(userId);
-
-    const updatedViewer: User = {
-      ...viewer,
-      followingIds: nextFollowingIds,
-      stats: {
-        ...viewer.stats,
-        following: Math.max(0, viewer.stats.following + (wasFollowing ? -1 : 1)),
-        circles: Math.max(0, viewer.stats.circles + (willBeMutual ? 1 : wasMutual ? -1 : 0)),
-      },
-    };
-    const updatedTarget: User = {
-      ...target,
-      isFollowing: !wasFollowing,
-      stats: {
-        ...target.stats,
-        followers: Math.max(0, target.stats.followers + (wasFollowing ? -1 : 1)),
-        circles: Math.max(0, target.stats.circles + (willBeMutual ? 1 : wasMutual ? -1 : 0)),
-      },
-    };
-
-    if (currentUser) updateAccount(updatedViewer);
-    if (updatedTarget.source !== "server") saveSocialAccount(updatedTarget);
-    dispatch({ type: "UPDATE_USER", user: updatedTarget });
-    if (currentUser && state.users.some((user) => user.id === currentUser.id))
-      dispatch({ type: "UPDATE_USER", user: updatedViewer });
-    return true;
-  }
-
-  async function handleBlockUser(userId: string): Promise<boolean> {
-    const target = state.users.find((user) => user.id === userId);
-    if (!viewer || !target || userId === viewer.id || blockedUserIdSet.has(userId)) return false;
-
-    if (isRemoteSocialSession) {
-      if (target.source !== "server") {
-        toast({
-          title: "Conta de demonstração",
-          description: "Perfis de exemplo não podem ser bloqueados pela conta real.",
-        });
-        return false;
-      }
-      try {
-        await socialGraphApi.block(userId);
-      } catch (error) {
-        showRelationshipError("Não foi possível bloquear o perfil", error);
-        return false;
-      }
-      setRemoteBlockedUserIds((ids) => ids.includes(userId) ? ids : [...ids, userId]);
-      setRemoteFollowRequests((requests) =>
-        requests.filter((request) => request.requesterId !== userId && request.targetId !== userId)
-      );
-      dispatch({
-        type: "UPDATE_USER",
-        user: {
-          ...target,
-          isBlocked: true,
-          isBlockedByViewer: true,
-          blocksViewer: false,
-          isFollowing: false,
-          followRequestSent: false,
-          isInCircle: false,
-        },
-      });
-      for (const requestId of followRequestIdsBetween(state.followRequests, viewer.id, userId))
-        dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
-      if (currentUser) {
-        try {
-          await refreshRemoteAccount(currentUser.id);
-        } catch {
-          showRefreshWarning();
-        }
-      }
-      return true;
-    }
-
-    const { actor: updatedViewer, target: updatedTarget, changed } =
-      removeFollowEdgesForBlock(viewer, target);
-    if (changed) {
-      if (currentUser) updateAccount(updatedViewer);
-      else if (updatedViewer.source !== "server") saveSocialAccount(updatedViewer);
-      if (updatedTarget.source !== "server") saveSocialAccount(updatedTarget);
-      dispatch({ type: "UPDATE_USER", user: updatedTarget });
-      if (state.users.some((user) => user.id === viewer.id))
-        dispatch({ type: "UPDATE_USER", user: updatedViewer });
-    }
-    for (const requestId of followRequestIdsBetween(state.followRequests, viewer.id, userId))
-      dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
-    toggleBlockedUser(userId);
-    return true;
-  }
-
-  async function handleUnblockUser(userId: string): Promise<boolean> {
-    if (!blockedUserIdSet.has(userId)) return false;
-    if (!isRemoteSocialSession) {
-      toggleBlockedUser(userId);
-      return true;
-    }
-
-    try {
-      await socialGraphApi.unblock(userId);
-    } catch (error) {
-      showRelationshipError("Não foi possível remover o bloqueio", error);
-      return false;
-    }
-    setRemoteBlockedUserIds((ids) => ids.filter((id) => id !== userId));
-    try {
-      await refreshRemoteAccount(userId);
-    } catch (error) {
-      if (!(error instanceof SocialGraphApiError) || error.status !== 404) {
-        showRefreshWarning();
-      } else {
-        const previous = state.users.find((user) => user.id === userId);
-        if (previous) {
-          dispatch({
-            type: "UPDATE_USER",
-            user: {
-              ...previous,
-              isBlocked: true,
-              isBlockedByViewer: false,
-              blocksViewer: false,
-              isFollowing: false,
-              followRequestSent: false,
-              isInCircle: false,
-            },
-          });
-        }
-      }
-    }
-    return true;
-  }
-
-  async function handleAcceptFollowRequest(requestId: string): Promise<boolean> {
-    const ownerId = currentUser?.id;
-    if (!ownerId) return false;
-    const request = isRemoteSocialSession
-      ? remoteFollowRequests.find((item) => item.id === requestId && item.targetId === ownerId)
-      : state.followRequests.find((item) => item.id === requestId && item.targetId === ownerId);
-    if (!request || blockedUserIdSet.has(request.requesterId) || accountsBlockingViewerSet.has(request.requesterId))
-      return false;
-
-    if (isRemoteSocialSession) {
-      try {
-        await socialGraphApi.acceptFollowRequest(request.requesterId);
-      } catch (error) {
-        showRelationshipError("Não foi possível aceitar a solicitação", error);
-        return false;
-      }
-      setRemoteFollowRequests((requests) => requests.filter((item) => item.id !== requestId));
-      try {
-        await Promise.all([
-          refreshRemoteAccount(ownerId),
-          refreshRemoteAccount(request.requesterId),
-        ]);
-      } catch {
-        showRefreshWarning();
-      }
-      return true;
-    }
-
-    const targetAccount = currentUser;
-    const requester = state.users.find((user) => user.id === request.requesterId);
-    if (!requester) return false;
-    const requesterAlreadyFollows = (requester.followingIds ?? []).includes(targetAccount.id);
-    const viewerAlreadyFollowsRequester = viewerFollowsUser(targetAccount, requester);
-    const updatedViewer: User = requesterAlreadyFollows
-      ? targetAccount
-      : {
-          ...targetAccount,
-          stats: {
-            ...targetAccount.stats,
-            followers: targetAccount.stats.followers + 1,
-            circles: targetAccount.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
-          },
-        };
-    const updatedRequester: User = requesterAlreadyFollows
-      ? requester
-      : {
-          ...requester,
-          followingIds: [...(requester.followingIds ?? []), targetAccount.id],
-          stats: {
-            ...requester.stats,
-            following: requester.stats.following + 1,
-            circles: requester.stats.circles + (viewerAlreadyFollowsRequester ? 1 : 0),
-          },
-        };
-
-    if (!requesterAlreadyFollows) {
-      updateAccount(updatedViewer);
-      if (updatedViewer.source !== "server") saveSocialAccount(updatedViewer);
-      if (updatedRequester.source !== "server") saveSocialAccount(updatedRequester);
-      dispatch({ type: "UPDATE_USER", user: updatedViewer });
-      dispatch({ type: "UPDATE_USER", user: updatedRequester });
-    }
-    dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
-    return true;
-  }
-
-  async function handleDeclineFollowRequest(requestId: string): Promise<boolean> {
-    const request = isRemoteSocialSession
-      ? remoteFollowRequests.find((item) => item.id === requestId && item.targetId === currentUser?.id)
-      : state.followRequests.find((item) => item.id === requestId && item.targetId === currentUser?.id);
-    if (!request) return false;
-    if (isRemoteSocialSession) {
-      try {
-        await socialGraphApi.declineFollowRequest(request.requesterId);
-        setRemoteFollowRequests((requests) => requests.filter((item) => item.id !== requestId));
-        return true;
-      } catch (error) {
-        showRelationshipError("Não foi possível recusar a solicitação", error);
-        return false;
-      }
-    }
-    dispatch({ type: "REMOVE_FOLLOW_REQUEST", requestId });
-    return true;
-  }
+  const relationshipActions = createSocialRelationshipActions({
+    state,
+    currentUser,
+    viewer,
+    isRemoteSocialSession,
+    blockedUserIdSet,
+    accountsBlockingViewerSet,
+    dispatch,
+    updateAccount,
+    remoteFollowRequests,
+    setRemoteFollowRequests,
+    setRemoteBlockedUserIds,
+    toggleBlockedUser,
+    showRefreshWarning,
+  });
+  const postActions = createSocialPostActions({
+    state,
+    currentUser,
+    dispatch,
+    updateCurrentActivity,
+    assertSession,
+    assertReadable,
+  });
+  const reviewActions = createSocialReviewActions({ state, currentUser, dispatch });
+  const inboxActions = createSocialInboxActions({
+    state,
+    currentUser,
+    users,
+    actorId,
+    visibleNotifications,
+    visibleConversations,
+    visibleConversationIds,
+    updateCurrentActivity,
+    dispatch,
+  });
 
   const ctx: SocialContextType = {
     ...state,
@@ -886,74 +326,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     loadRemoteProfile,
     upsertRemoteUser,
 
-    toggleLike: (postId) => updateCurrentActivity(current => ({
-      ...current,
-      likedPostIds: current.likedPostIds.includes(postId)
-        ? current.likedPostIds.filter(id => id !== postId)
-        : [...current.likedPostIds, postId],
-    })),
-    toggleRepost: (postId, actorId = currentUser?.id ?? "") => {
-      assertSession(actorId);
-      const post = assertReadable(postId);
-      if (post.audience !== "public") throw new ContentServiceError("Somente publicações públicas podem ser repostadas.", 403);
-      updateCurrentActivity(current => {
-        const existing = current.reposts.some(repost => repost.postId === postId);
-        return {
-          ...current,
-          reposts: existing
-            ? current.reposts.filter(repost => repost.postId !== postId)
-            : [...current.reposts, {
-                id: `repost_${actorId}_${postId}`,
-                postId,
-                authorId: actorId,
-                createdAt: new Date().toISOString(),
-              }],
-        };
-      });
-    },
-    publishPost: async (input) => {
-      assertSession(input.authorId);
-      const post = await contentService.createPost(input);
-      dispatch({ type: "ADD_POST", post });
-      return post;
-    },
-    addComment: async (postId, content, authorId, replyToCommentId) => {
-      assertSession(authorId);
-      assertReadable(postId);
-      assertCommentParent(state.postComments, postId, replyToCommentId);
-      const comment = await contentService.createComment(postId, content, authorId, replyToCommentId);
-      dispatch({ type: "ADD_COMMENT", comment });
-      return comment;
-    },
-    toggleCommentLike: (commentId) => {
-      if (!currentUser) throw new ContentServiceError("Entre na sua conta para curtir.", 401);
-      const comment = state.postComments.find(item => item.id === commentId);
-      if (!comment) throw new ContentServiceError("Comentário indisponível.", 404);
-      assertReadable(comment.postId);
-      updateCurrentActivity(current => ({
-        ...current,
-        likedCommentIds: current.likedCommentIds.includes(commentId)
-          ? current.likedCommentIds.filter(id => id !== commentId)
-          : [...current.likedCommentIds, commentId],
-      }));
-    },
-    deletePost: async (postId, authorId) => {
-      assertSession(authorId);
-      const post = assertReadable(postId);
-      if (post.authorId !== authorId) throw new ContentServiceError("Somente o autor pode excluir a publicação.", 403);
-      dispatch({ type: "DELETE_POST", postId });
-    },
-    toggleBookmark: (postId) => updateCurrentActivity(current => ({
-      ...current,
-      bookmarkedPostIds: current.bookmarkedPostIds.includes(postId)
-        ? current.bookmarkedPostIds.filter(id => id !== postId)
-        : [...current.bookmarkedPostIds, postId],
-    })),
-    toggleFollow: handleToggleFollow,
-    blockUser: handleBlockUser,
-    unblockUser: handleUnblockUser,
-    acceptFollowRequest: handleAcceptFollowRequest,
-    declineFollowRequest: handleDeclineFollowRequest,
+    ...postActions,
+    ...relationshipActions,
     addUser: (user) => {
       if (user.source !== "server") saveSocialAccount(user);
       dispatch({ type: "ADD_USER", user });
@@ -962,103 +336,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       if (user.source !== "server") saveSocialAccount(user);
       dispatch({ type: "UPDATE_USER", user });
     },
-    upsertSeekReview: (review) => {
-      const business = state.users.find((user) => user.id === review.businessAccountId && user.accountType === "commercial");
-      if (!currentUser || review.reviewerId !== currentUser.id || !business || business.id === currentUser.id)
-        throw new ContentServiceError("Esta conta não pode avaliar este comércio.", 403);
-      if (!Number.isInteger(review.rating) || review.rating < 1 || review.rating > 5 || review.comment.trim().length < 10)
-        throw new ContentServiceError("Escolha uma nota de 1 a 5 e escreva pelo menos 10 caracteres.", 422);
-      const existing = state.reviews.find(
-        (saved) =>
-          saved.businessAccountId === review.businessAccountId &&
-          saved.reviewerId === review.reviewerId,
-      );
-      const normalizedReview = existing
-        ? { ...review, id: existing.id, businessReply: existing.businessReply }
-        : review;
-      const nextReviews = existing
-        ? state.reviews.map((saved) => saved.id === existing.id ? normalizedReview : saved)
-        : [...state.reviews, normalizedReview];
-      saveStoredSeekReviews(nextReviews);
-      dispatch({ type: "UPSERT_SEEK_REVIEW", review: normalizedReview });
-    },
-    replyToSeekReview: (reviewId, businessAccountId, content) => {
-      if (!currentUser || currentUser.id !== businessAccountId || currentUser.accountType !== "commercial")
-        throw new ContentServiceError("Somente o comércio pode responder à avaliação.", 403);
-      if (!state.reviews.some((review) => review.id === reviewId && review.businessAccountId === businessAccountId))
-        throw new ContentServiceError("Avaliação não encontrada.", 404);
-      if (content.trim().length < 3) throw new ContentServiceError("Escreva uma resposta com pelo menos 3 caracteres.", 422);
-      const nextReviews = state.reviews.map((review) =>
-        review.id !== reviewId || review.businessAccountId !== businessAccountId
-          ? review
-          : { ...review, businessReply: { content, createdAt: new Date().toISOString() } },
-      );
-      saveStoredSeekReviews(nextReviews);
-      dispatch({ type: "REPLY_TO_SEEK_REVIEW", reviewId, businessAccountId, content });
-    },
-    addPost: (content, audience, authorId, mediaUrls = [], mediaTypes = []) => dispatch({
-      type: "ADD_POST",
-      post: {
-        id: `post_${Date.now()}`,
-        authorId,
-        content,
-        mediaUrls,
-        mediaTypes,
-        audience,
-        type: mediaTypes.includes("video") ? "video" : "text",
-        createdAt: new Date().toISOString(),
-        likes: 0,
-        comments: 0,
-        reposts: 0,
-        shares: 0,
-        isLiked: false,
-        isReposted: false,
-      },
-    }),
-    markAllNotificationsRead: () => updateCurrentActivity(current => ({
-      ...current,
-      readNotificationIds: [...new Set([...current.readNotificationIds, ...visibleNotifications.map(notification => notification.id)])],
-    })),
-    markNotificationRead: (id) => {
-      if (!visibleNotifications.some(notification => notification.id === id)) return;
-      updateCurrentActivity(current => ({
-        ...current,
-        readNotificationIds: current.readNotificationIds.includes(id)
-          ? current.readNotificationIds
-          : [...current.readNotificationIds, id],
-      }));
-    },
-    markConversationRead: (convId) => {
-      if (!visibleConversationIds.has(convId)) return;
-      const messageIds = state.messages
-        .filter(message => message.conversationId === convId && message.senderId !== actorId)
-        .map(message => message.id);
-      updateCurrentActivity(current => ({
-        ...current,
-        readConversationIds: current.readConversationIds.includes(convId)
-          ? current.readConversationIds
-          : [...current.readConversationIds, convId],
-        readMessageIds: [...new Set([...current.readMessageIds, ...messageIds])],
-      }));
-    },
-    sendMessage: (convId, content) => {
-      const conversation = state.conversations.find(item => item.id === convId);
-      const message = makeDemoMessage(conversation, currentUser?.id, content);
-      const recipients = conversation?.participantIds
-        .filter(id => id !== currentUser?.id)
-        .map(id => users.find(user => user.id === id));
-      if (recipients?.some(recipient => !recipient))
-        throw new ContentServiceError("A pessoa desta conversa não está disponível.", 404);
-      if (recipients?.some(recipient => recipient?.isBlocked))
-        throw new ContentServiceError("Esta pessoa não está disponível para mensagens.", 403);
-      const policies = (recipients ?? []).map(recipient => getPrivacyPreferences(recipient!.id).messages);
-      if (policies.includes("nobody"))
-        throw new ContentServiceError("Esta pessoa não está recebendo mensagens diretas.", 403);
-      if (policies.includes("circle") && recipients?.some(recipient =>
-        !areMutualFollowers(currentUser ?? undefined, recipient)))
-        throw new ContentServiceError("Esta pessoa recebe mensagens apenas do próprio Círculo.", 403);
-      dispatch({ type: "SEND_MESSAGE", message });
-    },
+    ...reviewActions,
+    ...inboxActions,
   };
 
   return <SocialContext.Provider value={ctx}>{children}</SocialContext.Provider>;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { apiRequest, commentSchema, parseResponse, postSchema } from "./contentService";
 import { referenceSchema } from "./contentValidation";
-import type { ContentReference } from "@/types/content";
+import type { ContentReference } from "@/types/social/contentReferences";
 
 // Proposed contracts ONLY. Nothing here is enabled until a backend is supplied.
 export interface Page<T> { items: T[]; nextCursor?: string | null }

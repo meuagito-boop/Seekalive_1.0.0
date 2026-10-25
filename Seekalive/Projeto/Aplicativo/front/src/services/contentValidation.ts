@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Post, Conversation, Message } from "@/data/mockData";
-import type { PublishPostInput, SocialComment } from "@/types/content";
+import type { PublishPostInput, SocialComment } from "@/types/social/posts";
 
 export class ContentServiceError extends Error {
   constructor(message: string, public readonly status: number) {

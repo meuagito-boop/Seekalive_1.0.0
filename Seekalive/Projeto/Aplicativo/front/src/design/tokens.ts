@@ -1,62 +1,64 @@
 export const tokens = {
   colors: {
     brand: {
-      primary: "hsl(24 95% 53%)",
-      primaryHover: "hsl(24 95% 46%)",
-      primarySubtle: "hsl(24 95% 53% / 0.12)",
-      glow: "0 0 20px hsl(24 95% 53% / 0.3)",
+      primary: "var(--brand-primary)",
+      primaryHover: "var(--brand-primary-hover)",
+      primarySubtle: "var(--brand-primary-subtle)",
+      glow: "var(--brand-glow)",
     },
     surface: {
-      app: "hsl(225 20% 5%)",
-      card: "hsl(225 20% 8%)",
-      raised: "hsl(225 20% 11%)",
-      border: "hsl(225 20% 13%)",
+      app: "var(--surface-app)",
+      card: "var(--surface-card)",
+      raised: "var(--surface-raised)",
+      border: "var(--surface-border)",
     },
     text: {
-      primary: "hsl(210 15% 96%)",
-      secondary: "hsl(225 12% 68%)",
-      muted: "hsl(225 12% 52%)",
+      primary: "var(--text-primary)",
+      secondary: "var(--text-secondary)",
+      muted: "var(--text-muted)",
     },
     state: {
-      success: "hsl(142 71% 45%)",
-      warning: "hsl(38 92% 50%)",
-      danger: "hsl(0 84% 60%)",
-      info: "hsl(210 90% 58%)",
+      success: "var(--state-success)",
+      warning: "var(--state-warning)",
+      danger: "var(--state-danger)",
+      info: "var(--state-info)",
     },
   },
 
   radius: {
-    sm: "0.5rem",
-    md: "0.75rem",
-    lg: "1rem",
+    sm: "var(--seekalive-radius-sm)",
+    md: "var(--seekalive-radius-md)",
+    lg: "var(--seekalive-radius-lg)",
     xl: "1.5rem",
     full: "9999px",
   },
 
   spacing: {
-    pagePaddingX: "1rem",
-    sectionGap: "1.5rem",
-    cardPadding: "1rem",
-    itemGap: "0.75rem",
+    pagePaddingX: "var(--space-page-padding-x)",
+    sectionGap: "var(--space-section-gap)",
+    cardPadding: "var(--space-card-padding)",
+    itemGap: "var(--space-item-gap)",
   },
 
   typography: {
-    display: { fontSize: "2rem", fontWeight: "800", lineHeight: "1.1" },
-    pageTitle: { fontSize: "1.5rem", fontWeight: "700", lineHeight: "1.2" },
-    sectionTitle: { fontSize: "1.125rem", fontWeight: "600", lineHeight: "1.3" },
-    body: { fontSize: "0.9375rem", fontWeight: "400", lineHeight: "1.6" },
-    bodySm: { fontSize: "0.875rem", fontWeight: "400", lineHeight: "1.5" },
-    caption: { fontSize: "0.75rem", fontWeight: "400", lineHeight: "1.4" },
-    meta: { fontSize: "0.6875rem", fontWeight: "500", lineHeight: "1.3" },
+    display: { fontSize: "var(--font-size-display)", fontWeight: "var(--font-weight-display)", lineHeight: "var(--line-height-display)" },
+    pageTitle: { fontSize: "var(--font-size-page-title)", fontWeight: "var(--font-weight-page-title)", lineHeight: "var(--line-height-page-title)" },
+    sectionTitle: { fontSize: "var(--font-size-section-title)", fontWeight: "var(--font-weight-section-title)", lineHeight: "var(--line-height-section-title)" },
+    body: { fontSize: "var(--font-size-body)", fontWeight: "400", lineHeight: "var(--line-height-body)" },
+    bodySm: { fontSize: "var(--font-size-body-sm)", fontWeight: "400", lineHeight: "var(--line-height-body-sm)" },
+    caption: { fontSize: "var(--font-size-caption)", fontWeight: "400", lineHeight: "var(--line-height-caption)" },
+    meta: { fontSize: "var(--font-size-meta)", fontWeight: "var(--font-weight-meta)", lineHeight: "var(--line-height-meta)" },
   },
 
   shadows: {
-    card: "0 1px 3px hsl(0 0% 0% / 0.3)",
-    cardHover: "0 4px 12px hsl(0 0% 0% / 0.4)",
-    brandGlow: "0 0 20px hsl(24 95% 53% / 0.3)",
-    brandGlowLg: "0 0 32px hsl(24 95% 53% / 0.4)",
+    card: "var(--shadow-card)",
+    cardHover: "var(--shadow-card-hover)",
+    brandGlow: "var(--brand-glow)",
+    brandGlowLg: "var(--brand-glow-lg)",
   },
 } as const;
 
 export type ColorToken = keyof typeof tokens.colors;
 export type RadiusToken = keyof typeof tokens.radius;
+export type SpacingToken = keyof typeof tokens.spacing;
+export type TypographyToken = keyof typeof tokens.typography;

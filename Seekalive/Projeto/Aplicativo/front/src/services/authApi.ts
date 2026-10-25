@@ -1,3 +1,6 @@
+import type { ApiErrorKey } from "@workspace/api-zod";
+import { readApiError } from "@/services/apiErrors";
+
 export type AuthAccount = {
   id: string;
   username: string;
@@ -65,23 +68,12 @@ export type TrustedDevicePage = {
   hasMore: boolean;
 };
 
-type ApiErrorPayload = {
-  error?: {
-    code?: string;
-    message?: string;
-    details?: Array<{ field: string; message: string }>;
-    supportEmail?: string;
-    retryAfterSeconds?: number;
-    attemptsRemaining?: number;
-    resendAvailableAt?: string;
-  };
-};
-
 export class AuthApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
-    readonly code: string,
+    readonly code: number,
+    readonly key: ApiErrorKey,
     readonly details: Array<{ field: string; message: string }> = [],
     readonly supportEmail?: string,
     readonly retryAfterSeconds?: number,
@@ -96,16 +88,17 @@ export class AuthApiError extends Error {
 async function parseResponse<T>(response: Response): Promise<T> {
   const payload = response.status === 204 ? undefined : await response.json().catch(() => undefined);
   if (!response.ok) {
-    const error = (payload as ApiErrorPayload | undefined)?.error;
+    const error = readApiError(payload);
     throw new AuthApiError(
-      error?.message ?? "Não foi possível concluir a solicitação.",
+      error.message,
       response.status,
-      error?.code ?? "REQUEST_FAILED",
-      error?.details ?? [],
-      error?.supportEmail,
-      error?.retryAfterSeconds,
-      error?.attemptsRemaining,
-      error?.resendAvailableAt,
+      error.code,
+      error.key,
+      error.details,
+      error.supportEmail,
+      error.retryAfterSeconds,
+      error.attemptsRemaining,
+      error.resendAvailableAt,
     );
   }
   return payload as T;

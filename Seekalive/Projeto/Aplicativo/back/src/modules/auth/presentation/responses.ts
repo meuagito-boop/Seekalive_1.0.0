@@ -1,29 +1,22 @@
 import type { Response } from "express";
+import type { ApiErrorKey, HttpErrorCode } from "@workspace/api-zod";
+import { sendApiError, sendApiValidationError } from "../../../common/apiErrors";
 
 export function sendError(
   response: Response,
-  status: number,
-  code: string,
+  status: HttpErrorCode,
+  key: ApiErrorKey,
   message: string,
   additional: Record<string, unknown> = {},
 ): void {
-  response.status(status).json({
-    error: { code, message, ...additional, requestId: response.locals.requestId ?? "unknown" },
-  });
+  sendApiError(response, status, key, message, additional);
 }
 
 export function sendValidationError(
   response: Response,
   issues: { path: PropertyKey[]; message: string }[],
 ): void {
-  response.status(400).json({
-    error: {
-      code: "VALIDATION_ERROR",
-      message: "Confira os dados informados.",
-      details: issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
-      requestId: response.locals.requestId ?? "unknown",
-    },
-  });
+  sendApiValidationError(response, issues);
 }
 
 export function supportLockMessage(): string {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Post } from "@/data/mockData";
-import type { PublishPostInput, SocialComment } from "@/types/content";
+import type { PublishPostInput, SocialComment } from "@/types/social/posts";
 import { ContentServiceError, makeDemoComment, makeDemoPost, referenceSchema, validatePublication } from "./contentValidation";
 export { ContentServiceError } from "./contentValidation";
 

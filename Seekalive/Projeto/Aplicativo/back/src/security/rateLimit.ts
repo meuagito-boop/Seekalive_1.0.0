@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import { sendApiError } from "../common/apiErrors";
 import { getTrustedClientIp } from "./trustedClientIp";
 
 type RateLimitBucket = { count: number; resetAt: number };
@@ -26,13 +27,7 @@ export function createAuthRateLimit(
     }
     if (bucket.count > maxRequests) {
       response.setHeader("Retry-After", Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)));
-      response.status(429).json({
-        error: {
-          code: "RATE_LIMITED",
-          message: "Muitas tentativas. Aguarde e tente novamente.",
-          requestId: response.locals.requestId ?? "unknown",
-        },
-      });
+      sendApiError(response, 429, "RATE_LIMITED", "Muitas tentativas. Aguarde e tente novamente.");
       return;
     }
     next();

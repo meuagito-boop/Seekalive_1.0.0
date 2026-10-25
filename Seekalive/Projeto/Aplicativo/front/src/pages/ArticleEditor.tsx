@@ -10,7 +10,7 @@ import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard"
 import { ArticleBody, readingMinutes } from "@/components/content/RichText";
 import { ErrorState } from "@/components/content/StateBlocks";
 import { readReferenceFromSearch } from "@/lib/contentLinks";
-import type { ContentReference } from "@/types/content";
+import type { ContentReference } from "@/types/social/contentReferences";
 
 const TITLE_MAX = 160;
 

@@ -1,5 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
+import { sendApiError } from "../common/apiErrors";
 import { PRE_AUTH_COOKIE, sessionSecret } from "./sessionConfig";
 import { loadActiveSession } from "./activeSession";
 import { setPreAuthCookie } from "./preAuthCookies";
@@ -37,13 +38,7 @@ export const requireCsrf: RequestHandler = async (
 ) => {
   response.setHeader("Cache-Control", "no-store");
   if (!requestHasSameOrigin(request)) {
-    response.status(403).json({
-      error: {
-        code: "CSRF_REJECTED",
-        message: "Origem não permitida.",
-        requestId: response.locals.requestId ?? "unknown",
-      },
-    });
+    sendApiError(response, 403, "CSRF_REJECTED", "Origem não permitida.");
     return;
   }
 
@@ -62,11 +57,5 @@ export const requireCsrf: RequestHandler = async (
     }
   }
 
-  response.status(403).json({
-    error: {
-      code: "CSRF_REJECTED",
-      message: "A solicitação expirou. Atualize a página e tente novamente.",
-      requestId: response.locals.requestId ?? "unknown",
-    },
-  });
+  sendApiError(response, 403, "CSRF_REJECTED", "A solicitação expirou. Atualize a página e tente novamente.");
 };

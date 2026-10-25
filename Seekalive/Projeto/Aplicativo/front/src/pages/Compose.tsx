@@ -13,7 +13,7 @@ import { ReferencePreviewCard } from "@/components/content/ReferencePreviewCard"
 import { ErrorState } from "@/components/content/StateBlocks";
 import { renderInline } from "@/components/content/RichText";
 import { articleCreatePath, extractHashtags, extractMentions, readReferenceFromSearch, postPath } from "@/lib/contentLinks";
-import type { ContentReference } from "@/types/content";
+import type { ContentReference } from "@/types/social/contentReferences";
 
 const MAX_CHARS = 280;
 

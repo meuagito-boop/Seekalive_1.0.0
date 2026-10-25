@@ -1,4 +1,4 @@
-import type { MediaType } from "@/types/content";
+import type { MediaType } from "@/types/social/posts";
 import { ContentServiceError } from "./contentValidation";
 
 export interface PreparedMedia { url: string; type: MediaType; name: string }

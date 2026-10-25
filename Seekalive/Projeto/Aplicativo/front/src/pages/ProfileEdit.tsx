@@ -17,7 +17,7 @@ import { currentUser as mockCurrentUser } from "@/data/mockData";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
 import { myAccountToUser, socialGraphApi } from "@/services/socialGraphApi";
-import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/types/businessHours";
+import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/types/profiles/commercial/businessHours";
 import { emptyWeeklyHours, formatWeeklyHours, hasInvalidOpenHours, makeWeeklyHours } from "@/lib/businessHours";
 import { UnavailableState } from "@/components/content/StateBlocks";
 
