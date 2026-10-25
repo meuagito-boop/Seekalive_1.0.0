@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { formatCount } from "@/modules/shared/utils/formatters";
 import { useSocial } from "@/modules/app/state/SocialContext";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { CommercialProfilePage } from "@/modules/profile/commercial-profile/components/CommercialProfilePage";
@@ -14,15 +10,14 @@ import { getProfileMedia } from "@/modules/shared/content/postMedia";
 import { canReadPost } from "@/modules/shared/content/contentValidation";
 import { UnavailableState } from "@/components/content/StateBlocks";
 import { useToast } from "@/modules/shared/hooks/useToast";
+import { useRemoteProfile } from "@/modules/profile/hooks/useRemoteProfile";
+import { ProfileAccessState } from "@/modules/profile/personal-profile/components/ProfileAccessState";
+import { PersonalProfileHeader } from "@/modules/profile/personal-profile/components/PersonalProfileHeader";
 
 export default function Profile() {
   const params = useParams<{ username: string }>();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(0);
-  const [showMenu, setShowMenu] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
-  const [profileRetry, setProfileRetry] = useState(0);
   const { toast } = useToast();
 
   const {
@@ -43,33 +38,13 @@ export default function Profile() {
   const remoteUser = isRemoteSocialSession && !isMe
     ? users.find((user) => user.username === username && user.source === "server")
     : undefined;
-
-  useEffect(() => {
-    if (!isRemoteSocialSession || isMe || !username || remoteUser) {
-      setProfileLoading(false);
-      setProfileLoadError(null);
-      return;
-    }
-
-    let active = true;
-    setProfileLoading(true);
-    setProfileLoadError(null);
-    loadRemoteProfile(username)
-      .then((user) => {
-        if (active && !user) setProfileLoadError("Perfil indisponível.");
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setProfileLoadError(error instanceof Error ? error.message : "Não foi possível carregar o perfil.");
-        }
-      })
-      .finally(() => {
-        if (active) setProfileLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [isRemoteSocialSession, isMe, username, remoteUser?.id, profileRetry, loadRemoteProfile]);
+  const remoteProfile = useRemoteProfile({
+    username,
+    isRemoteSocialSession,
+    isMe,
+    remoteUser,
+    loadRemoteProfile,
+  });
 
   if (!viewer) {
     return (
@@ -90,14 +65,14 @@ export default function Profile() {
   if (!found) {
     return (
       <UnavailableState
-        title={profileLoading ? "Carregando perfil" : "Perfil indisponível"}
-        description={profileLoading
+        title={remoteProfile.isLoading ? "Carregando perfil" : "Perfil indisponível"}
+        description={remoteProfile.isLoading
           ? "Buscando os dados atualizados da conta."
-          : profileLoadError ?? `Não encontramos @${username}. A conta pode ter sido removida.`}
-        action={profileLoading
+          : remoteProfile.error ?? `Não encontramos @${username}. A conta pode ter sido removida.`}
+        action={remoteProfile.isLoading
           ? undefined
-          : profileLoadError
-            ? <Button variant="outline" onClick={() => setProfileRetry((value) => value + 1)}>Tentar novamente</Button>
+          : remoteProfile.error
+            ? <Button variant="outline" onClick={remoteProfile.retry}>Tentar novamente</Button>
             : <Link href="/feed" className="text-sm font-semibold text-primary hover:underline">Voltar ao feed</Link>}
       />
     );
@@ -129,12 +104,12 @@ export default function Profile() {
     void toggleFollow(user.id);
   }
 
-  async function handleBlockToggle() {
+  async function handleBlockToggle(): Promise<boolean> {
     const wasBlockedByViewer = Boolean(user.isBlockedByViewer);
     const updated = wasBlockedByViewer
       ? await unblockUser(user.id)
       : await blockUser(user.id);
-    if (!updated) return;
+    if (!updated) return false;
     if (wasBlockedByViewer) {
       toast({
         title: "Seu bloqueio foi removido",
@@ -148,62 +123,43 @@ export default function Profile() {
         description: "Os seguimentos e solicitações entre vocês foram removidos.",
       });
     }
-    setShowMenu(false);
+    return true;
+  }
+
+  async function handlePrivateBlock() {
+    const updated = await blockUser(user.id);
+    if (!updated) return;
+    toast({
+      title: "Perfil bloqueado",
+      description: "Os seguimentos e solicitações entre vocês foram removidos.",
+    });
   }
 
   if (!isMe && user.isBlocked) {
-    const blockedByViewer = !!user.isBlockedByViewer;
-    const mutualBlock = blockedByViewer && !!user.blocksViewer;
     return (
-      <UnavailableState
-        title={mutualBlock ? "Bloqueio mútuo" : blockedByViewer ? "Perfil bloqueado" : "Perfil indisponível"}
-        description={mutualBlock
-          ? "Você bloqueou esta conta e ela também bloqueou você. Remover o seu bloqueio não remove o bloqueio iniciado pela outra conta."
-          : blockedByViewer
-            ? "Você bloqueou este perfil. Perfis, conteúdos e interações entre vocês estão indisponíveis para ambos."
-          : "Esta conta bloqueou o seu perfil. Perfis, conteúdos e interações entre vocês estão indisponíveis."}
-        action={blockedByViewer
-          ? <Button variant="outline" onClick={handleBlockToggle}>{mutualBlock ? "Remover meu bloqueio" : "Desbloquear perfil"}</Button>
-          : undefined}
+      <ProfileAccessState
+        user={user}
+        isMe={isMe}
+        following={following}
+        followRequested={followRequested}
+        onFollow={handleFollow}
+        onBlock={() => void handlePrivateBlock()}
+        onUnblock={() => void handleBlockToggle()}
       />
     );
   }
 
   if (!isMe && user.isPrivate && !following) {
     return (
-      <div className="min-h-[70vh] px-5 py-16">
-        <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center">
-          <Avatar className="mx-auto mb-4 h-16 w-16">
-            <AvatarImage src={user.avatarUrl} alt="" />
-            <AvatarFallback>{user.displayName[0]}</AvatarFallback>
-          </Avatar>
-          <h1 className="text-xl font-bold">{user.displayName}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">@{user.username}</p>
-          <p className="mt-4 text-sm text-muted-foreground">
-            {followRequested
-              ? "Sua solicitação está aguardando aprovação. O conteúdo ficará visível depois que o dono aceitar."
-              : "Este perfil é privado. Envie uma solicitação para seguir; as publicações públicas do perfil ficam visíveis após a aprovação."}
-          </p>
-          <Button onClick={handleFollow} className="mt-5 rounded-full" variant={followRequested ? "outline" : "default"}>
-            {followRequested ? "Cancelar solicitação" : "Solicitar para seguir"}
-          </Button>
-          <Button
-            variant="outline"
-            className="mt-2 rounded-full"
-            onClick={async () => {
-              const updated = await blockUser(user.id);
-              if (!updated) return;
-              toast({
-                title: "Perfil bloqueado",
-                description: "Os seguimentos e solicitações entre vocês foram removidos.",
-              });
-            }}
-            data-testid="button-block-private-profile"
-          >
-            Bloquear perfil
-          </Button>
-        </div>
-      </div>
+      <ProfileAccessState
+        user={user}
+        isMe={isMe}
+        following={following}
+        followRequested={followRequested}
+        onFollow={handleFollow}
+        onBlock={() => void handlePrivateBlock()}
+        onUnblock={() => void handleBlockToggle()}
+      />
     );
   }
 
@@ -213,180 +169,18 @@ export default function Profile() {
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
-      {/* Sticky back + title bar */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg flex items-center gap-4 px-4 h-14 border-b border-border">
-        <button
-          type="button"
-          onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/feed"))}
-          aria-label="Voltar"
-          className="text-muted-foreground hover:text-foreground p-1"
-          data-testid="button-back"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="min-w-0">
-          <p className="truncate font-bold text-base leading-tight">{user.displayName}</p>
-          <p className="text-xs text-muted-foreground">{formatCount(timeline.length)} {timeline.length === 1 ? "publicação" : "publicações"}</p>
-        </div>
-      </div>
-
-      {/* Cover */}
-      <div className="relative">
-        <div className="h-36 md:h-48 bg-gradient-to-br from-primary/20 via-accent/20 to-background overflow-hidden">
-          {user.coverUrl && (
-            <img src={user.coverUrl} alt={`Capa de ${user.displayName}`} className="w-full h-full object-cover" />
-          )}
-        </div>
-
-        <div className="px-4">
-          <div className="flex flex-wrap items-end justify-between gap-2 -mt-12 mb-3">
-            <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-primary/30">
-              <AvatarImage src={user.avatarUrl} alt={`Foto de ${user.displayName}`} />
-              <AvatarFallback className="text-2xl">{user.displayName[0]}</AvatarFallback>
-            </Avatar>
-
-            <div className="flex flex-wrap items-center justify-end gap-2 mt-2">
-              {isMe ? (
-                <Button asChild variant="outline" className="rounded-full h-9 px-5 text-sm font-semibold border-border" data-testid="button-edit-profile">
-                  <Link href="/profile/edit">Editar perfil</Link>
-                </Button>
-              ) : (
-                <>
-                  {inCircle && (
-                    <span className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-muted px-4 text-sm font-semibold text-muted-foreground" data-testid="badge-mutual-circle">
-                      <Check className="h-3 w-3" /> No Círculo
-                    </span>
-                  )}
-
-                  {/* Follow button */}
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <Button
-                      onClick={handleFollow}
-                      variant={following || followRequested ? "outline" : "default"}
-                      className="rounded-full h-9 px-5 text-sm font-semibold"
-                      data-testid="button-follow"
-                    >
-                      {following ? "Seguindo" : followRequested ? "Cancelar solicitação" : user.isPrivate ? "Solicitar para seguir" : "Seguir"}
-                    </Button>
-                  </motion.div>
-
-                  {/* More menu */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowMenu(v => !v)}
-                      aria-label="Mais opções do perfil"
-                      aria-expanded={showMenu}
-                      className="w-9 h-9 flex items-center justify-center rounded-full border border-border hover:bg-muted/50 transition-colors"
-                      data-testid="button-more"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                    <AnimatePresence>
-                      {showMenu && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                          className="absolute right-0 top-10 w-44 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50"
-                        >
-                          <button
-                            type="button"
-                            disabled
-                            aria-disabled="true"
-                            className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
-                            data-testid="action-silenciar"
-                          >
-                            Silenciar<span className="block text-[11px]">Indisponível nesta versão</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleBlockToggle}
-                            className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50"
-                            data-testid="action-bloquear"
-                          >
-                            {user.isBlockedByViewer ? "Desbloquear" : "Bloquear"}
-                          </button>
-                          <button
-                            type="button"
-                            disabled
-                            aria-disabled="true"
-                            className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
-                            data-testid="action-denunciar"
-                          >
-                            Denunciar<span className="block text-[11px]">Indisponível nesta versão</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                            onClick={() => {
-                              setShowMenu(false);
-                              const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/profile/${user.username}`;
-                              navigator.clipboard?.writeText(url).then(
-                                () => toast({ title: "Link do perfil copiado" }),
-                                () => toast({ title: "Não foi possível copiar o link", variant: "destructive" }),
-                              );
-                            }}
-                            data-testid="action-compartilhar-perfil"
-                          >
-                            Copiar link do perfil
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* User info */}
-          <div className="mb-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="min-w-0 break-words text-xl font-bold">{user.displayName}</h1>
-            </div>
-            <p className="text-muted-foreground text-sm break-all">@{user.username}</p>
-            {user.bio && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">{user.bio}</p>}
-            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-              {user.location && (
-                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{user.location}</span>
-              )}
-              {user.website && (
-                <a href={user.website} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 break-all text-primary hover:underline">
-                  <Globe className="w-3.5 h-3.5" />{user.website.replace(/^https?:\/\//, "")}
-                </a>
-              )}
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                Entrou em {new Date(user.joinedAt).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-              </span>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="flex flex-wrap gap-x-5 gap-y-1 mb-1 text-sm">
-            <Link href={`/profile/${user.username}/following`} className="hover:underline" data-testid="link-following">
-              <span className="font-bold">{formatCount(user.stats.following)}</span>
-              <span className="text-muted-foreground ml-1">Seguindo</span>
-            </Link>
-            <Link href={`/profile/${user.username}/followers`} className="hover:underline" data-testid="link-followers">
-              <span className="font-bold">{formatCount(user.stats.followers)}</span>
-              <span className="text-muted-foreground ml-1">Seguidores</span>
-            </Link>
-            {isMe ? (
-              <Link href={`/profile/${user.username}/circles`} className="hover:underline" data-testid="link-circles">
-                <span className="font-bold">{formatCount(circleCount)}</span>
-                <span className="text-muted-foreground ml-1">Círculo</span>
-              </Link>
-            ) : (
-              <span className="text-muted-foreground" data-testid="stat-circles">
-                <span className="font-bold text-foreground">{formatCount(circleCount)}</span>
-                <span className="ml-1">Círculo</span>
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+      <PersonalProfileHeader
+        user={user}
+        isMe={isMe}
+        postCount={timeline.length}
+        inCircle={inCircle}
+        following={following}
+        followRequested={followRequested}
+        circleCount={circleCount}
+        onBack={() => (window.history.length > 1 ? window.history.back() : setLocation("/feed"))}
+        onFollow={handleFollow}
+        onBlockToggle={handleBlockToggle}
+      />
 
       <PersonalProfileTabs
         user={user}
