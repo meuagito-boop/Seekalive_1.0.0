@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
-import { mockUsers } from "@/data/mockData";
-import { demoSeekEvents } from "@/data/demoSeekEvents";
-import { demoSeekAccounts } from "@/data/demoSeekAccounts";
 import { accountStorageKey, localActorId, useAccountScopedIds } from "@/data/accountScopedStorage";
 import { buildSeekItems, defaultDiscoveryFilters, filterDiscovery, validateDiscoveryFilters } from "@/lib/seekDiscovery";
 import type { DiscoveryFilters, DiscoveryLocation } from "@/lib/seekDiscovery";
@@ -13,10 +10,11 @@ const FILTER_KEY = "seekalive-seek-filters";
 const SAVED_KEY = "seekalive-saved-businesses";
 const EVENT_SAVED_KEY = "seekalive-seek-saved-events";
 const SCROLL_KEY = "seekalive-seek-scroll";
-const exampleIds = import.meta.env.DEV
-  ? new Set([...mockUsers, ...demoSeekAccounts].map(user => user.id))
-  : new Set<string>();
 const EXAMPLES_KEY = "seekalive-seek-demo-preview";
+type DevelopmentSeekFixtures = Pick<
+  typeof import("@/data/demo/previewFixtures"),
+  "developmentExampleAccountIds" | "developmentSeekEvents"
+>;
 
 function readFilters(key: string): DiscoveryFilters {
   try { return validateDiscoveryFilters(JSON.parse(sessionStorage.getItem(key) ?? "null")); }
@@ -42,19 +40,42 @@ export function useSeekDiscovery() {
   const { ids: savedEvents, toggle: toggleSavedEvent } =
     useAccountScopedIds(EVENT_SAVED_KEY, actorId, "sessionStorage");
   const [locationOpen, setLocationOpen] = useState(false);
+  const [developmentFixtures, setDevelopmentFixtures] = useState<DevelopmentSeekFixtures | null>(null);
   const [includeExamples, updateExamples] = useState(() => {
     try { return import.meta.env.DEV && sessionStorage.getItem(EXAMPLES_KEY) !== "false"; }
     catch { return import.meta.env.DEV; }
   });
-  const examplesAvailable = import.meta.env.DEV;
   const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const [notice, setNotice] = useState<string | null>(null);
   const [reviewBusinessId, setReviewBusinessId] = useState<string | null>(null);
+  const examplesAvailable = import.meta.env.DEV && developmentFixtures !== null;
+  const exampleIds = useMemo(
+    () => new Set(developmentFixtures?.developmentExampleAccountIds ?? []),
+    [developmentFixtures],
+  );
   const savedIds = [...savedBusinesses, ...savedEvents];
   const items = useMemo(() => buildSeekItems(users, reviews,
-    examplesAvailable && includeExamples ? demoSeekEvents.map(event => ({ ...event, isExample: true })) : [],
-    exampleIds).filter(item => !item.isExample || (examplesAvailable && includeExamples)), [users, reviews, includeExamples, examplesAvailable]);
+    examplesAvailable && includeExamples
+      ? developmentFixtures?.developmentSeekEvents.map(event => ({ ...event, isExample: true })) ?? []
+      : [],
+    exampleIds).filter(item => !item.isExample || (examplesAvailable && includeExamples)),
+  [users, reviews, includeExamples, examplesAvailable, developmentFixtures, exampleIds]);
   const results = useMemo(() => filterDiscovery(items, state, location), [items, state, location]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let active = true;
+    void import("@/data/demo/previewFixtures")
+      .then(({ developmentExampleAccountIds, developmentSeekEvents }) => {
+        if (active) setDevelopmentFixtures({ developmentExampleAccountIds, developmentSeekEvents });
+      })
+      .catch(() => {
+        if (active) setNotice("Os exemplos locais não puderam ser carregados neste ambiente.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const online = () => setOffline(!navigator.onLine);

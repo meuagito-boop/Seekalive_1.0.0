@@ -1,25 +1,52 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "wouter";
 import { ArrowLeft, Share2, ShoppingCart, Star, Store, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { demoShopItems } from "@/data/demoCatalog";
 import { useSocial } from "@/context/SocialContext";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 import { UnavailableState } from "@/components/content/StateBlocks";
 import { useSavedShopItems } from "@/hooks/use-saved-shop-items";
+import type { ShopItem } from "@/types/shop/item";
 
 export default function ShopItemDetail() {
   const params = useParams<{ id: string }>();
   const { getUserById } = useSocial();
   const [shareOpen, setShareOpen] = useState(false);
   const { isSaved, toggle } = useSavedShopItems();
-  const item = import.meta.env.DEV ? demoShopItems.find((p) => p.id === params.id) : undefined;
+  const [item, setItem] = useState<ShopItem | null>(null);
+  const [itemLoading, setItemLoading] = useState(import.meta.env.DEV);
+  const [fixtureError, setFixtureError] = useState(false);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let active = true;
+    setItem(null);
+    setItemLoading(true);
+    setFixtureError(false);
+    void import("@/data/demo/previewFixtures")
+      .then(({ developmentShopItems }) => {
+        if (active) setItem(developmentShopItems.find((product) => product.id === params.id) ?? null);
+      })
+      .catch(() => {
+        if (active) setFixtureError(true);
+      })
+      .finally(() => {
+        if (active) setItemLoading(false);
+      });
+    return () => { active = false; };
+  }, [params.id]);
+
+  if (itemLoading) {
+    return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground" role="status">Carregando item...</div>;
+  }
 
   if (!item) {
     return (
       <UnavailableState
         title="Item indisponível"
-        description="Este item saiu do catálogo ou o link está incorreto."
+        description={fixtureError
+          ? "Não foi possível carregar os dados de demonstração."
+          : "Este item saiu do catálogo ou o link está incorreto."}
         action={<Button asChild className="rounded-full"><Link href="/shop">Voltar ao Shop</Link></Button>}
       />
     );

@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
 import type { ReactNode } from "react";
-import { currentUser as demoCurrentUser } from "@/data/mockData";
 import type { FollowRequest, User } from "@/data/mockData";
 import { saveSocialAccount } from "@/data/accountStorage";
 import { saveStoredFollowRequests } from "@/data/followRequestStorage";
@@ -48,7 +47,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
   const { currentUser, updateAccount, isDevelopmentPreview } = useAppContext();
   const isRemoteSocialSession = Boolean(currentUser && !isDevelopmentPreview);
-  const viewer = currentUser ?? (import.meta.env.DEV ? demoCurrentUser : null);
+  const viewer = currentUser;
   const actorId = currentUser?.id ?? viewer?.id ?? "guest";
   const { ids: localBlockedUserIds, toggle: toggleBlockedUser } =
     useAccountScopedIds("seekalive-blocked-users", actorId);
@@ -97,13 +96,13 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const visibleNotifications = state.notifications
     .filter(notification => notification.recipientId
       ? notification.recipientId === actorId
-      : actorId === demoCurrentUser.id)
+      : isDevelopmentPreview && actorId === currentUser?.id)
     .filter(notification => !blockedAccountIds.has(notification.actorId)
       && (!notification.entityId || !blockedPostIds.has(notification.entityId)))
     .map(notification => ({
       ...notification,
       isRead: accountActivity.readNotificationIds.includes(notification.id)
-        || (actorId === demoCurrentUser.id && notification.isRead),
+        || (isDevelopmentPreview && actorId === currentUser?.id && notification.isRead),
     }));
   const visibleConversations = state.conversations
     .filter(conversation => conversation.participantIds.includes(actorId)
@@ -120,7 +119,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       isRead: message.senderId === actorId
         ? message.isRead
         : accountActivity.readMessageIds.includes(message.id)
-          || (actorId === demoCurrentUser.id && message.isRead),
+          || (isDevelopmentPreview && actorId === currentUser?.id && message.isRead),
     }));
 
   function updateCurrentActivity(
@@ -133,6 +132,32 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isRemoteSocialSession) saveStoredFollowRequests(state.followRequests);
   }, [state.followRequests, isRemoteSocialSession]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let active = true;
+    void import("@/data/demo/previewFixtures")
+      .then(({ createDevelopmentPreviewState }) => {
+        if (active) {
+          dispatch({
+            type: "HYDRATE_DEVELOPMENT_PREVIEW",
+            preview: createDevelopmentPreviewState(),
+          });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          toast({
+            title: "Dados de demonstração indisponíveis",
+            description: "Não foi possível carregar os exemplos neste ambiente. Recarregue a página para tentar novamente.",
+            variant: "destructive",
+          });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     if (!isRemoteSocialSession || !currentUser) {
@@ -221,7 +246,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     const author = users.find(user => user.id === post.authorId);
     if (!canReadPost(
       post,
-      currentUser?.id ?? (import.meta.env.DEV ? demoCurrentUser.id : ""),
+      currentUser?.id ?? "",
        !!viewer && (isRemoteSocialSession
          ? Boolean(author?.isInCircle)
          : areMutualFollowers(viewer, author)),
@@ -309,7 +334,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     getPostById: (id) => posts.find(p => p.id === id),
     getUserById: (id) => {
       if (id === currentUser?.id) return currentUser;
-      if (id === "me") return currentUser ?? (import.meta.env.DEV ? demoCurrentUser : undefined);
+      if (id === "me") return currentUser ?? undefined;
       return users.find(u => u.id === id);
     },
     getConversationMessages: (convId) => visibleConversationIds.has(convId)

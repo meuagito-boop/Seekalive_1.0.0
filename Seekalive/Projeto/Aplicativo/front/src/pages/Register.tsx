@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { AuthApiError, registerAccount as submitRegistration } from "@/services/authApi";
+import { useAppContext } from "@/context/AppContext";
 
 const commercialCategories = [
   { value: "restaurantes", label: "Restaurantes" },
@@ -92,6 +93,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { setPendingVerificationEmail } = useAppContext();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -149,7 +151,7 @@ export default function Register() {
 
     try {
       const result = await submitRegistration(payload);
-      sessionStorage.setItem("seekalive:pending-email", email);
+      setPendingVerificationEmail(email);
       toast({ title: "Confirme seu e-mail", description: result.message });
       setLocation("/verify-email");
     } catch (error) {

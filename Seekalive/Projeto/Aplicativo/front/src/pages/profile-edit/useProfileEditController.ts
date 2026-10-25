@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { AccountPatch, MyAccountResponse } from "@workspace/api-client-react";
-import { currentUser as mockCurrentUser } from "@/data/mockData";
 import { useAppContext } from "@/context/AppContext";
 import { useSocial } from "@/context/SocialContext";
 import { myAccountToUser, socialGraphApi } from "@/services/socialGraphApi";
@@ -36,7 +35,7 @@ export function useProfileEditController() {
     updateAccount,
   } = useAppContext();
   const { addUser } = useSocial();
-  const currentUser = signedInUser ?? (import.meta.env.DEV ? mockCurrentUser : null);
+  const currentUser = signedInUser;
   const isServerAccount = isAuthenticated && !isDevelopmentPreview;
   const profile = currentUser?.commercialProfile;
   const [ownerProfile, setOwnerProfile] = useState<MyAccountResponse | null>(null);

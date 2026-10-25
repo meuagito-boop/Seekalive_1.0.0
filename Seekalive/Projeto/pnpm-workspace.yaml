@@ -62,7 +62,7 @@ catalog:
   react-dom: 19.1.0
   tailwind-merge: ^3.3.1
   tailwindcss: ^4.3.3
-  tsx: ^4.21.0
+  tsx: ^4.23.15
   vite: ^7.3.2
   wouter: ^3.3.5
   zod: ^4.6.7
@@ -78,6 +78,9 @@ onlyBuiltDependencies:
 
 overrides:
   # Keep patched transitive packages inside their existing major-version ranges.
+  # Drizzle Kit allows this TSX range; selecting the current compatible release
+  # avoids retaining its older esbuild dependency in the lockfile.
+  tsx: 4.23.15
   '@babel/core': 7.29.6
   baseline-browser-mapping: 2.11.0
   browserslist: 4.28.7
@@ -167,6 +170,4 @@ overrides:
   "@expo/ngrok-bin>@expo/ngrok-bin-sunos-x64": "-"
   "@expo/ngrok-bin>@expo/ngrok-bin-win32-ia32": "-"
   "@expo/ngrok-bin>@expo/ngrok-bin-win32-x64": "-"
-  # Vite 7 and Orval 8 require the compatible 0.27 line; the remaining low advisory is tracked in the audit report.
-  "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
-  esbuild: "0.27.3"
+  "@esbuild-kit/esm-loader": "npm:tsx@^4.23.15"

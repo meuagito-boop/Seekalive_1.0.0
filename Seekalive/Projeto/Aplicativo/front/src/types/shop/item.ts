@@ -10,3 +10,11 @@ export interface ShopItem {
   img: string;
   sellerId?: string;
 }
+
+export interface ShopStore {
+  id: string;
+  name: string;
+  category: string;
+  img: string;
+  followers: string;
+}

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Search, Edit, Mail } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatTimeAgo } from "@/data/mockData";
+import { formatTimeAgo } from "@/lib/formatters";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 

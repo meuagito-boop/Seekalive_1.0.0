@@ -1,23 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "wouter";
 import { ArrowLeft, CalendarDays, MapPin, Share2, Users, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { demoSeekEvents } from "@/data/demoSeekEvents";
 import { useSocial } from "@/context/SocialContext";
 import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 import { UnavailableState } from "@/components/content/StateBlocks";
+import type { SeekEvent } from "@/types/seek/event";
 
 export default function SeekEventDetail() {
   const params = useParams<{ id: string }>();
   const { getUserById } = useSocial();
   const [shareOpen, setShareOpen] = useState(false);
-  const event = import.meta.env.DEV ? demoSeekEvents.find((e) => e.id === params.id) : undefined;
+  const [event, setEvent] = useState<SeekEvent | null>(null);
+  const [eventLoading, setEventLoading] = useState(import.meta.env.DEV);
+  const [fixtureError, setFixtureError] = useState(false);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let active = true;
+    setEvent(null);
+    setEventLoading(true);
+    setFixtureError(false);
+    void import("@/data/demo/previewFixtures")
+      .then(({ developmentSeekEvents }) => {
+        if (active) setEvent(developmentSeekEvents.find((item) => item.id === params.id) ?? null);
+      })
+      .catch(() => {
+        if (active) setFixtureError(true);
+      })
+      .finally(() => {
+        if (active) setEventLoading(false);
+      });
+    return () => { active = false; };
+  }, [params.id]);
+
+  if (eventLoading) {
+    return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground" role="status">Carregando evento...</div>;
+  }
 
   if (!event) {
     return (
       <UnavailableState
         title="Evento indisponível"
-        description="Este evento não existe mais ou o link está incorreto."
+        description={fixtureError
+          ? "Não foi possível carregar os dados de demonstração."
+          : "Este evento não existe mais ou o link está incorreto."}
         action={<Button asChild className="rounded-full"><Link href="/seek">Voltar ao Seek</Link></Button>}
       />
     );

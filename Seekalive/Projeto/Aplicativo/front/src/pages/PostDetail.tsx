@@ -2,7 +2,7 @@ import { useParams, useLocation, Link, Redirect } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { formatCount } from "@/data/mockData";
+import { formatCount } from "@/lib/formatters";
 import { getPostMediaType } from "@/lib/postMedia";
 import { useReadablePost } from "@/hooks/use-readable-post";
 import { RichText } from "@/components/content/RichText";

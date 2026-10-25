@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search as SearchIcon, TrendingUp, Users, Hash } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PostCard } from "@/components/post/PostCard";
-import { formatCount } from "@/data/mockData";
+import { formatCount } from "@/lib/formatters";
 import { useSocial } from "@/context/SocialContext";
 import { accountListToUsers, socialGraphApi } from "@/services/socialGraphApi";
 import { handleTabKeyDown } from "@/lib/tabKeyboard";

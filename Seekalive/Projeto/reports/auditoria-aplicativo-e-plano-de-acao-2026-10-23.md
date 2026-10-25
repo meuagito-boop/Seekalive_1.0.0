@@ -884,6 +884,22 @@ Esta continuação usou quatro revisões independentes de leitura e um agente de
 
 O diff final continua sujeito a revisão humana; “sem erros”, “perfeito” ou “pronto para produção” não são conclusões sustentadas por esta evidência. As suítes de integração que dependem do banco seguem bloqueadas antes da conexão, e o perfil autenticado não foi aberto no preview.
 
+### 12.7 Remediação do bundle frontend e alertas — 25/10/2026
+
+Esta etapa continua a auditoria com foco no bundle inicial do frontend e nos alertas efetivamente encontrados. Ela **substitui o estado de dependência registrado na versão 2.59**: a instrução posterior do usuário foi resolver os alertas, e o `esbuild@0.27.3` foi removido sem desativar o firewall, a idade mínima de publicação ou a validação de compatibilidade.
+
+| Área | Correção e evidência | Limite/estado |
+|---|---|---|
+| Bundle inicial | Rotas públicas e autenticadas foram isoladas em módulos carregados sob demanda; `SocialProvider` passou a ser carregado apenas no ramo autenticado. O chunk inicial principal caiu de **1.087,51 kB para 432,86 kB** (redução de 654,65 kB, aproximadamente 60,2%). | `vite build` concluiu sem o aviso de chunk acima de 500 kB; nenhum limite de aviso foi aumentado. |
+| Dados demonstrativos | Removidas importações estáticas de fixtures em páginas e serviços; os dados de demonstração são carregados dinamicamente apenas no desenvolvimento. A propriedade `moduleSideEffects` customizada que poderia induzir tree-shaking incorreto também foi removida. | A build de produção passou por `scripts/check-production-demo-content.mjs`: 96 chunks JavaScript verificados, sem os marcadores de dados de demonstração definidos no teste. Isso não substitui teste de navegador autenticado. |
+| E-mail de verificação | O e-mail pendente saiu do `sessionStorage` e permanece somente em memória no contexto da aplicação. A tela avisa que, após recarregar, a pessoa precisará informar o endereço novamente. | Comportamento de privacidade verificado pelo HoundDog; a recuperação visual completa em uma sessão autenticada não foi testada no navegador. |
+| Dependências de build | Removido o override global que forçava `esbuild@0.27.3`. `tsx@4.23.15` é compatível com a faixa declarada pelo Drizzle Kit; versões distintas de esbuild permanecem somente onde os respectivos pais exigem faixas diferentes: backend/Pino plugin, Drizzle Kit e Vite/Orval. `minimumReleaseAge: 1440` foi mantida. | `pnpm -r why esbuild` não encontrou `0.27.3`, e não reportou conflito de peer após a instalação. |
+| Dependência sem uso | A instalação apontava `recharts@2.15.4` em ramo descontinuado. O componente `chart.tsx` não tinha consumidores no frontend nem no mockup sandbox; ambos os wrappers e as dependências diretas foram removidos, sem substituir uma biblioteca ativa. | `pnpm -r why recharts` não encontrou dependentes. |
+| Scanners | `runDependencyAudit`: 0 vulnerabilidades (critical/high/moderate/low); `runSastScan`: 0 achados; `runHoundDogScan`: 0 achados. | São resultados da revisão executada em 25/10/2026; repetir antes de publicar. |
+| Testes e build | `pnpm test`: 87 aprovados, 0 falhas. `pnpm run typecheck` e `pnpm run build` passaram. `git diff --check` passou. | Nenhuma migração ou mutação de banco foi realizada nesta etapa. |
+
+**Escopo que continua aberto:** esta remediação fecha o problema do bundle e os alertas citados acima, mas não declara concluída a auditoria arquitetural de todos os domínios do repositório nem a validação visual de todas as rotas autenticadas. O projeto permanece em desenvolvimento; Gestor e Painel não foram alterados. A próxima execução deve continuar o plano de auditoria nos módulos ainda não verificados, sem ampliar este resultado para “perfeito” ou “pronto para produção”.
+
 | Versão | Data | Atualização |
 |---|---|---|
 | 1.1 | 2026-10-23 | Consolida os resultados da auditoria complementar, scanners e plano coordenado de remediação com dependências e critérios de aceite. |
@@ -955,3 +971,4 @@ O diff final continua sujeito a revisão humana; “sem erros”, “perfeito”
 | 2.57 | 2026-10-25 | Separa edição pessoal/comercial em schema, controller, comandos e componentes; alinha website à API e registra 54 testes aprovados. |
 | 2.58 | 2026-10-25 | Consolida correções de sessão, concorrência na verificação de e-mail, acessibilidade de abas, dependências dentro da política de maturidade, remoção de plugin sem uso, build raiz e auditoria de limpeza; registra 86 testes, scanners e o risco baixo de esbuild pendente de decisão. |
 | 2.59 | 2026-10-25 | Registra a decisão de manter a toolchain atual, documentar o alerta baixo de esbuild e não contornar a janela de maturidade nem iniciar a migração major. |
+| 2.60 | 2026-10-25 | Revoga o estado anterior de alerta pendente; remove `esbuild@0.27.3`, dados demonstrativos da build de produção e dependência Recharts sem uso; registra 87 testes, build sem aviso de chunk e três scanners sem achados. |

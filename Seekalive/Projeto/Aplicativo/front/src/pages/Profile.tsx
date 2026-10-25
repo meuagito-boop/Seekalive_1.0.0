@@ -5,7 +5,7 @@ import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check } from "lucid
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/post/PostCard";
-import { currentUser as mockCurrentUser, formatCount } from "@/data/mockData";
+import { formatCount } from "@/lib/formatters";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { CommercialProfilePage } from "@/components/profile/CommercialProfilePage";
@@ -46,7 +46,7 @@ export default function Profile() {
     loadRemoteProfile,
   } = useSocial();
   const { currentUser: signedInUser, isDevelopmentPreview } = useAppContext();
-  const viewer = signedInUser ?? (import.meta.env.DEV ? mockCurrentUser : null);
+  const viewer = signedInUser;
   const username = params.username;
   const isMe = !!viewer && (username === viewer.username || !username);
   const isRemoteSocialSession = Boolean(signedInUser && !isDevelopmentPreview);

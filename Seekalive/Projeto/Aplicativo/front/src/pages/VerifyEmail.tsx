@@ -10,12 +10,16 @@ import { AuthApiError, confirmEmail, resendVerification } from "@/services/authA
 
 export default function VerifyEmail() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [email, setEmail] = useState(() => sessionStorage.getItem("seekalive:pending-email") ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { setAuthenticatedAccount } = useAppContext();
+  const {
+    pendingVerificationEmail,
+    setPendingVerificationEmail,
+    setAuthenticatedAccount,
+  } = useAppContext();
+  const [email, setEmail] = useState(() => pendingVerificationEmail ?? "");
 
   function handleChange(index: number, value: string) {
     const digits = value.replace(/\D/g, "");
@@ -53,8 +57,8 @@ export default function VerifyEmail() {
     setIsSubmitting(true);
     try {
       const result = await confirmEmail({ email: email.trim().toLowerCase(), code: code.join("") });
-      sessionStorage.removeItem("seekalive:pending-email");
       if ("passwordUpdateRequired" in result) {
+        setPendingVerificationEmail(null);
         toast({ title: "E-mail confirmado", description: result.message });
         setLocation("/login");
         return;
@@ -123,12 +127,18 @@ export default function VerifyEmail() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setPendingVerificationEmail(event.target.value || null);
+                }}
                 placeholder="seu@email.com"
                 className="mt-2 h-12 w-full rounded-xl border border-border bg-card px-4 text-foreground outline-none focus:border-primary"
                 data-testid="input-verification-email"
               />
             </label>
+            <p className="-mt-3 mb-5 text-left text-xs leading-5 text-muted-foreground">
+              Por privacidade, o endereço fica apenas em memória. Se recarregar esta tela, digite-o novamente.
+            </p>
 
             <div className="flex gap-2 justify-center mb-8">
               {code.map((digit, i) => (

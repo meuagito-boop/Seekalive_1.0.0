@@ -9,7 +9,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { type Post, formatTimeAgo } from "@/data/mockData";
+import type { Post } from "@/data/mockData";
+import { formatTimeAgo } from "@/lib/formatters";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
 import { getPostMediaType } from "@/lib/postMedia";

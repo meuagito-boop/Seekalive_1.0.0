@@ -7,20 +7,9 @@ import type {
   SeekReview,
   User,
 } from "@/data/mockData";
-import {
-  currentUser as demoCurrentUser,
-  mockConversations,
-  mockMessages,
-  mockNotifications,
-  mockPosts,
-  mockSeekReviews,
-  mockUsers,
-} from "@/data/mockData";
 import { getStoredAccounts } from "@/data/accountStorage";
 import { getStoredFollowRequests } from "@/data/followRequestStorage";
 import { getStoredSeekReviews } from "@/data/reviewStorage";
-import { demoIntegrationPosts } from "@/data/demoIntegrationPosts";
-import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "@/data/demoSeekAccounts";
 import type { SocialComment, SocialRepost } from "@/types/social/posts";
 
 export interface SocialState {
@@ -53,10 +42,33 @@ export type SocialAction =
   | { type: "MARK_CONVERSATION_READ"; convId: string }
   | { type: "SEND_MESSAGE"; message: Message }
   | { type: "ADD_FOLLOW_REQUEST"; request: FollowRequest }
-  | { type: "REMOVE_FOLLOW_REQUEST"; requestId: string };
+  | { type: "REMOVE_FOLLOW_REQUEST"; requestId: string }
+  | { type: "HYDRATE_DEVELOPMENT_PREVIEW"; preview: SocialState };
+
+function mergeById<T extends { id: string }>(previewItems: T[], currentItems: T[]): T[] {
+  const merged = new Map(previewItems.map((item) => [item.id, item]));
+  for (const item of currentItems) merged.set(item.id, item);
+  return [...merged.values()];
+}
+
+export function mergeDevelopmentPreviewState(current: SocialState, preview: SocialState): SocialState {
+  return {
+    posts: mergeById(preview.posts, current.posts),
+    users: mergeById(preview.users, current.users),
+    notifications: mergeById(preview.notifications, current.notifications),
+    conversations: mergeById(preview.conversations, current.conversations),
+    messages: mergeById(preview.messages, current.messages),
+    reviews: mergeById(preview.reviews, current.reviews),
+    postComments: mergeById(preview.postComments, current.postComments),
+    repostEntries: mergeById(preview.repostEntries, current.repostEntries),
+    followRequests: mergeById(preview.followRequests, current.followRequests),
+  };
+}
 
 export function socialReducer(state: SocialState, action: SocialAction): SocialState {
   switch (action.type) {
+    case "HYDRATE_DEVELOPMENT_PREVIEW":
+      return mergeDevelopmentPreviewState(state, action.preview);
     case "TOGGLE_LIKE":
       return {
         ...state,
@@ -234,29 +246,28 @@ export function socialReducer(state: SocialState, action: SocialAction): SocialS
 }
 
 const initialState: SocialState = {
-  posts: import.meta.env.DEV
-    ? [...demoIntegrationPosts, ...mockPosts].map((post) => ({
-        ...post,
-        isLiked: false,
-        isBookmarked: false,
-        isReposted: false,
-      }))
-    : [],
-  users: import.meta.env.DEV ? [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts] : [],
-  notifications: import.meta.env.DEV ? [...mockNotifications] : [],
-  conversations: import.meta.env.DEV ? [...mockConversations] : [],
-  messages: import.meta.env.DEV ? [...mockMessages] : [],
-  reviews: import.meta.env.DEV ? [...mockSeekReviews, ...demoSeekReviews] : [],
+  posts: [],
+  users: [],
+  notifications: [],
+  conversations: [],
+  messages: [],
+  reviews: [],
   postComments: [],
   repostEntries: [],
   followRequests: [],
 };
 
 export function createInitialState(): SocialState {
-  const usersById = new Map([...initialState.users, ...getStoredAccounts()].map((user) => [user.id, user]));
-  const reviewsById = new Map([...initialState.reviews, ...getStoredSeekReviews()].map((review) => [review.id, review]));
+  const usersById = new Map(getStoredAccounts().map((user) => [user.id, user]));
+  const reviewsById = new Map(getStoredSeekReviews().map((review) => [review.id, review]));
   return {
     ...initialState,
+    posts: [],
+    notifications: [],
+    conversations: [],
+    messages: [],
+    postComments: [],
+    repostEntries: [],
     users: [...usersById.values()],
     reviews: [...reviewsById.values()],
     followRequests: getStoredFollowRequests(),

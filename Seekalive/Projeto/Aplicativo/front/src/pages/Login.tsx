@@ -60,7 +60,11 @@ export default function Login() {
   const [countdownNow, setCountdownNow] = useState(Date.now());
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { setAuthenticatedAccount, startDevelopmentPreview } = useAppContext();
+  const {
+    setAuthenticatedAccount,
+    setPendingVerificationEmail,
+    startDevelopmentPreview,
+  } = useAppContext();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -116,9 +120,9 @@ export default function Login() {
         return;
       }
       if (error instanceof AuthApiError && error.key === "EMAIL_NOT_VERIFIED") {
-        if (values.identifier.includes("@")) {
-          sessionStorage.setItem("seekalive:pending-email", values.identifier.trim().toLowerCase());
-        }
+        setPendingVerificationEmail(values.identifier.includes("@")
+          ? values.identifier.trim().toLowerCase()
+          : null);
         toast({ title: "Confirme seu e-mail", description: error.message });
         setLocation("/verify-email");
         return;

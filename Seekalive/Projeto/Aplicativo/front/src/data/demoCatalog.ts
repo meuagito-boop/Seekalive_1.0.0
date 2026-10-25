@@ -1,4 +1,4 @@
-import type { ShopItem } from "@/types/shop/item";
+import type { ShopItem, ShopStore } from "@/types/shop/item";
 
 // Explicit demonstration catalog. No prices or availability are live.
 export const demoShopItems: ShopItem[] = [
@@ -11,7 +11,7 @@ export const demoShopItems: ShopItem[] = [
   { id: "p7", name: "Smartwatch Fit X4", store: "TechMania", price: "R$ 349,00", oldPrice: "R$ 499,00", rating: 4.7, reviews: 402, tag: "ofertas", img: "https://picsum.photos/seed/watch7/300/300" },
   { id: "p8", name: "Livro: Hábitos Atômicos", store: "Livraria Cultura", price: "R$ 49,90", oldPrice: null, rating: 4.9, reviews: 1204, tag: "produtos", img: "https://picsum.photos/seed/book8/300/300" },
 ];
-export const demoStores = [
+export const demoStores: ShopStore[] = [
   { id: "s1", name: "TechMania", category: "Eletrônicos", img: "https://picsum.photos/seed/store1/48/48", followers: "12 mil" },
   { id: "s2", name: "SportZone", category: "Esportes", img: "https://picsum.photos/seed/store2/48/48", followers: "8,4 mil" },
   { id: "s3", name: "Casa & Gosto", category: "Casa", img: "https://picsum.photos/seed/store3/48/48", followers: "5,1 mil" },

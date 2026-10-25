@@ -4,7 +4,7 @@ import { Heart, CornerDownRight, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
-import { formatTimeAgo } from "@/data/mockData";
+import { formatTimeAgo } from "@/lib/formatters";
 import type { SocialComment } from "@/types/social/posts";
 import { renderInline } from "./RichText";
 import { ErrorState } from "./StateBlocks";

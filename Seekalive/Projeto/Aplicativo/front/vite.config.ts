@@ -58,12 +58,6 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    rollupOptions: {
-      treeshake: {
-        // These modules only define preview fixtures; importing them has no required app side effects.
-        moduleSideEffects: id => !id.includes("/src/data/demo") && !id.endsWith("/src/data/mockData.ts"),
-      },
-    },
   },
   server: {
     port,

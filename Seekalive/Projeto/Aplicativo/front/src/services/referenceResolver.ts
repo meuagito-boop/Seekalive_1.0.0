@@ -1,7 +1,5 @@
 import type { Post, SeekReview, User } from "@/data/mockData";
 import type { ContentReference, ReferencePreview } from "@/types/social/contentReferences";
-import { demoShopItems } from "@/data/demoCatalog";
-import { demoSeekEvents } from "@/data/demoSeekEvents";
 import { canReadPost, referenceSchema, ContentServiceError } from "./contentValidation";
 
 export interface ReferenceSnapshot { users: User[]; posts: Post[]; reviews: SeekReview[]; viewerId?: string }
@@ -17,7 +15,7 @@ export function referenceDataVersion(snapshot: ReferenceSnapshot, viewer?: User 
   return `${keyFor(snapshot.posts)}:${keyFor(snapshot.users)}:${keyFor(snapshot.reviews)}:${viewer ? keyFor(viewer) : "anon"}`;
 }
 
-function resolveDemo(reference: ContentReference, snapshot: ReferenceSnapshot): ReferencePreview | null {
+async function resolveDemo(reference: ContentReference, snapshot: ReferenceSnapshot): Promise<ReferencePreview | null> {
   if (reference.type === "seek_entity") {
     const business = snapshot.users.find(user => !reference.id.startsWith("event:") && user.id === reference.id && user.accountType === "commercial");
     if (business?.commercialProfile && !business.isBlocked) {
@@ -34,7 +32,7 @@ function resolveDemo(reference: ContentReference, snapshot: ReferenceSnapshot): 
       };
     }
     const event = import.meta.env.DEV && reference.id.startsWith("event:")
-      ? demoSeekEvents.find(item => item.id === reference.id.slice("event:".length))
+      ? (await import("@/data/demo/previewFixtures")).developmentSeekEvents.find(item => item.id === reference.id.slice("event:".length))
       : undefined;
     return event ? {
       ...reference, title: event.name, subtitle: `${event.date} · ${event.venue}`, imageUrl: event.img,
@@ -42,7 +40,9 @@ function resolveDemo(reference: ContentReference, snapshot: ReferenceSnapshot): 
     } : null;
   }
   if (reference.type === "shop_item") {
-    const item = import.meta.env.DEV ? demoShopItems.find(product => product.id === reference.id) : undefined;
+    const item = import.meta.env.DEV
+      ? (await import("@/data/demo/previewFixtures")).developmentShopItems.find(product => product.id === reference.id)
+      : undefined;
     return item ? {
       ...reference, title: item.name, subtitle: item.store, imageUrl: item.img,
       price: item.price, targetPath: `/shop/item/${encodeURIComponent(item.id)}`, entityLabel: "Item Shop",

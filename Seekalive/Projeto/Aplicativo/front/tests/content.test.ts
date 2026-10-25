@@ -6,12 +6,17 @@ import { join } from "node:path";
 import { makeDemoPost, makeDemoComment, makeDemoMessage, extractSocialTokens, validatePublication, canReadPost, assertCommentParent } from "../src/services/contentValidation";
 import { apiRequest, restContentAdapter } from "../src/services/contentService";
 import { resolveReference } from "../src/services/referenceResolver";
-import { socialReducer, type SocialState } from "../src/context/social/state";
+import {
+  mergeDevelopmentPreviewState,
+  socialReducer,
+  type SocialState,
+} from "../src/context/social/state";
 import {
   followRequestIdsBetween,
   removeFollowEdgesForBlock,
 } from "../src/lib/followRelationships";
-import { mockUsers, mockNotifications, currentUser, formatCount, formatTimeAgo } from "../src/data/mockData";
+import { mockUsers, mockNotifications, currentUser } from "../src/data/mockData";
+import { formatCount, formatTimeAgo } from "../src/lib/formatters";
 import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/services/mediaService";
 import { filterSeekBusinesses, matchesSeekSearch } from "../src/lib/seekFilters";
@@ -90,6 +95,20 @@ test("datas e contagens usam português e toleram valores inválidos", () => {
   assert.match(formatCount(1200), /1,2\s*mil/);
   assert.equal(formatCount(-1), "0");
   assert.equal(formatCount(Number.NaN), "0");
+});
+test("a hidratação da prévia preserva dados locais já existentes sem duplicar ids", () => {
+  const preview = state();
+  preview.posts = [{ ...post, id: "demo-post" }];
+  const current = state();
+  current.posts = [
+    { ...post, id: "demo-post", content: "alteração local" },
+    { ...post, id: "local-post" },
+  ];
+
+  const merged = mergeDevelopmentPreviewState(current, preview);
+
+  assert.deepEqual(merged.posts.map((entry) => entry.id), ["demo-post", "local-post"]);
+  assert.equal(merged.posts[0].content, "alteração local");
 });
 test("conta de exemplo usa a identidade atual sem website fictício", () => {
   assert.equal(currentUser.username, "usuario_demo");

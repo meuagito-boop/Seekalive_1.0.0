@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -5,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Star, Users, TrendingUp } from "lucide-react";
 import { useSocial } from "@/context/SocialContext";
 import { useAppContext } from "@/context/AppContext";
-import { demoSeekEvents } from "@/data/demoSeekEvents";
-
+import type { SeekEvent } from "@/types/seek/event";
 
 function PanelCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -23,9 +23,23 @@ function PanelCard({ title, icon, children }: { title: string; icon: React.React
 export function SocialContextPanel() {
   const { users, reviews, toggleFollow } = useSocial();
   const { currentUser } = useAppContext();
+  const [upcomingEvents, setUpcomingEvents] = useState<SeekEvent[]>([]);
+  const [eventsUnavailable, setEventsUnavailable] = useState(false);
   const suggestUsers = users.filter(u => u.id !== currentUser?.id && !u.isFollowing && !u.followRequestSent && !u.isBlocked).slice(0, 3);
   const places = users.filter(user => user.accountType === "commercial" && user.commercialProfile && !user.isBlocked).slice(0, 3);
-  const upcomingEvents = import.meta.env.DEV ? demoSeekEvents.slice(0, 2) : [];
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let active = true;
+    void import("@/data/demo/previewFixtures")
+      .then(({ developmentSeekEvents }) => {
+        if (active) setUpcomingEvents(developmentSeekEvents.slice(0, 2));
+      })
+      .catch(() => {
+        if (active) setEventsUnavailable(true);
+      });
+    return () => { active = false; };
+  }, []);
   return (
     <div className="w-full space-y-0">
 
@@ -81,7 +95,13 @@ export function SocialContextPanel() {
             <p className="text-[11px] text-muted-foreground mt-0.5">{event.date} · {event.venue}</p>
             <p className="text-[11px] text-primary mt-0.5">{event.interested} interessados</p>
           </Link>
-        )) : <p className="px-4 py-3 text-xs text-muted-foreground">Eventos aparecerão quando houver dados reais.</p>}
+        )) : <p className="px-4 py-3 text-xs text-muted-foreground">
+          {eventsUnavailable
+            ? "Não foi possível carregar os eventos de demonstração."
+            : import.meta.env.DEV
+              ? "Carregando eventos de demonstração..."
+              : "Eventos aparecerão quando houver dados reais."}
+        </p>}
       </PanelCard>
 
     </div>

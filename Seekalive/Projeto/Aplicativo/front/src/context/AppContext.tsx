@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { User } from "../data/mockData";
+import type { User } from "../data/mockData";
 import { setStoredActiveAccount } from "../data/accountStorage";
 import { getCurrentSession, logoutAccount, type AuthAccount } from "../services/authApi";
 import { resolveAuthSession } from "./authSessionState";
@@ -13,6 +13,8 @@ interface AppContextType {
   logoutError: string | null;
   clearLogoutError: () => void;
   isDevelopmentPreview: boolean;
+  pendingVerificationEmail: string | null;
+  setPendingVerificationEmail: (email: string | null) => void;
   setAuthenticatedAccount: (account: AuthAccount) => void;
   startDevelopmentPreview: () => Promise<void>;
   updateAccount: (user: User) => void;
@@ -46,6 +48,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isDevelopmentPreview, setIsDevelopmentPreview] = useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +83,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setIsDevelopmentPreview(false);
     setCurrentUser(null);
     setLogoutError(null);
+    setPendingVerificationEmail(null);
     setStoredActiveAccount(null);
   };
 
@@ -87,6 +91,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const user = toUser(account);
     setIsDevelopmentPreview(false);
     setLogoutError(null);
+    setPendingVerificationEmail(null);
     setCurrentUser(user);
     // Authenticated profile data is reloaded from the API and should not be
     // resurrected from a stale browser snapshot.
@@ -95,9 +100,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const startDevelopmentPreview = async () => {
     if (!import.meta.env.DEV) return;
-    const { currentUser: previewUser } = await import("../data/mockData");
+    const { developmentPreviewUser: previewUser } = await import("../data/demo/previewFixtures");
     setIsDevelopmentPreview(true);
     setLogoutError(null);
+    setPendingVerificationEmail(null);
     setIsAuthLoading(false);
     setCurrentUser({ ...previewUser });
   };
@@ -139,6 +145,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         logoutError,
         clearLogoutError: () => setLogoutError(null),
         isDevelopmentPreview,
+        pendingVerificationEmail,
+        setPendingVerificationEmail,
         setAuthenticatedAccount,
         startDevelopmentPreview,
         updateAccount,

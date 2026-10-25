@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Star, Heart, Tag, Store, ChevronRight, Package, Zap, Eye } from "lucide-react";
-import { demoShopItems, demoStores } from "@/data/demoCatalog";
-import type { ShopItem } from "@/types/shop/item";
+import type { ShopItem, ShopStore } from "@/types/shop/item";
 import { useSavedShopItems } from "@/hooks/use-saved-shop-items";
 
 const shopCategories = [
@@ -66,11 +65,35 @@ function ProductCard({ p, liked, onToggle }: { p: ShopItem; liked: boolean; onTo
 
 export default function Shop() {
   const [activeCategory, setActiveCategory] = useState("all");
+  const [shopData, setShopData] = useState<{ items: ShopItem[]; stores: ShopStore[] }>({ items: [], stores: [] });
+  const [demoLoading, setDemoLoading] = useState(import.meta.env.DEV);
+  const [demoError, setDemoError] = useState(false);
   const { isSaved, toggle } = useSavedShopItems();
-  const mockProducts = import.meta.env.DEV ? demoShopItems : [];
-  const featuredStores = import.meta.env.DEV ? demoStores : [];
+  const mockProducts = import.meta.env.DEV ? shopData.items : [];
+  const featuredStores = import.meta.env.DEV ? shopData.stores : [];
   const discountedProducts = mockProducts.filter((p) => p.oldPrice).slice(0, 4);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let active = true;
+    void import("@/data/demo/previewFixtures")
+      .then(({ developmentShopItems, developmentShopStores }) => {
+        if (active) setShopData({ items: developmentShopItems, stores: developmentShopStores });
+      })
+      .catch(() => {
+        if (active) setDemoError(true);
+      })
+      .finally(() => {
+        if (active) setDemoLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const emptyCatalogMessage = demoLoading
+    ? "Carregando catálogo de demonstração..."
+    : demoError
+      ? "Não foi possível carregar o catálogo de demonstração."
+      : "O catálogo será exibido quando houver produtos reais disponíveis.";
   const filtered = activeCategory === "all"
     ? mockProducts
     : mockProducts.filter((p) => p.tag === activeCategory);
@@ -160,7 +183,7 @@ export default function Shop() {
                   <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
                 ))}
               </div>
-            : <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">O catálogo será exibido quando houver produtos reais disponíveis.</p>}
+            : <p role={demoError ? "alert" : undefined} aria-live="polite" className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">{emptyCatalogMessage}</p>}
         </main>
 
         {/* Right: featured stores panel */}
@@ -216,7 +239,7 @@ export default function Shop() {
             ? filtered.map((p) => (
                 <ProductCard key={p.id} p={p} liked={isSaved(p.id)} onToggle={() => toggle(p.id)} />
               ))
-            : <p className="col-span-2 rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">O catálogo será exibido quando houver produtos reais disponíveis.</p>}
+            : <p role={demoError ? "alert" : undefined} aria-live="polite" className="col-span-2 rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">{emptyCatalogMessage}</p>}
         </div>
       </div>
     </div>
