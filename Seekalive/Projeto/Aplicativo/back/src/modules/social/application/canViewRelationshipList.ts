@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { accountFollows, db } from "@workspace/db";
-import { isBlockedBetween } from "../../profiles/application/accountViews";
+import { isBlockedBetween } from "./isBlockedBetween";
 
 export async function canViewRelationshipList(
   viewerId: string | null,

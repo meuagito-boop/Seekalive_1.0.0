@@ -2,9 +2,9 @@ import type { Request, Response } from "express";
 import { loadActiveSession } from "../../../security/session";
 import {
   findActiveAccountById,
-  isBlockedBetween,
 } from "../../profiles/application/accountViews";
 import { canViewRelationshipList } from "../application/canViewRelationshipList";
+import { isBlockedBetween } from "../application/isBlockedBetween";
 import { sendError } from "./routeSupport";
 
 export async function requireVisibleRelationshipTarget(

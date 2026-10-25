@@ -7,7 +7,7 @@
 - [Banco e schemas por domínio](database-domains-replit.md) — PostgreSQL gerenciado da Replit; schemas separam ownership lógico, não instâncias físicas ou credenciais.
 - [Localização comercial](commercial-location-cardinality.md) — cada conta tem um endereço principal no Seek; áreas de atendimento não fazem parte do escopo confirmado.
 - [Nome público e identificador](personal-profile-name.md) — pessoa exibe nome+sobrenome e comércio exibe empresa, sempre separados do @ exclusivo.
-- [Back-end em etapas](backend-staged-rollout.md) — concluir Conta antes do Social; revisar pastas em ordem alfabética e separar perfis pessoal/comercial.
+- [Back-end em etapas](backend-staged-rollout.md) — concluir Conta antes do Social; separar perfil pessoal/comercial e manter cada domínio como dono de sua lógica.
 - [Geração de contratos Orval](orval-contract-barrels.md) — manter tipos gerados e schemas Zod sem colisões; normalizar o barrel depois do codegen.
 - [Ambiente Replit](replit-environment-identification.md) — identificar produção por `REPLIT_DEPLOYMENT`; não tratar `REPLIT_ENVIRONMENT` como indicador oficial.
 - [Privacidade de sessões](session-device-privacy.md) — IP só via proxy confiável; novo IP exige código, com espera de 30/90 s; retenção e persistência ainda pendentes.

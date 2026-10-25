@@ -27,6 +27,7 @@ import { buildProfileTimeline } from "@/components/profile/profileTimeline";
 import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/services/contentValidation";
 import { formatWeeklyHours, weeklyHoursRows } from "@/lib/businessHours";
+import { handleTabKeyDown } from "@/lib/tabKeyboard";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
 const profileTabs = ["Publicações", "Informações", "Avaliações", "Mídias", "Artigos"] as const;
@@ -373,12 +374,16 @@ export function CommercialProfilePage({
           className="sticky top-14 z-30 overflow-x-auto border-b border-border bg-background/95 backdrop-blur [scrollbar-width:none]"
         >
           <div role="tablist" aria-label="Seções do perfil comercial" className="flex h-12 w-full min-w-[560px] md:min-w-full">
-            {profileTabs.map((tab) => (
+            {profileTabs.map((tab, index) => (
               <button
                 key={tab}
+                id={`commercial-profile-tab-${index}`}
+                aria-controls={`commercial-profile-panel-${index}`}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === tab}
+                tabIndex={activeTab === tab ? 0 : -1}
+                onKeyDown={(event) => handleTabKeyDown(event, index, profileTabs.length, (nextIndex) => setActiveTab(profileTabs[nextIndex]))}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 whitespace-nowrap border-b-2 px-2 text-sm font-medium transition-colors ${
                   activeTab === tab
@@ -393,6 +398,8 @@ export function CommercialProfilePage({
         </nav>
 
         <div className="px-4 py-5 md:px-8">
+          <div id="commercial-profile-panel-1" role="tabpanel" aria-labelledby="commercial-profile-tab-1"
+            hidden={activeTab !== "Informações"} tabIndex={0}>
           {activeTab === "Informações" && (
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
               <div className="space-y-6">
@@ -474,7 +481,10 @@ export function CommercialProfilePage({
               </aside>
             </div>
           )}
+          </div>
 
+          <div id="commercial-profile-panel-3" role="tabpanel" aria-labelledby="commercial-profile-tab-3"
+            hidden={activeTab !== "Mídias"} tabIndex={0}>
           {activeTab === "Mídias" && (
             <section id="merchant-media" className="max-w-4xl scroll-mt-32">
               <div className="mb-5">
@@ -482,12 +492,16 @@ export function CommercialProfilePage({
                 <p className="mt-1 text-sm text-muted-foreground">Fotos e vídeos compartilhados por este comércio.</p>
               </div>
               <div role="tablist" aria-label="Tipo de mídia" className="mb-5 flex gap-2 border-b border-border">
-                {(["Fotos", "Vídeos"] as const).map((mediaTab) => (
+                {(["Fotos", "Vídeos"] as const).map((mediaTab, index) => (
                   <button
                     key={mediaTab}
+                    id={`commercial-media-tab-${index}`}
+                    aria-controls={`commercial-media-panel-${index}`}
                     type="button"
                     role="tab"
                     aria-selected={activeMediaTab === mediaTab}
+                    tabIndex={activeMediaTab === mediaTab ? 0 : -1}
+                    onKeyDown={(event) => handleTabKeyDown(event, index, 2, (nextIndex) => setActiveMediaTab(nextIndex === 0 ? "Fotos" : "Vídeos"))}
                     onClick={() => setActiveMediaTab(mediaTab)}
                     className={`border-b-2 px-4 py-3 text-sm font-semibold ${
                       activeMediaTab === mediaTab
@@ -500,7 +514,9 @@ export function CommercialProfilePage({
                 ))}
               </div>
 
-              {activeMediaTab === "Fotos" ? (
+              <div id="commercial-media-panel-0" role="tabpanel" aria-labelledby="commercial-media-tab-0"
+                hidden={activeMediaTab !== "Fotos"} tabIndex={0}>
+              {activeMediaTab === "Fotos" && (
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                   {photos.map((photo, index) => (
                     <button
@@ -517,7 +533,11 @@ export function CommercialProfilePage({
                     </button>
                   ))}
                 </div>
-              ) : videos.length ? (
+              )}
+              </div>
+              <div id="commercial-media-panel-1" role="tabpanel" aria-labelledby="commercial-media-tab-1"
+                hidden={activeMediaTab !== "Vídeos"} tabIndex={0}>
+              {activeMediaTab === "Vídeos" && (videos.length ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {videos.map((video) => (
                     <video key={video} src={video} controls playsInline className="aspect-video w-full rounded-xl bg-black" />
@@ -531,10 +551,14 @@ export function CommercialProfilePage({
                     Os vídeos deste comércio aparecerão aqui.
                   </p>
                 </div>
-              )}
+              ))}
+              </div>
             </section>
           )}
+          </div>
 
+          <div id="commercial-profile-panel-2" role="tabpanel" aria-labelledby="commercial-profile-tab-2"
+            hidden={activeTab !== "Avaliações"} tabIndex={0}>
           {activeTab === "Avaliações" && (
             <section className="max-w-3xl">
               <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -595,7 +619,10 @@ export function CommercialProfilePage({
               )}
             </section>
           )}
+          </div>
 
+          <div id="commercial-profile-panel-4" role="tabpanel" aria-labelledby="commercial-profile-tab-4"
+            hidden={activeTab !== "Artigos"} tabIndex={0}>
           {activeTab === "Artigos" && (
             <section className="mx-auto max-w-2xl">
               <h2 className="mb-4 text-xl font-bold">Artigos de {user.displayName}</h2>
@@ -606,7 +633,10 @@ export function CommercialProfilePage({
               )}
             </section>
           )}
+          </div>
 
+          <div id="commercial-profile-panel-0" role="tabpanel" aria-labelledby="commercial-profile-tab-0"
+            hidden={activeTab !== "Publicações"} tabIndex={0}>
           {activeTab === "Publicações" && (
             <section className="mx-auto max-w-2xl">
               <h2 className="mb-4 text-xl font-bold">Publicações de {user.displayName}</h2>
@@ -617,6 +647,7 @@ export function CommercialProfilePage({
               )}
             </section>
           )}
+          </div>
         </div>
       </main>
 

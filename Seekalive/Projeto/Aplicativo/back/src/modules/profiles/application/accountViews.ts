@@ -1,12 +1,12 @@
-import { and, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { accountEmails, accounts, db } from "@workspace/db";
 import {
-  accountBlocks,
-  accountEmails,
-  accountFollows,
-  accountFollowRequests,
-  accounts,
-  db,
-} from "@workspace/db";
+  getAccountSocialStats,
+  type AccountSocialStats,
+} from "../../social/application/getAccountSocialStats";
+import { getAccountSocialSummariesByIds } from "../../social/application/getAccountSocialSummariesByIds";
+import { getRelationshipFor } from "../../social/application/getRelationshipFor";
+import type { RelationshipView } from "../../social/application/relationshipView";
 import { canViewPrivateProfileContent } from "./profileVisibility";
 
 export type PublicAccountRow = {
@@ -20,14 +20,6 @@ export type PublicAccountRow = {
   isPrivate: boolean;
   createdAt: Date;
   version: number;
-};
-
-export type RelationshipView = {
-  following: "none" | "pending" | "accepted";
-  inCircle: boolean;
-  blockedByMe: boolean;
-  blockedByThem: boolean;
-  mutedByMe: boolean;
 };
 
 export async function findActiveAccountById(id: string): Promise<PublicAccountRow | null> {
@@ -80,71 +72,11 @@ export async function findActiveAccountByUsername(username: string): Promise<Pub
   return row ?? null;
 }
 
-export async function relationshipFor(viewerId: string | null, targetId: string): Promise<RelationshipView> {
-  if (!viewerId || viewerId === targetId) {
-    return { following: "none", inCircle: false, blockedByMe: false, blockedByThem: false, mutedByMe: false };
-  }
-
-  const [acceptedFollow, pendingRequest, reciprocalFollow, blockedByMe, blockedByThem] = await Promise.all([
-    db.select({ followerId: accountFollows.followerId })
-      .from(accountFollows)
-      .where(and(eq(accountFollows.followerId, viewerId), eq(accountFollows.followedId, targetId)))
-      .limit(1),
-    db.select({ requesterId: accountFollowRequests.requesterId })
-      .from(accountFollowRequests)
-      .where(and(eq(accountFollowRequests.requesterId, viewerId), eq(accountFollowRequests.targetId, targetId)))
-      .limit(1),
-    db.select({ followerId: accountFollows.followerId })
-      .from(accountFollows)
-      .where(and(eq(accountFollows.followerId, targetId), eq(accountFollows.followedId, viewerId)))
-      .limit(1),
-    db.select({ blockerId: accountBlocks.blockerId })
-      .from(accountBlocks)
-      .where(and(eq(accountBlocks.blockerId, viewerId), eq(accountBlocks.blockedId, targetId)))
-      .limit(1),
-    db.select({ blockerId: accountBlocks.blockerId })
-      .from(accountBlocks)
-      .where(and(eq(accountBlocks.blockerId, targetId), eq(accountBlocks.blockedId, viewerId)))
-      .limit(1),
-  ]);
-  const following = acceptedFollow.length ? "accepted" : pendingRequest.length ? "pending" : "none";
-  return {
-    following,
-    inCircle: following === "accepted" && reciprocalFollow.length > 0,
-    blockedByMe: blockedByMe.length > 0,
-    blockedByThem: blockedByThem.length > 0,
-    mutedByMe: false,
-  };
-}
-
-async function accountStats(accountId: string) {
-  const [followers, following, circles] = await Promise.all([
-    db.select({ total: count() }).from(accountFollows).where(eq(accountFollows.followedId, accountId)),
-    db.select({ total: count() }).from(accountFollows).where(eq(accountFollows.followerId, accountId)),
-    db.select({ total: sql<number>`count(*)::int` })
-      .from(accountFollows)
-      .where(and(
-        eq(accountFollows.followerId, accountId),
-        sql`exists (
-          select 1 from ${accountFollows} reciprocal
-          where reciprocal.follower_id = ${accountFollows.followedId}
-            and reciprocal.followed_id = ${accountId}
-        )`,
-      )),
-  ]);
-  return {
-    posts: 0,
-    followers: followers[0]?.total ?? 0,
-    following: following[0]?.total ?? 0,
-    circles: circles[0]?.total ?? 0,
-  };
-}
-
 function buildAccountView(
   row: PublicAccountRow,
   viewerId: string | null,
   relationship: RelationshipView,
-  stats: { posts: number; followers: number; following: number; circles: number },
+  stats: AccountSocialStats,
 ) {
   const privateDetailsVisible = canViewPrivateProfileContent(
     row.isPrivate,
@@ -176,8 +108,8 @@ export async function accountView(
   knownRelationship?: RelationshipView,
 ) {
   const [relationship, stats] = await Promise.all([
-    knownRelationship ? Promise.resolve(knownRelationship) : relationshipFor(viewerId, row.id),
-    accountStats(row.id),
+    knownRelationship ? Promise.resolve(knownRelationship) : getRelationshipFor(viewerId, row.id),
+    getAccountSocialStats(row.id),
   ]);
   return buildAccountView(row, viewerId, relationship, stats);
 }
@@ -208,85 +140,18 @@ export async function accountViewsByIds(ids: string[], viewerId: string | null) 
     ));
   if (rows.length === 0) return [];
 
-  const idsToQuery = rows.map((row) => row.id);
-  const [followerCounts, followingCounts, circleCounts] = await Promise.all([
-    db.select({ id: accountFollows.followedId, total: count() })
-      .from(accountFollows)
-      .where(inArray(accountFollows.followedId, idsToQuery))
-      .groupBy(accountFollows.followedId),
-    db.select({ id: accountFollows.followerId, total: count() })
-      .from(accountFollows)
-      .where(inArray(accountFollows.followerId, idsToQuery))
-      .groupBy(accountFollows.followerId),
-    db.select({ id: accountFollows.followerId, total: count() })
-      .from(accountFollows)
-      .where(and(
-        inArray(accountFollows.followerId, idsToQuery),
-        sql`exists (
-          select 1 from ${accountFollows} reciprocal
-          where reciprocal.follower_id = ${accountFollows.followedId}
-            and reciprocal.followed_id = ${accountFollows.followerId}
-        )`,
-      ))
-      .groupBy(accountFollows.followerId),
-  ]);
-
-  const followingSet = new Set<string>();
-  const pendingSet = new Set<string>();
-  const reciprocalSet = new Set<string>();
-  const blockedByMeSet = new Set<string>();
-  const blockedByThemSet = new Set<string>();
-  if (viewerId) {
-    const [outgoing, pending, incoming, blockedByMe, blockedByThem] = await Promise.all([
-      db.select({ id: accountFollows.followedId }).from(accountFollows)
-        .where(and(eq(accountFollows.followerId, viewerId), inArray(accountFollows.followedId, idsToQuery))),
-      db.select({ id: accountFollowRequests.targetId }).from(accountFollowRequests)
-        .where(and(eq(accountFollowRequests.requesterId, viewerId), inArray(accountFollowRequests.targetId, idsToQuery))),
-      db.select({ id: accountFollows.followerId }).from(accountFollows)
-        .where(and(inArray(accountFollows.followerId, idsToQuery), eq(accountFollows.followedId, viewerId))),
-      db.select({ id: accountBlocks.blockedId }).from(accountBlocks)
-        .where(and(eq(accountBlocks.blockerId, viewerId), inArray(accountBlocks.blockedId, idsToQuery))),
-      db.select({ id: accountBlocks.blockerId }).from(accountBlocks)
-        .where(and(inArray(accountBlocks.blockerId, idsToQuery), eq(accountBlocks.blockedId, viewerId))),
-    ]);
-    for (const row of outgoing) followingSet.add(row.id);
-    for (const row of pending) pendingSet.add(row.id);
-    for (const row of incoming) reciprocalSet.add(row.id);
-    for (const row of blockedByMe) blockedByMeSet.add(row.id);
-    for (const row of blockedByThem) blockedByThemSet.add(row.id);
-  }
-  const followers = new Map(followerCounts.map((row) => [row.id, row.total]));
-  const following = new Map(followingCounts.map((row) => [row.id, row.total]));
-  const circles = new Map(circleCounts.map((row) => [row.id, row.total]));
+  const socialSummaries = await getAccountSocialSummariesByIds(
+    rows.map((row) => row.id),
+    viewerId,
+  );
   const byId = new Map<string, ReturnType<typeof buildAccountView>>();
   for (const row of rows) {
-    if (blockedByMeSet.has(row.id) || blockedByThemSet.has(row.id)) continue;
-    const isFollowing = followingSet.has(row.id);
-    const relationship: RelationshipView = {
-      following: isFollowing ? "accepted" : pendingSet.has(row.id) ? "pending" : "none",
-      inCircle: isFollowing && reciprocalSet.has(row.id),
-      blockedByMe: blockedByMeSet.has(row.id),
-      blockedByThem: blockedByThemSet.has(row.id),
-      mutedByMe: false,
-    };
-    byId.set(row.id, buildAccountView(row, viewerId, relationship, {
-      posts: 0,
-      followers: followers.get(row.id) ?? 0,
-      following: following.get(row.id) ?? 0,
-      circles: circles.get(row.id) ?? 0,
-    }));
+    const summary = socialSummaries.get(row.id);
+    if (!summary) continue;
+    byId.set(
+      row.id,
+      buildAccountView(row, viewerId, summary.relationship, summary.stats),
+    );
   }
   return ids.map((id) => byId.get(id)).filter((account) => account !== undefined);
-}
-
-export async function isBlockedBetween(firstId: string, secondId: string): Promise<boolean> {
-  const rows = await db
-    .select({ blockerId: accountBlocks.blockerId })
-    .from(accountBlocks)
-    .where(and(
-      sql`(${accountBlocks.blockerId} = ${firstId} and ${accountBlocks.blockedId} = ${secondId})
-        or (${accountBlocks.blockerId} = ${secondId} and ${accountBlocks.blockedId} = ${firstId})`,
-    ))
-    .limit(1);
-  return rows.length > 0;
 }

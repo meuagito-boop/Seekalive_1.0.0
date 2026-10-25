@@ -9,6 +9,7 @@ import { DiscoveryCategories } from "@/components/seek/DiscoveryCategories";
 import type { DiscoveryCategory } from "@/components/seek/DiscoveryCategories";
 import { DiscoveryFiltersPanel } from "@/components/seek/DiscoveryFiltersPanel";
 import { DiscoveryLocationDialog } from "@/components/seek/DiscoveryLocationDialog";
+import { handleTabKeyDown } from "@/lib/tabKeyboard";
 
 type Tab = DiscoveryFilters["tab"];
 const TABS: { key: Tab; label: string }[] = [
@@ -70,6 +71,62 @@ export default function Seek() {
     ) : null;
 
   const showRail = (t: Tab) => state.tab === "explore" || state.tab === t;
+  const panelContent = (
+    <>
+      {showFilters && <div className="mt-3 px-3 md:px-0"><DiscoveryFiltersPanel state={state} setState={setState} clearFilters={d.clearFilters} /></div>}
+
+      <DiscoveryCategories categories={categories} active={state.category} onSelect={(category) => setState({ category })} />
+      {filterLabels.length > 0 && <p className="px-3 pb-2 text-xs text-muted-foreground md:px-0">Filtros ativos: {filterLabels.join(" · ")}</p>}
+
+      {d.examplesAvailable && (
+        <div className="mx-3 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 md:mx-0">
+          <label className="flex min-h-11 items-center gap-3 text-xs text-muted-foreground">
+            <input type="checkbox" className="h-5 w-5 accent-[hsl(var(--primary))]" checked={d.includeExamples} onChange={(e) => d.setIncludeExamples(e.target.checked)} />
+            Modo demonstração: locais, serviços e eventos fictícios. Fotos ilustrativas.
+          </label>
+          <button type="button" onClick={d.showAllExamples} className="mb-1 min-h-11 rounded-lg px-2 text-xs font-bold text-primary hover:bg-primary/10">
+            Ver prévia completa
+          </button>
+        </div>
+      )}
+
+      <div aria-live="polite" className="sr-only">{d.results.length} resultados</div>
+
+      {showList ? (
+        <section aria-labelledby="seek-list-title" className="px-3 pt-2 md:px-0">
+          <div className="mb-3 flex items-center gap-2">
+            {state.list && (
+              <button type="button" onClick={() => setState({ list: false, query: "" })} aria-label="Voltar para descobertas"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border hover:border-primary/50 hover:text-primary">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <h2 id="seek-list-title" className="text-base font-extrabold">
+              {listItems.length} {listItems.length === 1 ? "resultado" : "resultados"}
+              {state.query.trim() && <span className="font-semibold text-muted-foreground"> para “{state.query.trim()}”</span>}
+            </h2>
+          </div>
+          {listItems.length ? (
+            <ul className="grid gap-3 lg:grid-cols-2">
+              {listItems.map((it) => <li key={it.id}>{card(it, "list")}</li>)}
+            </ul>
+          ) : (
+            <Empty hasFilters={activeFilters > 0 || !!state.query} onClear={d.clearFilters} examples={d.examplesAvailable && !d.includeExamples} />
+          )}
+        </section>
+      ) : d.results.length === 0 ? (
+        <div className="px-3 pt-2 md:px-0">
+          <Empty hasFilters={activeFilters > 0} onClear={d.clearFilters} examples={d.examplesAvailable && !d.includeExamples} />
+        </div>
+      ) : (
+        <>
+          {showRail("providers") && rail("seek-providers", "Prestadores de serviços", "Profissionais com perfil Social", providers, "providers")}
+          {showRail("places") && rail("seek-places", "Lugares", "Perfis comerciais da rede", places, "places")}
+          {showRail("events") && rail("seek-events", "Eventos", "Com data e local informados", events, "events")}
+        </>
+      )}
+    </>
+  );
 
   return (
     <div className="min-h-[100dvh] pb-24 md:pb-10">
@@ -125,8 +182,10 @@ export default function Seek() {
 
         {/* Tabs */}
         <div role="tablist" aria-label="Tipo de descoberta" className="mt-3 flex gap-1 overflow-x-auto border-b border-border px-3 md:px-0 [scrollbar-width:none]">
-          {TABS.map((t) => (
-            <button key={t.key} role="tab" type="button" aria-selected={state.tab === t.key}
+          {TABS.map((t, index) => (
+            <button key={t.key} id={`seek-tab-${t.key}`} aria-controls={`seek-panel-${t.key}`} role="tab" type="button" aria-selected={state.tab === t.key}
+              tabIndex={state.tab === t.key ? 0 : -1}
+              onKeyDown={(event) => handleTabKeyDown(event, index, TABS.length, (nextIndex) => setState({ tab: TABS[nextIndex].key }))}
               onClick={() => setState({ tab: t.key })}
               className={`min-h-11 shrink-0 border-b-2 px-4 text-sm font-bold transition-colors ${
                 state.tab === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
@@ -135,59 +194,12 @@ export default function Seek() {
           ))}
         </div>
 
-        {showFilters && <div className="mt-3 px-3 md:px-0"><DiscoveryFiltersPanel state={state} setState={setState} clearFilters={d.clearFilters} /></div>}
-
-        <DiscoveryCategories categories={categories} active={state.category} onSelect={(category) => setState({ category })} />
-        {filterLabels.length > 0 && <p className="px-3 pb-2 text-xs text-muted-foreground md:px-0">Filtros ativos: {filterLabels.join(" · ")}</p>}
-
-        {/* Example toggle */}
-        {d.examplesAvailable && (
-          <div className="mx-3 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 md:mx-0">
-          <label className="flex min-h-11 items-center gap-3 text-xs text-muted-foreground">
-            <input type="checkbox" className="h-5 w-5 accent-[hsl(var(--primary))]" checked={d.includeExamples} onChange={(e) => d.setIncludeExamples(e.target.checked)} />
-            Modo demonstração: locais, serviços e eventos fictícios. Fotos ilustrativas.
-          </label>
-          <button type="button" onClick={d.showAllExamples} className="mb-1 min-h-11 rounded-lg px-2 text-xs font-bold text-primary hover:bg-primary/10">
-            Ver prévia completa
-          </button>
+        {TABS.map((tab) => (
+          <div key={tab.key} id={`seek-panel-${tab.key}`} role="tabpanel" aria-labelledby={`seek-tab-${tab.key}`}
+            hidden={state.tab !== tab.key} tabIndex={0}>
+            {state.tab === tab.key && panelContent}
           </div>
-        )}
-
-        <div aria-live="polite" className="sr-only">{d.results.length} resultados</div>
-
-        {showList ? (
-          <section aria-labelledby="seek-list-title" className="px-3 pt-2 md:px-0">
-            <div className="mb-3 flex items-center gap-2">
-              {state.list && (
-                <button type="button" onClick={() => setState({ list: false, query: "" })} aria-label="Voltar para descobertas"
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-border hover:border-primary/50 hover:text-primary">
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-              )}
-              <h2 id="seek-list-title" className="text-base font-extrabold">
-                {listItems.length} {listItems.length === 1 ? "resultado" : "resultados"}
-                {state.query.trim() && <span className="font-semibold text-muted-foreground"> para “{state.query.trim()}”</span>}
-              </h2>
-            </div>
-            {listItems.length ? (
-              <ul className="grid gap-3 lg:grid-cols-2">
-                {listItems.map((it) => <li key={it.id}>{card(it, "list")}</li>)}
-              </ul>
-            ) : (
-              <Empty hasFilters={activeFilters > 0 || !!state.query} onClear={d.clearFilters} examples={d.examplesAvailable && !d.includeExamples} />
-            )}
-          </section>
-        ) : d.results.length === 0 ? (
-          <div className="px-3 pt-2 md:px-0">
-            <Empty hasFilters={activeFilters > 0} onClear={d.clearFilters} examples={d.examplesAvailable && !d.includeExamples} />
-          </div>
-        ) : (
-          <>
-            {showRail("providers") && rail("seek-providers", "Prestadores de serviços", "Profissionais com perfil Social", providers, "providers")}
-            {showRail("places") && rail("seek-places", "Lugares", "Perfis comerciais da rede", places, "places")}
-            {showRail("events") && rail("seek-events", "Eventos", "Com data e local informados", events, "events")}
-          </>
-        )}
+        ))}
       </div>
 
       <DiscoveryLocationDialog open={d.locationOpen} onOpenChange={d.setLocationOpen} current={d.location} onSelect={d.selectLocation} offline={d.offline} />

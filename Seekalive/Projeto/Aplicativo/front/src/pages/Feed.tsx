@@ -13,6 +13,7 @@ import { useAppContext } from "@/context/AppContext";
 import { canReadPost } from "@/services/contentValidation";
 import { getPostMediaType } from "@/lib/postMedia";
 import { useToast } from "@/hooks/use-toast";
+import { handleTabKeyDown } from "@/lib/tabKeyboard";
 
 const feedTabs = ["Para você", "Seguindo", "Artigos", "Vídeos"] as const;
 
@@ -142,7 +143,9 @@ export default function Feed() {
       <div className="border-b border-border bg-background">
         <div role="tablist" aria-label="Seções do feed" className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {feedTabs.map((tab, i) => (
-            <button key={tab} role="tab" aria-selected={activeTab === i} onClick={() => setActiveTab(i)} data-testid={`tab-feed-${tab}`}
+            <button key={tab} id={`feed-tab-${i}`} role="tab" aria-controls={`feed-panel-${i}`} aria-selected={activeTab === i}
+              tabIndex={activeTab === i ? 0 : -1} onKeyDown={(event) => handleTabKeyDown(event, i, feedTabs.length, setActiveTab)}
+              onClick={() => setActiveTab(i)} data-testid={`tab-feed-${tab}`}
               className={`min-w-[80px] flex-1 flex-shrink-0 border-b-2 py-3 text-sm font-medium transition-all ${
                 activeTab === i ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
               {tab}
@@ -152,32 +155,36 @@ export default function Feed() {
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 0 && (
-          <motion.div key="for-you" {...fade}>
-            {items.length ? list(items) : <EmptyState title="Nada por aqui ainda" description="Publique algo ou siga pessoas." />}
-          </motion.div>
-        )}
-        {activeTab === 1 && (
-          <motion.div key="following" {...fade}>
-            {followingItems.length === 0 ? (
-              <EmptyState title="Nenhuma publicação ainda" description="Siga pessoas para ver as publicações e repostagens delas aqui."
-                action={<Button asChild className="rounded-full"><Link href="/search">Descobrir pessoas</Link></Button>} />
-            ) : list(followingItems)}
-          </motion.div>
-        )}
-        {activeTab === 2 && (
-          <motion.div key="articles" {...fade}>
-            {articles.length ? articles.map((p) => <PostCard key={p.id} post={p} />) : (
-              <EmptyState title="Nenhum artigo ainda" description="Artigos são publicações longas, com título e comentários próprios."
-                action={<Button asChild className="rounded-full"><Link href="/article/create"><BookOpenText className="mr-2 h-4 w-4" />Escrever artigo</Link></Button>} />
+        {[0, 1, 2, 3].map((index) => (
+          <div key={index} id={`feed-panel-${index}`} role="tabpanel" aria-labelledby={`feed-tab-${index}`}
+            hidden={activeTab !== index} tabIndex={0}>
+            {activeTab === index && (
+              index === 0 ? (
+                <motion.div key="for-you" {...fade}>
+                  {items.length ? list(items) : <EmptyState title="Nada por aqui ainda" description="Publique algo ou siga pessoas." />}
+                </motion.div>
+              ) : index === 1 ? (
+                <motion.div key="following" {...fade}>
+                  {followingItems.length === 0 ? (
+                    <EmptyState title="Nenhuma publicação ainda" description="Siga pessoas para ver as publicações e repostagens delas aqui."
+                      action={<Button asChild className="rounded-full"><Link href="/search">Descobrir pessoas</Link></Button>} />
+                  ) : list(followingItems)}
+                </motion.div>
+              ) : index === 2 ? (
+                <motion.div key="articles" {...fade}>
+                  {articles.length ? articles.map((p) => <PostCard key={p.id} post={p} />) : (
+                    <EmptyState title="Nenhum artigo ainda" description="Artigos são publicações longas, com título e comentários próprios."
+                      action={<Button asChild className="rounded-full"><Link href="/article/create"><BookOpenText className="mr-2 h-4 w-4" />Escrever artigo</Link></Button>} />
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div key="videos" {...fade} data-testid="video-feed">
+                  {videoPosts.length ? videoPosts.map((p) => <VideoFeedItem key={p.id} post={p} />) : <EmptyState title="Nenhum vídeo ainda" description="Vídeos publicados por quem você pode ver aparecem aqui." />}
+                </motion.div>
+              )
             )}
-          </motion.div>
-        )}
-        {activeTab === 3 && (
-          <motion.div key="videos" {...fade} data-testid="video-feed">
-            {videoPosts.length ? videoPosts.map((p) => <VideoFeedItem key={p.id} post={p} />) : <EmptyState title="Nenhum vídeo ainda" description="Vídeos publicados por quem você pode ver aparecem aqui." />}
-          </motion.div>
-        )}
+          </div>
+        ))}
       </AnimatePresence>
     </div>
   );

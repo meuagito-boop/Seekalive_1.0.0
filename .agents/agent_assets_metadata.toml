@@ -243,14 +243,14 @@ content_type = "application/octet-stream"
 id = "X5TS5SNABC0LtRzHLvY-b"
 uri = "file://Seekalive/Projeto/reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md"
 type = "text"
-title = "Auditoria do Seekalive — versão 2.55"
-description = "Relatório atualizado com achados, correções, verificações e plano de ação por domínio."
+title = "Auditoria do Seekalive — versão 2.58"
+description = "Relatório atualizado com achados confirmados, correções, testes, limites da verificação e próximos passos."
 logical_id = "ccace8f7-8599-4c5d-9761-64034e43b5b2"
-content_hash = "sha256:4efd07bb79c3d61e7bb7dce6c674e95f6eaa24264c1fd04924ed7dc1f3c93130"
-size = 181213
-mtime_ms = 1792938674962
-storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/ccace8f7-8599-4c5d-9761-64034e43b5b2/d0fa6223-40f0-4174-a8f2-7080caa19873"
-storage_version_token = "1792938688841743"
+content_hash = "sha256:97941fbbc87de0c4babc4cc2aae475987382a6fae0a28292ecc6e3af52417b3c"
+size = 188285
+mtime_ms = 1792941422683
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/ccace8f7-8599-4c5d-9761-64034e43b5b2/9431f08f-b9a4-4300-9431-0fc033bfe988"
+storage_version_token = "1792941493788598"
 content_type = "text/markdown"
 
 [[outputs]]

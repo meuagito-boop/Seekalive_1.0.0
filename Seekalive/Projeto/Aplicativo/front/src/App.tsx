@@ -148,13 +148,42 @@ function AuthRouter() {
 }
 
 function Router() {
-  const { currentUser, isAuthenticated, isAuthLoading, isDevelopmentPreview, logout } = useAppContext();
+  const {
+    currentUser,
+    isAuthenticated,
+    isAuthLoading,
+    sessionCheckUnavailable,
+    retrySessionCheck,
+    logoutError,
+    clearLogoutError,
+    isDevelopmentPreview,
+    logout,
+  } = useAppContext();
   const [location, setLocation] = useLocation();
   if (isAuthLoading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-sm text-muted-foreground" role="status">
         Verificando sua sessão...
       </div>
+    );
+  }
+  if (sessionCheckUnavailable) {
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-center">
+        <section className="max-w-md" role="alert">
+          <h1 className="text-lg font-semibold text-foreground">Não foi possível verificar sua sessão</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Não vamos tratar uma falha de conexão como se você tivesse saído da conta.
+          </p>
+          <button
+            type="button"
+            className="mt-5 min-h-11 rounded-xl bg-primary px-5 font-semibold text-primary-foreground"
+            onClick={retrySessionCheck}
+          >
+            Tentar novamente
+          </button>
+        </section>
+      </main>
     );
   }
   if (isAuthenticated && currentUser?.onboardingCompleted === false && location !== "/onboarding/interests") {
@@ -166,6 +195,14 @@ function Router() {
   if (!isAuthenticated) return <UnauthRouter />;
   return (
     <>
+      {logoutError && (
+        <div role="alert" className="relative z-[110] flex items-center justify-center gap-3 border-b border-destructive/30 bg-background px-4 py-2 text-center text-sm text-destructive">
+          <span>{logoutError}</span>
+          <button type="button" className="font-semibold underline" onClick={clearLogoutError}>
+            Fechar
+          </button>
+        </div>
+      )}
       {import.meta.env.DEV && isDevelopmentPreview && (
         <div
           role="status"
@@ -175,7 +212,7 @@ function Router() {
           <button
             type="button"
             className="font-semibold text-primary hover:underline"
-            onClick={() => { void logout().then(() => setLocation("/login")); }}
+            onClick={() => { void logout().then((didLogout) => { if (didLogout) setLocation("/login"); }); }}
           >
             Encerrar demonstração
           </button>

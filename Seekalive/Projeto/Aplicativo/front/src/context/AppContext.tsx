@@ -2,16 +2,22 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User } from "../data/mockData";
 import { setStoredActiveAccount } from "../data/accountStorage";
 import { getCurrentSession, logoutAccount, type AuthAccount } from "../services/authApi";
+import { resolveAuthSession } from "./authSessionState";
 
 interface AppContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
   isAuthLoading: boolean;
+  sessionCheckUnavailable: boolean;
+  retrySessionCheck: () => void;
+  logoutError: string | null;
+  clearLogoutError: () => void;
   isDevelopmentPreview: boolean;
   setAuthenticatedAccount: (account: AuthAccount) => void;
   startDevelopmentPreview: () => Promise<void>;
   updateAccount: (user: User) => void;
-  logout: () => Promise<void>;
+  logout: () => Promise<boolean>;
+  clearLocalAuthentication: () => void;
   completeOnboarding: () => void;
 }
 
@@ -36,17 +42,25 @@ function toUser(account: AuthAccount): User {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [sessionCheckUnavailable, setSessionCheckUnavailable] = useState(false);
+  const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isDevelopmentPreview, setIsDevelopmentPreview] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    getCurrentSession()
-      .then((session) => {
+    setIsAuthLoading(true);
+    setSessionCheckUnavailable(false);
+    void resolveAuthSession(getCurrentSession)
+      .then((result) => {
         if (cancelled) return;
-        setCurrentUser(session.authenticated ? toUser(session.account) : null);
-      })
-      .catch(() => {
-        if (!cancelled) setCurrentUser(null);
+        if (result.status === "authenticated") {
+          setCurrentUser(toUser(result.account));
+        } else if (result.status === "signed_out") {
+          setCurrentUser(null);
+        } else {
+          setSessionCheckUnavailable(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setIsAuthLoading(false);
@@ -54,11 +68,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionCheckAttempt]);
+
+  const retrySessionCheck = () => {
+    setSessionCheckUnavailable(false);
+    setIsAuthLoading(true);
+    setSessionCheckAttempt((attempt) => attempt + 1);
+  };
+
+  const clearLocalAuthentication = () => {
+    setIsDevelopmentPreview(false);
+    setCurrentUser(null);
+    setLogoutError(null);
+    setStoredActiveAccount(null);
+  };
 
   const setAuthenticatedAccount = (account: AuthAccount) => {
     const user = toUser(account);
     setIsDevelopmentPreview(false);
+    setLogoutError(null);
     setCurrentUser(user);
     // Authenticated profile data is reloaded from the API and should not be
     // resurrected from a stale browser snapshot.
@@ -69,6 +97,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!import.meta.env.DEV) return;
     const { currentUser: previewUser } = await import("../data/mockData");
     setIsDevelopmentPreview(true);
+    setLogoutError(null);
     setIsAuthLoading(false);
     setCurrentUser({ ...previewUser });
   };
@@ -79,19 +108,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentUser((current) => current?.id === user.id ? { ...current, ...user } : current);
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<boolean> => {
+    setLogoutError(null);
     if (isDevelopmentPreview) {
-      setIsDevelopmentPreview(false);
-      setCurrentUser(null);
-      return;
+      clearLocalAuthentication();
+      return true;
     }
     try {
       await logoutAccount();
+      clearLocalAuthentication();
+      return true;
     } catch {
-      // The local UI still closes; the server session remains authoritative on reload.
-    } finally {
-      setCurrentUser(null);
-      setStoredActiveAccount(null);
+      setLogoutError("Não foi possível encerrar a sessão no servidor. Sua conta continua aberta; tente novamente.");
+      return false;
     }
   };
 
@@ -105,11 +134,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         currentUser,
         isAuthenticated: currentUser !== null,
         isAuthLoading,
+        sessionCheckUnavailable,
+        retrySessionCheck,
+        logoutError,
+        clearLogoutError: () => setLogoutError(null),
         isDevelopmentPreview,
         setAuthenticatedAccount,
         startDevelopmentPreview,
         updateAccount,
         logout,
+        clearLocalAuthentication,
         completeOnboarding,
       }}
     >

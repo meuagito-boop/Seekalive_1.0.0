@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lt } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   accountEmails,
@@ -101,44 +101,58 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
   }
 
   const now = new Date();
-  const [challenge] = await db
-    .select({
-      id: authChallenges.id,
-      attempts: authChallenges.attempts,
-      tokenHash: authChallenges.tokenHash,
-    })
-    .from(authChallenges)
-    .where(and(
-      eq(authChallenges.accountId, account.id),
-      eq(authChallenges.purpose, "verify_email"),
-      isNull(authChallenges.consumedAt),
-      gt(authChallenges.expiresAt, now),
-    ))
-    .orderBy(desc(authChallenges.createdAt))
-    .limit(1);
-  if (!challenge || challenge.attempts >= MAX_VERIFICATION_ATTEMPTS) {
-    sendError(response, 400, "INVALID_VERIFICATION_CODE", "Código inválido ou expirado.");
-    return;
-  }
-  const expectedHash = hashVerificationCode(account.id, parsed.data.code);
-  if (!constantTimeEquals(expectedHash, challenge.tokenHash)) {
-    const nextAttemptCount = sql`${authChallenges.attempts} + 1`;
-    await db.update(authChallenges).set({ attempts: nextAttemptCount }).where(eq(authChallenges.id, challenge.id));
-    sendError(response, 400, "INVALID_VERIFICATION_CODE", "Código inválido ou expirado.");
-    return;
-  }
-
   const material = createSessionMaterial();
   const deviceRawToken = randomBytes(32).toString("base64url");
-  let result: { id: string; createdAt: Date; expiresAt: Date } | null;
+  let result:
+    | { kind: "invalid" }
+    | { kind: "password_update_required" }
+    | { kind: "authenticated"; session: { id: string; createdAt: Date; expiresAt: Date } };
   try {
     result = await db.transaction(async (tx) => {
+      const [challenge] = await tx
+        .select({
+          id: authChallenges.id,
+          attempts: authChallenges.attempts,
+          tokenHash: authChallenges.tokenHash,
+        })
+        .from(authChallenges)
+        .where(and(
+          eq(authChallenges.accountId, account.id),
+          eq(authChallenges.purpose, "verify_email"),
+          isNull(authChallenges.consumedAt),
+          gt(authChallenges.expiresAt, now),
+          lt(authChallenges.attempts, MAX_VERIFICATION_ATTEMPTS),
+        ))
+        .orderBy(desc(authChallenges.createdAt))
+        .for("update")
+        .limit(1);
+      if (!challenge) return { kind: "invalid" as const };
+
+      const expectedHash = hashVerificationCode(account.id, parsed.data.code);
+      if (!constantTimeEquals(expectedHash, challenge.tokenHash)) {
+        await tx
+          .update(authChallenges)
+          .set({ attempts: challenge.attempts + 1 })
+          .where(and(
+            eq(authChallenges.id, challenge.id),
+            isNull(authChallenges.consumedAt),
+            gt(authChallenges.expiresAt, now),
+            lt(authChallenges.attempts, MAX_VERIFICATION_ATTEMPTS),
+          ));
+        return { kind: "invalid" as const };
+      }
+
       const [consumedChallenge] = await tx
         .update(authChallenges)
         .set({ consumedAt: now })
-        .where(and(eq(authChallenges.id, challenge.id), isNull(authChallenges.consumedAt)))
+        .where(and(
+          eq(authChallenges.id, challenge.id),
+          isNull(authChallenges.consumedAt),
+          gt(authChallenges.expiresAt, now),
+          lt(authChallenges.attempts, MAX_VERIFICATION_ATTEMPTS),
+        ))
         .returning({ id: authChallenges.id });
-      if (!consumedChallenge) throw new Error("VERIFICATION_ALREADY_CONSUMED");
+      if (!consumedChallenge) return { kind: "invalid" as const };
 
       const [verifiedEmail] = await tx
         .update(accountEmails)
@@ -154,7 +168,9 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
         .returning({ id: accounts.id });
       if (!activatedAccount) throw new Error("VERIFICATION_ALREADY_CONSUMED");
 
-      if (account.passwordPolicyVersion < PASSWORD_POLICY_VERSION) return null;
+      if (account.passwordPolicyVersion < PASSWORD_POLICY_VERSION) {
+        return { kind: "password_update_required" as const };
+      }
 
       const [device] = await tx
         .insert(trustedDevices)
@@ -180,7 +196,7 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
         })
         .returning({ id: sessions.id, createdAt: sessions.createdAt, expiresAt: sessions.expiresAt });
       if (!session) throw new Error("Session insert returned no row.");
-      return session;
+      return { kind: "authenticated" as const, session };
     });
   } catch (error) {
     if (error instanceof Error && error.message === "VERIFICATION_ALREADY_CONSUMED") {
@@ -190,7 +206,12 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
     throw error;
   }
 
-  if (!result) {
+  if (result.kind === "invalid") {
+    sendError(response, 400, "INVALID_VERIFICATION_CODE", "Código inválido ou expirado.");
+    return;
+  }
+
+  if (result.kind === "password_update_required") {
     response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
     response.json({
       emailVerified: true,
@@ -203,7 +224,7 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
   setSessionCookie(response, material.rawToken);
   setDeviceCookie(response, deviceRawToken);
   response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
-  response.json(authResult(account, result, material.csrfToken));
+  response.json(authResult(account, result.session, material.csrfToken));
 });
 
 export default router;

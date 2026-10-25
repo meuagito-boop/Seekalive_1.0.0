@@ -91,7 +91,7 @@ export default function Settings() {
       </div>
       <div className="bg-card border-y border-border">
         <button
-          onClick={() => { void logout().finally(() => setLocation("/")); }}
+          onClick={() => { void logout().then((didLogout) => { if (didLogout) setLocation("/"); }); }}
           data-testid="button-logout"
           className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/20 transition-colors"
         >

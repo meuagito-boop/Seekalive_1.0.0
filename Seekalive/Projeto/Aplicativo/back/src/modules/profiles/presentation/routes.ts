@@ -8,7 +8,6 @@ export {
   accountView,
   accountViewsByIds,
   findActiveAccountById,
-  isBlockedBetween,
 } from "../application/accountViews";
 
 const router: IRouter = Router();

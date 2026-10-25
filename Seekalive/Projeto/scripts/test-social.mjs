@@ -12,6 +12,9 @@ try {
     "Aplicativo/front/tests/content.test.ts",
     "Aplicativo/front/tests/contracts.test.ts",
     "Aplicativo/front/tests/profilePresentation.test.ts",
+    "Aplicativo/front/tests/profileEdit.test.ts",
+    "Aplicativo/front/tests/tabKeyboard.test.ts",
+    "Aplicativo/front/tests/authSessionState.test.ts",
   ];
   const testFiles = [];
   for (const entryPoint of testEntries) {

@@ -16,7 +16,7 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
+- pnpm 10.26.1 workspaces, Node.js 22.23.4, TypeScript 5.9
 - App: `Aplicativo/front` (React + Vite) and `Aplicativo/back` (Express 5 API)
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`

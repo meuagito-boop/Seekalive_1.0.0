@@ -3,8 +3,6 @@
 @import "./design/tokens.css";
 @import "./design/typography.css";
 @import "./design/utilities.css";
-@plugin "@tailwindcss/typography";
-
 @custom-variant dark (&:is(.dark *));
 
 @layer base {

@@ -67,7 +67,7 @@ function requestErrorMessage(error: unknown): string {
 
 export default function SettingsAccount() {
   const shouldReduceMotion = useReducedMotion();
-  const { currentUser, updateAccount, logout } = useAppContext();
+  const { currentUser, updateAccount, clearLocalAuthentication } = useAppContext();
   const [, setLocation] = useLocation();
   const {
     users,
@@ -470,7 +470,7 @@ export default function SettingsAccount() {
         title: "Senha alterada",
         description: "Por segurança, todas as sessões foram encerradas. Entre novamente com a nova senha.",
       });
-      await logout();
+      clearLocalAuthentication();
       setLocation("/login");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível confirmar a troca de senha.";

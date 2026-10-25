@@ -11,6 +11,7 @@ import { ArticleBody, readingMinutes } from "@/components/content/RichText";
 import { ErrorState } from "@/components/content/StateBlocks";
 import { readReferenceFromSearch } from "@/lib/contentLinks";
 import type { ContentReference } from "@/types/social/contentReferences";
+import { handleTabKeyDown } from "@/lib/tabKeyboard";
 
 const TITLE_MAX = 160;
 
@@ -96,7 +97,10 @@ export default function ArticleEditor() {
         <div className="flex items-center gap-2">
           <div role="tablist" aria-label="Modo do editor" className="flex rounded-full border border-border p-0.5 text-xs">
             {(["write", "preview"] as const).map((m) => (
-              <button key={m} role="tab" type="button" aria-selected={mode === m} onClick={() => setMode(m)}
+              <button key={m} id={`article-mode-tab-${m}`} aria-controls={`article-mode-panel-${m}`} role="tab" type="button"
+                aria-selected={mode === m} tabIndex={mode === m ? 0 : -1}
+                onKeyDown={(event) => handleTabKeyDown(event, m === "write" ? 0 : 1, 2, (index) => setMode(index === 0 ? "write" : "preview"))}
+                onClick={() => setMode(m)}
                 className={`flex items-center gap-1 rounded-full px-3 py-1 font-semibold ${mode === m ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}>
                 {m === "write" ? <><PenLine className="h-3 w-3" /> Escrever</> : <><Eye className="h-3 w-3" /> Prévia</>}
               </button>
@@ -110,7 +114,7 @@ export default function ArticleEditor() {
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
-        {mode === "write" ? (
+        <div id="article-mode-panel-write" role="tabpanel" aria-labelledby="article-mode-tab-write" hidden={mode !== "write"} tabIndex={0}>
           <>
             <label htmlFor="article-title" className="sr-only">Título</label>
             <input
@@ -147,7 +151,8 @@ export default function ArticleEditor() {
             />
             {touched && bodyError && <p className="text-xs text-destructive" role="alert">{bodyError}</p>}
           </>
-        ) : (
+        </div>
+        <div id="article-mode-panel-preview" role="tabpanel" aria-labelledby="article-mode-tab-preview" hidden={mode !== "preview"} tabIndex={0}>
           <article aria-label="Prévia do artigo">
             <h1 className="text-3xl font-bold tracking-tight">{title || <span className="text-muted-foreground">Sem título</span>}</h1>
             <p className="mt-2 text-xs text-muted-foreground">{readingMinutes(body)} min de leitura · por {currentUser?.displayName}</p>
@@ -156,7 +161,7 @@ export default function ArticleEditor() {
               {body.trim() ? <ArticleBody body={body} /> : <p className="text-muted-foreground">O corpo do artigo aparece aqui.</p>}
             </div>
           </article>
-        )}
+        </div>
 
         <MediaDraftGrid media={draft.media} onRemove={draft.remove} />
         {draft.preparing && <p role="status" className="mt-2 text-sm text-muted-foreground">Preparando prévia da mídia…</p>}

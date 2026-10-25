@@ -69,10 +69,12 @@ export default function Notifications() {
             </button>
           )}
         </div>
-        <div className="flex">
+        <div role="group" aria-label="Filtrar notificações" className="flex">
           {tabs.map((tab, i) => (
             <button
               key={tab}
+              type="button"
+              aria-pressed={activeTab === i}
               onClick={() => setActiveTab(i)}
               data-testid={`tab-notif-${tab}`}
               className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${

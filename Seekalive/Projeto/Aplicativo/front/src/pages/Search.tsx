@@ -9,6 +9,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { formatCount } from "@/data/mockData";
 import { useSocial } from "@/context/SocialContext";
 import { accountListToUsers, socialGraphApi } from "@/services/socialGraphApi";
+import { handleTabKeyDown } from "@/lib/tabKeyboard";
 
 const tabs = [
   { label: "Publicações", id: "Posts" },
@@ -152,9 +153,13 @@ export default function Search() {
             {tabs.map((tab, i) => (
               <button
                 key={tab.id}
+                id={`search-tab-${i}`}
+                aria-controls={`search-panel-${i}`}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === i}
+                tabIndex={activeTab === i ? 0 : -1}
+                onKeyDown={(event) => handleTabKeyDown(event, i, tabs.length, setActiveTab)}
                 onClick={() => setActiveTab(i)}
                 data-testid={`tab-search-${tab.id}`}
                 className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${
@@ -247,13 +252,16 @@ export default function Search() {
         ) : (
           <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Posts */}
+            <div id="search-panel-0" role="tabpanel" aria-labelledby="search-tab-0" hidden={activeTab !== 0} tabIndex={0}>
             {activeTab === 0 && (
               filteredPosts.length === 0
                 ? <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Nenhuma publicação encontrada para "{query}"</p></div>
                 : filteredPosts.map(post => <PostCard key={post.id} post={post} />)
             )}
+            </div>
 
             {/* People */}
+            <div id="search-panel-1" role="tabpanel" aria-labelledby="search-tab-1" hidden={activeTab !== 1} tabIndex={0}>
             {activeTab === 1 && (
               isRemoteSocialSession && remoteSearchError ? (
                 <div className="py-16 text-center text-muted-foreground">
@@ -311,8 +319,10 @@ export default function Search() {
                 </button>
               </div>
             )}
+            </div>
 
             {/* Tags */}
+            <div id="search-panel-2" role="tabpanel" aria-labelledby="search-tab-2" hidden={activeTab !== 2} tabIndex={0}>
             {activeTab === 2 && (
               filteredTags.length === 0
                 ? <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Nenhuma tag encontrada</p></div>
@@ -333,6 +343,7 @@ export default function Search() {
                   </motion.div>
                 ))
             )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

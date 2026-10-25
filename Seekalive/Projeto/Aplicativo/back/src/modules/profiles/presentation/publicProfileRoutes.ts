@@ -4,11 +4,11 @@ import {
   accountView,
   findActiveAccountById,
   findActiveAccountByUsername,
-  isBlockedBetween,
-  relationshipFor,
 } from "../application/accountViews";
 import { canViewPrivateProfileContent } from "../application/profileVisibility";
 import type { PublicAccountRow } from "../application/accountViews";
+import { getRelationshipFor } from "../../social/application/getRelationshipFor";
+import { isBlockedBetween } from "../../social/application/isBlockedBetween";
 import { sendError } from "./routeSupport";
 
 const router: IRouter = Router();
@@ -25,7 +25,7 @@ async function respondWithProfile(
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Este perfil não está disponível.");
     return;
   }
-  const relationship = await relationshipFor(viewerId, row.id);
+  const relationship = await getRelationshipFor(viewerId, row.id);
   const canViewPublicContent = canViewPrivateProfileContent(
     row.isPrivate,
     viewerId,
