@@ -1,14 +1,14 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **132 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **138 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
-> Rotas marcadas **ATIVA** já têm handler no servidor atual. Rotas **PROPOSTA** ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.
+> **ATIVA** significa que o handler existe no código. A alteração de instalações confiáveis ainda não foi aplicada ao banco principal de desenvolvimento (faltam `trusted_devices` e `accounts.security_locked_at`); esse fluxo foi testado somente em schema temporário. Não considerar operável no banco principal até aplicar a migração. Produção não foi alterada.
 
 ## Respostas, paginação e autenticação
 
-- GET normalmente responde `200`; cadastro cria a conta e responde `201`; login e alterações de autenticação respondem `200`; solicitações assíncronas respondem `202`; remoções sem corpo podem responder `204`.
+- GET normalmente responde `200`; login em instalação conhecida responde `200`, mas instalação desconhecida recebe desafio `202` sem sessão; troca de senha inicia com `202`; remoções sem corpo podem responder `204`.
 - Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.
-- Erro: `{error:{code,message,requestId,fields?}}`. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.
+- Erro: `{error:{code,message,requestId,details?,supportEmail?,retryAfterSeconds?,attemptsRemaining?,resendAvailableAt?}}`. Nunca serializar stack trace.
 - Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.
 - Rota marcada `ACTIVA` existe hoje. Outras são propostas e requerem implementação, migração e testes.
 
@@ -26,8 +26,14 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **ATIVA** |
 | GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **ATIVA** |
 | POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/login` | Público | `LoginRequest` | `AuthResult` | **ATIVA** |
-| POST | `/v1/auth/password/update` | Público | `PasswordPolicyUpdateRequest` | `PasswordUpdated` | **ATIVA** |
+| POST | `/v1/auth/login` | Público | `LoginRequest` | AuthResult (200) / DeviceVerificationRequired (202) | **ATIVA** |
+| POST | `/v1/auth/device-verification/confirm` | Público | `ChallengeConfirmRequest` | `AuthResult` | **ATIVA** |
+| POST | `/v1/auth/device-verification/resend` | Público | `ChallengeResendRequest` | `DeviceVerificationResent` | **ATIVA** |
+| POST | `/v1/auth/password/update` | Público | `PasswordPolicyUpdateRequest` | `PasswordUpdateChallenge` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/password/update/confirm` | Público | `ChallengeConfirmRequest` | `PasswordUpdated` | **ATIVA** |
+| GET | `/v1/auth/devices` | Sessão autenticada | — | `TrustedDeviceList` | **ATIVA** |
+| DELETE | `/v1/auth/devices/others` | Sessão autenticada | — | `OtherDevicesRevoked` | **ATIVA** |
+| DELETE | `/v1/auth/devices/{deviceId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
 | POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **ATIVA** |
 | GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **ATIVA** |
 | DELETE | `/v1/auth/sessions/others` | Sessão autenticada | — | `OtherSessionsRevoked` | **ATIVA** |

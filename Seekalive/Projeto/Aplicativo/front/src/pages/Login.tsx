@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +12,17 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/context/AppContext";
-import { AuthApiError, loginAccount, updatePasswordPolicy } from "@/services/authApi";
+import {
+  AuthApiError,
+  confirmDeviceLogin,
+  confirmPasswordPolicyUpdate,
+  loginAccount,
+  resendDeviceLoginCode,
+  updatePasswordPolicy,
+  type AuthResult,
+  type DeviceVerificationRequired,
+  type PasswordUpdateVerificationRequired,
+} from "@/services/authApi";
 
 const schema = z.object({
   identifier: z.string().trim().min(3, "Informe seu nome de usuário ou e-mail"),
@@ -42,6 +52,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [savePassword, setSavePassword] = useState(false);
   const [passwordUpdateRequired, setPasswordUpdateRequired] = useState(false);
+  const [deviceChallenge, setDeviceChallenge] = useState<DeviceVerificationRequired | null>(null);
+  const [passwordUpdateChallenge, setPasswordUpdateChallenge] = useState<PasswordUpdateVerificationRequired | null>(null);
+  const [deviceCode, setDeviceCode] = useState("");
+  const [passwordUpdateCode, setPasswordUpdateCode] = useState("");
+  const [supportEmail, setSupportEmail] = useState<string | null>(null);
+  const [countdownNow, setCountdownNow] = useState(Date.now());
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { setAuthenticatedAccount, startDevelopmentPreview } = useAppContext();
@@ -55,11 +71,40 @@ export default function Login() {
     defaultValues: { newPassword: "", passwordConfirmation: "" },
   });
 
+  useEffect(() => {
+    if (!deviceChallenge) return;
+    const interval = window.setInterval(() => setCountdownNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [deviceChallenge]);
+
+  function applyLoginResult(result: AuthResult) {
+    setAuthenticatedAccount(result.account);
+    setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
+  }
+
+  function handleAuthFailure(error: unknown, fallback: string) {
+    if (error instanceof AuthApiError && error.code === "SECURITY_LOCKED") {
+      setSupportEmail(error.supportEmail ?? null);
+      setDeviceChallenge(null);
+      setPasswordUpdateChallenge(null);
+    }
+    toast({
+      title: "Não foi possível continuar",
+      description: error instanceof Error ? error.message : fallback,
+      variant: "destructive",
+    });
+  }
+
   async function onSubmit(values: FormValues) {
     try {
       const result = await loginAccount(values);
-      setAuthenticatedAccount(result.account);
-      setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
+      if ("challengeId" in result) {
+        setSupportEmail(null);
+        setDeviceChallenge(result);
+        setDeviceCode("");
+        return;
+      }
+      applyLoginResult(result);
     } catch (error) {
       if (error instanceof AuthApiError && error.code === "PASSWORD_UPDATE_REQUIRED") {
         setPasswordUpdateRequired(true);
@@ -78,11 +123,7 @@ export default function Login() {
         setLocation("/verify-email");
         return;
       }
-      toast({
-        title: "Não foi possível entrar",
-        description: error instanceof Error ? error.message : "Confira seus dados e tente novamente.",
-        variant: "destructive",
-      });
+      handleAuthFailure(error, "Confira seus dados e tente novamente.");
     }
   }
 
@@ -99,27 +140,104 @@ export default function Login() {
     }
 
     try {
-      await updatePasswordPolicy({
+      const challenge = await updatePasswordPolicy({
         identifier,
         currentPassword,
         newPassword: values.newPassword,
         passwordConfirmation: values.passwordConfirmation,
       });
-      form.setValue("password", values.newPassword, { shouldValidate: true });
-      const result = await loginAccount({ identifier, password: values.newPassword });
-      setAuthenticatedAccount(result.account);
-      setPasswordUpdateRequired(false);
-      passwordUpdateForm.reset();
-      toast({ title: "Senha atualizada", description: "Sua conta está protegida pela regra atual." });
-      setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
-    } catch (error) {
+      setPasswordUpdateChallenge(challenge);
+      setPasswordUpdateCode("");
+      setSupportEmail(null);
       toast({
-        title: "Não foi possível atualizar a senha",
-        description: error instanceof Error ? error.message : "Confira os dados e tente novamente.",
-        variant: "destructive",
+        title: "Confirme a alteração",
+        description: `Enviamos um código para ${challenge.emailMasked}.`,
       });
+    } catch (error) {
+      handleAuthFailure(error, "Confira os dados e tente novamente.");
     }
   }
+
+  async function onConfirmPasswordUpdate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!passwordUpdateChallenge) return;
+    try {
+      await confirmPasswordPolicyUpdate({
+        challengeId: passwordUpdateChallenge.challengeId,
+        code: passwordUpdateCode,
+      });
+      const identifier = form.getValues("identifier").trim();
+      const newPassword = passwordUpdateForm.getValues("newPassword");
+      form.setValue("password", newPassword, { shouldValidate: true });
+      setPasswordUpdateChallenge(null);
+      setPasswordUpdateRequired(false);
+      passwordUpdateForm.reset();
+      setPasswordUpdateCode("");
+      toast({
+        title: "Senha atualizada",
+        description: "Por segurança, confirme novamente esta instalação para entrar.",
+      });
+      const loginResult = await loginAccount({ identifier, password: newPassword });
+      if ("challengeId" in loginResult) {
+        setDeviceChallenge(loginResult);
+        return;
+      }
+      applyLoginResult(loginResult);
+    } catch (error) {
+      handleAuthFailure(error, "Confira o código e tente novamente.");
+    }
+  }
+
+  async function onConfirmDevice(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!deviceChallenge) return;
+    try {
+      const result = await confirmDeviceLogin({
+        challengeId: deviceChallenge.challengeId,
+        code: deviceCode,
+      });
+      setDeviceChallenge(null);
+      setDeviceCode("");
+      applyLoginResult(result);
+    } catch (error) {
+      if (error instanceof AuthApiError && error.resendAvailableAt) {
+        setDeviceChallenge((current) => current
+          ? { ...current, resendAvailableAt: error.resendAvailableAt! }
+          : current);
+      }
+      if (error instanceof AuthApiError && error.code === "INVALID_DEVICE_CODE" && error.attemptsRemaining !== undefined) {
+        toast({
+          title: "Código incorreto",
+          description: `Restam ${error.attemptsRemaining} ${error.attemptsRemaining === 1 ? "tentativa" : "tentativas"}. O botão de reenvio mostra quando poderá solicitar outro código.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      handleAuthFailure(error, "Confira o código e tente novamente.");
+    }
+  }
+
+  async function onResendDeviceCode() {
+    if (!deviceChallenge) return;
+    try {
+      const result = await resendDeviceLoginCode({ challengeId: deviceChallenge.challengeId });
+      setDeviceChallenge((current) => current
+        ? { ...current, expiresAt: result.expiresAt, resendAvailableAt: result.resendAvailableAt }
+        : current);
+      toast({ title: "Código reenviado", description: `Enviamos um novo código para ${deviceChallenge.emailMasked}.` });
+    } catch (error) {
+      if (error instanceof AuthApiError && error.retryAfterSeconds) {
+        setDeviceChallenge((current) => current
+          ? { ...current, resendAvailableAt: new Date(Date.now() + error.retryAfterSeconds! * 1000).toISOString() }
+          : current);
+      }
+      handleAuthFailure(error, "Não foi possível reenviar o código.");
+    }
+  }
+
+  const resendSeconds = deviceChallenge
+    ? Math.max(0, Math.ceil((Date.parse(deviceChallenge.resendAvailableAt) - countdownNow) / 1000))
+    : 0;
 
   return (
       <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background px-4 py-10">
@@ -145,7 +263,7 @@ export default function Login() {
           O acesso só é liberado depois que o e-mail da conta estiver confirmado.
         </p>
 
-        <Form {...form}>
+        {!deviceChallenge && !passwordUpdateChallenge && <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
@@ -230,9 +348,68 @@ export default function Login() {
               {form.formState.isSubmitting ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-        </Form>
+        </Form>}
 
-        {passwordUpdateRequired && (
+        {deviceChallenge && (
+          <section aria-labelledby="device-verification-heading" className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <h2 id="device-verification-heading" className="text-lg font-semibold text-foreground">
+              Confirme esta instalação
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Como você está entrando por uma instalação ainda não reconhecida, enviamos um código para{" "}
+              <strong className="font-medium text-foreground">{deviceChallenge.emailMasked}</strong>.
+              Digite o código para concluir o acesso.
+            </p>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              O código vence em 10 minutos. Há 3 tentativas; depois da primeira e da segunda resposta incorreta, o reenvio aguarda 30 e 90 segundos. No terceiro erro, a conta fica bloqueada e será necessário falar com o suporte.
+            </p>
+            <form onSubmit={onConfirmDevice} className="mt-4 space-y-4">
+              <label htmlFor="device-verification-code" className="block text-sm font-medium text-foreground">
+                Código de confirmação
+              </label>
+              <Input
+                id="device-verification-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={deviceCode}
+                onChange={(event) => setDeviceCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                aria-describedby="device-verification-expiry"
+                className="h-12 rounded-xl border-border bg-card text-foreground tracking-[0.35em]"
+                required
+              />
+              <p id="device-verification-expiry" className="text-xs text-muted-foreground">
+                O código expira em 10 minutos. Três códigos incorretos bloqueiam a conta e exigem contato com o suporte.
+              </p>
+              <Button type="submit" className="w-full min-h-11 rounded-xl" disabled={deviceCode.length !== 6}>
+                Confirmar código
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full min-h-11 rounded-xl"
+                disabled={resendSeconds > 0}
+                onClick={() => void onResendDeviceCode()}
+              >
+                {resendSeconds > 0 ? `Reenviar código em ${resendSeconds}s` : "Enviar outro código"}
+              </Button>
+              <button
+                type="button"
+                className="w-full py-2 text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => {
+                  setDeviceChallenge(null);
+                  setDeviceCode("");
+                }}
+              >
+                Voltar ao login
+              </button>
+            </form>
+          </section>
+        )}
+
+        {passwordUpdateRequired && !passwordUpdateChallenge && (
           <section
             aria-labelledby="password-policy-heading"
             className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4"
@@ -302,6 +479,57 @@ export default function Login() {
               </form>
             </Form>
           </section>
+        )}
+
+        {passwordUpdateChallenge && (
+          <section aria-labelledby="password-update-verification-heading" className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <h2 id="password-update-verification-heading" className="text-lg font-semibold text-foreground">
+              Confirme a alteração da senha
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Enviamos um código para <strong className="font-medium text-foreground">{passwordUpdateChallenge.emailMasked}</strong>.
+              Após confirmar, todas as sessões e instalações confiáveis serão revogadas.
+            </p>
+            <form onSubmit={onConfirmPasswordUpdate} className="mt-4 space-y-4">
+              <label htmlFor="password-update-code" className="block text-sm font-medium text-foreground">
+                Código de confirmação
+              </label>
+              <Input
+                id="password-update-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={passwordUpdateCode}
+                onChange={(event) => setPasswordUpdateCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="h-12 rounded-xl border-border bg-card text-foreground tracking-[0.35em]"
+                required
+              />
+              <Button type="submit" className="w-full min-h-11 rounded-xl" disabled={passwordUpdateCode.length !== 6}>
+                Confirmar alteração
+              </Button>
+              <button
+                type="button"
+                className="w-full py-2 text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => {
+                  setPasswordUpdateChallenge(null);
+                  setPasswordUpdateCode("");
+                }}
+              >
+                Voltar
+              </button>
+            </form>
+          </section>
+        )}
+
+        {supportEmail && (
+          <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-foreground">
+            Para solicitar o desbloqueio da conta, escreva para{" "}
+            <a className="font-semibold underline underline-offset-4" href={`mailto:${supportEmail}`}>
+              {supportEmail}
+            </a>.
+          </p>
         )}
 
         {import.meta.env.DEV && (

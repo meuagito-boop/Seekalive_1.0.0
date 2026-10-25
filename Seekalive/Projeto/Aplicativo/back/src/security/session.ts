@@ -2,10 +2,12 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { accountEmails, accounts, db, passwordCredentials, sessions } from "@workspace/db";
+import { accountEmails, accounts, db, passwordCredentials, sessions, trustedDevices } from "@workspace/db";
 
 export const SESSION_COOKIE = "__Host-seekalive_session";
 export const PRE_AUTH_COOKIE = "__Host-seekalive_pre_auth";
+export const DEVICE_COOKIE = "__Host-seekalive_device";
+const DEVICE_COOKIE_MAX_AGE_MS = 400 * 24 * 60 * 60 * 1000;
 
 const sessionSecret = process.env.SESSION_SECRET ?? "";
 if (Buffer.byteLength(sessionSecret) < 32) {
@@ -31,6 +33,18 @@ export function hashVerificationCode(accountId: string, code: string): string {
 export function hashPasswordResetCode(accountId: string, code: string): string {
   return createHmac("sha256", sessionSecret)
     .update(`reset_password:${accountId}:${code}`)
+    .digest("hex");
+}
+
+export function hashDeviceLoginCode(accountId: string, challengeId: string, code: string): string {
+  return createHmac("sha256", sessionSecret)
+    .update(`device_login:${accountId}:${challengeId}:${code}`)
+    .digest("hex");
+}
+
+export function hashPasswordUpdateCode(accountId: string, challengeId: string, code: string): string {
+  return createHmac("sha256", sessionSecret)
+    .update(`password_update:${accountId}:${challengeId}:${code}`)
     .digest("hex");
 }
 
@@ -62,6 +76,17 @@ export function clearSessionCookie(response: Response): void {
   response.clearCookie(SESSION_COOKIE, secureCookieOptions);
 }
 
+export function setDeviceCookie(response: Response, rawToken: string): void {
+  response.cookie(DEVICE_COOKIE, rawToken, {
+    ...secureCookieOptions,
+    maxAge: DEVICE_COOKIE_MAX_AGE_MS,
+  });
+}
+
+export function clearDeviceCookie(response: Response): void {
+  response.clearCookie(DEVICE_COOKIE, secureCookieOptions);
+}
+
 export function issuePreAuthCsrf(response: Response): string {
   const nonce = randomBytes(32).toString("base64url");
   response.cookie(PRE_AUTH_COOKIE, nonce, {
@@ -87,16 +112,23 @@ export async function loadActiveSession(request: Request) {
       displayName: accounts.displayName,
       accountType: accounts.accountType,
       accountStatus: accounts.status,
+       securityLockedAt: accounts.securityLockedAt,
       onboardingCompletedAt: accounts.onboardingCompletedAt,
       emailVerifiedAt: accountEmails.verifiedAt,
       sessionPasswordPolicyVersion: sessions.passwordPolicyVersion,
       credentialPasswordPolicyVersion: passwordCredentials.passwordPolicyVersion,
+       deviceId: trustedDevices.id,
       csrfTokenHash: sessions.csrfTokenHash,
       createdAt: sessions.createdAt,
       expiresAt: sessions.expiresAt,
     })
     .from(sessions)
     .innerJoin(accounts, eq(sessions.accountId, accounts.id))
+    .innerJoin(trustedDevices, and(
+      eq(sessions.deviceId, trustedDevices.id),
+      eq(trustedDevices.accountId, accounts.id),
+      isNull(trustedDevices.revokedAt),
+    ))
     .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
     .innerJoin(passwordCredentials, eq(passwordCredentials.accountId, accounts.id))
     .where(
@@ -111,6 +143,7 @@ export async function loadActiveSession(request: Request) {
   if (
     !row
     || row.accountStatus !== "active"
+    || row.securityLockedAt !== null
     || !row.emailVerifiedAt
     || row.credentialPasswordPolicyVersion !== PASSWORD_POLICY_VERSION
     || row.sessionPasswordPolicyVersion !== PASSWORD_POLICY_VERSION

@@ -3,12 +3,16 @@ import { motion, useReducedMotion } from "framer-motion";
 import { History, Loader2, MonitorSmartphone, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { SettingsSubheader, SectionTitle, UnavailableNotice } from "./SettingsSubheader";
+import { SettingsSubheader, SectionTitle } from "./SettingsSubheader";
 import {
   getAuthSessions,
+  getTrustedDevices,
   revokeAuthSession,
   revokeOtherAuthSessions,
+  revokeOtherTrustedDevices,
+  revokeTrustedDevice,
   type AuthSessionView,
+  type TrustedDeviceView,
 } from "@/services/authApi";
 
 function UnavailableRow({ icon: Icon, title, desc, control }: { icon: React.ElementType; title: string; desc: string; control?: React.ReactNode }) {
@@ -31,8 +35,11 @@ function UnavailableRow({ icon: Icon, title, desc, control }: { icon: React.Elem
 export default function SettingsSecurity() {
   const shouldReduceMotion = useReducedMotion();
   const [sessions, setSessions] = useState<AuthSessionView[]>([]);
+  const [devices, setDevices] = useState<TrustedDeviceView[]>([]);
+  const [devicesHaveMore, setDevicesHaveMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -55,9 +62,28 @@ export default function SettingsSecurity() {
     }
   }, []);
 
+  const loadDevices = useCallback(async () => {
+    setIsLoadingDevices(true);
+    setError(null);
+    try {
+      const page = await getTrustedDevices();
+      setDevices(page.items);
+      setDevicesHaveMore(page.hasMore);
+    } catch (requestError) {
+      setError(requestError instanceof Error
+        ? requestError.message
+        : "Não foi possível carregar as instalações confiáveis.");
+      setDevices([]);
+      setDevicesHaveMore(false);
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadSessions();
-  }, [loadSessions]);
+    void loadDevices();
+  }, [loadDevices, loadSessions]);
 
   async function handleRevokeSession(session: AuthSessionView) {
     if (session.isCurrent || !window.confirm("Encerrar esta sessão? O dispositivo precisará entrar novamente.")) return;
@@ -93,6 +119,51 @@ export default function SettingsSecurity() {
     }
   }
 
+  async function handleRevokeDevice(device: TrustedDeviceView) {
+    const confirmation = device.isCurrent
+      ? "Remover esta instalação confiável? A sessão atual será encerrada e será necessário confirmar o e-mail para entrar novamente."
+      : "Remover esta instalação confiável e encerrar todas as sessões abertas nela?";
+    if (!window.confirm(confirmation)) return;
+    setPendingAction(device.id);
+    setNotice(null);
+    setError(null);
+    try {
+      await revokeTrustedDevice(device.id);
+      if (device.isCurrent) {
+        window.location.assign("/login");
+        return;
+      }
+      setNotice("Instalação removida e sessões vinculadas encerradas.");
+      await Promise.all([loadDevices(), loadSessions()]);
+    } catch (requestError) {
+      setError(requestError instanceof Error
+        ? requestError.message
+        : "Não foi possível remover a instalação.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleRevokeOtherDevices() {
+    if (!window.confirm("Revogar todas as outras instalações confiáveis e encerrar as sessões abertas nelas?")) return;
+    setPendingAction("other-devices");
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await revokeOtherTrustedDevices();
+      setNotice(result.revokedCount === 0
+        ? "Não havia outras instalações confiáveis."
+        : `${result.revokedCount} ${result.revokedCount === 1 ? "instalação removida" : "instalações removidas"}.`);
+      await Promise.all([loadDevices(), loadSessions()]);
+    } catch (requestError) {
+      setError(requestError instanceof Error
+        ? requestError.message
+        : "Não foi possível remover as outras instalações.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
   const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -101,9 +172,6 @@ export default function SettingsSecurity() {
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
       <SettingsSubheader title="Segurança" />
-      <UnavailableNotice>
-        Você pode revisar e encerrar sessões. Esta lista não usa impressão digital, IP ou identificação do navegador; por isso, o Seekalive não reconhece um aparelho como “habitual”.
-      </UnavailableNotice>
 
       <motion.div
         initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
@@ -120,9 +188,76 @@ export default function SettingsSecurity() {
           </p>
         )}
 
+        <SectionTitle>Instalações confiáveis</SectionTitle>
+        <p className="px-4 pb-3 text-sm leading-6 text-muted-foreground">
+          Cada instalação do navegador ou aplicativo recebe um token revogável. O Seekalive não usa IP nem impressão digital para reconhecer o dispositivo. Se os dados do navegador forem apagados, será necessário confirmar o e-mail novamente.
+        </p>
+        {isLoadingDevices && devices.length === 0 ? (
+          <p role="status" className="px-4 py-6 text-sm text-muted-foreground">Carregando instalações…</p>
+        ) : devices.length === 0 ? (
+          <p className="mx-4 rounded-xl border border-border bg-card px-4 py-5 text-sm text-muted-foreground">
+            {error ? "Entre com uma conta autenticada para consultar as instalações." : "Nenhuma instalação confiável encontrada."}
+          </p>
+        ) : (
+          <>
+            <ul aria-label="Instalações confiáveis da conta" className="space-y-3 px-4">
+              {devices.map((device) => (
+                <li key={device.id} className="rounded-2xl border border-border bg-card p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-semibold text-sm">
+                      {device.isCurrent ? "Esta instalação" : "Instalação do navegador ou aplicativo"}
+                    </h3>
+                    {device.isCurrent && (
+                      <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
+                        Instalação atual
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Reconhecida em <time dateTime={device.firstSeenAt}>{formatDate(device.firstSeenAt)}</time>
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Último acesso <time dateTime={device.lastSeenAt}>{formatDate(device.lastSeenAt)}</time>
+                  </p>
+                  <Button
+                    type="button"
+                    variant={device.isCurrent ? "destructive" : "outline"}
+                    className="mt-4 min-h-11"
+                    disabled={pendingAction !== null}
+                    onClick={() => void handleRevokeDevice(device)}
+                    aria-label={`Remover instalação reconhecida em ${formatDate(device.firstSeenAt)}`}
+                  >
+                    {pendingAction === device.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                    {device.isCurrent ? "Remover esta instalação" : "Remover instalação"}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            {devicesHaveMore && (
+              <p className="px-4 pt-3 text-xs text-muted-foreground">
+                A lista mostra as 100 instalações mais recentes. Use a opção abaixo para revogar todas as outras, inclusive as mais antigas.
+              </p>
+            )}
+            {devices.some((device) => !device.isCurrent) && (
+              <div className="px-4 pt-4">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full min-h-11"
+                  disabled={pendingAction !== null}
+                  onClick={() => void handleRevokeOtherDevices()}
+                >
+                  {pendingAction === "other-devices" && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                  Revogar todas as outras instalações
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
         <SectionTitle>Sessões ativas</SectionTitle>
         <p className="px-4 pb-3 text-sm text-muted-foreground">
-          Cada entrada corresponde a um login. Encerre acessos que você não reconhece; a sessão atual fica identificada.
+          Cada entrada corresponde a um login ativo. Encerrar uma sessão não remove a instalação confiável; remova-a acima se também quiser exigir confirmação de e-mail no próximo acesso.
         </p>
         {isLoading && sessions.length === 0 ? (
           <p role="status" className="px-4 py-6 text-sm text-muted-foreground">Carregando sessões…</p>
@@ -208,7 +343,6 @@ export default function SettingsSecurity() {
 
         <SectionTitle>Histórico de acesso</SectionTitle>
         <UnavailableRow icon={History} title="Acessos recentes" desc="Histórico detalhado de logins ainda não é armazenado" />
-        <UnavailableRow icon={MonitorSmartphone} title="Dispositivo habitual" desc="O app não identifica nem confia automaticamente em dispositivos" />
       </motion.div>
     </div>
   );

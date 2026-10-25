@@ -1,8 +1,8 @@
 # Seekalive — documentação do aplicativo e especificação do backend
 
-**Data da auditoria:** 24/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
+**Atualizado:** 25/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
 
-> Implementados: sessão, listagem/revogação de sessões próprias, CSRF, cadastro/login/verificação, política de senha com migração de contas antigas, recuperação de senha esquecida, onboarding, leitura/edição de perfil, privacidade, seguimento, pedidos de perfis privados, Círculo derivado e bloqueios. O schema foi atualizado somente no banco de desenvolvimento; a migração de versões de senha e a restrição de idade foram verificadas. No momento da aplicação, o banco estava sem contas, credenciais e sessões ativas. Um teste direto do Resend foi recebido em desenvolvimento; a recuperação tem testes integrados com entrega em memória, mas o E2E no navegador ainda precisa ser validado. Produção não é presumida nem alterada. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
+> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. A mudança mais recente do schema de autenticação foi exercitada somente em schema temporário; ainda não foi aplicada ao banco principal de desenvolvimento. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. Nenhum dado ou schema de produção foi alterado. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
 
 ## Como utilizar este pacote
 

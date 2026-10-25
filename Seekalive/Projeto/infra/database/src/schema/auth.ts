@@ -30,6 +30,7 @@ export const accounts = applicationTable(
     websiteUrl: varchar("website_url", { length: 2048 }),
     accountType: varchar("account_type", { length: 16 }).notNull(),
     status: varchar("status", { length: 32 }).default("pending_verification").notNull(),
+    securityLockedAt: timestamp("security_locked_at", { withTimezone: true }),
     isPrivate: boolean("is_private").default(false).notNull(),
     isVerified: boolean("is_verified").default(false).notNull(),
     messagesPolicy: varchar("messages_policy", { length: 16 }).default("everyone").notNull(),
@@ -85,9 +86,13 @@ export const authChallenges = applicationTable(
     accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
     purpose: varchar("purpose", { length: 32 }).notNull(),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    deviceTokenHash: varchar("device_token_hash", { length: 64 }),
+    pendingPasswordHash: text("pending_password_hash"),
+    basePasswordHash: text("base_password_hash"),
     attempts: integer("attempts").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    resendAvailableAt: timestamp("resend_available_at", { withTimezone: true }),
     consumedAt: timestamp("consumed_at", { withTimezone: true }),
   },
   (table) => [
@@ -96,11 +101,28 @@ export const authChallenges = applicationTable(
   ],
 );
 
+export const trustedDevices = applicationTable(
+  "trusted_devices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow().notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("trusted_devices_token_hash_unique").on(table.tokenHash),
+    index("trusted_devices_account_id_index").on(table.accountId),
+  ],
+);
+
 export const sessions = applicationTable(
   "sessions",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     accountId: uuid("account_id").notNull().references(() => accounts.id, { onDelete: "cascade" }),
+    deviceId: uuid("device_id").references(() => trustedDevices.id, { onDelete: "set null" }),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     csrfTokenHash: varchar("csrf_token_hash", { length: 64 }).notNull(),
     passwordPolicyVersion: smallint("password_policy_version").default(0).notNull(),

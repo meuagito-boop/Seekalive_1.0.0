@@ -46,6 +46,7 @@ const {
   passwordCredentials,
   pool,
   sessions,
+  trustedDevices,
 } = database;
 const { getTableConfig } = await import("drizzle-orm/pg-core");
 const { passwordPolicySchema } = await import("@workspace/api-zod");
@@ -59,6 +60,7 @@ const modelTables = [
   commercialProfiles,
   authChallenges,
   sessions,
+  trustedDevices,
   accountInterests,
   accountFollows,
   accountFollowRequests,
@@ -75,6 +77,7 @@ const expectedTables = [
   "business_profiles",
   "password_credentials",
   "sessions",
+  "trusted_devices",
 ];
 
 for (const table of modelTables) {
@@ -133,6 +136,8 @@ let baseUrl;
 let publicSchemaBefore;
 const emailMessages = [];
 const passwordResetMessages = [];
+const deviceLoginMessages = [];
+const passwordUpdateMessages = [];
 
 before(async () => {
   const { rows } = await pool.query("SELECT current_database() AS database_name");
@@ -175,6 +180,12 @@ before(async () => {
     },
     async sendPasswordResetCode(message) {
       passwordResetMessages.push(message);
+    },
+    async sendDeviceLoginCode(message) {
+      deviceLoginMessages.push(message);
+    },
+    async sendPasswordUpdateCode(message) {
+      passwordUpdateMessages.push(message);
     },
   });
 
@@ -220,7 +231,44 @@ function cookieValue(response, name) {
   return cookie;
 }
 
-async function request(path, { method = "GET", body, auth, clientIp = "203.0.113.42" } = {}) {
+function mergeResponseCookies(auth, response) {
+  if (!auth) return;
+  const values = new Map(
+    (auth.cookie ?? "")
+      .split(";")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((value) => {
+        const separator = value.indexOf("=");
+        return [value.slice(0, separator), value.slice(separator + 1)];
+      }),
+  );
+  for (const cookie of responseCookies(response)) {
+    const [pair, ...attributes] = cookie.split(";");
+    const separator = pair.indexOf("=");
+    if (separator < 0) continue;
+    const name = pair.slice(0, separator);
+    const value = pair.slice(separator + 1);
+    const isCleared = attributes.some((attribute) => attribute.trim().toLowerCase() === "max-age=0");
+    if (isCleared || value === "") values.delete(name);
+    else values.set(name, value);
+  }
+  auth.cookie = [...values].map(([name, value]) => `${name}=${value}`).join("; ");
+}
+
+async function request(
+  path,
+  {
+    method = "GET",
+    body,
+    auth,
+    clientIp = "203.0.113.42",
+    autoDeviceVerification = true,
+    autoCompletePasswordUpdate = true,
+  } = {},
+) {
+  const deviceMessageCount = deviceLoginMessages.length;
+  const passwordUpdateMessageCount = passwordUpdateMessages.length;
   const headers = new Headers();
   if (clientIp !== null) headers.set("x-seekalive-client-ip", clientIp);
   if (body !== undefined) headers.set("content-type", "application/json");
@@ -232,28 +280,68 @@ async function request(path, { method = "GET", body, auth, clientIp = "203.0.113
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const text = await response.text();
-  return {
-    response,
-    body: text ? JSON.parse(text) : null,
-  };
+  const parsedBody = text ? JSON.parse(text) : null;
+  mergeResponseCookies(auth, response);
+  if (auth && parsedBody?.csrfToken) auth.csrfToken = parsedBody.csrfToken;
+
+  if (
+    autoDeviceVerification
+    && path === "/api/v1/auth/login"
+    && response.status === 202
+    && parsedBody?.status === "device_verification_required"
+  ) {
+    const message = deviceLoginMessages.slice(deviceMessageCount).findLast((item) => item.code);
+    assert.ok(message, "A device login challenge must send a code to the test email sink.");
+    return request("/api/v1/auth/device-verification/confirm", {
+      method: "POST",
+      body: { challengeId: parsedBody.challengeId, code: message.code },
+      auth,
+      clientIp,
+      autoDeviceVerification: false,
+      autoCompletePasswordUpdate: false,
+    });
+  }
+
+  if (
+    autoCompletePasswordUpdate
+    && path === "/api/v1/auth/password/update"
+    && response.status === 202
+    && parsedBody?.status === "password_update_verification_required"
+  ) {
+    const message = passwordUpdateMessages.slice(passwordUpdateMessageCount).findLast((item) => item.code);
+    assert.ok(message, "A password update challenge must send a code to the test email sink.");
+    return request("/api/v1/auth/password/update/confirm", {
+      method: "POST",
+      body: { challengeId: parsedBody.challengeId, code: message.code },
+      auth,
+      clientIp,
+      autoDeviceVerification: false,
+      autoCompletePasswordUpdate: false,
+    });
+  }
+
+  return { response, body: parsedBody };
 }
 
-test("login and email verification fail closed when the trusted proxy provides no client IP", async () => {
+test("login and email verification do not require an IP to recognize the device", async () => {
+  const preAuth = await createPreAuth();
   const login = await request("/api/v1/auth/login", {
     method: "POST",
-    body: { identifier: "not-a-real-account", password: "invalid" },
+    body: { identifier: "not-a-real-account", password: "invalid-password" },
+    auth: preAuth,
     clientIp: null,
   });
-  assert.equal(login.response.status, 503);
-  assert.equal(login.body.error.code, "CLIENT_IP_UNAVAILABLE");
+  assert.equal(login.response.status, 401);
+  assert.equal(login.body.error.code, "INVALID_CREDENTIALS");
 
   const verification = await request("/api/v1/auth/verification/confirm", {
     method: "POST",
     body: { email: "not-a-real-account@example.com", code: "000000" },
+    auth: preAuth,
     clientIp: null,
   });
-  assert.equal(verification.response.status, 503);
-  assert.equal(verification.body.error.code, "CLIENT_IP_UNAVAILABLE");
+  assert.equal(verification.response.status, 400);
+  assert.equal(verification.body.error.code, "INVALID_VERIFICATION_CODE");
 });
 
 async function createPreAuth() {
@@ -266,11 +354,12 @@ async function createPreAuth() {
   };
 }
 
-async function registerAccount(registration, preAuth) {
+async function registerAccount(registration, preAuth, clientIp) {
   const { response, body } = await request("/api/v1/auth/register", {
     method: "POST",
     body: registration,
     auth: preAuth,
+    clientIp,
   });
   assert.equal(response.status, 202, JSON.stringify(body));
   assert.equal(body.status, "verification_required");
@@ -280,17 +369,18 @@ async function registerAccount(registration, preAuth) {
   return { email, password: registration.password, message };
 }
 
-async function confirmAccount(pending, preAuth) {
+async function confirmAccount(pending, preAuth, clientIp) {
   const { response, body } = await request("/api/v1/auth/verification/confirm", {
     method: "POST",
     body: { email: pending.email, code: pending.message.code },
     auth: preAuth,
+    clientIp,
   });
   assert.equal(response.status, 200, JSON.stringify(body));
   assert.equal(body.emailVerified, true);
   return {
     account: body.account,
-    cookie: cookieValue(response, "__Host-seekalive_session"),
+    cookie: preAuth.cookie,
     csrfToken: body.csrfToken,
   };
 }
@@ -543,7 +633,16 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(resetPassword.response.status, 200, JSON.stringify(resetPassword.body));
   assert.equal(resetPassword.body.status, "password_reset");
-  assert.equal(responseCookies(resetPassword.response).some((cookie) => cookie.startsWith("__Host-seekalive_session=")), false);
+  assert.equal(
+    responseCookies(resetPassword.response).some((cookie) =>
+      cookie.startsWith("__Host-seekalive_session=") && /Expires=Thu, 01 Jan 1970/i.test(cookie)),
+    true,
+  );
+  assert.equal(
+    responseCookies(resetPassword.response).some((cookie) =>
+      cookie.startsWith("__Host-seekalive_device=") && /Expires=Thu, 01 Jan 1970/i.test(cookie)),
+    true,
+  );
   const sessionRevokedByReset = await request("/api/v1/auth/session", { auth: personal });
   assert.equal(sessionRevokedByReset.body.authenticated, false);
 
@@ -1109,4 +1208,185 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
 
   assert.equal(emailMessages.length, 2, "Verification messages must be captured by the in-memory test sink.");
   assert.equal(await publicSchemaFingerprint(), publicSchemaBefore, "API tests changed the public schema.");
+});
+
+test("unknown installations require email confirmation; password changes revoke every trusted installation", async () => {
+  const suffix = randomUUID().slice(0, 8);
+  const password = "A01_Device_Test_2026!";
+  const clientIp = "203.0.113.90";
+  const preAuth = await createPreAuth();
+  const pending = await registerAccount({
+    accountType: "personal",
+    firstName: "Conta",
+    lastName: "Dispositivo",
+    username: `device_${suffix}`,
+    email: `device-${suffix}@example.com`,
+    age: 29,
+    password,
+    passwordConfirmation: password,
+    acceptedTermsVersion: "v1",
+  }, preAuth, clientIp);
+  const account = await confirmAccount(pending, preAuth, clientIp);
+
+  const newBrowser = await createPreAuth();
+  const messageCount = deviceLoginMessages.length;
+  const challenge = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pending.email, password },
+    auth: newBrowser,
+    clientIp,
+    autoDeviceVerification: false,
+  });
+  assert.equal(challenge.response.status, 202, JSON.stringify(challenge.body));
+  assert.equal(challenge.body.status, "device_verification_required");
+  assert.equal(deviceLoginMessages.length, messageCount + 1);
+  assert.equal(responseCookies(challenge.response).some((cookie) => cookie.startsWith("__Host-seekalive_session=")), false);
+  assert.equal((await request("/api/v1/auth/session", { auth: newBrowser, clientIp })).body.authenticated, false);
+
+  const deliveredCode = deviceLoginMessages.at(-1).code;
+  const wrongCode = deliveredCode === "000000" ? "000001" : "000000";
+  const wrongAttempt = await request("/api/v1/auth/device-verification/confirm", {
+    method: "POST",
+    body: { challengeId: challenge.body.challengeId, code: wrongCode },
+    auth: newBrowser,
+    clientIp,
+  });
+  assert.equal(wrongAttempt.response.status, 400);
+  assert.equal(wrongAttempt.body.error.code, "INVALID_DEVICE_CODE");
+  assert.equal(wrongAttempt.body.error.attemptsRemaining, 2);
+
+  await db
+    .update(authChallenges)
+    .set({ resendAvailableAt: new Date(Date.now() - 1000) })
+    .where(eq(authChallenges.id, challenge.body.challengeId));
+  const resent = await request("/api/v1/auth/device-verification/resend", {
+    method: "POST",
+    body: { challengeId: challenge.body.challengeId },
+    auth: newBrowser,
+    clientIp,
+  });
+  assert.equal(resent.response.status, 200, JSON.stringify(resent.body));
+  const confirmed = await request("/api/v1/auth/device-verification/confirm", {
+    method: "POST",
+    body: { challengeId: challenge.body.challengeId, code: deviceLoginMessages.at(-1).code },
+    auth: newBrowser,
+    clientIp,
+  });
+  assert.equal(confirmed.response.status, 200, JSON.stringify(confirmed.body));
+  assert.equal(confirmed.body.account.id, account.account.id);
+  assert.equal((await request("/api/v1/auth/session", { auth: newBrowser, clientIp })).body.authenticated, true);
+
+  const devices = await request("/api/v1/auth/devices", { auth: newBrowser, clientIp });
+  assert.equal(devices.response.status, 200);
+  assert.equal(devices.body.items.length, 2);
+  assert.equal(devices.body.items.filter((device) => device.isCurrent).length, 1);
+
+  const passwordUpdate = await request("/api/v1/auth/password/update", {
+    method: "POST",
+    body: {
+      identifier: pending.email,
+      currentPassword: password,
+      newPassword: "B02_Device_Updated_2026!",
+      passwordConfirmation: "B02_Device_Updated_2026!",
+    },
+    auth: newBrowser,
+    clientIp,
+    autoCompletePasswordUpdate: false,
+  });
+  assert.equal(passwordUpdate.response.status, 202, JSON.stringify(passwordUpdate.body));
+  assert.equal(passwordUpdate.body.status, "password_update_verification_required");
+  const passwordUpdateCode = passwordUpdateMessages.at(-1).code;
+  const passwordUpdateConfirmed = await request("/api/v1/auth/password/update/confirm", {
+    method: "POST",
+    body: { challengeId: passwordUpdate.body.challengeId, code: passwordUpdateCode },
+    auth: newBrowser,
+    clientIp,
+  });
+  assert.equal(passwordUpdateConfirmed.response.status, 200, JSON.stringify(passwordUpdateConfirmed.body));
+
+  const activeDevices = await db
+    .select({ id: trustedDevices.id })
+    .from(trustedDevices)
+    .where(and(eq(trustedDevices.accountId, account.account.id), isNull(trustedDevices.revokedAt)));
+  assert.equal(activeDevices.length, 0);
+  const activeSessions = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(and(eq(sessions.accountId, account.account.id), isNull(sessions.revokedAt)));
+  assert.equal(activeSessions.length, 0);
+
+  const reauth = await createPreAuth();
+  const afterPasswordChange = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pending.email, password: "B02_Device_Updated_2026!" },
+    auth: reauth,
+    clientIp,
+    autoDeviceVerification: false,
+  });
+  assert.equal(afterPasswordChange.response.status, 202);
+  assert.equal(afterPasswordChange.body.status, "device_verification_required");
+});
+
+test("three incorrect device codes lock the account and expose the configured support contact", async () => {
+  const suffix = randomUUID().slice(0, 8);
+  const password = "A01_Lock_Test_2026!";
+  const clientIp = "203.0.113.91";
+  const preAuth = await createPreAuth();
+  const pending = await registerAccount({
+    accountType: "personal",
+    firstName: "Conta",
+    lastName: "Bloqueada",
+    username: `locked_${suffix}`,
+    email: `locked-${suffix}@example.com`,
+    age: 31,
+    password,
+    passwordConfirmation: password,
+    acceptedTermsVersion: "v1",
+  }, preAuth, clientIp);
+  const account = await confirmAccount(pending, preAuth, clientIp);
+  const newBrowser = await createPreAuth();
+  const challenge = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pending.email, password },
+    auth: newBrowser,
+    clientIp,
+    autoDeviceVerification: false,
+  });
+  assert.equal(challenge.response.status, 202);
+  const correctCode = deviceLoginMessages.at(-1).code;
+  const wrongCode = correctCode === "000000" ? "000001" : "000000";
+  let lockResponse;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const result = await request("/api/v1/auth/device-verification/confirm", {
+      method: "POST",
+      body: { challengeId: challenge.body.challengeId, code: wrongCode },
+      auth: newBrowser,
+      clientIp,
+    });
+    assert.equal(result.response.status, attempt === 3 ? 423 : 400, JSON.stringify(result.body));
+    if (attempt < 3) assert.equal(result.body.error.attemptsRemaining, 3 - attempt);
+    if (attempt === 3) lockResponse = result.response;
+  }
+  assert.ok(lockResponse);
+  assert.equal(
+    responseCookies(lockResponse).some((cookie) =>
+      cookie.startsWith("__Host-seekalive_device=") && /Expires=Thu, 01 Jan 1970/i.test(cookie)),
+    true,
+  );
+
+  const [lockedAccount] = await db
+    .select({ securityLockedAt: accounts.securityLockedAt })
+    .from(accounts)
+    .where(eq(accounts.id, account.account.id));
+  assert.ok(lockedAccount.securityLockedAt);
+  const blockedLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: { identifier: pending.email, password },
+    auth: await createPreAuth(),
+    clientIp,
+  });
+  assert.equal(blockedLogin.response.status, 423);
+  assert.equal(blockedLogin.body.error.code, "SECURITY_LOCKED");
+  assert.equal(blockedLogin.body.error.supportEmail, "admseekalive@gmail.com");
 });

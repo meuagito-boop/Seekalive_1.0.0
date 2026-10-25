@@ -14,6 +14,25 @@ export type AuthResult = {
   emailVerified: true;
 };
 
+export type DeviceVerificationRequired = {
+  status: "device_verification_required";
+  challengeId: string;
+  emailMasked: string;
+  expiresAt: string;
+  resendAvailableAt: string;
+  message: string;
+};
+
+export type PasswordUpdateVerificationRequired = {
+  status: "password_update_verification_required";
+  challengeId: string;
+  emailMasked: string;
+  expiresAt: string;
+  message: string;
+};
+
+export type LoginResult = AuthResult | DeviceVerificationRequired;
+
 export type EmailConfirmationResult =
   | AuthResult
   | { emailVerified: true; passwordUpdateRequired: true; message: string };
@@ -34,11 +53,27 @@ export type AuthSessionPage = {
   nextCursor: string | null;
 };
 
+export type TrustedDeviceView = {
+  id: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  isCurrent: boolean;
+};
+
+export type TrustedDevicePage = {
+  items: TrustedDeviceView[];
+  hasMore: boolean;
+};
+
 type ApiErrorPayload = {
   error?: {
     code?: string;
     message?: string;
     details?: Array<{ field: string; message: string }>;
+    supportEmail?: string;
+    retryAfterSeconds?: number;
+    attemptsRemaining?: number;
+    resendAvailableAt?: string;
   };
 };
 
@@ -48,6 +83,10 @@ export class AuthApiError extends Error {
     readonly status: number,
     readonly code: string,
     readonly details: Array<{ field: string; message: string }> = [],
+    readonly supportEmail?: string,
+    readonly retryAfterSeconds?: number,
+    readonly attemptsRemaining?: number,
+    readonly resendAvailableAt?: string,
   ) {
     super(message);
     this.name = "AuthApiError";
@@ -63,6 +102,10 @@ async function parseResponse<T>(response: Response): Promise<T> {
       response.status,
       error?.code ?? "REQUEST_FAILED",
       error?.details ?? [],
+      error?.supportEmail,
+      error?.retryAfterSeconds,
+      error?.attemptsRemaining,
+      error?.resendAvailableAt,
     );
   }
   return payload as T;
@@ -86,6 +129,16 @@ export async function getAuthSessions(cursor?: string): Promise<AuthSessionPage>
     cache: "no-store",
   });
   return parseResponse<AuthSessionPage>(response);
+}
+
+export async function getTrustedDevices(): Promise<TrustedDevicePage> {
+  const response = await fetch("/api/v1/auth/devices", {
+    method: "GET",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  return parseResponse<TrustedDevicePage>(response);
 }
 
 export async function getCsrfToken(): Promise<string> {
@@ -164,7 +217,19 @@ export function registerAccount(payload: Registration) {
 }
 
 export function loginAccount(payload: { identifier: string; password: string }) {
-  return postJson<AuthResult>("/auth/login", payload);
+  return postJson<LoginResult>("/auth/login", payload);
+}
+
+export function confirmDeviceLogin(payload: { challengeId: string; code: string }) {
+  return postJson<AuthResult>("/auth/device-verification/confirm", payload);
+}
+
+export function resendDeviceLoginCode(payload: { challengeId: string }) {
+  return postJson<{
+    status: "verification_code_resent";
+    expiresAt: string;
+    resendAvailableAt: string;
+  }>("/auth/device-verification/resend", payload);
 }
 
 export function confirmEmail(payload: { email: string; code: string }) {
@@ -177,7 +242,11 @@ export function updatePasswordPolicy(payload: {
   newPassword: string;
   passwordConfirmation: string;
 }) {
-  return postJson<{ status: "password_updated" }>("/auth/password/update", payload);
+  return postJson<PasswordUpdateVerificationRequired>("/auth/password/update", payload);
+}
+
+export function confirmPasswordPolicyUpdate(payload: { challengeId: string; code: string }) {
+  return postJson<{ status: "password_updated" }>("/auth/password/update/confirm", payload);
 }
 
 export function requestPasswordReset(payload: { email: string }) {
@@ -211,4 +280,12 @@ export function revokeAuthSession(sessionId: string): Promise<void> {
 
 export function revokeOtherAuthSessions(): Promise<{ status: "other_sessions_revoked"; revokedCount: number }> {
   return deleteJson<{ status: "other_sessions_revoked"; revokedCount: number }>("/auth/sessions/others");
+}
+
+export function revokeTrustedDevice(deviceId: string): Promise<void> {
+  return deleteJson<void>(`/auth/devices/${encodeURIComponent(deviceId)}`);
+}
+
+export function revokeOtherTrustedDevices(): Promise<{ status: "other_devices_revoked"; revokedCount: number }> {
+  return deleteJson<{ status: "other_devices_revoked"; revokedCount: number }>("/auth/devices/others");
 }

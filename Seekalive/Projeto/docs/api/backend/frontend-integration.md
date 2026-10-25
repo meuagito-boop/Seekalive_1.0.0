@@ -29,7 +29,7 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/settings/account` | Sessões reais leem/salvam nome pessoal ou nome/endereço comercial por API; e-mail verificado é somente leitura. Idade é coletada no cadastro, fica no servidor para a regra 18+ e nunca é retornada ou exibida após a criação | Troca de e-mail/senha, exportação, desativação e exclusão |
 | `/settings/privacy`, `/settings/blocked` | Preferências e bloqueios são locais; bloquear remove follows e pedidos entre as duas contas, oculta conteúdo/interações nos dois sentidos e deixa desbloqueio só para o iniciador; mensagens antigas retornam após desbloquear | Persistir bloqueios no servidor e remover follows/pedidos em transação; aplicar a regra bilateral em leitura, busca, feed, conversas e ações; não restaurar relações ao desbloquear |
 | `/settings/notifications` | Defaults visuais desabilitados | Preferências reais e consentimento para push/e-mail |
-| `/settings/security` | Sessões/MFA/histórico indisponíveis | Sessões revogáveis, ações no provedor e auditoria de acesso redigida |
+| `/settings/security` | Sessões e instalações confiáveis consultam a API e permitem revogação individual/em lote. Instalações identificadas por token de navegador/app, sem IP ou fingerprint | MFA geral e histórico de acessos seguem indisponíveis; E2E autenticado pendente e schema das instalações ainda não aplicado ao banco principal de desenvolvimento |
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 

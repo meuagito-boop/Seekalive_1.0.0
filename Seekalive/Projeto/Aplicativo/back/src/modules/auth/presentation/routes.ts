@@ -1,6 +1,6 @@
-import { randomBytes, randomInt } from "node:crypto";
+import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import argon2 from "argon2";
-import { and, desc, eq, gt, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   accountEmails,
@@ -10,8 +10,11 @@ import {
   db,
   passwordCredentials,
   sessions,
+  trustedDevices,
 } from "@workspace/db";
 import {
+  challengeConfirmSchema,
+  challengeResendSchema,
   loginRequestSchema,
   PASSWORD_POLICY_VERSION,
   passwordPolicySchema,
@@ -20,19 +23,24 @@ import {
   passwordResetRequestSchema,
   registerRequestSchema,
   sessionIdParamSchema,
+  SUPPORT_EMAIL,
+  trustedDeviceIdParamSchema,
   verificationConfirmSchema,
   verificationRequestSchema,
 } from "@workspace/api-zod";
 import { logger } from "../../../common/logger";
 import {
   createAuthRateLimit,
-  requireTrustedClientIp,
 } from "../../../security/request-origin";
 import {
+  clearDeviceCookie,
   clearSessionCookie,
   constantTimeEquals,
   csrfHash,
+  DEVICE_COOKIE,
+  hashDeviceLoginCode,
   hashPasswordResetCode,
+  hashPasswordUpdateCode,
   hashToken,
   hashVerificationCode,
   issuePreAuthCsrf,
@@ -41,6 +49,7 @@ import {
   requireCsrf,
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
+  setDeviceCookie,
   setSessionCookie,
 } from "../../../security/session";
 import {
@@ -56,6 +65,12 @@ const MAX_VERIFICATION_ATTEMPTS = 5;
 const PASSWORD_RESET_TTL_MS = 10 * 60 * 1000;
 const MAX_PASSWORD_RESET_ATTEMPTS = 5;
 const PASSWORD_RESET_COOLDOWN_MS = 60 * 1000;
+const DEVICE_LOGIN_TTL_MS = 10 * 60 * 1000;
+const MAX_DEVICE_LOGIN_ATTEMPTS = 3;
+const PASSWORD_UPDATE_TTL_MS = 10 * 60 * 1000;
+const MAX_PASSWORD_UPDATE_ATTEMPTS = 5;
+const DEVICE_RESEND_COOLDOWN_MS = 30 * 1000;
+const DEVICE_FINAL_RESEND_COOLDOWN_MS = 90 * 1000;
 const genericRegistrationMessage = "Se os dados forem válidos, enviaremos um código de verificação para o e-mail informado.";
 const genericVerificationMessage = "Se houver uma conta pendente para esse e-mail, enviaremos um novo código.";
 const genericPasswordResetMessage = "Se houver uma conta ativa e verificada para esse e-mail, enviaremos um código para redefinir a senha.";
@@ -89,9 +104,15 @@ router.use((_request, response, next) => {
   next();
 });
 
-function sendError(response: Response, status: number, code: string, message: string): void {
+function sendError(
+  response: Response,
+  status: number,
+  code: string,
+  message: string,
+  additional: Record<string, unknown> = {},
+): void {
   response.status(status).json({
-    error: { code, message, requestId: response.locals.requestId ?? "unknown" },
+    error: { code, message, ...additional, requestId: response.locals.requestId ?? "unknown" },
   });
 }
 
@@ -143,6 +164,17 @@ function authResult(account: {
 
 function challengeHash(accountId: string, code: string): string {
   return hashVerificationCode(accountId, code);
+}
+
+function maskEmail(email: string): string {
+  const [localPart, domain] = email.split("@");
+  if (!localPart || !domain) return "e-mail cadastrado";
+  const visible = localPart.length > 2 ? `${localPart.slice(0, 2)}***` : `${localPart[0] ?? "*"}***`;
+  return `${visible}@${domain}`;
+}
+
+function supportLockMessage(): string {
+  return "Acesso bloqueado após três códigos incorretos. Solicite o desbloqueio ao suporte.";
 }
 
 async function createVerificationChallenge(accountId: string): Promise<string> {
@@ -229,6 +261,131 @@ async function createPasswordResetChallenge(accountId: string) {
   });
 
   return created ? { code, tokenHash } : null;
+}
+
+async function createDeviceLoginChallenge(accountId: string, deviceTokenHash: string) {
+  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+  const challengeId = randomUUID();
+  const now = new Date();
+  const [account] = await db.transaction(async (tx) => {
+    const [lockedAccount] = await tx
+      .select({
+        id: accounts.id,
+        displayName: accounts.displayName,
+        email: accountEmails.emailNormalized,
+        status: accounts.status,
+        verifiedAt: accountEmails.verifiedAt,
+        securityLockedAt: accounts.securityLockedAt,
+      })
+      .from(accounts)
+      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+      .where(eq(accounts.id, accountId))
+      .for("update")
+      .limit(1);
+    if (
+      !lockedAccount
+      || lockedAccount.status !== "active"
+      || !lockedAccount.verifiedAt
+      || lockedAccount.securityLockedAt
+    ) return [];
+
+    await tx
+      .update(authChallenges)
+      .set({ consumedAt: now })
+      .where(and(
+        eq(authChallenges.accountId, accountId),
+        eq(authChallenges.purpose, "device_login"),
+        eq(authChallenges.deviceTokenHash, deviceTokenHash),
+        isNull(authChallenges.consumedAt),
+      ));
+    await tx.insert(authChallenges).values({
+      id: challengeId,
+      accountId,
+      purpose: "device_login",
+      tokenHash: hashDeviceLoginCode(accountId, challengeId, code),
+      deviceTokenHash,
+      attempts: 0,
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + DEVICE_LOGIN_TTL_MS),
+      resendAvailableAt: new Date(now.getTime() + DEVICE_RESEND_COOLDOWN_MS),
+    });
+    return [lockedAccount];
+  });
+
+  if (!account) return null;
+  return {
+    challengeId,
+    code,
+    email: account.email,
+    emailMasked: maskEmail(account.email),
+    displayName: account.displayName,
+    createdAt: now,
+    expiresAt: new Date(now.getTime() + DEVICE_LOGIN_TTL_MS),
+    resendAvailableAt: new Date(now.getTime() + DEVICE_RESEND_COOLDOWN_MS),
+  };
+}
+
+async function createPasswordUpdateChallenge(
+  accountId: string,
+  pendingPasswordHash: string,
+  basePasswordHash: string,
+) {
+  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+  const challengeId = randomUUID();
+  const now = new Date();
+  const [account] = await db.transaction(async (tx) => {
+    const [lockedAccount] = await tx
+      .select({
+        id: accounts.id,
+        displayName: accounts.displayName,
+        email: accountEmails.emailNormalized,
+        status: accounts.status,
+        verifiedAt: accountEmails.verifiedAt,
+        securityLockedAt: accounts.securityLockedAt,
+      })
+      .from(accounts)
+      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+      .where(eq(accounts.id, accountId))
+      .for("update")
+      .limit(1);
+    if (
+      !lockedAccount
+      || lockedAccount.status !== "active"
+      || !lockedAccount.verifiedAt
+      || lockedAccount.securityLockedAt
+    ) return [];
+
+    await tx
+      .update(authChallenges)
+      .set({ consumedAt: now })
+      .where(and(
+        eq(authChallenges.accountId, accountId),
+        eq(authChallenges.purpose, "password_update"),
+        isNull(authChallenges.consumedAt),
+      ));
+    await tx.insert(authChallenges).values({
+      id: challengeId,
+      accountId,
+      purpose: "password_update",
+      tokenHash: hashPasswordUpdateCode(accountId, challengeId, code),
+      pendingPasswordHash,
+      basePasswordHash,
+      attempts: 0,
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + PASSWORD_UPDATE_TTL_MS),
+    });
+    return [lockedAccount];
+  });
+
+  if (!account) return null;
+  return {
+    challengeId,
+    code,
+    email: account.email,
+    emailMasked: maskEmail(account.email),
+    displayName: account.displayName,
+    expiresAt: new Date(now.getTime() + PASSWORD_UPDATE_TTL_MS),
+  };
 }
 
 async function deliverVerificationCode(
@@ -366,7 +523,7 @@ router.post("/register", createAuthRateLimit("register", 5, 15 * 60 * 1000), req
   }
 });
 
-router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireTrustedClientIp, requireCsrf, async (request, response) => {
+router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireCsrf, async (request, response) => {
   const parsed = loginRequestSchema.safeParse(request.body);
   if (!parsed.success) {
     sendValidationError(response, parsed.error.issues);
@@ -382,8 +539,10 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireT
       displayName: accounts.displayName,
       accountType: accounts.accountType,
       accountStatus: accounts.status,
+      securityLockedAt: accounts.securityLockedAt,
       onboardingCompletedAt: accounts.onboardingCompletedAt,
       createdAt: accounts.createdAt,
+      email: accountEmails.emailNormalized,
       emailVerifiedAt: accountEmails.verifiedAt,
       passwordHash: passwordCredentials.passwordHash,
       passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
@@ -408,8 +567,32 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireT
     sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
     return;
   }
+  if (row.securityLockedAt) {
+    sendError(response, 423, "SECURITY_LOCKED", supportLockMessage(), { supportEmail: SUPPORT_EMAIL });
+    return;
+  }
   const passwordMatchesCurrentPolicy = passwordPolicySchema.safeParse(parsed.data.password).success;
+  const rawDeviceToken = request.cookies?.[DEVICE_COOKIE];
+  const usableDeviceToken = typeof rawDeviceToken === "string" && /^[A-Za-z0-9_-]{43}$/.test(rawDeviceToken)
+    ? rawDeviceToken
+    : null;
+  const candidateDeviceHash = usableDeviceToken ? hashToken(usableDeviceToken) : null;
   const loginResult = await db.transaction(async (tx) => {
+    const [currentAccount] = await tx
+      .select({
+        status: accounts.status,
+        verifiedAt: accountEmails.verifiedAt,
+        securityLockedAt: accounts.securityLockedAt,
+      })
+      .from(accounts)
+      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+      .where(eq(accounts.id, row.id))
+      .for("update")
+      .limit(1);
+    if (!currentAccount || currentAccount.status !== "active") return { kind: "account_unavailable" as const };
+    if (!currentAccount.verifiedAt) return { kind: "email_not_verified" as const };
+    if (currentAccount.securityLockedAt) return { kind: "account_locked" as const };
+
     const [credential] = await tx
       .select({
         passwordHash: passwordCredentials.passwordHash,
@@ -431,11 +614,30 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireT
         .where(eq(passwordCredentials.accountId, row.id));
     }
 
+    const [device] = candidateDeviceHash
+      ? await tx
+        .select({ id: trustedDevices.id })
+        .from(trustedDevices)
+        .where(and(
+          eq(trustedDevices.accountId, row.id),
+          eq(trustedDevices.tokenHash, candidateDeviceHash),
+          isNull(trustedDevices.revokedAt),
+        ))
+        .for("update")
+        .limit(1)
+      : [];
+    if (!device) return { kind: "unknown_device" as const };
+
+    await tx
+      .update(trustedDevices)
+      .set({ lastSeenAt: new Date() })
+      .where(eq(trustedDevices.id, device.id));
     const material = createSessionMaterial();
     const [session] = await tx
       .insert(sessions)
       .values({
         accountId: row.id,
+        deviceId: device.id,
         tokenHash: material.tokenHash,
         csrfTokenHash: material.csrfTokenHash,
         passwordPolicyVersion: PASSWORD_POLICY_VERSION,
@@ -458,10 +660,373 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireT
     sendError(response, 403, "PASSWORD_UPDATE_REQUIRED", "Atualize sua senha para atender aos requisitos atuais.");
     return;
   }
+  if (loginResult.kind === "account_unavailable") {
+    sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
+    return;
+  }
+  if (loginResult.kind === "email_not_verified") {
+    sendError(response, 403, "EMAIL_NOT_VERIFIED", "Confirme o e-mail antes de entrar. Nenhuma sessão foi criada.");
+    return;
+  }
+  if (loginResult.kind === "account_locked") {
+    sendError(response, 423, "SECURITY_LOCKED", supportLockMessage(), { supportEmail: SUPPORT_EMAIL });
+    return;
+  }
+  if (loginResult.kind === "unknown_device") {
+    const delivery = getAuthEmailDelivery();
+    if (!delivery.isConfigured) {
+      sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código para reconhecer esta instalação.");
+      return;
+    }
+    const rawDeviceToken = randomBytes(32).toString("base64url");
+    const pendingDeviceHash = hashToken(rawDeviceToken);
+    const challenge = await createDeviceLoginChallenge(row.id, pendingDeviceHash);
+    if (!challenge) {
+      sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
+      return;
+    }
+    try {
+      await delivery.sendDeviceLoginCode({
+        email: challenge.email,
+        displayName: challenge.displayName,
+        code: challenge.code,
+      });
+    } catch {
+      logger.warn({ code: "DEVICE_LOGIN_EMAIL_FAILED" }, "Device verification email could not be delivered");
+      await db
+        .update(authChallenges)
+        .set({ consumedAt: new Date() })
+        .where(and(eq(authChallenges.id, challenge.challengeId), isNull(authChallenges.consumedAt)));
+      sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código para reconhecer esta instalação. Tente novamente.");
+      return;
+    }
+
+    setDeviceCookie(response, rawDeviceToken);
+    response.status(202).json({
+      status: "device_verification_required",
+      challengeId: challenge.challengeId,
+      emailMasked: challenge.emailMasked,
+      expiresAt: challenge.expiresAt.toISOString(),
+      resendAvailableAt: challenge.resendAvailableAt.toISOString(),
+      message: "Como esta instalação ainda não foi reconhecida, enviamos um código para confirmar que é você.",
+    });
+    return;
+  }
 
   setSessionCookie(response, loginResult.material.rawToken);
+  if (!usableDeviceToken) throw new Error("Authenticated login has no valid trusted device token.");
+  setDeviceCookie(response, usableDeviceToken);
   response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
   response.json(authResult(row, loginResult.session, loginResult.material.csrfToken));
+});
+
+router.post("/device-verification/confirm", createAuthRateLimit("device-login-confirm", 10, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+  const parsed = challengeConfirmSchema.safeParse(request.body);
+  if (!parsed.success) {
+    sendValidationError(response, parsed.error.issues);
+    return;
+  }
+  const rawDeviceToken = request.cookies?.[DEVICE_COOKIE];
+  if (typeof rawDeviceToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(rawDeviceToken)) {
+    sendError(response, 400, "DEVICE_VERIFICATION_EXPIRED", "A confirmação expirou. Entre novamente para receber um novo código.");
+    return;
+  }
+
+  const [preview] = await db
+    .select({ accountId: authChallenges.accountId })
+    .from(authChallenges)
+    .where(and(
+      eq(authChallenges.id, parsed.data.challengeId),
+      eq(authChallenges.purpose, "device_login"),
+    ))
+    .limit(1);
+  if (!preview) {
+    sendError(response, 400, "DEVICE_VERIFICATION_EXPIRED", "A confirmação expirou. Entre novamente para receber um novo código.");
+    return;
+  }
+
+  const now = new Date();
+  const material = createSessionMaterial();
+  const result = await db.transaction(async (tx) => {
+    const [account] = await tx
+      .select({
+        id: accounts.id,
+        username: accounts.username,
+        displayName: accounts.displayName,
+        accountType: accounts.accountType,
+        status: accounts.status,
+        securityLockedAt: accounts.securityLockedAt,
+        onboardingCompletedAt: accounts.onboardingCompletedAt,
+        createdAt: accounts.createdAt,
+        verifiedAt: accountEmails.verifiedAt,
+        passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
+      })
+      .from(accounts)
+      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+      .innerJoin(passwordCredentials, eq(passwordCredentials.accountId, accounts.id))
+      .where(eq(accounts.id, preview.accountId))
+      .for("update")
+      .limit(1);
+    if (!account || account.status !== "active" || !account.verifiedAt) return { kind: "unavailable" as const };
+    if (account.securityLockedAt) return { kind: "locked" as const };
+
+    const [challenge] = await tx
+      .select({
+        id: authChallenges.id,
+        tokenHash: authChallenges.tokenHash,
+        deviceTokenHash: authChallenges.deviceTokenHash,
+        attempts: authChallenges.attempts,
+      })
+      .from(authChallenges)
+      .where(and(
+        eq(authChallenges.id, parsed.data.challengeId),
+        eq(authChallenges.accountId, account.id),
+        eq(authChallenges.purpose, "device_login"),
+        isNull(authChallenges.consumedAt),
+        gt(authChallenges.expiresAt, now),
+        lt(authChallenges.attempts, MAX_DEVICE_LOGIN_ATTEMPTS),
+      ))
+      .for("update")
+      .limit(1);
+    if (
+      !challenge
+      || !challenge.deviceTokenHash
+      || !constantTimeEquals(hashToken(rawDeviceToken), challenge.deviceTokenHash)
+    ) return { kind: "invalid" as const };
+
+    const expectedHash = hashDeviceLoginCode(account.id, challenge.id, parsed.data.code);
+    if (!constantTimeEquals(expectedHash, challenge.tokenHash)) {
+      const attempts = challenge.attempts + 1;
+      if (attempts >= MAX_DEVICE_LOGIN_ATTEMPTS) {
+        await tx
+          .update(authChallenges)
+          .set({ attempts, consumedAt: now })
+          .where(eq(authChallenges.id, challenge.id));
+        await tx
+          .update(accounts)
+          .set({ securityLockedAt: now, updatedAt: now })
+          .where(and(eq(accounts.id, account.id), isNull(accounts.securityLockedAt)));
+        await tx
+          .update(sessions)
+          .set({ revokedAt: now })
+          .where(and(eq(sessions.accountId, account.id), isNull(sessions.revokedAt)));
+        await tx
+          .update(trustedDevices)
+          .set({ revokedAt: now })
+          .where(and(eq(trustedDevices.accountId, account.id), isNull(trustedDevices.revokedAt)));
+        await tx
+          .update(authChallenges)
+          .set({ consumedAt: now })
+          .where(and(
+            eq(authChallenges.accountId, account.id),
+            eq(authChallenges.purpose, "device_login"),
+            isNull(authChallenges.consumedAt),
+          ));
+        return { kind: "locked" as const };
+      }
+
+      const resendDelay = attempts >= 2 ? DEVICE_FINAL_RESEND_COOLDOWN_MS : DEVICE_RESEND_COOLDOWN_MS;
+      const resendAvailableAt = new Date(now.getTime() + resendDelay);
+      await tx
+        .update(authChallenges)
+        .set({ attempts, resendAvailableAt })
+        .where(eq(authChallenges.id, challenge.id));
+      return { kind: "wrong_code" as const, resendAvailableAt, attemptsRemaining: MAX_DEVICE_LOGIN_ATTEMPTS - attempts };
+    }
+
+    if (account.passwordPolicyVersion < PASSWORD_POLICY_VERSION) {
+      return { kind: "password_update_required" as const };
+    }
+
+    const [consumedChallenge] = await tx
+      .update(authChallenges)
+      .set({ consumedAt: now })
+      .where(and(eq(authChallenges.id, challenge.id), isNull(authChallenges.consumedAt)))
+      .returning({ id: authChallenges.id });
+    if (!consumedChallenge) return { kind: "invalid" as const };
+
+    const [device] = await tx
+      .insert(trustedDevices)
+      .values({
+        accountId: account.id,
+        tokenHash: challenge.deviceTokenHash,
+        createdAt: now,
+        lastSeenAt: now,
+      })
+      .returning({ id: trustedDevices.id });
+    if (!device) throw new Error("Trusted device insert returned no row.");
+
+    const [session] = await tx
+      .insert(sessions)
+      .values({
+        accountId: account.id,
+        deviceId: device.id,
+        tokenHash: material.tokenHash,
+        csrfTokenHash: material.csrfTokenHash,
+        passwordPolicyVersion: PASSWORD_POLICY_VERSION,
+        createdAt: material.createdAt,
+        expiresAt: material.expiresAt,
+      })
+      .returning({ id: sessions.id, createdAt: sessions.createdAt, expiresAt: sessions.expiresAt });
+    if (!session) throw new Error("Session insert returned no row.");
+    return { kind: "authenticated" as const, account, session };
+  });
+
+  if (result.kind === "locked") {
+    clearSessionCookie(response);
+    clearDeviceCookie(response);
+    sendError(response, 423, "SECURITY_LOCKED", supportLockMessage(), { supportEmail: SUPPORT_EMAIL });
+    return;
+  }
+  if (result.kind === "unavailable") {
+    sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
+    return;
+  }
+  if (result.kind === "password_update_required") {
+    sendError(response, 403, "PASSWORD_UPDATE_REQUIRED", "Atualize sua senha para atender aos requisitos atuais.");
+    return;
+  }
+  if (result.kind === "wrong_code") {
+    sendError(response, 400, "INVALID_DEVICE_CODE", "O código está incorreto.", {
+      resendAvailableAt: result.resendAvailableAt.toISOString(),
+      attemptsRemaining: result.attemptsRemaining,
+    });
+    return;
+  }
+  if (result.kind === "invalid") {
+    sendError(response, 400, "DEVICE_VERIFICATION_EXPIRED", "O código expirou ou não pertence a esta instalação. Entre novamente.");
+    return;
+  }
+
+  setDeviceCookie(response, rawDeviceToken);
+  setSessionCookie(response, material.rawToken);
+  response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
+  response.json(authResult(result.account, result.session, material.csrfToken));
+});
+
+router.post("/device-verification/resend", createAuthRateLimit("device-login-resend", 5, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+  const parsed = challengeResendSchema.safeParse(request.body);
+  if (!parsed.success) {
+    sendValidationError(response, parsed.error.issues);
+    return;
+  }
+  const rawDeviceToken = request.cookies?.[DEVICE_COOKIE];
+  if (typeof rawDeviceToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(rawDeviceToken)) {
+    sendError(response, 400, "DEVICE_VERIFICATION_EXPIRED", "A confirmação expirou. Entre novamente para receber um novo código.");
+    return;
+  }
+  const [preview] = await db
+    .select({ accountId: authChallenges.accountId })
+    .from(authChallenges)
+    .where(and(
+      eq(authChallenges.id, parsed.data.challengeId),
+      eq(authChallenges.purpose, "device_login"),
+    ))
+    .limit(1);
+  if (!preview) {
+    sendError(response, 400, "DEVICE_VERIFICATION_EXPIRED", "A confirmação expirou. Entre novamente para receber um novo código.");
+    return;
+  }
+
+  const now = new Date();
+  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+  const update = await db.transaction(async (tx) => {
+    const [account] = await tx
+      .select({
+        id: accounts.id,
+        displayName: accounts.displayName,
+        email: accountEmails.emailNormalized,
+        status: accounts.status,
+        verifiedAt: accountEmails.verifiedAt,
+        securityLockedAt: accounts.securityLockedAt,
+      })
+      .from(accounts)
+      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+      .where(eq(accounts.id, preview.accountId))
+      .for("update")
+      .limit(1);
+    if (!account || account.status !== "active" || !account.verifiedAt) return { kind: "unavailable" as const };
+    if (account.securityLockedAt) return { kind: "locked" as const };
+
+    const [challenge] = await tx
+      .select({
+        id: authChallenges.id,
+        attempts: authChallenges.attempts,
+        deviceTokenHash: authChallenges.deviceTokenHash,
+        expiresAt: authChallenges.expiresAt,
+        resendAvailableAt: authChallenges.resendAvailableAt,
+      })
+      .from(authChallenges)
+      .where(and(
+        eq(authChallenges.id, parsed.data.challengeId),
+        eq(authChallenges.accountId, account.id),
+        eq(authChallenges.purpose, "device_login"),
+        isNull(authChallenges.consumedAt),
+        gt(authChallenges.expiresAt, now),
+        lt(authChallenges.attempts, MAX_DEVICE_LOGIN_ATTEMPTS),
+      ))
+      .for("update")
+      .limit(1);
+    if (
+      !challenge
+      || !challenge.deviceTokenHash
+      || !constantTimeEquals(hashToken(rawDeviceToken), challenge.deviceTokenHash)
+    ) return { kind: "invalid" as const };
+    if (challenge.resendAvailableAt && challenge.resendAvailableAt > now) {
+      return {
+        kind: "cooldown" as const,
+        retryAfterSeconds: Math.ceil((challenge.resendAvailableAt.getTime() - now.getTime()) / 1000),
+      };
+    }
+
+    const resendDelay = challenge.attempts >= 2 ? DEVICE_FINAL_RESEND_COOLDOWN_MS : DEVICE_RESEND_COOLDOWN_MS;
+    const resendAvailableAt = new Date(now.getTime() + resendDelay);
+    const expiresAt = new Date(now.getTime() + DEVICE_LOGIN_TTL_MS);
+    await tx
+      .update(authChallenges)
+      .set({
+        tokenHash: hashDeviceLoginCode(account.id, challenge.id, code),
+        expiresAt,
+        resendAvailableAt,
+      })
+      .where(eq(authChallenges.id, challenge.id));
+    return { kind: "sent" as const, email: account.email, displayName: account.displayName, expiresAt, resendAvailableAt };
+  });
+
+  if (update.kind === "locked") {
+    sendError(response, 423, "SECURITY_LOCKED", supportLockMessage(), { supportEmail: SUPPORT_EMAIL });
+    return;
+  }
+  if (update.kind === "unavailable" || update.kind === "invalid") {
+    sendError(response, 400, "DEVICE_VERIFICATION_EXPIRED", "A confirmação expirou. Entre novamente para receber um novo código.");
+    return;
+  }
+  if (update.kind === "cooldown") {
+    sendError(response, 429, "CODE_RESEND_COOLDOWN", "Aguarde antes de pedir outro código.", {
+      retryAfterSeconds: update.retryAfterSeconds,
+    });
+    return;
+  }
+
+  const delivery = getAuthEmailDelivery();
+  try {
+    if (!delivery.isConfigured) throw new EmailDeliveryUnavailableError();
+    await delivery.sendDeviceLoginCode({ email: update.email, displayName: update.displayName, code });
+  } catch {
+    logger.warn({ code: "DEVICE_LOGIN_RESEND_FAILED" }, "Device verification email could not be delivered");
+    await db
+      .update(authChallenges)
+      .set({ consumedAt: new Date() })
+      .where(and(eq(authChallenges.id, parsed.data.challengeId), isNull(authChallenges.consumedAt)));
+    sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o novo código. Entre novamente para tentar.");
+    return;
+  }
+
+  response.json({
+    status: "verification_code_resent",
+    expiresAt: update.expiresAt.toISOString(),
+    resendAvailableAt: update.resendAvailableAt.toISOString(),
+  });
 });
 
 router.post("/password/update", createAuthRateLimit("password-update", 5, 15 * 60 * 1000), requireCsrf, async (request, response) => {
@@ -479,7 +1044,10 @@ router.post("/password/update", createAuthRateLimit("password-update", 5, 15 * 6
     .select({
       id: accounts.id,
       status: accounts.status,
+      securityLockedAt: accounts.securityLockedAt,
       emailVerifiedAt: accountEmails.verifiedAt,
+      email: accountEmails.emailNormalized,
+      displayName: accounts.displayName,
       passwordHash: passwordCredentials.passwordHash,
     })
     .from(accounts)
@@ -504,35 +1072,186 @@ router.post("/password/update", createAuthRateLimit("password-update", 5, 15 * 6
     sendError(response, 403, "ACCOUNT_UNAVAILABLE", "Esta conta não pode acessar o aplicativo.");
     return;
   }
+  if (row.securityLockedAt) {
+    sendError(response, 423, "SECURITY_LOCKED", supportLockMessage(), { supportEmail: SUPPORT_EMAIL });
+    return;
+  }
+  if (await argon2.verify(row.passwordHash, parsed.data.newPassword).catch(() => false)) {
+    sendError(response, 400, "PASSWORD_REUSE", "Escolha uma senha diferente da senha atual.");
+    return;
+  }
 
   const newPasswordHash = await argon2.hash(parsed.data.newPassword, ARGON2ID_OPTIONS);
   const now = new Date();
-  const updated = await db.transaction(async (tx) => {
+  const delivery = getAuthEmailDelivery();
+  if (!delivery.isConfigured) {
+    sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código para confirmar a alteração da senha.");
+    return;
+  }
+
+  const challenge = await createPasswordUpdateChallenge(row.id, newPasswordHash, row.passwordHash);
+  if (!challenge) {
+    sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais mudaram. Confira sua senha atual e tente novamente.");
+    return;
+  }
+  try {
+    await delivery.sendPasswordUpdateCode({
+      email: challenge.email,
+      displayName: challenge.displayName,
+      code: challenge.code,
+    });
+  } catch {
+    logger.warn({ code: "PASSWORD_UPDATE_EMAIL_FAILED" }, "Password update confirmation email could not be delivered");
+    await db
+      .update(authChallenges)
+      .set({ consumedAt: new Date() })
+      .where(and(eq(authChallenges.id, challenge.challengeId), isNull(authChallenges.consumedAt)));
+    sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código. Tente novamente mais tarde.");
+    return;
+  }
+
+  response.status(202).json({
+    status: "password_update_verification_required",
+    challengeId: challenge.challengeId,
+    emailMasked: challenge.emailMasked,
+    expiresAt: challenge.expiresAt.toISOString(),
+    message: `Enviamos um código para ${challenge.emailMasked}.`,
+  });
+});
+
+router.post("/password/update/confirm", createAuthRateLimit("password-update-confirm", 10, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+  const parsed = challengeConfirmSchema.safeParse(request.body);
+  if (!parsed.success) {
+    sendValidationError(response, parsed.error.issues);
+    return;
+  }
+
+  const [preview] = await db
+    .select({ accountId: authChallenges.accountId })
+    .from(authChallenges)
+    .where(and(
+      eq(authChallenges.id, parsed.data.challengeId),
+      eq(authChallenges.purpose, "password_update"),
+    ))
+    .limit(1);
+  if (!preview) {
+    sendError(response, 400, "INVALID_PASSWORD_UPDATE", "Código inválido ou expirado. Inicie a alteração da senha novamente.");
+    return;
+  }
+
+  const now = new Date();
+  const result = await db.transaction(async (tx) => {
+    const [account] = await tx
+      .select({
+        id: accounts.id,
+        status: accounts.status,
+        securityLockedAt: accounts.securityLockedAt,
+        verifiedAt: accountEmails.verifiedAt,
+      })
+      .from(accounts)
+      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+      .where(eq(accounts.id, preview.accountId))
+      .for("update")
+      .limit(1);
+    if (!account || account.status !== "active" || !account.verifiedAt) return { kind: "unavailable" as const };
+    if (account.securityLockedAt) return { kind: "locked" as const };
+
+    const [challenge] = await tx
+      .select({
+        id: authChallenges.id,
+        tokenHash: authChallenges.tokenHash,
+        attempts: authChallenges.attempts,
+        pendingPasswordHash: authChallenges.pendingPasswordHash,
+        basePasswordHash: authChallenges.basePasswordHash,
+      })
+      .from(authChallenges)
+      .where(and(
+        eq(authChallenges.id, parsed.data.challengeId),
+        eq(authChallenges.accountId, account.id),
+        eq(authChallenges.purpose, "password_update"),
+        isNull(authChallenges.consumedAt),
+        gt(authChallenges.expiresAt, now),
+        lt(authChallenges.attempts, MAX_PASSWORD_UPDATE_ATTEMPTS),
+      ))
+      .for("update")
+      .limit(1);
+    if (!challenge || !challenge.pendingPasswordHash || !challenge.basePasswordHash) {
+      return { kind: "invalid" as const };
+    }
+
+    const expectedHash = hashPasswordUpdateCode(account.id, challenge.id, parsed.data.code);
+    if (!constantTimeEquals(expectedHash, challenge.tokenHash)) {
+      await tx
+        .update(authChallenges)
+        .set({ attempts: sql`${authChallenges.attempts} + 1` })
+        .where(and(
+          eq(authChallenges.id, challenge.id),
+          isNull(authChallenges.consumedAt),
+          lt(authChallenges.attempts, MAX_PASSWORD_UPDATE_ATTEMPTS),
+        ));
+      return { kind: "invalid" as const };
+    }
+
+    const [consumed] = await tx
+      .update(authChallenges)
+      .set({ consumedAt: now })
+      .where(and(
+        eq(authChallenges.id, challenge.id),
+        isNull(authChallenges.consumedAt),
+        gt(authChallenges.expiresAt, now),
+        lt(authChallenges.attempts, MAX_PASSWORD_UPDATE_ATTEMPTS),
+      ))
+      .returning({ id: authChallenges.id });
+    if (!consumed) return { kind: "invalid" as const };
+
     const [credential] = await tx
       .update(passwordCredentials)
       .set({
-        passwordHash: newPasswordHash,
+        passwordHash: challenge.pendingPasswordHash,
         passwordPolicyVersion: PASSWORD_POLICY_VERSION,
         passwordChangedAt: now,
       })
       .where(and(
-        eq(passwordCredentials.accountId, row.id),
-        eq(passwordCredentials.passwordHash, row.passwordHash),
+        eq(passwordCredentials.accountId, account.id),
+        eq(passwordCredentials.passwordHash, challenge.basePasswordHash),
       ))
       .returning({ accountId: passwordCredentials.accountId });
-    if (!credential) return false;
+    if (!credential) return { kind: "credentials_changed" as const };
 
     await tx
       .update(sessions)
       .set({ revokedAt: now })
-      .where(and(eq(sessions.accountId, row.id), isNull(sessions.revokedAt)));
-    return true;
+      .where(and(eq(sessions.accountId, account.id), isNull(sessions.revokedAt)));
+    await tx
+      .update(trustedDevices)
+      .set({ revokedAt: now })
+      .where(and(eq(trustedDevices.accountId, account.id), isNull(trustedDevices.revokedAt)));
+    await tx
+      .update(authChallenges)
+      .set({ consumedAt: now })
+      .where(and(
+        eq(authChallenges.accountId, account.id),
+        inArray(authChallenges.purpose, ["device_login", "password_update", "reset_password"]),
+        isNull(authChallenges.consumedAt),
+      ));
+    return { kind: "updated" as const };
   });
-  if (!updated) {
-    sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais foram alteradas. Entre novamente.");
+
+  if (result.kind === "locked") {
+    sendError(response, 423, "SECURITY_LOCKED", supportLockMessage(), { supportEmail: SUPPORT_EMAIL });
+    return;
+  }
+  if (result.kind === "credentials_changed") {
+    sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais mudaram. Inicie novamente a alteração da senha.");
+    return;
+  }
+  if (result.kind !== "updated") {
+    sendError(response, 400, "INVALID_PASSWORD_UPDATE", "Código inválido ou expirado. Inicie a alteração da senha novamente.");
     return;
   }
 
+  clearSessionCookie(response);
+  clearDeviceCookie(response);
   response.json({ status: "password_updated" });
 });
 
@@ -553,6 +1272,7 @@ router.post("/password/reset/request", createAuthRateLimit("password-reset-reque
       .select({
         id: accounts.id,
         status: accounts.status,
+        securityLockedAt: accounts.securityLockedAt,
         verifiedAt: accountEmails.verifiedAt,
       })
       .from(accounts)
@@ -560,7 +1280,7 @@ router.post("/password/reset/request", createAuthRateLimit("password-reset-reque
       .where(eq(accountEmails.emailNormalized, email))
       .limit(1);
 
-    if (account?.status === "active" && account.verifiedAt) {
+    if (account?.status === "active" && account.verifiedAt && !account.securityLockedAt) {
       const challenge = await createPasswordResetChallenge(account.id);
       if (challenge) pendingDelivery = { accountId: account.id, ...challenge };
     }
@@ -609,6 +1329,7 @@ router.post("/password/reset/confirm", createAuthRateLimit("password-reset-confi
     .select({
       id: accounts.id,
       status: accounts.status,
+      securityLockedAt: accounts.securityLockedAt,
       verifiedAt: accountEmails.verifiedAt,
       passwordHash: passwordCredentials.passwordHash,
     })
@@ -620,6 +1341,10 @@ router.post("/password/reset/confirm", createAuthRateLimit("password-reset-confi
 
   if (!account || account.status !== "active" || !account.verifiedAt) {
     sendError(response, 400, "INVALID_PASSWORD_RESET", invalidPasswordResetMessage);
+    return;
+  }
+  if (account.securityLockedAt) {
+    sendError(response, 423, "SECURITY_LOCKED", supportLockMessage(), { supportEmail: SUPPORT_EMAIL });
     return;
   }
 
@@ -670,12 +1395,13 @@ router.post("/password/reset/confirm", createAuthRateLimit("password-reset-confi
   try {
     passwordWasReset = await db.transaction(async (tx) => {
       const [currentAccount] = await tx
-        .select({ id: accounts.id })
+        .select({ id: accounts.id, securityLockedAt: accounts.securityLockedAt })
         .from(accounts)
         .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
         .where(and(
           eq(accounts.id, account.id),
           eq(accounts.status, "active"),
+          isNull(accounts.securityLockedAt),
           isNotNull(accountEmails.verifiedAt),
         ))
         .for("update");
@@ -715,11 +1441,15 @@ router.post("/password/reset/confirm", createAuthRateLimit("password-reset-confi
         .set({ revokedAt: now })
         .where(and(eq(sessions.accountId, account.id), isNull(sessions.revokedAt)));
       await tx
+        .update(trustedDevices)
+        .set({ revokedAt: now })
+        .where(and(eq(trustedDevices.accountId, account.id), isNull(trustedDevices.revokedAt)));
+      await tx
         .update(authChallenges)
         .set({ consumedAt: now })
         .where(and(
           eq(authChallenges.accountId, account.id),
-          eq(authChallenges.purpose, "reset_password"),
+          inArray(authChallenges.purpose, ["reset_password", "password_update", "device_login"]),
           isNull(authChallenges.consumedAt),
           sql`${authChallenges.id} <> ${challenge.id}`,
         ));
@@ -737,6 +1467,8 @@ router.post("/password/reset/confirm", createAuthRateLimit("password-reset-confi
     sendError(response, 400, "INVALID_PASSWORD_RESET", invalidPasswordResetMessage);
     return;
   }
+  clearSessionCookie(response);
+  clearDeviceCookie(response);
   response.json({ status: "password_reset" });
 });
 
@@ -770,7 +1502,7 @@ router.post("/verification", createAuthRateLimit("verify-resend", 3, 15 * 60 * 1
   response.status(202).json({ status: "verification_required", message: genericVerificationMessage });
 });
 
-router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 15 * 60 * 1000), requireTrustedClientIp, requireCsrf, async (request, response) => {
+router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 15 * 60 * 1000), requireCsrf, async (request, response) => {
   const parsed = verificationConfirmSchema.safeParse(request.body);
   if (!parsed.success) {
     sendValidationError(response, parsed.error.issues);
@@ -826,6 +1558,7 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
   }
 
   const material = createSessionMaterial();
+  const deviceRawToken = randomBytes(32).toString("base64url");
   let result: { id: string; createdAt: Date; expiresAt: Date } | null;
   try {
     result = await db.transaction(async (tx) => {
@@ -852,10 +1585,22 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
 
       if (account.passwordPolicyVersion < PASSWORD_POLICY_VERSION) return null;
 
+      const [device] = await tx
+        .insert(trustedDevices)
+        .values({
+          accountId: account.id,
+          tokenHash: hashToken(deviceRawToken),
+          createdAt: now,
+          lastSeenAt: now,
+        })
+        .returning({ id: trustedDevices.id });
+      if (!device) throw new Error("Trusted device insert returned no row.");
+
       const [session] = await tx
         .insert(sessions)
         .values({
           accountId: account.id,
+          deviceId: device.id,
           tokenHash: material.tokenHash,
           csrfTokenHash: material.csrfTokenHash,
           passwordPolicyVersion: PASSWORD_POLICY_VERSION,
@@ -885,6 +1630,7 @@ router.post("/verification/confirm", createAuthRateLimit("verify-confirm", 10, 1
   }
 
   setSessionCookie(response, material.rawToken);
+  setDeviceCookie(response, deviceRawToken);
   response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
   response.json(authResult(account, result, material.csrfToken));
 });
@@ -911,6 +1657,118 @@ router.get("/session", async (request, response) => {
       expiresAt: activeSession.expiresAt.toISOString(),
     },
   });
+});
+
+router.get("/devices", createAuthRateLimit("devices-list", 60, 15 * 60 * 1000), async (request, response) => {
+  const activeSession = await loadActiveSession(request);
+  if (!activeSession) {
+    sendError(response, 401, "AUTH_REQUIRED", "Entre novamente para gerenciar as instalações confiáveis.");
+    return;
+  }
+
+  const rows = await db
+    .select({
+      id: trustedDevices.id,
+      createdAt: trustedDevices.createdAt,
+      lastSeenAt: trustedDevices.lastSeenAt,
+    })
+    .from(trustedDevices)
+    .where(and(
+      eq(trustedDevices.accountId, activeSession.accountId),
+      isNull(trustedDevices.revokedAt),
+    ))
+    .orderBy(desc(trustedDevices.lastSeenAt), desc(trustedDevices.id))
+    .limit(101);
+
+  response.json({
+    items: rows.slice(0, 100).map((device) => ({
+      id: device.id,
+      firstSeenAt: device.createdAt.toISOString(),
+      lastSeenAt: device.lastSeenAt.toISOString(),
+      isCurrent: device.id === activeSession.deviceId,
+    })),
+    hasMore: rows.length > 100,
+  });
+});
+
+router.delete("/devices/others", createAuthRateLimit("devices-revoke-others", 10, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+  const activeSession = await loadActiveSession(request);
+  if (!activeSession) {
+    sendError(response, 401, "AUTH_REQUIRED", "Entre novamente para gerenciar as instalações confiáveis.");
+    return;
+  }
+
+  const now = new Date();
+  const revokedDeviceIds = await db.transaction(async (tx) => {
+    const revoked = await tx
+      .update(trustedDevices)
+      .set({ revokedAt: now })
+      .where(and(
+        eq(trustedDevices.accountId, activeSession.accountId),
+        ne(trustedDevices.id, activeSession.deviceId),
+        isNull(trustedDevices.revokedAt),
+      ))
+      .returning({ id: trustedDevices.id });
+    if (revoked.length > 0) {
+      await tx
+        .update(sessions)
+        .set({ revokedAt: now })
+        .where(and(
+          eq(sessions.accountId, activeSession.accountId),
+          inArray(sessions.deviceId, revoked.map((device) => device.id)),
+          isNull(sessions.revokedAt),
+        ));
+    }
+    return revoked.map((device) => device.id);
+  });
+  response.json({ status: "other_devices_revoked", revokedCount: revokedDeviceIds.length });
+});
+
+router.delete("/devices/:deviceId", createAuthRateLimit("device-revoke", 20, 15 * 60 * 1000), requireCsrf, async (request, response) => {
+  const params = trustedDeviceIdParamSchema.safeParse(request.params);
+  if (!params.success) {
+    sendValidationError(response, params.error.issues);
+    return;
+  }
+  const activeSession = await loadActiveSession(request);
+  if (!activeSession) {
+    sendError(response, 401, "AUTH_REQUIRED", "Entre novamente para gerenciar as instalações confiáveis.");
+    return;
+  }
+
+  const now = new Date();
+  const result = await db.transaction(async (tx) => {
+    const [revoked] = await tx
+      .update(trustedDevices)
+      .set({ revokedAt: now })
+      .where(and(
+        eq(trustedDevices.id, params.data.deviceId),
+        eq(trustedDevices.accountId, activeSession.accountId),
+        isNull(trustedDevices.revokedAt),
+      ))
+      .returning({ id: trustedDevices.id });
+    if (!revoked) return null;
+
+    await tx
+      .update(sessions)
+      .set({ revokedAt: now })
+      .where(and(
+        eq(sessions.accountId, activeSession.accountId),
+        eq(sessions.deviceId, revoked.id),
+        isNull(sessions.revokedAt),
+      ));
+    return { isCurrent: revoked.id === activeSession.deviceId };
+  });
+  if (!result) {
+    sendError(response, 404, "DEVICE_NOT_FOUND", "A instalação não foi encontrada ou já foi removida.");
+    return;
+  }
+  if (result.isCurrent) {
+    clearSessionCookie(response);
+    clearDeviceCookie(response);
+    response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
+  }
+  response.status(204).end();
 });
 
 router.get("/sessions", createAuthRateLimit("sessions-list", 60, 15 * 60 * 1000), async (request, response) => {

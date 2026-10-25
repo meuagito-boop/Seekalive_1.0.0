@@ -1,13 +1,13 @@
 # Auditoria de prontidão do frontend — Seekalive
 
-**Auditoria-base:** 22/10/2026; última atualização de estado: 24/10/2026
+**Auditoria-base:** 22/10/2026; última atualização de estado: 25/10/2026
 **Escopo:** prontidão do frontend para integração gradual. A auditoria original foi análise/documentação; desde então, autenticação, onboarding, perfil básico, privacidade e relações sociais essenciais receberam API e schema no desenvolvimento.
 
-> Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.16).
+> Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10, incluindo estados que já foram alterados depois. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.53).
 
 ## Parecer
 
-**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API. Configurações > Conta diferencia conta pessoal e comercial e lê/salva por `/v1/accounts/me` em sessão real; Privacidade e Segurança também usam APIs no fluxo autenticado. O preview de demonstração permanece local. As páginas públicas, conteúdo e várias áreas sociais ainda não estão integradas integralmente. O envio de e-mail está desligado, então não é possível criar conta real nesta configuração. Posts, mídias, avaliações, mensagens, Seek e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
+**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API. Configurações > Conta diferencia conta pessoal e comercial e lê/salva por `/v1/accounts/me` em sessão real; Privacidade e Segurança também usam APIs no fluxo autenticado. A tela Segurança lista e revoga instalações confiáveis usando token por navegador/app, não IP nem fingerprint. O envio Resend foi testado em desenvolvimento, mas ainda falta E2E do fluxo completo; não está habilitado para produção. Posts, mídias, avaliações, mensagens, Seek e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
 
 O backend foi iniciado. O próximo trabalho de frontend é consumir somente os endpoints ativos e manter a demonstração de desenvolvimento separada da conta real; não conectar telas a contratos que ainda estejam marcados como propostos.
 
@@ -23,7 +23,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Área | Estado atual | Prontidão |
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; proteção de rota apenas no cliente | Parcial |
-| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação de senha e gestão de sessões chamam a API | Entrega Resend dos fluxos de e-mail ainda precisa de E2E no navegador; API de e-mail permanece habilitada somente em desenvolvimento |
+| Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação, troca de senha, sessões e instalações confiáveis chamam a API | Falta E2E no navegador; o schema mais recente de instalações ainda não foi aplicado ao banco principal de desenvolvimento |
 | Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados; idade é coletada no cadastro, permanece somente no servidor para a regra de 18+ e nunca é retornada após a criação; e-mail é somente para o titular. `/profile/edit` e conteúdo do perfil público ainda não estão ligados a essa edição | Parcial; falta E2E autenticado e integração das páginas públicas |
 | Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
 | Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
@@ -43,7 +43,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 - `pages/Register.tsx` valida e cria um perfil local, usa ID baseado no nome de usuário e grava dados de conta no navegador. A senha não é armazenada — isso é correto para o protótipo, mas significa que não existe credencial utilizável no backend.
 - `pages/Login.tsx` não envia usuário/e-mail e senha para um serviço; a tela apresenta o fluxo como não conectado. Após sair, a conta local não pode ser autenticada novamente pelo login.
 - `ForgotPassword.tsx` solicita e confirma a redefinição pela API. A suíte isolada valida os casos principais; o fluxo visual completo e o recebimento de e-mail na tela ainda exigem E2E separado.
-- `SettingsSecurity.tsx` consulta sessões próprias e executa revogação individual ou em lote. A sessão atual fica marcada; a interface não inventa dados de dispositivo. 2FA, histórico detalhado e identificação de aparelho habitual continuam explicitamente indisponíveis.
+- `SettingsSecurity.tsx` consulta sessões e instalações próprias e permite revogação individual ou em lote. A sessão/instalação atual fica marcada; a interface não inventa modelo, navegador ou localização. O token reconhece uma instalação do navegador/app, não prova identidade do aparelho físico. MFA geral e histórico detalhado continuam indisponíveis.
 - `AppContext` considera ativa a conta carregada do `localStorage`; isso não equivale a sessão autenticada. A proteção de rotas não substitui autorização no servidor.
 - O cadastro comercial e pessoal deve resultar na mesma identidade Social, com extensão comercial somente para contas comerciais. Isso está descrito como regra, mas ainda é cadastro no navegador.
 

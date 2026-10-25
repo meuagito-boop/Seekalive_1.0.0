@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const PASSWORD_POLICY_VERSION = 1;
+export const SUPPORT_EMAIL = "admseekalive@gmail.com";
 
 export const passwordPolicySchema = z
   .string()
@@ -106,6 +107,10 @@ export const sessionIdParamSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
+export const trustedDeviceIdParamSchema = z.object({
+  deviceId: z.string().uuid(),
+});
+
 export const verificationRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
 });
@@ -113,6 +118,15 @@ export const verificationRequestSchema = z.object({
 export const verificationConfirmSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   code: z.string().regex(/^[0-9]{6}$/),
+});
+
+export const challengeConfirmSchema = z.object({
+  challengeId: z.string().uuid(),
+  code: z.string().regex(/^[0-9]{6}$/, "Informe o código de seis dígitos."),
+});
+
+export const challengeResendSchema = z.object({
+  challengeId: z.string().uuid(),
 });
 
 export const onboardingCompletionSchema = z

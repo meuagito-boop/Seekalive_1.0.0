@@ -16,10 +16,24 @@ export type PasswordResetEmail = {
   code: string;
 };
 
+export type DeviceLoginEmail = {
+  email: string;
+  displayName: string;
+  code: string;
+};
+
+export type PasswordUpdateEmail = {
+  email: string;
+  displayName: string;
+  code: string;
+};
+
 export interface AuthEmailDelivery {
   readonly isConfigured: boolean;
   sendVerificationCode(message: VerificationEmail): Promise<void>;
   sendPasswordResetCode(message: PasswordResetEmail): Promise<void>;
+  sendDeviceLoginCode(message: DeviceLoginEmail): Promise<void>;
+  sendPasswordUpdateCode(message: PasswordUpdateEmail): Promise<void>;
 }
 
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
@@ -89,6 +103,24 @@ export const authEmailDelivery: AuthEmailDelivery = {
       subject: "Redefina sua senha — Seekalive",
       text: `Seu código para redefinir a senha do Seekalive é: ${message.code}\n\nEle expira em 10 minutos e pode ser usado uma única vez. Se você não solicitou a redefinição, ignore esta mensagem.`,
       html: `<p>Seu código para redefinir a senha do Seekalive é:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${message.code}</p><p>Ele expira em 10 minutos e pode ser usado uma única vez. Se você não solicitou a redefinição, ignore esta mensagem.</p>`,
+    });
+  },
+  async sendDeviceLoginCode(message) {
+    const displayName = escapeHtml(message.displayName);
+    await sendResendEmail({
+      email: message.email,
+      subject: "Confirme este acesso — Seekalive",
+      text: `Olá, ${message.displayName}.\n\nFoi solicitada uma entrada no Seekalive por uma instalação ainda não reconhecida. Seu código é: ${message.code}\n\nEle expira em 10 minutos. Se não foi você, ignore esta mensagem e altere sua senha.`,
+      html: `<p>Olá, ${displayName}.</p><p>Foi solicitada uma entrada no Seekalive por uma instalação ainda não reconhecida. Seu código é:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${message.code}</p><p>Ele expira em 10 minutos. Se não foi você, ignore esta mensagem e altere sua senha.</p>`,
+    });
+  },
+  async sendPasswordUpdateCode(message) {
+    const displayName = escapeHtml(message.displayName);
+    await sendResendEmail({
+      email: message.email,
+      subject: "Confirme a alteração da senha — Seekalive",
+      text: `Olá, ${message.displayName}.\n\nSeu código para confirmar a alteração da senha do Seekalive é: ${message.code}\n\nEle expira em 10 minutos. Após a confirmação, todas as sessões e instalações confiáveis serão revogadas.`,
+      html: `<p>Olá, ${displayName}.</p><p>Seu código para confirmar a alteração da senha do Seekalive é:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${message.code}</p><p>Ele expira em 10 minutos. Após a confirmação, todas as sessões e instalações confiáveis serão revogadas.</p>`,
     });
   },
 };

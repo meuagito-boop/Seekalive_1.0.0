@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
+const ref = name => ({ $ref: `#/components/schemas/${name}` });
 // tag, method, path, summary, request schema, response schema, behavior
 // "live" is reserved for endpoints verified in Aplicativo/back.
 const R = [];
@@ -50,20 +51,85 @@ post("auth", "/v1/auth/login", "Autenticar por nome de usuário ou e-mail e senh
   csrfOnly: true,
   successCode: "200",
   status: "live",
-  contractDescription: "Normaliza o identificador e só cria sessão após validar senha, e-mail confirmado e versão de política de senha. Senhas legadas que já atendam à regra atual têm sua versão atualizada no login; as demais recebem 403 PASSWORD_UPDATE_REQUIRED, sem sessão, e precisam ser trocadas com a senha atual. Credenciais de conta pendente recebem 403 EMAIL_NOT_VERIFIED sem cookie. Erros de usuário/senha inválidos são genéricos. Nunca retorna hash, senha ou token de sessão no corpo.",
+  responseVariants: "AuthResult (200) / DeviceVerificationRequired (202)",
+  contractDescription: "Normaliza o identificador e só autentica após senha válida, e-mail confirmado, conta ativa e política atual. Se o cookie de instalação confiável não tiver um token ativo para a conta, responde 202, envia código ao e-mail verificado e não cria sessão até a confirmação. IP não identifica instalações nem é persistido; pode ser usado transitoriamente pelo limitador de abuso. Senhas legadas compatíveis são promovidas; as demais recebem 403 PASSWORD_UPDATE_REQUIRED. Erros de usuário/senha inválidos são genéricos. Nunca retorna segredo no corpo.",
   responseHeaders: {
     "Set-Cookie": {
-      description: "Sessão opaca criada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
+      description: "Sessão opaca em __Host-seekalive_session e token da instalação em __Host-seekalive_device; ambos Secure, HttpOnly, SameSite=Lax e Path=/.",
       schema: { type: "string" },
     },
   },
+  additionalSuccessResponses: {
+    "202": {
+      description: "Senha aceita em uma instalação não reconhecida. Não cria sessão; inicia a confirmação por e-mail.",
+      content: { "application/json": { schema: ref("DeviceVerificationRequired") } },
+      headers: {
+        "Set-Cookie": {
+          description: "Cookie temporário da instalação pendente; só se torna confiável depois da confirmação do código.",
+          schema: { type: "string" },
+        },
+      },
+    },
+  },
 });
-post("auth", "/v1/auth/password/update", "Atualizar senha usando a senha atual", "PasswordPolicyUpdateRequest", "PasswordUpdated", {
+post("auth", "/v1/auth/device-verification/confirm", "Confirmar uma instalação com o código enviado por e-mail", "ChallengeConfirmRequest", "AuthResult", {
   auth: "none",
   csrfOnly: true,
   successCode: "200",
   status: "live",
-  contractDescription: "Exige e-mail confirmado, credenciais atuais válidas e senha nova conforme a política. Atualiza o hash Argon2id e revoga todas as sessões na mesma transação; o cliente precisa autenticar novamente. Não substitui recuperação de senha perdida.",
+  contractDescription: "Código de seis dígitos expira em 10 minutos. Registra a instalação apenas depois da confirmação e cria a sessão na mesma transação. O primeiro código incorreto inicia espera de 30 s para reenvio; o segundo, 90 s; no terceiro erro a conta é bloqueada e as sessões/instalações são revogadas. O IP não participa da decisão de confiança.",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Cria cookie de sessão e mantém o token da instalação confirmada; remove o cookie pré-autenticação.",
+      schema: { type: "string" },
+    },
+  },
+});
+post("auth", "/v1/auth/device-verification/resend", "Reenviar código de confirmação da instalação", "ChallengeResendRequest", "DeviceVerificationResent", {
+  auth: "none",
+  csrfOnly: true,
+  successCode: "200",
+  status: "live",
+  contractDescription: "Exige o mesmo cookie temporário da instalação e o desafio ativo. Mantém a contagem de erros; aplica o intervalo atual de 30 s ou 90 s e expira o código 10 minutos após o envio. Limitado a cinco reenvios por IP em 15 minutos.",
+});
+post("auth", "/v1/auth/password/update", "Solicitar troca de senha com senha atual e código de e-mail", "PasswordPolicyUpdateRequest", "PasswordUpdateChallenge", {
+  auth: "none",
+  csrfOnly: true,
+  accepted: true,
+  status: "live",
+  contractDescription: "Verifica senha atual, conta ativa, e-mail confirmado e política da nova senha. Não altera a credencial ainda: envia código de seis dígitos ao e-mail atual e retorna 202. O desafio expira em 10 minutos e permite cinco erros.",
+});
+post("auth", "/v1/auth/password/update/confirm", "Confirmar troca de senha e revogar instalações confiáveis", "ChallengeConfirmRequest", "PasswordUpdated", {
+  auth: "none",
+  csrfOnly: true,
+  successCode: "200",
+  status: "live",
+  contractDescription: "Ao validar o código, grava o hash Argon2id e revoga na mesma transação todas as sessões e instalações confiáveis. Exige novo login e nova confirmação de instalação. Limpa os cookies de sessão e instalação atuais.",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Expira os cookies __Host-seekalive_session e __Host-seekalive_device.",
+      schema: { type: "string" },
+    },
+  },
+});
+g("auth", "/v1/auth/devices", "Listar instalações confiáveis da própria conta", "TrustedDeviceList", null, {
+  auth: "required",
+  status: "live",
+  contractDescription: "Retorna até 100 instalações ativas com primeiro/último acesso e indicação da atual. Não retorna IP, user-agent ou impressão digital.",
+});
+del("auth", "/v1/auth/devices/others", "Revogar as outras instalações confiáveis", "OtherDevicesRevoked", {
+  auth: "required",
+  csrfOnly: true,
+  successCode: "200",
+  status: "live",
+  contractDescription: "Revoga instalações e sessões vinculadas, preservando a instalação e sessão atuais.",
+});
+del("auth", "/v1/auth/devices/{deviceId}", "Revogar uma instalação confiável", "Empty", {
+  auth: "required",
+  csrfOnly: true,
+  successCode: "204",
+  status: "live",
+  contractDescription: "Revoga somente instalação pertencente à conta autenticada e encerra as sessões vinculadas. Se for a instalação atual, encerra a sessão e expira seus cookies; IDs alheios ou inexistentes respondem 404.",
 });
 post("auth", "/v1/auth/logout", "Encerrar e revogar a sessão atual", null, "Empty", {
   successCode: "204",
@@ -79,7 +145,7 @@ g("auth", "/v1/auth/sessions", "Listar sessões próprias ativas", "PageSession"
   status: "live",
   auth: "required",
   query: ["cursor"],
-  contractDescription: "Lista somente sessões ativas da conta autenticada, com página fixa de 20 itens e cursor opaco. Cada item informa ID, criação, expiração e se é a sessão atual. Não coleta IP, user-agent, impressão digital nem afirma reconhecer dispositivo habitual.",
+  contractDescription: "Lista somente sessões ativas da conta autenticada, com página fixa de 20 itens e cursor opaco. Cada item informa ID, criação, expiração e se é a sessão atual; cada sessão está vinculada a uma instalação confiável. A resposta não expõe IP, user-agent ou impressão digital.",
 });
 del("auth", "/v1/auth/sessions/others", "Revogar todas as outras sessões", "OtherSessionsRevoked", {
   status: "live",
@@ -100,14 +166,20 @@ post("auth", "/v1/auth/password/reset/request", "Solicitar código para redefini
   csrfOnly: true,
   accepted: true,
   status: "live",
-  contractDescription: "Retorna a mesma resposta 202 e aplica um piso de 200 ms para e-mail inexistente, não verificado, elegível ou limitado por conta. Só contas ativas e com e-mail verificado recebem o código; o desafio é HMAC-SHA256, expira em 10 minutos, permite cinco tentativas e só pode ser consumido uma vez. Limites: cinco pedidos por IP em 15 minutos, intervalo de 60 segundos e até cinco pedidos por conta/hora; o limite por IP retorna 429. A entrega é iniciada após a resposta para não expor latência do provedor; sem outbox durável, falha invalida o código e a pessoa pode tentar novamente após o intervalo.",
+  contractDescription: "Retorna a mesma resposta 202 e aplica um piso de 200 ms para e-mail inexistente, não verificado, elegível ou limitado por conta. Só contas ativas e com e-mail verificado recebem o código; se a entrega não estiver configurada, a resposta genérica permanece igual, sem envio. O desafio é HMAC-SHA256, expira em 10 minutos, permite cinco tentativas e só pode ser consumido uma vez. Limites: cinco pedidos por IP em 15 minutos, intervalo de 60 segundos e até cinco pedidos por conta/hora; o limite por IP retorna 429. A entrega é iniciada após a resposta para não expor latência do provedor; sem outbox durável, falha invalida o código e a pessoa pode tentar novamente após o intervalo.",
 });
 post("auth", "/v1/auth/password/reset/confirm", "Redefinir a senha com código válido", "PasswordResetConfirm", "PasswordResetComplete", {
   auth: "none",
   csrfOnly: true,
   successCode: "200",
   status: "live",
-  contractDescription: "Exige e-mail da conta, código de seis dígitos válido e senha dentro da política atual. Consome o código uma única vez, grava Argon2id, revoga todas as sessões e invalida outros códigos de recuperação na mesma transação. Não cria sessão; o usuário entra novamente. Códigos inválidos, expirados, esgotados, reutilizados ou de contas não elegíveis retornam o mesmo erro.",
+  contractDescription: "Exige e-mail da conta, código de seis dígitos válido e senha dentro da política atual. Consome o código uma única vez, grava Argon2id e revoga todas as sessões e instalações confiáveis na mesma transação. Não cria sessão; o usuário entra novamente e confirma a instalação. Códigos inválidos, expirados, esgotados, reutilizados ou de contas não elegíveis retornam o mesmo erro.",
+  responseHeaders: {
+    "Set-Cookie": {
+      description: "Expira os cookies __Host-seekalive_session e __Host-seekalive_device.",
+      schema: { type: "string" },
+    },
+  },
 });
 post("auth", "/v1/auth/verification", "Solicitar ou reenviar verificação de e-mail", "VerificationRequest", "Accepted", {
   auth: "optional",
@@ -121,7 +193,7 @@ post("auth", "/v1/auth/verification/confirm", "Confirmar desafio de e-mail de us
   csrfOnly: true,
   successCode: "200",
   status: "live",
-  contractDescription: "Valida o código de seis dígitos de uso único, marca o e-mail como confirmado e ativa a conta na mesma transação. Conta na versão atual da política recebe uma sessão segura. Conta legada sem versão de senha recebe passwordUpdateRequired=true, sem sessão, e deve entrar para validar ou atualizar sua senha.",
+  contractDescription: "Valida o código de seis dígitos de uso único, marca o e-mail como confirmado e ativa a conta na mesma transação. Conta atual recebe sessão e registra a instalação atual como confiável; conta legada sem versão de senha recebe passwordUpdateRequired=true, sem sessão.",
   responseHeaders: {
     "Set-Cookie": {
       description: "Sessão opaca criada/rotacionada pela API em cookie __Host-seekalive_session Secure, HttpOnly, SameSite=Lax e Path=/.",
@@ -274,13 +346,21 @@ function getQuery(tag, path, summary, response) { return g(tag, path, summary, r
 
 const model = (props, required = []) => ({ type: "object", additionalProperties: false, properties: props, required });
 const string = { type: "string" }, uuid = { type: "string", format: "uuid" };
-const ref = name => ({ $ref: `#/components/schemas/${name}` });
 const arr = schema => ({ type: "array", items: schema });
 const page = item => model({ items: arr(ref(item)), nextCursor: { type: ["string", "null"] } }, ["items"]);
 const audience = { type: "string", enum: ["public", "circles", "private"] };
 const rating = { type: "integer", minimum: 1, maximum: 5 };
 const schemas = {
-  Error: model({ error: model({ code: string, message: string, requestId: string, fields: arr(model({ path: string, message: string }, ["path", "message"])) }, ["code", "message", "requestId"]) }, ["error"]),
+  Error: model({ error: model({
+    code: string,
+    message: string,
+    requestId: string,
+    details: arr(model({ field: string, message: string }, ["field", "message"])),
+    supportEmail: { type: "string", format: "email" },
+    retryAfterSeconds: { type: "integer", minimum: 0 },
+    attemptsRemaining: { type: "integer", minimum: 0 },
+    resendAvailableAt: { type: "string", format: "date-time" },
+  }, ["code", "message", "requestId"]) }, ["error"]),
   Empty: model({}),
   Accepted: model({ jobId: uuid, status: { type: "string", enum: ["queued", "processing"] } }, ["jobId", "status"]),
   PasswordResetRequested: model({ status: { type: "string", enum: ["reset_requested"] }, message: string }, ["status", "message"]),
@@ -300,6 +380,45 @@ const schemas = {
     revokedCount: { type: "integer", minimum: 0 },
   }, ["status", "revokedCount"]),
   PasswordUpdated: model({ status: { type: "string", const: "password_updated" } }, ["status"]),
+  DeviceVerificationRequired: model({
+    status: { type: "string", const: "device_verification_required" },
+    challengeId: uuid,
+    emailMasked: string,
+    expiresAt: { type: "string", format: "date-time" },
+    resendAvailableAt: { type: "string", format: "date-time" },
+    message: string,
+  }, ["status", "challengeId", "emailMasked", "expiresAt", "resendAvailableAt", "message"]),
+  PasswordUpdateChallenge: model({
+    status: { type: "string", const: "password_update_verification_required" },
+    challengeId: uuid,
+    emailMasked: string,
+    expiresAt: { type: "string", format: "date-time" },
+    message: string,
+  }, ["status", "challengeId", "emailMasked", "expiresAt", "message"]),
+  DeviceVerificationResent: model({
+    status: { type: "string", const: "verification_code_resent" },
+    expiresAt: { type: "string", format: "date-time" },
+    resendAvailableAt: { type: "string", format: "date-time" },
+  }, ["status", "expiresAt", "resendAvailableAt"]),
+  ChallengeConfirmRequest: model({
+    challengeId: uuid,
+    code: { type: "string", pattern: "^[0-9]{6}$", writeOnly: true },
+  }, ["challengeId", "code"]),
+  ChallengeResendRequest: model({ challengeId: uuid }, ["challengeId"]),
+  TrustedDevice: model({
+    id: uuid,
+    firstSeenAt: { type: "string", format: "date-time" },
+    lastSeenAt: { type: "string", format: "date-time" },
+    isCurrent: { type: "boolean" },
+  }, ["id", "firstSeenAt", "lastSeenAt", "isCurrent"]),
+  TrustedDeviceList: model({
+    items: arr(ref("TrustedDevice")),
+    hasMore: { type: "boolean" },
+  }, ["items", "hasMore"]),
+  OtherDevicesRevoked: model({
+    status: { type: "string", const: "other_devices_revoked" },
+    revokedCount: { type: "integer", minimum: 0 },
+  }, ["status", "revokedCount"]),
   LegacyPasswordUpdateRequired: model({
     emailVerified: { type: "boolean", const: true },
     passwordUpdateRequired: { type: "boolean", const: true },
@@ -557,7 +676,7 @@ const schemas = {
   ExportJob: ref("PrivacyJob"),
 };
 
-const errorResponses = Object.fromEntries([400, 401, 403, 404, 409, 412, 413, 415, 422, 429, 500, 502, 503].map(code => [code, {
+const errorResponses = Object.fromEntries([400, 401, 403, 404, 409, 412, 413, 415, 422, 423, 429, 500, 502, 503].map(code => [code, {
   description: "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
   content: { "application/json": { schema: ref("Error") } },
 }]));
@@ -571,7 +690,7 @@ for (const route of R) {
   const successCode = route.successCode ?? (route.accepted ? "202" : method === "post" && route.status !== "live" ? "201" : method === "delete" && route.response === "Empty" ? "204" : "200");
   const responses = { [successCode]: route.contentResponse ? { description: "Bytes de mídia aprovados após a checagem de autorização.", content: { "image/*": { schema: { type: "string", format: "binary" } }, "video/*": { schema: { type: "string", format: "binary" } } } }
       : route.stream ? { description: "SSE autenticado; eventos são apenas notificações de recursos que precisam ser reconsultados.", content: { "text/event-stream": { schema: { type: "string" } } } }
-      : { description: route.status === "live" ? "Endpoint implementado e observado no servidor atual." : "Contrato proposto; handler ainda não existe.", ...(route.response ? { content: { "application/json": { schema: ref(route.response) } } } : {}) }, ...errorResponses };
+      : { description: route.status === "live" ? "Endpoint implementado e observado no servidor atual." : "Contrato proposto; handler ainda não existe.", ...(route.response ? { content: { "application/json": { schema: ref(route.response) } } } : {}) }, ...(route.additionalSuccessResponses ?? {}), ...errorResponses };
   if (route.responseHeaders) responses[successCode].headers = route.responseHeaders;
   const parameters = [];
   for (const match of path.matchAll(/\{([^}]+)\}/g)) parameters.push({
@@ -610,8 +729,8 @@ const spec = {
   openapi: "3.1.0",
   info: {
     title: "Seekalive API",
-    version: "0.3.0-social-relations",
-    description: "Autenticação, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados. O envio de e-mail continua sem provedor; cadastro e reenvio falham explicitamente até essa integração. Os demais contratos seguem como proposta.",
+    version: "0.3.1-device-security",
+    description: "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados no desenvolvimento. Envio Resend e banco externo não estão habilitados para produção; os demais contratos seguem como proposta.",
     contact: { name: "Seekalive API" },
   },
   servers: [{ url: "/api", description: "Prefixo de mesma origem, encaminhado pelo proxy de desenvolvimento do frontend." }],
@@ -649,13 +768,13 @@ const lines = [
   "",
   `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. OpenAPI 3.1 em \`openapi.json\`: **${R.length} operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
   "",
-  "> Rotas marcadas **ATIVA** já têm handler no servidor atual. Rotas **PROPOSTA** ainda não existem. GET público continua sujeito à autorização de conta/audiência; escritas usam sessão verificada, CSRF, limites e validação.",
+  "> **ATIVA** significa que o handler existe no código. A alteração de instalações confiáveis ainda não foi aplicada ao banco principal de desenvolvimento (faltam `trusted_devices` e `accounts.security_locked_at`); esse fluxo foi testado somente em schema temporário. Não considerar operável no banco principal até aplicar a migração. Produção não foi alterada.",
   "",
   "## Respostas, paginação e autenticação",
   "",
-  "- GET normalmente responde `200`; cadastro cria a conta e responde `201`; login e alterações de autenticação respondem `200`; solicitações assíncronas respondem `202`; remoções sem corpo podem responder `204`.",
+  "- GET normalmente responde `200`; login em instalação conhecida responde `200`, mas instalação desconhecida recebe desafio `202` sem sessão; troca de senha inicia com `202`; remoções sem corpo podem responder `204`.",
   "- Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.",
-  "- Erro: `{error:{code,message,requestId,fields?}}`. Todas as operações podem retornar erros de autorização/validação/conflito; nunca serializar stack trace.",
+  "- Erro: `{error:{code,message,requestId,details?,supportEmail?,retryAfterSeconds?,attemptsRemaining?,resendAvailableAt?}}`. Nunca serializar stack trace.",
   "- Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.",
   "- Rota marcada `ACTIVA` existe hoje. Outras são propostas e requerem implementação, migração e testes.",
   "",
@@ -665,7 +784,8 @@ for (const tag of [...new Set(R.map(r => r.tag))]) {
   for (const r of R.filter(x => x.tag === tag)) {
     const access = r.auth === "none" ? "Público" : r.auth === "optional" ? "Público/sessão; ACL no servidor" : "Sessão autenticada";
     const state = r.status === "live" ? "ATIVA" : "PROPOSTA";
-    lines.push(`| ${r.method.toUpperCase()} | \`${r.path}\` | ${access} | ${r.request ? `\`${r.request}\`` : "—"} | ${r.response ? `\`${r.response}\`` : "bytes/SSE"} | **${state}**${r.accepted ? "; assíncrona" : ""}${r.stream ? "; Server-Sent Events" : ""} |`);
+    const responseLabel = r.responseVariants ?? (r.response ? `\`${r.response}\`` : "bytes/SSE");
+    lines.push(`| ${r.method.toUpperCase()} | \`${r.path}\` | ${access} | ${r.request ? `\`${r.request}\`` : "—"} | ${responseLabel} | **${state}**${r.accepted ? "; assíncrona" : ""}${r.stream ? "; Server-Sent Events" : ""} |`);
   }
   lines.push("");
 }
