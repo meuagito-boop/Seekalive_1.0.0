@@ -26,13 +26,27 @@ test("runtime selects the external connection only when explicitly requested", (
   );
 });
 
-test("migrations stay on Replit by default even when runtime uses an external database", () => {
+test("migrations require an explicit target even when runtime defaults to Replit", () => {
+  assert.throws(
+    () =>
+      resolveDatabaseConnectionUrl(
+        {
+          DATABASE_URL: replitUrl,
+          SEEKALIVE_DATABASE_TARGET: "external",
+          SEEKALIVE_EXTERNAL_DATABASE_URL: externalUrl,
+        },
+        "migration",
+      ),
+    /SEEKALIVE_DB_MIGRATION_TARGET must be explicitly set/,
+  );
+});
+
+test("Replit migrations require an explicit development target", () => {
   assert.equal(
     resolveDatabaseConnectionUrl(
       {
         DATABASE_URL: replitUrl,
-        SEEKALIVE_DATABASE_TARGET: "external",
-        SEEKALIVE_EXTERNAL_DATABASE_URL: externalUrl,
+        SEEKALIVE_DB_MIGRATION_TARGET: "replit",
       },
       "migration",
     ),
@@ -60,6 +74,14 @@ test("external target fails clearly when its secret is missing", () => {
       resolveDatabaseConnectionUrl(
         { SEEKALIVE_DATABASE_TARGET: "external" },
         "runtime",
+      ),
+    /SEEKALIVE_EXTERNAL_DATABASE_URL is required/,
+  );
+  assert.throws(
+    () =>
+      resolveDatabaseConnectionUrl(
+        { SEEKALIVE_DB_MIGRATION_TARGET: "external" },
+        "migration",
       ),
     /SEEKALIVE_EXTERNAL_DATABASE_URL is required/,
   );

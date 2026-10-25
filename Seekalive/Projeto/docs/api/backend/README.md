@@ -2,7 +2,7 @@
 
 **Atualizado:** 25/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
 
-> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. A mudança mais recente do schema de autenticação foi exercitada somente em schema temporário; ainda não foi aplicada ao banco principal de desenvolvimento. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. Nenhum dado ou schema de produção foi alterado. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
+> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. A migração inicial SQL versionada cobre as 11 tabelas atuais de conta/social e foi gerada sem conexão; não foi aplicada a nenhum banco. A mudança mais recente do schema de autenticação foi exercitada somente em schema temporário; ainda não foi aplicada ao banco principal de desenvolvimento. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. Nenhum dado ou schema de produção foi alterado. Publicações, mídias, Seek, avaliações, mensagens e outros domínios ainda são contratos propostos.
 
 ## Como utilizar este pacote
 
@@ -11,11 +11,11 @@
 3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
 4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
 5. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
-6. Revisar `data-dictionary.md` e `schema-core.sql`: distinguir o schema Drizzle atual do modelo relacional futuro. **Não executar o SQL proposto automaticamente.**
+6. Revisar `data-dictionary.md`, a migração versionada em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o schema Drizzle atual, a migração inicial para banco vazio e o modelo relacional futuro. **Não executar SQL sem revisar o alvo; a migração exige `SEEKALIVE_DB_MIGRATION_TARGET` explícito.**
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL e o gerador verificável dos contratos. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
+O HTML reúne os textos para consulta. O ZIP contém os documentos, OpenAPI, SQL de referência e a migração inicial versionada do schema de conta/social. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
 
 ## 1. Produto
 

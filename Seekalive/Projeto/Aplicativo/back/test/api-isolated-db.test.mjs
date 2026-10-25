@@ -155,7 +155,12 @@ before(async () => {
     cwd: projectRoot,
     encoding: "utf8",
     maxBuffer: 2 * 1024 * 1024,
-    env: { ...process.env, NODE_ENV: "test", SEEKALIVE_DB_SCHEMA: schemaName },
+    env: {
+      ...process.env,
+      NODE_ENV: "test",
+      SEEKALIVE_DB_SCHEMA: schemaName,
+      SEEKALIVE_DB_MIGRATION_TARGET: "replit",
+    },
   });
   const pushOutput = `${push.stdout ?? ""}\n${push.stderr ?? ""}`.replaceAll(
     process.env.DATABASE_URL,

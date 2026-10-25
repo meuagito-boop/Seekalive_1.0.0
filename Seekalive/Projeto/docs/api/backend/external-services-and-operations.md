@@ -2,7 +2,7 @@
 
 ## Situação da auditoria
 
-Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL de desenvolvimento; o envio de códigos via Resend foi testado em desenvolvimento. Não há configuração de e-mail habilitada para produção, domínio de produção confirmado ou banco externo conectado. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
+Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL de desenvolvimento; o envio de códigos via Resend foi testado em desenvolvimento. Não há configuração de e-mail habilitada para produção, domínio de produção confirmado ou banco externo conectado. O fluxo para gerar SQL versionado e aplicar migrações externas com alvo explícito está preparado, mas ainda não foi aplicado. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
 
 Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding, perfil/privacidade e relações sociais essenciais listadas como **ATIVA** em `endpoints.md`. As outras rotas são propostas. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.
 
@@ -10,7 +10,7 @@ Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding
 
 | Necessidade | Opção / situação | Referência oficial |
 |---|---|---|
-| Banco relacional | PostgreSQL com Drizzle no desenvolvimento. A mudança de instalações confiáveis está no código e foi testada somente em schema temporário; ainda não foi aplicada ao banco principal. Banco externo desejado ainda não está conectado; produção não foi alterada | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
+| Banco relacional | PostgreSQL com Drizzle no desenvolvimento. A mudança de instalações confiáveis está no código e foi testada somente em schema temporário; a migração versionada existe para inicializar um banco externo vazio, mas ainda não foi aplicada. Banco externo não conectado; nenhuma produção foi alterada | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
 | Fotos e vídeos | Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca `blob:` como URL de backend | [Replit Object Storage](https://docs.replit.com/features/data-and-storage/object-storage) |
 | Autenticação | API própria, sem Clerk/OIDC. Resend foi testado no desenvolvimento; falta E2E completo e configuração própria para produção | Confirmar remetente/domínio e testar o fluxo completo antes de abrir cadastro real |
 | Cidades brasileiras | O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render | [API de localidades do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&orderBy=nome) |

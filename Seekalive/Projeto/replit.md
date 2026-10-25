@@ -8,9 +8,11 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — apply the database schema to development only; runs through the configured post-merge script
-- Production schema changes must go through Replit's Publish flow; do not run schema push or DDL from the production app
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/db run generate` — generate versioned SQL from the Drizzle schema without connecting to a database
+- `SEEKALIVE_DB_MIGRATION_TARGET=external pnpm --filter @workspace/db run migrate` — manually apply pending migrations to the explicitly selected external PostgreSQL; requires `SEEKALIVE_EXTERNAL_DATABASE_URL`
+- The configured post-merge script remains the development-only Replit schema sync. External migrations are never selected implicitly and are not run on startup or post-merge.
+- No external database or production database is connected. Replit Publish is not a migration mechanism for an external database; production migration operations are not configured.
+- Runtime development uses `DATABASE_URL` unless `SEEKALIVE_DATABASE_TARGET=external` is explicitly selected. Keep database connection strings in Secrets.
 
 ## Stack
 

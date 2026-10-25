@@ -85,15 +85,15 @@ Este documento registra a implementação já existente e organiza as próximas 
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL atualmente conectado é gerenciado pela Replit. `pnpm --filter @workspace/db run push` é o fluxo de sincronização do desenvolvimento e roda pelo script pós-merge configurado. O usuário decidiu migrar para PostgreSQL externo, mas essa migração ainda não foi iniciada. O fluxo Publish da Replit não atualizará o schema do banco externo; antes de ativá-lo, definir um processo explícito e revisado de migração/rollback. Não sobrescrever a variável runtime `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` abaixo cria dados somente em um schema de teste aleatório.
+O PostgreSQL atualmente conectado ao runtime de desenvolvimento é gerenciado pela Replit. O pós-merge permanece como sincronização de schema desse banco de desenvolvimento; não é o fluxo para aplicar migrações externas. O usuário escolheu preparar o backend para PostgreSQL externo, ainda não conectado. Foi preparado um fluxo Drizzle de SQL versionado: `generate` cria arquivos sem conexão; `migrate` exige `SEEKALIVE_DB_MIGRATION_TARGET` explícito e só aplica ao URL selecionado. Nenhuma migração externa foi executada. Replit Publish não aplica schema a banco externo, e o processo de migração de produção não está configurado. Não sobrescrever `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Os testes HTTP básicos não fazem mutações; a suíte `test:api-isolated-db` cria dados somente em schema aleatório e força o destino Replit de desenvolvimento.
 
 #### Seleção de conexão externa
 
 - `SEEKALIVE_EXTERNAL_DATABASE_URL`: segredo PostgreSQL externo; deve ficar disponível somente ao backend.
 - `SEEKALIVE_DATABASE_TARGET=external`: seleciona o banco externo para o runtime. Sem essa opção, o runtime continua usando `DATABASE_URL`.
-- `SEEKALIVE_DB_MIGRATION_TARGET=external`: seleciona o banco externo somente em uma operação manual de schema. O pós-merge força `replit`, evitando que uma URL externa configurada passe a receber push automaticamente.
-- Para ativar a conexão externa, primeiro provisionar o banco, configurar a URL pelo fluxo seguro de Secrets e aplicar/revisar o schema externo. Só depois selecionar o alvo do runtime. Hoje nenhum desses segredos ou seletores externos está ativo.
-- Verificação atual: o seletor passou em seis testes sem conexão e `drizzle-kit export` carregou o schema sem escrita. `drizzle-kit check` falhou com erro de parâmetros do driver AWS Data API; não considerar o fluxo de migrações externas validado até esse erro ser esclarecido.
+- `SEEKALIVE_DB_MIGRATION_TARGET=external`: obrigatório para selecionar o banco externo em `migrate`; migrações sem alvo explícito falham, mesmo que o runtime tenha destino padrão. O pós-merge de desenvolvimento continua selecionando Replit.
+- Para ativar a conexão externa, primeiro provisionar o banco, configurar a URL pelo fluxo seguro de Secrets, revisar os arquivos SQL e aplicar a migração ao banco externo de desenvolvimento. Só depois selecionar o alvo externo para o runtime. Hoje nenhum segredo ou seletor externo está ativo; nenhum banco foi alterado nesta etapa.
+- Verificação atual: os seletores passam em testes sem conexão. A geração de migração usa configuração sem credenciais; `migrate` requer alvo explícito. O SQL gerado é uma migração inicial para banco vazio, não um delta automático para um banco existente.
 
 ### Integração HTTP com schema isolado (A02)
 

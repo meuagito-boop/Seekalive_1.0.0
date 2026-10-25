@@ -2,8 +2,15 @@ export type DatabaseConnectionPurpose = "runtime" | "migration";
 
 type Environment = Record<string, string | undefined>;
 
-function resolveTarget(value: string | undefined, settingName: string) {
-  const target = value?.trim().toLowerCase() || "replit";
+function resolveTarget(
+  value: string | undefined,
+  settingName: string,
+  defaultTarget?: "replit" | "external",
+) {
+  const target = value?.trim().toLowerCase() || defaultTarget;
+  if (!target) {
+    throw new Error(`${settingName} must be explicitly set for database migrations.`);
+  }
   if (target !== "replit" && target !== "external") {
     throw new Error(`${settingName} must be either "replit" or "external".`);
   }
@@ -18,7 +25,11 @@ export function resolveDatabaseConnectionUrl(
     purpose === "runtime"
       ? "SEEKALIVE_DATABASE_TARGET"
       : "SEEKALIVE_DB_MIGRATION_TARGET";
-  const target = resolveTarget(environment[targetSetting], targetSetting);
+  const target = resolveTarget(
+    environment[targetSetting],
+    targetSetting,
+    purpose === "runtime" ? "replit" : undefined,
+  );
   const urlSetting =
     target === "external" ? "SEEKALIVE_EXTERNAL_DATABASE_URL" : "DATABASE_URL";
   const connectionUrl = environment[urlSetting]?.trim();
