@@ -1,7 +1,7 @@
 # Auditoria técnica do Aplicativo Seekalive e plano de ação
 
 **Data:** 24/10/2026
-**Versão do documento:** 2.45
+**Versão do documento:** 2.46
 **Status atualizado em 24/10/2026:** O projeto está em desenvolvimento; não há produção real. A tela Configurações > Conta carrega e salva dados pela API em sessões reais, diferenciando os campos pessoais dos comerciais; o preview continua local. O DTO privado retorna o e-mail verificado somente ao titular. A idade é coletada no cadastro e mantida apenas no servidor para validar a regra de 18+; depois da criação, não é retornada ao app nem exibida, inclusive ao titular em Configurações. Testes de API com schema isolado confirmaram persistência por tipo, atualização atômica, controle de versão e rejeição de campos incompatíveis. Isso não fecha o gate completo de conta nem torna a Social pronta para produção: o fluxo autenticado da tela ainda não foi verificado por E2E de navegador, e-mail/senha ainda não podem ser trocados nesta tela, 2FA não foi implementado e páginas públicas, feed, mensagens, notificações, Seek e Shop continuam incompletos. Produção não foi alterada. O app não reconhece automaticamente um dispositivo habitual nem coleta fingerprint para isso. O Social completo e validado como pronto para produção continua sendo pré-requisito para Seek/Shop. A auditoria de bancos independentes (seções 11.16–11.22) confirmou uma única conexão e um único banco PostgreSQL no desenvolvimento; o banco externo não foi provisionado nem conectado. No PostgreSQL de desenvolvimento, versão 16.10, PostGIS 3.5.3 está disponível, mas não instalado. Shop e Confiança e Segurança foram confirmados como domínios adicionais; cada conta comercial terá no máximo uma unidade física principal e o Seek mostrará somente esse endereço, sem áreas de atendimento. No perfil pessoal, somente o nome de exibição escolhido pelo usuário é público; nome e sobrenome do cadastro permanecem privados. Essas decisões não criam bancos nem alteram schema ou dados. A configuração explícita de confiança em proxy permanece adiada.
 
 **Escopo autorizado:** `Aplicativo/front`, `Aplicativo/back`, contratos compartilhados e dependências diretas de banco/documentação para verificar prontidão de integração.  
@@ -744,7 +744,8 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 - **Relações sociais confirmadas:** remover seguidores, contas seguidas, pedidos pendentes e relações de Círculo quando a exclusão se tornar permanente; preservar esses dados durante os 7 dias para restauração.
 - **Interações confirmadas:** remover curtidas e repostagens da conta e atualizar as contagens dos conteúdos afetados quando a exclusão se tornar permanente; preservar os registros durante os 7 dias para permitir restauração.
 - **Itens salvos confirmados:** apagar a coleção de itens salvos quando a exclusão se tornar permanente; mantê-la durante os 7 dias para permitir restauração.
-- **Limite de interpretação:** tratamento dos dados com retenção obrigatória ainda precisa de decisão.
+- **Retenção confirmada:** conservar apenas o mínimo exigido por obrigação aplicável, com acesso restrito e prazo definido; remover quando o prazo terminar.
+- **Limite de implementação:** as categorias concretas de registro e seus prazos dependem de revisão jurídica/privacidade; não presumir prazos nem retenções.
 - **Estado técnico:** não há solicitação de exclusão, fluxo de cancelamento, endpoint nem rotina de remoção implementados. Nenhum dado foi apagado ou migrado.
 - **Segurança:** não revelar que uma conta está em exclusão antes da validação das credenciais.
 - **Gate:** definir impacto em mensagens/relações e retenção antes de implementar a operação destrutiva.
@@ -808,3 +809,4 @@ Execução em 2026-10-23, em paralelo, sem editar código:
 | 2.43 | 2026-10-24 | Apaga a coleção de itens salvos quando a exclusão permanente ocorrer, preservando-a durante o prazo de restauração. |
 | 2.44 | 2026-10-24 | Exige senha atual e código no e-mail verificado antes de agendar a exclusão permanente. |
 | 2.45 | 2026-10-24 | Não envia e-mail adicional após agendar a exclusão; mantém somente o e-mail de código para autorizar o pedido. |
+| 2.46 | 2026-10-24 | Retém apenas o mínimo exigido por obrigação aplicável, com acesso restrito e prazo definido; categorias e prazos dependem de revisão. |
