@@ -6,6 +6,7 @@
 
 Reviewed frontend contracts in the account, profile, social, Seek, Shop, messaging and settings flows. The current commercial-review UI requires a 1–5 rating, a 10–500 character comment and a 3–500 character business reply. This document remains a proposal, not an implemented backend contract.
 
+- A proposta de ownership para separar bancos lógicos está em `../../architecture/database-domains.md`. Ela não substitui o schema Drizzle atual, não muda o banco ativo e não autoriza executar `schema-core.sql`.
 - One `accounts` identity is personal **or** commercial. A commercial profile extends that identity; it is not a separate login/account.
 - Círculo exists only when two accounts follow one another and both follow edges are effective/accepted. It is derived from `follows`, not an independent request, invitation, membership, or table. One-way following is not Círculo; removing either edge removes the derived membership.
 - Shuffle and Comunidades are out of product scope. There are no community/group entities, roles, memberships, invitations, or group posts.

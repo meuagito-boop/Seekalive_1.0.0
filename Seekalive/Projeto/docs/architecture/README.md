@@ -14,4 +14,9 @@
 - Não presumir que pastas reservadas já sejam aplicações implantáveis.
 - Não conectar infraestrutura externa ou produção nesta etapa sem uma decisão explícita.
 
+## Banco de dados
+
+- O banco PostgreSQL atual é único e pertence ao desenvolvimento.
+- `database-domains.md` propõe a propriedade dos dados por domínio; é arquitetura de destino, não configuração ativa nem autorização para criar/migrar bancos.
+
 Veja também `../decisions/ADR-001-project-structure.md`.
