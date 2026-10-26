@@ -1,19 +1,16 @@
-import type { feedPosts } from "@workspace/db";
-
-export type FeedPostRow = typeof feedPosts.$inferSelect;
+import type { FeedPost } from "../domain/post";
 
 export function toPostView(
-  post: FeedPostRow,
-  viewerId: string | null,
+  post: FeedPost,
 ) {
   return {
     id: post.id,
     authorId: post.authorId,
     content: post.content,
     createdAt: post.createdAt.toISOString(),
-    audience: post.audience as "public" | "circles" | "private",
+    audience: post.audience,
     type: "text" as const,
-    format: post.format as "text" | "article",
+    format: post.format,
     ...(post.format === "article" && post.articleTitle && post.articleBody
       ? { article: { title: post.articleTitle, body: post.articleBody } }
       : {}),

@@ -17,12 +17,12 @@
 ## Conclusões executivas
 
 1. A estrutura é um monorepo pnpm com o aplicativo React/Vite, API Express, banco Drizzle/PostgreSQL, contratos OpenAPI/Zod, cliente React gerado, sandbox de componentes, scripts, documentação e materiais de validação.
-2. A auditoria inicial registrou build do front/API, typecheck e testes passando. Na etapa atual, `pnpm test` passou com 96 testes, o typecheck completo do workspace passou e o build da API passou. O teste de integração que escreve em schema temporário não foi executado: as variáveis obrigatórias para identificar o banco de desenvolvimento não estavam configuradas. Esses resultados não provam que todas as funcionalidades estejam completas, que o banco esteja migrado ou que o produto esteja pronto para lançamento.
-3. A arquitetura apresenta separação real em muitos módulos, mas ainda não cumpre integralmente a separação por domínio pedida: `SocialApplicationContext` e seus tipos expõem operações de cinco domínios, e a composição do reducer de estado da aplicação fica em `modules/app/state`. No backend, as rotas de Auth agora atuam como adaptadores; ainda há rotas de Profiles e Social com consultas SQL diretas.
+2. A auditoria inicial registrou build do front/API, typecheck e testes passando. Na etapa atual, `pnpm test` passou com 97 testes, o typecheck completo do workspace passou e o build da API passou. O teste de integração que escreve em schema temporário não foi executado: as variáveis obrigatórias para identificar o banco de desenvolvimento não estavam configuradas. Esses resultados não provam que todas as funcionalidades estejam completas, que o banco esteja migrado ou que o produto esteja pronto para lançamento.
+3. A arquitetura apresenta separação real em muitos módulos, mas ainda não cumpre integralmente a separação por domínio pedida: `SocialApplicationContext` e seus tipos expõem operações de cinco domínios, e a composição do reducer de estado da aplicação fica em `modules/app/state`. Auth e Feed agora mantêm persistência fora dos adaptadores HTTP e da aplicação; ainda há rotas de Profiles e Social com consultas SQL diretas.
 4. O código-fonte do banco define **13 tabelas em 5 schemas com tabelas**. Os documentos de backend descrevem 12 tabelas ativas e indicam que a migração do Feed ainda não foi aplicada. O banco não foi consultado nesta auditoria; portanto, o estado físico atual do banco não foi confirmado. O código e os documentos deixam uma diferença que precisa ser reconciliada antes de declarar a implantação das migrações.
 5. Existem documentos gerados ou históricos que divergem do código atual, incluindo o catálogo de tabelas, o mapa de integração do front, a auditoria de prontidão do front, o status de recuperação de senha e a classificação de algumas operações de Feed.
 6. Dependências diretas do workspace usam Zod `4.6.7`; Orval está em `8.44.0`. Não encontrei conflito de versões diretas Zod/Orval nos pacotes inspecionados. Versões transitivas no lockfile não devem ser tratadas como conflito sem demonstrar incompatibilidade.
-7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após a correção de `accounts`, o total intermediário era 1.010; após a unidade estrutural `auth`, o total observado passou a **1.024 arquivos**. O catálogo mantém a linha de base e registra os deltas por etapa.
+7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após `accounts`, o total intermediário era 1.010; após `auth`, 1.024; após `feed`, o total observado passou a **1.030 arquivos**. O catálogo mantém a linha de base e registra os deltas por etapa.
 
 ## Método e limites
 
@@ -32,7 +32,7 @@
 - Para cada arquivo do inventário, registrei categoria, finalidade inferida do caminho/conteúdo e referências diretas detectáveis. “Nenhuma referência detectada” não significa arquivo órfão: entradas, recursos estáticos, arquivos gerados, configuração e código referenciado por convenção podem não ter importador textual.
 - O inventário exclui somente árvores de dependências instaladas (`node_modules`, incluindo `.pnpm`). Não havia diretório `.git` em `Seekalive/Projeto`. Diretórios vazios não são linhas do inventário.
 - A análise de conexões é estática e delimitada ao conteúdo existente; não prova comportamento de integrações remotas, ambiente publicado, banco físico, contas reais, fluxos autenticados em navegador ou dispositivos de produção.
-- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. A correção em `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010; a unidade `auth` acrescentou 14 caminhos, totalizando 1.024. O inventário integral será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
+- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010; `auth` acrescentou 14, totalizando 1.024; `feed` acrescentou sete e removeu um, totalizando 1.030. O inventário integral será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
 
 ## Atualização da primeira unidade estrutural — 26/10/2026
 
@@ -48,16 +48,23 @@
 - **Verificações:** `pnpm test` passou com 96 testes, incluindo o novo teste de fronteira de Auth; `pnpm run typecheck` passou no workspace; `pnpm --filter @workspace/api-server build` passou; não foram detectados ciclos de import local no domínio Auth; `git diff --check` passou.
 - **Limite:** o teste de integração com schema temporário foi tentado com a barreira explícita, mas o próprio teste parou antes de conexão ou escrita porque `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE` não estavam configuradas. Nenhuma migration, tabela ou schema foi criado/alterado. A reorganização Gate 0A permanece em andamento; Auth não significa que Profiles, Social, Feed ou frontend estejam concluídos.
 
+## Atualização da terceira unidade estrutural — backend `feed` — 26/10/2026
+
+- **Escopo:** o módulo Feed e o registro do teste de fronteira na suíte raiz. Foram preservados endpoint, formato das respostas, validação, rate limits, CSRF, visibilidade, paginação, schemas e migrations; não houve mudança no frontend, em OpenAPI/cliente gerado, no banco, em Profiles, Gestor ou Painel.
+- **Correção:** o domínio agora possui tipo próprio de publicação, repositório único para acesso Drizzle à tabela `feed.posts`, casos de uso de aplicação sem acesso direto ao banco e adaptadores separados para criação/exclusão de publicação e leitura/escrita de artigos. A composição das rotas mantém os mesmos caminhos. A política de privacidade continua sendo recalculada em cada leitura.
+- **Verificações:** `pnpm test` passou com 97 testes; `pnpm run typecheck` passou no workspace; `pnpm --filter @workspace/api-server build` passou; teste de fronteira confirmou que Feed `application` e `presentation` não acessam Drizzle diretamente; a verificação estática encontrou zero ciclos entre os 125 arquivos TypeScript dos módulos backend; `git diff --check` passou.
+- **Limite:** o repositório foi typechecked e compilado, mas não foi validado contra banco real/temporário porque as variáveis de destino de desenvolvimento continuam ausentes. Nenhum SQL foi executado contra o banco. Interações (curtidas, comentários, repostagens), upload/mídia e algoritmo cronológico/recomendado permanecem fora da capacidade implementada e não foram simulados nesta etapa.
+
 ## Verificações executadas nesta auditoria
 
 | Verificação | Resultado observado |
 |---|---|
-| `pnpm test` | Passou: 93 testes, 0 falhas |
+| `pnpm test` | Passou na validação mais recente do Feed: 97 testes, 0 falhas |
 | `pnpm run typecheck` | Passou nos pacotes do workspace |
 | `pnpm --filter @workspace/db run check` | Passou: Drizzle informou `Everything's fine` |
 | `pnpm run build` | Passou; API, front e sandbox foram compilados |
 | Banco de dados real/integrado | Teste de schema temporário bloqueado antes da conexão por ausência de `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; nenhuma leitura/escrita foi feita |
-| Git status após o build | Sem arquivos rastreados modificados pelo build |
+| `git diff --check` | Passou após a última reorganização e atualização da auditoria |
 
 O teste de banco isolado tem uma barreira intencional e exige a confirmação explícita do nome esperado do banco além das variáveis de conexão. Como a confirmação não estava presente, não forcei a execução, não tentei inferir o banco e não fiz migração.
 
@@ -66,7 +73,7 @@ O teste de banco isolado tem uma barreira intencional e exige a confirmação ex
 | Prioridade | Achado | Evidência e consequência |
 |---|---|---|
 | Alta | Um contexto de estado no front agrega Feed/Social, Seek, Mensagens e Notificações | [`SocialApplicationContext.tsx`](../Aplicativo/front/src/modules/app/state/SocialApplicationContext.tsx), [`socialApplicationTypes.ts`](../Aplicativo/front/src/modules/app/state/socialApplicationTypes.ts), [`socialApplicationState.ts`](../Aplicativo/front/src/modules/app/state/socialApplicationState.ts). Reducers e ações estão distribuídos por domínio, mas a API global ainda cruza essas fronteiras. |
-| Alta | Parte da camada de apresentação da API ainda contém acesso direto ao banco | Corrigido nas rotas de Auth nesta unidade. Permanecem rotas de Profiles e Social; a composição de perfil público também está na apresentação. Esses pontos seguem acoplando HTTP à persistência/composição de domínio. |
+| Alta | Parte da camada de apresentação da API ainda contém acesso direto ao banco | Corrigido em Auth; Feed agora também mantém SQL somente em infraestrutura. Permanecem rotas de Profiles e Social; a composição de perfil público também está na apresentação. Esses pontos seguem acoplando HTTP à persistência/composição de domínio. |
 | Alta | O estado físico do banco não foi comprovado, enquanto código e documentos descrevem estados diferentes | 13 tabelas no schema Drizzle; documentos de backend indicam 12 tabelas e migração do Feed pendente. O banco não foi consultado. |
 | Média | Documentação de integração e prontidão contém contagens e caminhos antigos | `frontend-integration.md` e `frontend-readiness-audit.md` usam estrutura/contagens anteriores; não devem servir sozinhos como contrato de implementação atual. |
 | Média | Documentação de recuperação de senha e de Feed está parcialmente desatualizada | Há rotas/serviços de redefinição no código; parte da documentação declara a recuperação não implementada. O código tem rotas de posts/artigos, enquanto contratos/documentos de backend tratam itens de Feed como proposta ou dependem da migração ainda pendente. |

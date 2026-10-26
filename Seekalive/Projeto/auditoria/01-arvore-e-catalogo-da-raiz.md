@@ -79,7 +79,7 @@ Aplicativo/back/src/modules/accounts/ (8 arquivos)
 
 No levantamento inicial, `accounts` tinha três arquivos, todos em `application/`. Após a primeira unidade estrutural (`accounts`), o total intermediário era **1.010 arquivos**, excluindo `node_modules` e `.pnpm`.
 
-Após a unidade estrutural de `auth`, o estado observado passou a **1.024 arquivos**. O módulo `auth` possui 50 arquivos TypeScript: 33 em `application/`, 16 em `presentation/` e um adaptador em `infrastructure/`. As operações de apresentação agora delegam persistência a casos de uso de aplicação. O novo inicializador de perfil comercial está em `profiles/application`, mantendo a propriedade do dado em Profiles.
+Após a unidade estrutural de `auth`, o total intermediário era 1.024. Após `feed`, o estado observado passou a **1.030 arquivos**. Auth possui 50 arquivos TypeScript: 33 em `application/`, 16 em `presentation/` e um em `infrastructure/`. Feed possui 18: oito em `application/`, oito em `presentation/`, um em `domain/` e um em `infrastructure/`. O acesso Drizzle de Feed agora está concentrado em `feed/infrastructure/postRepository.ts`; o inicializador de perfil comercial continua em `profiles/application`, mantendo a propriedade do dado em Profiles.
 
 Abaixo, a árvore completa da linha de base inicial, incluindo as pastas vazias. O número após cada pasta representa os arquivos regulares naquela data; conteúdo instalado de `node_modules` e `.pnpm` foi excluído. Os nomes de arquivo estão no [catálogo integral](06-catalogo-integral-de-arquivos.md).
 

@@ -1105,7 +1105,7 @@
 
 ### Delta da primeira reorganização estrutural — `accounts`
 
-Os registros 1–1.005 são a linha de base do catálogo. Para o estado após `accounts`, removem-se os registros 64 e 65 e acrescentam-se os sete caminhos a seguir, totalizando 1.010. A etapa `auth` abaixo acrescenta mais 14 caminhos; o total observado atual é 1.024 arquivos. O restante da árvore ainda não foi reorganizado.
+Os registros 1–1.005 são a linha de base do catálogo. Para o estado após `accounts`, removem-se os registros 64 e 65 e acrescentam-se os sete caminhos a seguir, totalizando 1.010. A etapa `auth` acrescentou 14 caminhos, totalizando 1.024; Feed acrescentou sete e removeu um, totalizando **1.030 arquivos**. O restante da árvore ainda não foi reorganizado.
 
 | Nº atual | Arquivo | O que é / para que serve |
 |---:|---|---|
@@ -1123,7 +1123,7 @@ Arquivos existentes modificados na primeira unidade: `accounts/application/accou
 
 ### Delta da segunda unidade estrutural — `auth` — 26/10/2026
 
-Foram acrescentados 14 caminhos ao total intermediário de 1.010. Nenhum arquivo foi removido nesta unidade; oito handlers existentes foram reorganizados e a inicialização comercial passou a pertencer ao domínio Profiles. O total físico conferido após os testes é 1.024 arquivos, excluindo dependências instaladas e `.git`.
+Foram acrescentados 14 caminhos ao total intermediário de 1.010. Nenhum arquivo foi removido nesta unidade; oito handlers existentes foram reorganizados e a inicialização comercial passou a pertencer ao domínio Profiles. O total físico após Auth era 1.024 arquivos, excluindo dependências instaladas e `.git`.
 
 | Nº atual | Arquivo | O que é / para que serve |
 |---:|---|---|
@@ -1144,4 +1144,22 @@ Foram acrescentados 14 caminhos ao total intermediário de 1.010. Nenhum arquivo
 
 **Arquivos existentes reorganizados nesta unidade:** `auth/application/registration/createCommercialAccount.ts`; handlers `csrfRoutes.ts`, `deviceVerificationRoutes.ts`, `emailVerificationRoutes.ts`, `passwordResetRoutes.ts`, `passwordUpdateRoutes.ts`, `registrationRoutes.ts`, `sessionRoutes.ts` e `trustedDeviceRoutes.ts`; `package.json` raiz recebeu o teste de fronteira na suíte `pnpm test`. O teste de integração com banco não foi executado por ausência das duas variáveis de destino exigidas; nenhuma escrita ocorreu.
 
-**Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos na etapa Accounts + 7 adicionados em Accounts + 14 adicionados em Auth = **1.024 arquivos** no estado observado atual. O delta não declara concluída a auditoria dos demais domínios nem do frontend.
+**Conferência após Auth:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth = 1.024 arquivos naquele estado intermediário. O delta não declara concluída a auditoria dos demais domínios nem do frontend.
+
+### Delta da terceira unidade estrutural — `feed` — 26/10/2026
+
+Foram adicionados sete caminhos e removido o antigo arquivo combinado `postWriteRoutes.ts`, resultando em aumento líquido de seis arquivos: 1.024 → **1.030**. Não houve alteração de endpoints, contratos, OpenAPI, schema ou migrations.
+
+| Nº atual | Arquivo | O que é / para que serve |
+|---:|---|---|
+| 1027 | [Aplicativo/back/src/modules/feed/domain/post.ts](../Aplicativo/back/src/modules/feed/domain/post.ts) | Tipo canônico interno de publicação, formato, audience, entrada de criação e posição de paginação. |
+| 1028 | [Aplicativo/back/src/modules/feed/infrastructure/postRepository.ts](../Aplicativo/back/src/modules/feed/infrastructure/postRepository.ts) | Único adaptador Feed que acessa Drizzle: inserir, buscar, excluir somente do autor e listar por autor/formato/cursor; valida valores persistidos antes de retorná-los. |
+| 1029 | [Aplicativo/back/src/modules/feed/application/readArticle.ts](../Aplicativo/back/src/modules/feed/application/readArticle.ts) | Caso de uso que reutiliza autorização de leitura de publicação e só retorna conteúdo cujo formato é artigo. |
+| 1030 | [Aplicativo/back/src/modules/feed/presentation/postCreateRoutes.ts](../Aplicativo/back/src/modules/feed/presentation/postCreateRoutes.ts) | Adaptador HTTP exclusivo para criação de publicação textual; preserva autenticação, CSRF, rate limit, validação e rejeição de mídia ainda não integrada. |
+| 1031 | [Aplicativo/back/src/modules/feed/presentation/postDeleteRoutes.ts](../Aplicativo/back/src/modules/feed/presentation/postDeleteRoutes.ts) | Adaptador HTTP exclusivo para exclusão pelo autor, com autenticação, CSRF, rate limit e resposta existente. |
+| 1032 | [Aplicativo/back/src/modules/feed/presentation/articleReadRoutes.ts](../Aplicativo/back/src/modules/feed/presentation/articleReadRoutes.ts) | Adaptador HTTP de leitura de artigo; delega autorização e seleção do formato ao caso de uso. |
+| 1033 | [Aplicativo/back/test/feed-layer-boundary.test.mjs](../Aplicativo/back/test/feed-layer-boundary.test.mjs) | Teste que proíbe acesso direto ao banco nas camadas `application` e `presentation` e confirma o adapter Drizzle na infraestrutura. |
+
+**Arquivos existentes alterados:** casos de uso `createPost.ts`, `deletePost.ts`, `listProfilePosts.ts`, `postCursor.ts`, `postView.ts`, `postVisibility.ts` e `readPost.ts`; adaptadores `articleWriteRoutes.ts`, `postReadRoutes.ts` e `routes.ts`; `package.json` raiz passou a executar o teste de fronteira Feed. `postWriteRoutes.ts` foi substituído por adaptadores separados de criação e exclusão. Nenhuma migration nem artefato gerado foi editado.
+
+**Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed = **1.030 arquivos** no estado observado atual. Profiles, Social, os demais domínios e frontend ainda não foram reorganizados.

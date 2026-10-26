@@ -1,6 +1,6 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
 import { accountViewsByIds } from "../../accounts/application/accountViews";
-import { db, feedPosts } from "@workspace/db";
+import type { FeedPostFormat } from "../domain/post";
+import { listFeedPostsByAuthor } from "../infrastructure/postRepository";
 import type { PostCursor } from "./postCursor";
 import { encodePostCursor } from "./postCursor";
 import { canReadPost } from "./postVisibility";
@@ -9,14 +9,12 @@ import { toPostView } from "./postView";
 const SCAN_BATCH_SIZE = 100;
 const MAX_SCANNED_PER_REQUEST = 500;
 
-type ProfilePostFormat = "text" | "article" | "all";
-
 export async function listProfilePosts(
   authorId: string,
   viewerId: string | null,
   limit: number,
   cursor: PostCursor | null,
-  format: ProfilePostFormat = "all",
+  format: FeedPostFormat | "all" = "all",
 ) {
   const [author] = await accountViewsByIds([authorId], viewerId);
   if (!author) return null;
@@ -28,21 +26,13 @@ export async function listProfilePosts(
   let hasMoreRows = true;
 
   while (items.length <= limit && scanned < MAX_SCANNED_PER_REQUEST && hasMoreRows) {
-    const conditions = [
-      eq(feedPosts.authorId, authorId),
-      ...(format === "all" ? [] : [eq(feedPosts.format, format)]),
-      ...(position
-        ? [or(
-            lt(feedPosts.createdAt, position.createdAt),
-            and(eq(feedPosts.createdAt, position.createdAt), lt(feedPosts.id, position.id)),
-          )!]
-        : []),
-    ];
     const batchSize = Math.min(SCAN_BATCH_SIZE, MAX_SCANNED_PER_REQUEST - scanned);
-    const rows = await db.select().from(feedPosts)
-      .where(and(...conditions))
-      .orderBy(desc(feedPosts.createdAt), desc(feedPosts.id))
-      .limit(batchSize);
+    const rows = await listFeedPostsByAuthor({
+      authorId,
+      format,
+      after: position,
+      limit: batchSize,
+    });
 
     if (rows.length === 0) {
       hasMoreRows = false;
@@ -61,7 +51,7 @@ export async function listProfilePosts(
           foundExtraVisiblePost = true;
           break;
         }
-        items.push(toPostView(post, viewerId));
+        items.push(toPostView(post));
       }
       position = { createdAt: post.createdAt, id: post.id };
     }

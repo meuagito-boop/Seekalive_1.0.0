@@ -9,39 +9,19 @@ router.get(
   "/posts/:postId",
   createAuthRateLimit("feed-post-read", 120, 60_000),
   async (request, response) => {
-  const postId = request.params.postId;
-  if (!isFeedResourceId(postId)) {
-    sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Esta publicação não está disponível.");
-    return;
-  }
+    const postId = request.params.postId;
+    if (!isFeedResourceId(postId)) {
+      sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Esta publicação não está disponível.");
+      return;
+    }
 
-  const viewerId = await optionalViewerId(request);
-  const post = await readPost(postId, viewerId);
-  if (!post) {
-    sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Esta publicação não está disponível.");
-    return;
-  }
-  response.json(post);
-  },
-);
-
-router.get(
-  "/articles/:postId",
-  createAuthRateLimit("feed-article-read", 120, 60_000),
-  async (request, response) => {
-  const postId = request.params.postId;
-  if (!isFeedResourceId(postId)) {
-    sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Este artigo não está disponível.");
-    return;
-  }
-
-  const viewerId = await optionalViewerId(request);
-  const post = await readPost(postId, viewerId);
-  if (!post || post.format !== "article") {
-    sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Este artigo não está disponível.");
-    return;
-  }
-  response.json(post);
+    const viewerId = await optionalViewerId(request);
+    const post = await readPost(postId, viewerId);
+    if (!post) {
+      sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Esta publicação não está disponível.");
+      return;
+    }
+    response.json(post);
   },
 );
 

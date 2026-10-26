@@ -3,10 +3,8 @@ import { createTextPostSchema } from "@workspace/api-zod";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
 import { createPost } from "../application/createPost";
-import { deletePost } from "../application/deletePost";
 import { toPostView } from "../application/postView";
 import {
-  isFeedResourceId,
   requiredActorId,
   sendFeedError,
 } from "./feedHttp";
@@ -51,27 +49,7 @@ router.post(
       audience: parsed.data.audience,
       format: "text",
     });
-    response.status(201).json(toPostView(post, actorId));
-  },
-);
-
-router.delete(
-  "/posts/:postId",
-  createAuthRateLimit("feed-post-delete", 30, 60_000),
-  requireCsrf,
-  async (request, response) => {
-    const actorId = await requiredActorId(request, response);
-    if (!actorId) return;
-    const postId = request.params.postId;
-    if (!isFeedResourceId(postId)) {
-      sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Esta publicação não está disponível.");
-      return;
-    }
-    if (!await deletePost(postId, actorId)) {
-      sendFeedError(response, 404, "CONTENT_NOT_FOUND", "Esta publicação não está disponível.");
-      return;
-    }
-    response.status(204).end();
+    response.status(201).json(toPostView(post));
   },
 );
 

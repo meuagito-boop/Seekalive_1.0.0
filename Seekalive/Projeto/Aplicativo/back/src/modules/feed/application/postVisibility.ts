@@ -1,4 +1,4 @@
-import type { FeedPostRow } from "./postView";
+import type { FeedPost } from "../domain/post";
 
 type AuthorAccessView = {
   id: string;
@@ -12,7 +12,7 @@ type AuthorAccessView = {
 };
 
 export function canReadPost(
-  post: Pick<FeedPostRow, "authorId" | "audience">,
+  post: Pick<FeedPost, "authorId" | "audience">,
   viewerId: string | null,
   author: AuthorAccessView | undefined,
 ): boolean {

@@ -34,7 +34,7 @@ router.post(
       articleTitle: parsed.data.article.title,
       articleBody: parsed.data.article.body,
     });
-    response.status(201).json(toPostView(post, actorId));
+    response.status(201).json(toPostView(post));
   },
 );
 

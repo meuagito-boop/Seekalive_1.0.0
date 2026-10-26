@@ -1,8 +1,8 @@
-import type { FeedPostRow } from "./postView";
+import type { PostPosition } from "../domain/post";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export type PostCursor = { createdAt: Date; id: string };
+export type PostCursor = PostPosition;
 export type PostCursorScope = { authorId: string; format: "all" | "text" | "article" };
 
 export function parsePostCursor(
@@ -38,7 +38,7 @@ export function parsePostCursor(
 }
 
 export function encodePostCursor(
-  post: Pick<FeedPostRow, "createdAt" | "id">,
+  post: PostPosition,
   scope: PostCursorScope,
 ) {
   return Buffer.from(JSON.stringify({

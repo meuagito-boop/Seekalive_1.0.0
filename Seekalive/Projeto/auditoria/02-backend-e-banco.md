@@ -81,6 +81,16 @@ As operações extraídas dos handlers são cadastro/pré-consulta, rotação do
 
 O código de aplicação desses fluxos ainda usa Drizzle diretamente para executar suas transações. A separação realizada nesta unidade é entre adaptador HTTP e operação de aplicação; não se declara a criação de um repositório de persistência independente para cada caso de uso, pois isso adicionaria interfaces sem necessidade demonstrada neste recorte. A auditoria posterior de Accounts/Auth e o Gate 2 devem validar se a fronteira de persistência atual permanece sustentável.
 
+### Unidade estrutural concluída: Feed
+
+Feed possui agora 18 arquivos TypeScript distribuídos entre `domain/`, `application/`, `infrastructure/` e `presentation/`. `domain/post.ts` define a forma da publicação usada internamente; `infrastructure/postRepository.ts` é o único arquivo do módulo que importa `@workspace/db`/Drizzle e valida os valores persistidos antes de devolvê-los à aplicação. Os casos de uso de criar, excluir, ler publicação/artigo e listar conteúdo de perfil não acessam a tabela diretamente.
+
+Os adaptadores HTTP estão separados por fluxo: criação e exclusão de publicação, leitura de publicação, criação/leitura de artigo e lista paginada de conteúdo no perfil. `routes.ts` compõe os adaptadores. Os caminhos em `/v1/social` e os contratos OpenAPI/clientes gerados não mudaram. A aplicação continua consultando `accounts/application/accountViews` para validar existência e calcular visibilidade por relação social; não foi criada uma identidade paralela para autores.
+
+Foram mantidas a política de privacidade, a ocultação por bloqueio, a mutualidade exigida para Círculo, a paginação estável por `createdAt`/`id`, os limites de leitura, CSRF e a rejeição explícita de mídia ainda não integrada. Não foi ligada uma timeline recomendada nem implementada interação social nesta unidade.
+
+O teste `Aplicativo/back/test/feed-layer-boundary.test.mjs` proíbe persistência direta em `application/` e `presentation/` e confirma o ownership do adapter na infraestrutura. Não houve teste contra banco físico; esse estado segue não verificado e nenhuma migration foi aplicada.
+
 ## Domínios e dependências cruzadas
 
 Dependências verificadas entre módulos de backend incluem:
@@ -129,6 +139,6 @@ O pacote de banco tem schemas reservados para esses domínios, mas schema reserv
 
 ## Testes de backend e banco
 
-Na validação da unidade Auth, `pnpm test` passou em 96 casos, o typecheck completo e o build da API passaram. O novo teste garante que rotas Auth não retornem a consultar o banco diretamente. O teste que cria schema temporário exige `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e `DATABASE_URL`; foi tentado com a barreira explícita e parou antes da conexão porque as duas variáveis de destino estavam ausentes. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
+Na validação da unidade Feed, `pnpm test` passou em 97 casos, o typecheck completo e o build da API passaram. Testes de fronteira protegem Auth e Feed contra retorno de acesso direto ao banco nas rotas; Feed também impede esse acesso na aplicação. O teste que cria schema temporário exige `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e `DATABASE_URL`; foi tentado com a barreira explícita e parou antes da conexão porque as duas variáveis de destino estavam ausentes. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
 
 O arquivo `Aplicativo/back/test/api-isolated-db.test.mjs` é muito maior do que os demais testes (1.933 linhas) e concentra testes isolados de várias partes; há oportunidade de dividir por contrato/domínio sem alterar o comportamento, mas não foi dividido nesta auditoria.
