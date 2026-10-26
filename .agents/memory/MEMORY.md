@@ -1,1 +1,2 @@
 - [Padrão de engenharia sênior](engineering-standard.md) — reler o prompt anexado no início de cada atividade; investigar, preservar decisões e validar sem mascarar falhas.
+- [Núcleo Social e Seek](social-seek-core.md) — Social é a identidade e o núcleo; Seek descobre perfis comerciais pertencentes à rede, com Shop previsto para o futuro.
