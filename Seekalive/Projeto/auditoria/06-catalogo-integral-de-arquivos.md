@@ -2,7 +2,7 @@
 
 **Escopo:** arquivos regulares de `Seekalive/Projeto`, exceto conteúdo instalado de dependências em `node_modules` e `.pnpm`. Diretórios vazios não são arquivos; não havia diretório `.git` dentro desta raiz.
 
-**Contagem:** 1.004 arquivos únicos: 997 existentes antes da auditoria e os 7 relatórios criados nesta pasta (este catálogo se inclui na contagem).
+**Contagem:** 1.005 arquivos únicos: 997 existentes antes da auditoria, 7 relatórios iniciais e o plano de ação incluído depois.
 
 ## Como ler as ligações
 
@@ -23,7 +23,7 @@
 | Aplicativo | 505 |
 | artifacts | 72 |
 | attached_assets | 7 |
-| auditoria | 7 |
+| auditoria | 8 |
 | docs | 19 |
 | generated-artifacts | 11 |
 | infra | 57 |
@@ -1097,4 +1097,10 @@
 
 ---
 
-**Conferência:** 1004 caminhos únicos catalogados. A relação inclui os 997 arquivos anteriores e os sete relatórios desta auditoria. O catálogo não avalia por si só execução dinâmica nem declara arquivos órfãos.
+### Arquivo incluído após a geração inicial do catálogo
+
+| Nº | Arquivo | O que é / para que serve | Referências diretas |
+|---:|---|---|---|
+| 1005 | [auditoria/plano-de-acao-tecnico.md](../auditoria/plano-de-acao-tecnico.md) | Plano de execução das frentes backend, banco, frontend, segurança, Social/Feed, Seek, mensageria, filas e algoritmo, organizado por gates de revisão e aprovação. | [auditoria/00-indice-metodologia-e-conclusoes.md](../auditoria/00-indice-metodologia-e-conclusoes.md), [auditoria/02-backend-e-banco.md](../auditoria/02-backend-e-banco.md), [auditoria/03-frontend.md](../auditoria/03-frontend.md), [auditoria/04-contratos-documentacao-e-validacoes.md](../auditoria/04-contratos-documentacao-e-validacoes.md) |
+
+**Conferência:** 1.005 caminhos únicos catalogados: 997 arquivos anteriores, os sete relatórios iniciais e este plano adicionado posteriormente. O catálogo não avalia por si só execução dinâmica nem declara arquivos órfãos.

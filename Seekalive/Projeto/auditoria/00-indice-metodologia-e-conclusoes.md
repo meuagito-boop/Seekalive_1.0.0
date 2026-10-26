@@ -12,6 +12,7 @@
 - [Contratos, documentos e validações](04-contratos-documentacao-e-validacoes.md)
 - [Documentação, artefatos e materiais de apoio](05-documentos-artefatos-e-assets.md)
 - [Catálogo integral de arquivos](06-catalogo-integral-de-arquivos.md)
+- [Plano de ação por frentes e gates](plano-de-acao-tecnico.md)
 
 ## Conclusões executivas
 
@@ -21,7 +22,7 @@
 4. O código-fonte do banco define **13 tabelas em 5 schemas com tabelas**. Os documentos de backend descrevem 12 tabelas ativas e indicam que a migração do Feed ainda não foi aplicada. O banco não foi consultado nesta auditoria; portanto, o estado físico atual do banco não foi confirmado. O código e os documentos deixam uma diferença que precisa ser reconciliada antes de declarar a implantação das migrações.
 5. Existem documentos gerados ou históricos que divergem do código atual, incluindo o catálogo de tabelas, o mapa de integração do front, a auditoria de prontidão do front, o status de recuperação de senha e a classificação de algumas operações de Feed.
 6. Dependências diretas do workspace usam Zod `4.6.7`; Orval está em `8.44.0`. Não encontrei conflito de versões diretas Zod/Orval nos pacotes inspecionados. Versões transitivas no lockfile não devem ser tratadas como conflito sem demonstrar incompatibilidade.
-7. Foram inventariados **997 arquivos antes da criação desta auditoria**, excluindo apenas conteúdo instalado das dependências. Os sete relatórios desta pasta elevam a contagem do projeto para **1.004 arquivos** no mesmo critério; o catálogo lista os 997 originais e acrescenta os sete próprios relatórios.
+7. Foram inventariados **997 arquivos antes da criação desta auditoria**, excluindo apenas conteúdo instalado das dependências. Os sete relatórios iniciais elevaram a contagem para **1.004 arquivos**; o plano de ação foi copiado depois para esta pasta, totalizando **1.005 arquivos** no mesmo critério.
 
 ## Método e limites
 
@@ -31,7 +32,7 @@
 - Para cada arquivo do inventário, registrei categoria, finalidade inferida do caminho/conteúdo e referências diretas detectáveis. “Nenhuma referência detectada” não significa arquivo órfão: entradas, recursos estáticos, arquivos gerados, configuração e código referenciado por convenção podem não ter importador textual.
 - O inventário exclui somente árvores de dependências instaladas (`node_modules`, incluindo `.pnpm`). Não havia diretório `.git` em `Seekalive/Projeto`. Diretórios vazios não são linhas do inventário.
 - A análise de conexões é estática e delimitada ao conteúdo existente; não prova comportamento de integrações remotas, ambiente publicado, banco físico, contas reais, fluxos autenticados em navegador ou dispositivos de produção.
-- A pasta de auditoria é nova. Os números de arquivo distinguem o inventário original de 997 itens dos sete documentos criados nesta entrega.
+- A pasta de auditoria é nova. O inventário original tinha 997 itens; os sete relatórios iniciais e o plano adicionado posteriormente elevam o total atual a 1.005.
 
 ## Verificações executadas nesta auditoria
 

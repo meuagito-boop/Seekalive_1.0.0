@@ -12,6 +12,7 @@ Seekalive/Projeto/
 ├── artifacts/
 │   └── mockup-sandbox/       ferramenta isolada de preview de componentes
 ├── attached_assets/          imagens e prompts anexados ao projeto
+├── auditoria/                auditoria técnica, catálogo e plano de ação
 ├── docs/                     documentação de produto/arquitetura e backend
 ├── generated-artifacts/      resultados de previews e capturas
 ├── infra/
@@ -222,7 +223,7 @@ Seekalive/Projeto/
 │           ├── hooks/ (2 arquivos)
 │           └── lib/ (1 arquivos)
 ├── attached_assets/ (7 arquivos)
-├── auditoria/ (7 arquivos)
+├── auditoria/ (8 arquivos)
 ├── docs/ (19 arquivos)
 │   ├── api/ (15 arquivos)
 │   │   └── backend/ (15 arquivos)
