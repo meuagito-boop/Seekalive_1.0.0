@@ -1,0 +1,1 @@
+- [Padrão de engenharia sênior](engineering-standard.md) — reler o prompt anexado no início de cada atividade; investigar, preservar decisões e validar sem mascarar falhas.
