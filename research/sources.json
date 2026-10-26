@@ -1,0 +1,321 @@
+{
+  "researchTopic": "Seekalive Social Feed backend comparison",
+  "accessDate": "2026-10-26",
+  "sourceCount": 39,
+  "sources": [
+    {
+      "key": "w3c-activitypub",
+      "title": "ActivityPub",
+      "url": "https://www.w3.org/TR/activitypub/",
+      "publishedDate": "2018-01-23",
+      "tier": 1,
+      "evidencePath": "research/sources/social-graph-01-w3c-activitypub-audience.html"
+    },
+    {
+      "key": "mastodon-status-visibility",
+      "title": "Status entity — Mastodon documentation",
+      "url": "https://docs.joinmastodon.org/entities/Status/",
+      "publishedDate": "Updated 2026-05-22",
+      "tier": 3,
+      "evidencePath": "research/sources/social-graph-02-mastodon-status-visibility.html"
+    },
+    {
+      "key": "mastodon-block-api",
+      "title": "Block account — Mastodon accounts API",
+      "url": "https://docs.joinmastodon.org/methods/accounts/#block",
+      "publishedDate": "Updated 2026-10-20",
+      "tier": 3,
+      "evidencePath": "research/sources/social-graph-03-mastodon-account-block.html"
+    },
+    {
+      "key": "bluesky-following",
+      "title": "Following, muting, and blocking — Bluesky Protocol Services",
+      "url": "https://bsky.network/docs/bluesky-api/following",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/social-graph-07-bluesky-following-docs.html"
+    },
+    {
+      "key": "bluesky-visibility",
+      "title": "Visibility preferences — Bluesky Protocol Services",
+      "url": "https://bsky.network/docs/about-bluesky-content/visibility-preferences",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/social-graph-08-bluesky-content-visibility.html"
+    },
+    {
+      "key": "owasp-authorization",
+      "title": "Authorization Cheat Sheet — OWASP",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html",
+      "publishedDate": null,
+      "tier": 1,
+      "evidencePath": "research/sources/social-graph-06-owasp-authorization-cheat-sheet.html"
+    },
+    {
+      "key": "rfc9111-caching",
+      "title": "RFC 9111: HTTP Caching",
+      "url": "https://www.rfc-editor.org/rfc/rfc9111.html",
+      "publishedDate": "2022-06",
+      "tier": 1,
+      "evidencePath": "research/sources/social-graph-09-rfc9111-caching.html"
+    },
+    {
+      "key": "activitystreams-vocabulary",
+      "title": "Activity Streams 2.0 Vocabulary",
+      "url": "https://www.w3.org/TR/activitystreams-vocabulary/",
+      "publishedDate": "2017-05-23",
+      "tier": 1,
+      "evidencePath": "research/sources/lifecycle-01-activitystreams-vocabulary.html"
+    },
+    {
+      "key": "activitystreams-core",
+      "title": "Activity Streams 2.0",
+      "url": "https://www.w3.org/TR/activitystreams-core/",
+      "publishedDate": "2017-05-23",
+      "tier": 1,
+      "evidencePath": "research/sources/lifecycle-02-activitystreams-core.html"
+    },
+    {
+      "key": "bluesky-posts",
+      "title": "Posts in-depth — Bluesky Protocol Services",
+      "url": "https://bsky.network/docs/about-bluesky-content/posts/",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/lifecycle-03-bluesky-posts.html"
+    },
+    {
+      "key": "mastodon-status-api",
+      "title": "Statuses API methods — Mastodon documentation",
+      "url": "https://docs.joinmastodon.org/methods/statuses/",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/lifecycle-04-mastodon-statuses.html"
+    },
+    {
+      "key": "rfc9110-semantics",
+      "title": "RFC 9110: HTTP Semantics",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+      "publishedDate": "2022-06",
+      "tier": 1,
+      "evidencePath": "research/sources/lifecycle-05-rfc9110.html"
+    },
+    {
+      "key": "owasp-rest-security",
+      "title": "REST Security Cheat Sheet — OWASP",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html",
+      "publishedDate": null,
+      "tier": 1,
+      "evidencePath": "research/sources/lifecycle-06-owasp-rest-security.html"
+    },
+    {
+      "key": "bluesky-like-lexicon",
+      "title": "AT Protocol app.bsky.feed.like Lexicon",
+      "url": "https://raw.githubusercontent.com/bluesky-social/atproto/57c85d5ea03583dae3ae8d1f51106210dcad315b/packages/api/lexicons/app/bsky/feed/like.json",
+      "publishedDate": "Pinned commit 57c85d5ea03583dae3ae8d1f51106210dcad315b",
+      "tier": 3,
+      "evidencePath": "research/sources/lifecycle-07-bluesky-like-lexicon.md"
+    },
+    {
+      "key": "bluesky-repost-lexicon",
+      "title": "AT Protocol app.bsky.feed.repost Lexicon",
+      "url": "https://raw.githubusercontent.com/bluesky-social/atproto/57c85d5ea03583dae3ae8d1f51106210dcad315b/packages/api/lexicons/app/bsky/feed/repost.json",
+      "publishedDate": "Pinned commit 57c85d5ea03583dae3ae8d1f51106210dcad315b",
+      "tier": 3,
+      "evidencePath": "research/sources/lifecycle-08-bluesky-repost-lexicon.md"
+    },
+    {
+      "key": "bluesky-delete-record",
+      "title": "AT Protocol com.atproto.repo.deleteRecord Lexicon",
+      "url": "https://raw.githubusercontent.com/bluesky-social/atproto/57c85d5ea03583dae3ae8d1f51106210dcad315b/lexicons/com/atproto/repo/deleteRecord.json",
+      "publishedDate": "Pinned commit 57c85d5ea03583dae3ae8d1f51106210dcad315b",
+      "tier": 3,
+      "evidencePath": "research/sources/lifecycle-09-bluesky-delete-record-lexicon.md"
+    },
+    {
+      "key": "meta-ranking-transparency",
+      "title": "Our approach to explaining ranking — Meta Transparency Center",
+      "url": "https://transparency.meta.com/features/explaining-ranking/",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-01-meta-feed-ranking.html",
+      "notes": "HTML shell did not expose substantive ranking details; used only to document this evidence limitation."
+    },
+    {
+      "key": "bluesky-custom-feeds",
+      "title": "Custom feeds — Bluesky Protocol Services",
+      "url": "https://bsky.network/docs/bluesky-api/custom-feeds",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-02-bluesky-custom-feeds.html"
+    },
+    {
+      "key": "bluesky-viewing-feeds",
+      "title": "Viewing feeds — Bluesky Protocol Services",
+      "url": "https://bsky.network/docs/bluesky-api/viewing-feeds",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-03-bluesky-viewing-feeds.html"
+    },
+    {
+      "key": "mastodon-timelines",
+      "title": "Timelines API methods — Mastodon documentation",
+      "url": "https://docs.joinmastodon.org/methods/timelines/",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-04-mastodon-timelines-api.html"
+    },
+    {
+      "key": "mastodon-pagination",
+      "title": "API guidelines: pagination — Mastodon documentation",
+      "url": "https://docs.joinmastodon.org/api/guidelines/#pagination",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-05-mastodon-pagination.html"
+    },
+    {
+      "key": "aaai-social-feed-ranking",
+      "title": "Leveraging Noisy Lists for Social Feed Ranking",
+      "url": "https://ojs.aaai.org/index.php/ICWSM/article/view/14424",
+      "publishedDate": "2013",
+      "tier": 1,
+      "evidencePath": "research/sources/feed-06-aaai-noisy-lists-social-feed-ranking.md"
+    },
+    {
+      "key": "atproto-custom-feed-tutorial",
+      "title": "Write a Custom Feed — AT Protocol",
+      "url": "https://atproto.com/guides/custom-feed-tutorial",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-07-atproto-write-custom-feed.html"
+    },
+    {
+      "key": "owasp-file-upload",
+      "title": "File Upload Cheat Sheet — OWASP",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html",
+      "publishedDate": null,
+      "tier": 1,
+      "evidencePath": "research/sources/feed-media-01-owasp-upload.html"
+    },
+    {
+      "key": "aws-presigned-urls",
+      "title": "Download and upload objects with presigned URLs — Amazon S3 User Guide",
+      "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-media-02-aws-presigned-urls.html"
+    },
+    {
+      "key": "bluesky-upload-blob",
+      "title": "AT Protocol com.atproto.repo.uploadBlob Lexicon",
+      "url": "https://raw.githubusercontent.com/bluesky-social/atproto/main/lexicons/com/atproto/repo/uploadBlob.json",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-media-03-bluesky-upload-blob.md"
+    },
+    {
+      "key": "instagram-content-publishing",
+      "title": "Content Publishing — Instagram Platform",
+      "url": "https://developers.facebook.com/documentation/instagram-platform/instagram-graph-api/content-publishing",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-media-04-instagram-content-publishing.html"
+    },
+    {
+      "key": "instagram-media-reference",
+      "title": "IG User Media reference — Instagram Platform",
+      "url": "https://developers.facebook.com/documentation/instagram-platform/instagram-graph-api/reference/ig-user/media",
+      "publishedDate": "Includes dated 2025 change notices; page date not shown",
+      "tier": 3,
+      "evidencePath": "research/sources/feed-media-05-instagram-media-reference.html"
+    },
+    {
+      "key": "x-chunked-upload",
+      "title": "Chunked Media Upload — X Developer Platform",
+      "url": "https://docs.x.com/x-api/media/quickstart/media-upload-chunked",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/feed-media-06-x-chunked-upload.html"
+    },
+    {
+      "key": "atproto-moderation",
+      "title": "Moderation — AT Protocol",
+      "url": "https://atproto.com/guides/moderation",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/trust-safety-01-bluesky-moderation.html"
+    },
+    {
+      "key": "mastodon-admin-reports",
+      "title": "admin/reports API methods — Mastodon documentation",
+      "url": "https://docs.joinmastodon.org/methods/admin/reports/",
+      "publishedDate": "Updated 2026-07-09",
+      "tier": 3,
+      "evidencePath": "research/sources/trust-safety-02-mastodon-admin-reports.html"
+    },
+    {
+      "key": "meta-community-enforcement",
+      "title": "Community Standards Enforcement Report — Meta Transparency Center",
+      "url": "https://transparency.meta.com/reports/community-standards-enforcement/",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/trust-safety-03-meta-community-standards-enforcement.html",
+      "notes": "Only the page description was readable in static capture; no quantitative claims used."
+    },
+    {
+      "key": "owasp-api1-bola",
+      "title": "API1:2023 Broken Object Level Authorization — OWASP API Security Top 10",
+      "url": "https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/",
+      "publishedDate": "2023 edition",
+      "tier": 1,
+      "evidencePath": "research/sources/trust-safety-04-owasp-api1-bola.html"
+    },
+    {
+      "key": "owasp-api4-resource-consumption",
+      "title": "API4:2023 Unrestricted Resource Consumption — OWASP API Security Top 10",
+      "url": "https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/",
+      "publishedDate": "2023 edition",
+      "tier": 1,
+      "evidencePath": "research/sources/trust-safety-05-owasp-api4-resource-consumption.html"
+    },
+    {
+      "key": "nature-x-algorithm-experiment",
+      "title": "The political effects of X’s feed algorithm",
+      "url": "https://doi.org/10.1038/s41586-026-10098-2",
+      "publishedDate": "2026-02-18",
+      "tier": 1,
+      "evidencePath": "research/sources/gapfill-feed-ranking-01-nature-x-field-experiment.md"
+    },
+    {
+      "key": "pnas-user-preference-ranking",
+      "title": "Engagement, user satisfaction, and the amplification of divisive content on social media",
+      "url": "https://doi.org/10.1093/pnasnexus/pgaf062",
+      "publishedDate": "2025-03-05",
+      "tier": 1,
+      "evidencePath": "research/sources/gapfill-feed-ranking-02-pnas-stated-preferences-audit.md"
+    },
+    {
+      "key": "google-aip-158",
+      "title": "AIP-158: Pagination — Google API Improvement Proposals",
+      "url": "https://google.aip.dev/158",
+      "publishedDate": null,
+      "tier": 3,
+      "evidencePath": "research/sources/gapfill-aip-158-page-tokens.md"
+    },
+    {
+      "key": "openapi-3-1-1",
+      "title": "OpenAPI Specification v3.1.1 — Schema Object",
+      "url": "https://spec.openapis.org/oas/v3.1.1.html#schema-object",
+      "publishedDate": "Versioned specification 3.1.1",
+      "tier": 1,
+      "evidencePath": "research/sources/gapfill-openapi-3.1-maxlength.md"
+    },
+    {
+      "key": "json-schema-maxlength",
+      "title": "JSON Schema Validation Draft 2020-12: maxLength",
+      "url": "https://json-schema.org/draft/2020-12/json-schema-validation#name-maxlength",
+      "publishedDate": "2020-12",
+      "tier": 1,
+      "evidencePath": "research/sources/gapfill-openapi-3.1-maxlength.md"
+    }
+  ]
+}

@@ -266,3 +266,31 @@ mtime_ms = 1792914469593
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/8086b733-6777-4248-8d1e-80ff4899654e/92820e1b-9698-4bdd-b23b-4e13a987475b"
 storage_version_token = "1792914530620540"
 content_type = "text/html"
+
+[[outputs]]
+id = "MfBYKt-dwzol_3QHoBsAr"
+uri = "file://research/notes.md"
+type = "text"
+title = "Notas de pesquisa: backend Social do Seekalive"
+description = "Plano, perguntas de cobertura e evidências em coleta para confrontar o Feed implementado com padrões públicos de redes sociais."
+logical_id = "90cf08e0-8423-474d-9b37-fa98b9979cd1"
+content_hash = "sha256:8a8f061300f04b76f941e2123f222933eee74b4114bf5c78496910ce0b0ebf4e"
+size = 4067
+mtime_ms = 1792975695712
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/90cf08e0-8423-474d-9b37-fa98b9979cd1/550fb645-e906-406f-8460-da82a9cf7e54"
+storage_version_token = "1792975696546595"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "usQbmRHeLisT_YP7iegOz"
+uri = "file://research/analise-backend-social-seekalive-vs-padroes.md"
+type = "text"
+title = "Análise do backend Social do Seekalive"
+description = "Comparação técnica profunda do módulo Feed com padrões públicos de redes sociais, incluindo evidências do código, 39 fontes e um plano priorizado de lacunas."
+logical_id = "5d0d8c8b-5c8f-4c0b-81f7-673599c7037d"
+content_hash = "sha256:55c51899a28761d3d507b00240464b3340c4f87c1b7dfb5509aecfc5e1340eab"
+size = 33714
+mtime_ms = 1792976727407
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/5d0d8c8b-5c8f-4c0b-81f7-673599c7037d/dbaa8533-8ea4-46ef-9742-4c227f617db4"
+storage_version_token = "1792976739199594"
+content_type = "text/markdown"
