@@ -1101,6 +1101,6 @@
 
 | Nº | Arquivo | O que é / para que serve | Referências diretas |
 |---:|---|---|---|
-| 1005 | [auditoria/plano-de-acao-tecnico.md](../auditoria/plano-de-acao-tecnico.md) | Plano de execução das frentes backend, banco, frontend, segurança, Social/Feed, Seek, mensageria, filas e algoritmo, organizado por gates de revisão e aprovação. | [auditoria/00-indice-metodologia-e-conclusoes.md](../auditoria/00-indice-metodologia-e-conclusoes.md), [auditoria/02-backend-e-banco.md](../auditoria/02-backend-e-banco.md), [auditoria/03-frontend.md](../auditoria/03-frontend.md), [auditoria/04-contratos-documentacao-e-validacoes.md](../auditoria/04-contratos-documentacao-e-validacoes.md) |
+| 1005 | [auditoria/plano-de-acao-tecnico.md](../auditoria/plano-de-acao-tecnico.md) | Plano de execução por gates; define Social como origem canônica das contas e Seek como descoberta de seus perfis comerciais; Shop permanece futuro. | [auditoria/00-indice-metodologia-e-conclusoes.md](../auditoria/00-indice-metodologia-e-conclusoes.md), [auditoria/02-backend-e-banco.md](../auditoria/02-backend-e-banco.md), [auditoria/03-frontend.md](../auditoria/03-frontend.md), [auditoria/04-contratos-documentacao-e-validacoes.md](../auditoria/04-contratos-documentacao-e-validacoes.md) |
 
 **Conferência:** 1.005 caminhos únicos catalogados: 997 arquivos anteriores, os sete relatórios iniciais e este plano adicionado posteriormente. O catálogo não avalia por si só execução dinâmica nem declara arquivos órfãos.
