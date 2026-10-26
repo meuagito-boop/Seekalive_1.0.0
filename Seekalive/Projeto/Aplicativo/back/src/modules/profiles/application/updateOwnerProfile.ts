@@ -6,11 +6,11 @@ import {
   commercialProfiles,
   db,
 } from "@workspace/db";
+import { lockUsernameClaims } from "../../accounts/application/usernameClaimLock";
 import {
-  lockUsernameClaims,
   nextIdentityChangeAt,
   USERNAME_RESERVATION_MS,
-} from "../../accounts/application/usernamePolicy";
+} from "../../accounts/domain/usernamePolicy";
 import { prepareCommercialProfileUpdate } from "./commercialProfileUpdate";
 import { preparePersonalProfileUpdate } from "./personalProfileUpdate";
 import type { ProfileUpdateOwner } from "./profileUpdateTypes";

@@ -6,7 +6,7 @@ import {
   USERNAME_RESERVATION_DAYS,
   USERNAME_RESERVATION_MS,
   nextIdentityChangeAt,
-} from "../src/modules/accounts/application/usernamePolicy.ts";
+} from "../src/modules/accounts/domain/usernamePolicy.ts";
 
 test("name and username first changes are allowed 30 days after registration", () => {
   const createdAt = new Date("2026-01-01T12:34:56.000Z");

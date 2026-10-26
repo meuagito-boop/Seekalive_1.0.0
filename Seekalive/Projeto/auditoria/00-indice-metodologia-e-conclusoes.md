@@ -2,7 +2,7 @@
 
 **Data do levantamento:** 26/10/2026  
 **Escopo:** tudo que é arquivo dentro de `Seekalive/Projeto`, exceto conteúdo instalado de dependências (`node_modules` e o conteúdo de `.pnpm`).  
-**Resultado:** inventário integral do estado encontrado e análise das ligações entre os arquivos; nenhuma regra, API, tela, migração ou arquivo de produto foi alterado nesta auditoria.
+**Resultado inicial:** inventário do estado encontrado e análise das ligações entre arquivos. A partir de 26/10/2026, iniciou-se uma correção estrutural controlada por domínio; as alterações e validações posteriores são registradas abaixo e no delta do catálogo.
 
 ## Navegação
 
@@ -22,7 +22,7 @@
 4. O código-fonte do banco define **13 tabelas em 5 schemas com tabelas**. Os documentos de backend descrevem 12 tabelas ativas e indicam que a migração do Feed ainda não foi aplicada. O banco não foi consultado nesta auditoria; portanto, o estado físico atual do banco não foi confirmado. O código e os documentos deixam uma diferença que precisa ser reconciliada antes de declarar a implantação das migrações.
 5. Existem documentos gerados ou históricos que divergem do código atual, incluindo o catálogo de tabelas, o mapa de integração do front, a auditoria de prontidão do front, o status de recuperação de senha e a classificação de algumas operações de Feed.
 6. Dependências diretas do workspace usam Zod `4.6.7`; Orval está em `8.44.0`. Não encontrei conflito de versões diretas Zod/Orval nos pacotes inspecionados. Versões transitivas no lockfile não devem ser tratadas como conflito sem demonstrar incompatibilidade.
-7. Foram inventariados **997 arquivos antes da criação desta auditoria**, excluindo apenas conteúdo instalado das dependências. Os sete relatórios iniciais elevaram a contagem para **1.004 arquivos**; o plano de ação foi copiado depois para esta pasta, totalizando **1.005 arquivos** no mesmo critério.
+7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após a primeira correção estrutural em `accounts`, o total observado passou a **1.010 arquivos**; o catálogo identifica a diferença sem apresentar a linha de base como estado atual.
 
 ## Método e limites
 
@@ -32,7 +32,14 @@
 - Para cada arquivo do inventário, registrei categoria, finalidade inferida do caminho/conteúdo e referências diretas detectáveis. “Nenhuma referência detectada” não significa arquivo órfão: entradas, recursos estáticos, arquivos gerados, configuração e código referenciado por convenção podem não ter importador textual.
 - O inventário exclui somente árvores de dependências instaladas (`node_modules`, incluindo `.pnpm`). Não havia diretório `.git` em `Seekalive/Projeto`. Diretórios vazios não são linhas do inventário.
 - A análise de conexões é estática e delimitada ao conteúdo existente; não prova comportamento de integrações remotas, ambiente publicado, banco físico, contas reais, fluxos autenticados em navegador ou dispositivos de produção.
-- A pasta de auditoria é nova. O inventário original tinha 997 itens; os sete relatórios iniciais e o plano adicionado posteriormente elevam o total atual a 1.005.
+- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. A primeira correção em `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010. O inventário completo será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
+
+## Atualização da primeira unidade estrutural — 26/10/2026
+
+- **Escopo:** somente o domínio backend `accounts` e os importadores diretamente afetados; nenhuma mudança foi feita no frontend, no schema do banco, em migrations, nas regras de conta ou em produção.
+- **Correção:** consultas de leitura foram separadas em infraestrutura; a montagem da projeção de conta foi separada do acesso a dados; privacidade e política de @ ficaram em arquivos de domínio; o lock transacional de @ foi separado da regra de cooldown.
+- **Verificações:** `pnpm test` passou com 95 testes; `pnpm typecheck` passou no workspace; `pnpm --filter @workspace/api-server build` passou; a API foi reiniciada e iniciou na porta 8080; a captura do preview exibiu a tela inicial sem erros de console da aplicação.
+- **Limite:** não foi executado teste de integração com escrita no banco; esta unidade não altera schema nem migrations. Outras pastas do frontend e backend ainda precisam ser revisadas.
 
 ## Verificações executadas nesta auditoria
 

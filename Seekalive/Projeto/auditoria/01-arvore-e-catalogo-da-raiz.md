@@ -66,7 +66,20 @@ O [catálogo integral](06-catalogo-integral-de-arquivos.md) discrimina inclusive
 
 ## Árvore integral de diretórios
 
-Abaixo, todas as pastas encontradas dentro de `Seekalive/Projeto`, incluindo pastas vazias. O número após cada pasta representa os arquivos regulares existentes nela e em toda a sua subárvore; conteúdo instalado de `node_modules` e `.pnpm` foi excluído. Os nomes de arquivo estão no [catálogo integral](06-catalogo-integral-de-arquivos.md).
+A árvore abaixo é a linha de base do levantamento inicial. Ela registra todas as pastas encontradas naquele momento; seus totais não devem ser interpretados como contagem atual após a reorganização iniciada em `Aplicativo/back/src/modules/accounts`. O [delta do catálogo](06-catalogo-integral-de-arquivos.md) registra as mudanças estruturais realizadas até aqui. O inventário atual completo será refeito ao concluir a etapa de organização do frontend e backend.
+
+### Estrutura atual da primeira pasta reorganizada
+
+```text
+Aplicativo/back/src/modules/accounts/ (8 arquivos)
+├── application/      (3 arquivos: composição de leituras, projeção e contrato de lock)
+├── domain/           (3 arquivos: dados de leitura, privacidade e política de identidade)
+└── infrastructure/  (2 arquivos: consultas de conta e lock SQL de @)
+```
+
+No levantamento inicial, `accounts` tinha três arquivos, todos em `application/`. O total atual do projeto é **1.010 arquivos**, excluindo `node_modules` e `.pnpm`.
+
+Abaixo, a árvore completa da linha de base inicial, incluindo as pastas vazias. O número após cada pasta representa os arquivos regulares naquela data; conteúdo instalado de `node_modules` e `.pnpm` foi excluído. Os nomes de arquivo estão no [catálogo integral](06-catalogo-integral-de-arquivos.md).
 
 ```text
 Seekalive/Projeto/

@@ -1,7 +1,7 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { accountEmails, accounts, db } from "@workspace/db";
 import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
-import { nextIdentityChangeAt } from "../../accounts/application/usernamePolicy";
+import { nextIdentityChangeAt } from "../../accounts/domain/usernamePolicy";
 import { accountView, findActiveAccountById } from "../../accounts/application/accountViews";
 
 export type OwnerProfileFailure = {

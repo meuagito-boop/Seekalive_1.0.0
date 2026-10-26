@@ -5,7 +5,7 @@ import {
   findActiveAccountById,
   findActiveAccountByUsername,
 } from "../../accounts/application/accountViews";
-import { canViewPrivateProfileContent } from "../../accounts/application/accountVisibility";
+import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
 import type { PublicAccountRow } from "../../accounts/application/accountViews";
 import { getRelationshipFor } from "../../social/application/getRelationshipFor";
 import { isBlockedBetween } from "../../social/application/isBlockedBetween";

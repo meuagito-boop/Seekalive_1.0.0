@@ -1,106 +1,19 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
-import { accountEmails, accounts, db } from "@workspace/db";
 import {
   getAccountSocialStats,
-  type AccountSocialStats,
 } from "../../social/application/getAccountSocialStats";
 import { getAccountSocialSummariesByIds } from "../../social/application/getAccountSocialSummariesByIds";
 import { getRelationshipFor } from "../../social/application/getRelationshipFor";
 import type { RelationshipView } from "../../social/application/relationshipView";
-import { canViewPrivateProfileContent } from "./accountVisibility";
+import {
+  findActiveAccountById,
+  findActiveAccountByUsername,
+  findActiveAccountsByIds,
+} from "../infrastructure/accountReadRepository";
+import type { PublicAccountRow } from "../domain/publicAccount";
+import { buildAccountView } from "./accountViewMapper";
 
-export type PublicAccountRow = {
-  id: string;
-  username: string;
-  displayName: string;
-  bio: string;
-  locationLabel: string | null;
-  websiteUrl: string | null;
-  accountType: string;
-  isPrivate: boolean;
-  createdAt: Date;
-  version: number;
-};
-
-export async function findActiveAccountById(id: string): Promise<PublicAccountRow | null> {
-  const [row] = await db
-    .select({
-      id: accounts.id,
-      username: accounts.username,
-      displayName: accounts.displayName,
-      bio: accounts.bio,
-      locationLabel: accounts.locationLabel,
-      websiteUrl: accounts.websiteUrl,
-      accountType: accounts.accountType,
-      isPrivate: accounts.isPrivate,
-      createdAt: accounts.createdAt,
-      version: accounts.version,
-    })
-    .from(accounts)
-    .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-    .where(and(
-      eq(accounts.id, id),
-      eq(accounts.status, "active"),
-      isNotNull(accountEmails.verifiedAt),
-    ))
-    .limit(1);
-  return row ?? null;
-}
-
-export async function findActiveAccountByUsername(username: string): Promise<PublicAccountRow | null> {
-  const [row] = await db
-    .select({
-      id: accounts.id,
-      username: accounts.username,
-      displayName: accounts.displayName,
-      bio: accounts.bio,
-      locationLabel: accounts.locationLabel,
-      websiteUrl: accounts.websiteUrl,
-      accountType: accounts.accountType,
-      isPrivate: accounts.isPrivate,
-      createdAt: accounts.createdAt,
-      version: accounts.version,
-    })
-    .from(accounts)
-    .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-    .where(and(
-      eq(accounts.username, username),
-      eq(accounts.status, "active"),
-      isNotNull(accountEmails.verifiedAt),
-    ))
-    .limit(1);
-  return row ?? null;
-}
-
-function buildAccountView(
-  row: PublicAccountRow,
-  viewerId: string | null,
-  relationship: RelationshipView,
-  stats: AccountSocialStats,
-) {
-  const privateDetailsVisible = canViewPrivateProfileContent(
-    row.isPrivate,
-    viewerId,
-    row.id,
-    relationship.following,
-  );
-  return {
-    id: row.id,
-    username: row.username,
-    displayName: row.displayName,
-    bio: privateDetailsVisible ? row.bio : "",
-    avatarUrl: null,
-    coverUrl: null,
-    location: privateDetailsVisible ? row.locationLabel : null,
-    website: privateDetailsVisible ? row.websiteUrl : null,
-    accountType: row.accountType,
-    isPrivate: row.isPrivate,
-    joinedAt: row.createdAt.toISOString(),
-    relationship,
-    stats,
-    version: row.version,
-  };
-}
+export type { PublicAccountRow } from "../domain/publicAccount";
+export { findActiveAccountById, findActiveAccountByUsername };
 
 export async function accountView(
   row: PublicAccountRow,
@@ -118,26 +31,7 @@ export async function accountViewsByIds(ids: string[], viewerId: string | null) 
   const uniqueIds = [...new Set(ids)];
   if (uniqueIds.length === 0) return [];
 
-  const rows = await db
-    .select({
-      id: accounts.id,
-      username: accounts.username,
-      displayName: accounts.displayName,
-      bio: accounts.bio,
-      locationLabel: accounts.locationLabel,
-      websiteUrl: accounts.websiteUrl,
-      accountType: accounts.accountType,
-      isPrivate: accounts.isPrivate,
-      createdAt: accounts.createdAt,
-      version: accounts.version,
-    })
-    .from(accounts)
-    .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-    .where(and(
-      inArray(accounts.id, uniqueIds),
-      eq(accounts.status, "active"),
-      isNotNull(accountEmails.verifiedAt),
-    ));
+  const rows = await findActiveAccountsByIds(uniqueIds);
   if (rows.length === 0) return [];
 
   const socialSummaries = await getAccountSocialSummariesByIds(
