@@ -1,13 +1,5 @@
-import { and, eq, gt } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
-  accountEmails,
-  accountUsernameReservations,
-  accounts,
-  db,
-} from "@workspace/db";
-import {
-  PASSWORD_POLICY_VERSION,
   registerRequestSchema,
 } from "@workspace/api-zod";
 import { logger } from "../../../common/logger";
@@ -18,6 +10,10 @@ import {
 } from "../application/emailVerification";
 import { hashPassword } from "../application/passwordHashing";
 import { createRegistrationAccount } from "../application/registration/createRegistrationAccount";
+import {
+  findRegistrationEmail,
+  isRegistrationUsernameUnavailable,
+} from "../application/registration/registrationAvailability";
 import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { sendError, sendValidationError } from "./responses";
 
@@ -49,30 +45,12 @@ router.post(
 
     const username = registration.username.toLowerCase();
     const email = registration.email.toLowerCase();
-    const [usernameMatch] = await db
-      .select({ id: accounts.id })
-      .from(accounts)
-      .where(eq(accounts.username, username))
-      .limit(1);
-    const [usernameReservation] = await db
-      .select({ username: accountUsernameReservations.username })
-      .from(accountUsernameReservations)
-      .where(and(
-        eq(accountUsernameReservations.username, username),
-        gt(accountUsernameReservations.reservedUntil, new Date()),
-      ))
-      .limit(1);
-    if (usernameMatch || usernameReservation) {
+    if (await isRegistrationUsernameUnavailable(username)) {
       sendError(response, 409, "USERNAME_UNAVAILABLE", "Esse nome de usuário não está disponível.");
       return;
     }
 
-    const [emailMatch] = await db
-      .select({ id: accounts.id, displayName: accounts.displayName, status: accounts.status })
-      .from(accounts)
-      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-      .where(eq(accountEmails.emailNormalized, email))
-      .limit(1);
+    const emailMatch = await findRegistrationEmail(email);
     if (emailMatch) {
       if (emailMatch.status === "pending_verification") {
         try {

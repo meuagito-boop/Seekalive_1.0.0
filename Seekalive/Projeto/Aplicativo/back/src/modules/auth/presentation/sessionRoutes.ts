@@ -1,6 +1,4 @@
-import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, sessions } from "@workspace/db";
 import { sessionIdParamSchema } from "@workspace/api-zod";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import {
@@ -12,6 +10,12 @@ import {
   requireCsrf,
   SESSION_COOKIE,
 } from "../../../security/session";
+import {
+  listActiveSessions,
+  revokeOtherSessions,
+  revokeSession,
+  revokeSessionByTokenHash,
+} from "../application/sessions/sessionManagement";
 import { sendError, sendValidationError } from "./responses";
 
 const router: IRouter = Router();
@@ -67,21 +71,7 @@ router.get("/sessions", createAuthRateLimit("sessions-list", 60, 15 * 60 * 1000)
   }
 
   const pageSize = 20;
-  const rows = await db
-    .select({
-      id: sessions.id,
-      createdAt: sessions.createdAt,
-      expiresAt: sessions.expiresAt,
-    })
-    .from(sessions)
-    .where(and(
-      eq(sessions.accountId, activeSession.accountId),
-      isNull(sessions.revokedAt),
-      gt(sessions.expiresAt, new Date()),
-    ))
-    .orderBy(desc(sessions.createdAt), desc(sessions.id))
-    .limit(pageSize + 1)
-    .offset(offset);
+  const rows = await listActiveSessions(activeSession.accountId, offset);
 
   const hasMore = rows.length > pageSize;
   response.json({
@@ -102,16 +92,7 @@ router.delete("/sessions/others", createAuthRateLimit("sessions-revoke-others", 
     return;
   }
 
-  const revoked = await db
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(and(
-      eq(sessions.accountId, activeSession.accountId),
-      ne(sessions.id, activeSession.sessionId),
-      isNull(sessions.revokedAt),
-      gt(sessions.expiresAt, new Date()),
-    ))
-    .returning({ id: sessions.id });
+  const revoked = await revokeOtherSessions(activeSession.accountId, activeSession.sessionId);
   response.json({ status: "other_sessions_revoked", revokedCount: revoked.length });
 });
 
@@ -132,16 +113,7 @@ router.delete("/sessions/:sessionId", createAuthRateLimit("session-revoke", 20, 
     return;
   }
 
-  const [revoked] = await db
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(and(
-      eq(sessions.id, params.data.sessionId),
-      eq(sessions.accountId, activeSession.accountId),
-      isNull(sessions.revokedAt),
-      gt(sessions.expiresAt, new Date()),
-    ))
-    .returning({ id: sessions.id });
+  const revoked = await revokeSession(activeSession.accountId, params.data.sessionId);
   if (!revoked) {
     sendError(response, 404, "SESSION_NOT_FOUND", "A sessão não foi encontrada ou já foi encerrada.");
     return;
@@ -152,10 +124,7 @@ router.delete("/sessions/:sessionId", createAuthRateLimit("session-revoke", 20, 
 router.post("/logout", requireCsrf, async (request: Request, response: Response) => {
   const rawToken = request.cookies?.[SESSION_COOKIE];
   if (rawToken) {
-    await db
-      .update(sessions)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(sessions.tokenHash, hashToken(rawToken)), isNull(sessions.revokedAt)));
+    await revokeSessionByTokenHash(hashToken(rawToken));
   }
   clearSessionCookie(response);
   response.clearCookie(PRE_AUTH_COOKIE, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });

@@ -1,5 +1,5 @@
-import { commercialProfiles } from "@workspace/db";
 import type { RegisterRequest } from "@workspace/api-zod";
+import { initializeCommercialProfile } from "../../../profiles/application/initializeCommercialProfile";
 import { createPendingAccount } from "./createPendingAccount";
 
 type CommercialRegistration = Extract<RegisterRequest, { accountType: "commercial" }>;
@@ -16,9 +16,7 @@ export function createCommercialAccount(
     displayName: businessName,
     firstName: null,
     lastName: null,
-    initializeProfile: async (transaction, accountId) => {
-      await transaction.insert(commercialProfiles).values({
-        accountId,
+    initializeProfile: (transaction, accountId) => initializeCommercialProfile(transaction, accountId, {
         categoryKey: registration.categoryKey,
         discoveryKind: registration.discoveryKind,
         address: registration.address,
@@ -26,7 +24,6 @@ export function createCommercialAccount(
         cityName: registration.city,
         stateName: registration.state,
         countryName: registration.country,
-      });
-    },
+    }),
   });
 }

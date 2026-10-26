@@ -15,7 +15,7 @@ Os módulos presentes em `Aplicativo/back/src/modules` são:
 - `social`: seguir, solicitações, bloqueio, listas e círculo.
 - `security`: proteção transversal da API e rotas relacionadas a conta/sessão.
 
-Cada módulo usa diretórios de aplicação e apresentação em graus diferentes. A separação por pastas existe; a regra de que a apresentação somente converte HTTP em chamadas de aplicação ainda não está completamente cumprida.
+Cada módulo usa diretórios de aplicação e apresentação em graus diferentes. A separação por pastas existe; a regra de que a apresentação somente converte HTTP em chamadas de aplicação foi corrigida para Auth, mas ainda não está completamente cumprida nos demais domínios.
 
 ## Entradas e fluxo de requisição
 
@@ -63,16 +63,23 @@ O `drizzle-kit check` passou sobre a consistência do histórico local. Isso val
 
 ## Camada de apresentação ainda ligada ao banco
 
-Foi localizado import de `@workspace/db` em 17 arquivos de apresentação: 16 ligados a fluxos de produto e um de prontidão operacional. As leituras e escritas estão espalhadas nestas rotas:
+Na auditoria inicial havia import de `@workspace/db` em 17 arquivos de apresentação: 16 ligados a fluxos de produto e um de prontidão operacional. Na etapa atual, os oito arquivos Auth foram corrigidos. Permanecem nove rotas com import/persistência direta: oito ligadas a fluxos de produto e uma de prontidão operacional. As ocorrências restantes são:
 
-- **Auth:** `csrfRoutes.ts`, `deviceVerificationRoutes.ts`, `emailVerificationRoutes.ts`, `passwordResetRoutes.ts`, `passwordUpdateRoutes.ts`, `registrationRoutes.ts`, `sessionRoutes.ts`, `trustedDeviceRoutes.ts`.
 - **Profiles:** `accountAvailabilityRoutes.ts`, `privacyRoutes.ts`.
 - **Social:** `accountSearchRoutes.ts`, `blockListRoutes.ts`, `circleRoutes.ts`, `followerListRoutes.ts`, `followingListRoutes.ts`, `followRequestListRoutes.ts`.
 - **Health:** `readinessRoutes.ts` usa pool para verificar prontidão do serviço; esta dependência de infraestrutura é compatível com a finalidade de health/readiness.
 
-No grupo de Auth, as transações de verificação, senha, dispositivo e CSRF são exemplos de operações de persistência presentes no adaptador HTTP. Nas rotas Social/Profiles, consultas de listas, busca e privacidade também vão ao banco diretamente. O efeito arquitetural é que parte de validação, composição de transação e tratamento HTTP fica acoplada. Não é falha de compilação; é dívida de fronteira de camadas.
+Nas rotas restantes de Social/Profiles, consultas de listas, busca e privacidade ainda vão ao banco diretamente. O efeito arquitetural é que parte de validação, composição de transação e tratamento HTTP fica acoplada. Não é falha de compilação; é dívida de fronteira de camadas.
 
 `profiles/presentation/publicProfileRoutes.ts` orquestra dentro do handler a leitura da conta, bloqueios, relação de seguimento, visibilidade e publicações/artigos, chamando funções dos módulos `accounts`, `social` e `feed`. A composição é de domínio e deveria ficar num caso de uso de leitura; a rota deveria permanecer como adaptador HTTP.
+
+### Unidade estrutural concluída: Auth
+
+O módulo Auth tem 50 arquivos TypeScript (33 de aplicação, 16 de apresentação e um de infraestrutura). A camada de apresentação não importa `@workspace/db` nem `drizzle-orm`; a regra é protegida pelo teste `Aplicativo/back/test/auth-presentation-boundary.test.mjs`.
+
+As operações extraídas dos handlers são cadastro/pré-consulta, rotação do token CSRF, listagem/revogação de sessões, listagem/revogação de instalações confiáveis, pedido/confirmação de verificação de e-mail, confirmação/reenvio de código de instalação e pedido/confirmação de atualização/recuperação de senha. Regras de enumeração, mensagens/status, cookies, cooldowns, contagem de tentativas, bloqueios, revogações e atomicidade das transações foram preservados. O inicializador de dados comerciais está em `profiles/application/initializeCommercialProfile.ts`; Auth apenas o chama durante o cadastro pendente.
+
+O código de aplicação desses fluxos ainda usa Drizzle diretamente para executar suas transações. A separação realizada nesta unidade é entre adaptador HTTP e operação de aplicação; não se declara a criação de um repositório de persistência independente para cada caso de uso, pois isso adicionaria interfaces sem necessidade demonstrada neste recorte. A auditoria posterior de Accounts/Auth e o Gate 2 devem validar se a fronteira de persistência atual permanece sustentável.
 
 ## Domínios e dependências cruzadas
 
@@ -122,6 +129,6 @@ O pacote de banco tem schemas reservados para esses domínios, mas schema reserv
 
 ## Testes de backend e banco
 
-O teste raiz atual passou em 93 casos no conjunto dos pacotes de teste. O teste que cria schema temporário requer `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e a URL configurada. Nesta sessão havia URL de banco definida, mas não havia a confirmação `SEEKALIVE_EXPECTED_DATABASE`; a suíte isolada de escrita não foi executada. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
+Na validação da unidade Auth, `pnpm test` passou em 96 casos, o typecheck completo e o build da API passaram. O novo teste garante que rotas Auth não retornem a consultar o banco diretamente. O teste que cria schema temporário exige `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e `DATABASE_URL`; foi tentado com a barreira explícita e parou antes da conexão porque as duas variáveis de destino estavam ausentes. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
 
 O arquivo `Aplicativo/back/test/api-isolated-db.test.mjs` é muito maior do que os demais testes (1.933 linhas) e concentra testes isolados de várias partes; há oportunidade de dividir por contrato/domínio sem alterar o comportamento, mas não foi dividido nesta auditoria.

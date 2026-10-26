@@ -1105,7 +1105,7 @@
 
 ### Delta da primeira reorganização estrutural — `accounts`
 
-Os registros 1–1.005 são a linha de base do catálogo. Para o estado atual, remova da linha de base os registros 64 e 65, mantenha os demais e acrescente os sete caminhos abaixo. O total líquido atual é 1.010 arquivos. O restante da árvore ainda não foi reorganizado.
+Os registros 1–1.005 são a linha de base do catálogo. Para o estado após `accounts`, removem-se os registros 64 e 65 e acrescentam-se os sete caminhos a seguir, totalizando 1.010. A etapa `auth` abaixo acrescenta mais 14 caminhos; o total observado atual é 1.024 arquivos. O restante da árvore ainda não foi reorganizado.
 
 | Nº atual | Arquivo | O que é / para que serve |
 |---:|---|---|
@@ -1120,3 +1120,28 @@ Os registros 1–1.005 são a linha de base do catálogo. Para o estado atual, r
 Arquivos existentes modificados na primeira unidade: `accounts/application/accountViews.ts`, `auth/application/registration/createPendingAccount.ts`, `profiles/application/ownerProfileCommon.ts`, `profiles/application/updateOwnerProfile.ts`, `profiles/presentation/publicProfileRoutes.ts`, os testes de visibilidade e política de @, além do `package.json` raiz para executar o teste TypeScript pelo runner que resolve imports do workspace.
 
 **Conferência:** a linha de base tinha 1.005 caminhos únicos. Após remover dois caminhos de Accounts e adicionar sete, o inventário físico observado passou a 1.010. Este catálogo mantém a base histórica e o delta conhecido; não declara que a reorganização completa do frontend e backend foi concluída nem avalia por si só execução dinâmica.
+
+### Delta da segunda unidade estrutural — `auth` — 26/10/2026
+
+Foram acrescentados 14 caminhos ao total intermediário de 1.010. Nenhum arquivo foi removido nesta unidade; oito handlers existentes foram reorganizados e a inicialização comercial passou a pertencer ao domínio Profiles. O total físico conferido após os testes é 1.024 arquivos, excluindo dependências instaladas e `.git`.
+
+| Nº atual | Arquivo | O que é / para que serve |
+|---:|---|---|
+| 1013 | [Aplicativo/back/src/modules/profiles/application/initializeCommercialProfile.ts](../Aplicativo/back/src/modules/profiles/application/initializeCommercialProfile.ts) | Inicializa os dados do perfil comercial durante o cadastro, usando a transação recebida; mantém a escrita de `commercial_profiles` no domínio proprietário Profiles. |
+| 1014 | [Aplicativo/back/src/modules/auth/application/registration/registrationAvailability.ts](../Aplicativo/back/src/modules/auth/application/registration/registrationAvailability.ts) | Pré-consultas de disponibilidade de @ e e-mail usadas pelo cadastro; isolam a persistência da rota HTTP. |
+| 1015 | [Aplicativo/back/src/modules/auth/application/sessions/sessionManagement.ts](../Aplicativo/back/src/modules/auth/application/sessions/sessionManagement.ts) | Lista sessões ativas e revoga sessões por conta, preservando exclusão da sessão atual nas operações correspondentes. |
+| 1016 | [Aplicativo/back/src/modules/auth/application/sessions/csrfSession.ts](../Aplicativo/back/src/modules/auth/application/sessions/csrfSession.ts) | Rotaciona o token CSRF persistido para uma sessão autenticada. |
+| 1017 | [Aplicativo/back/src/modules/auth/application/trustedDevices/deviceManagement.ts](../Aplicativo/back/src/modules/auth/application/trustedDevices/deviceManagement.ts) | Lista e revoga instalações confiáveis e suas sessões associadas em transações atômicas. |
+| 1018 | [Aplicativo/back/src/modules/auth/application/emailVerification/confirmEmailVerification.ts](../Aplicativo/back/src/modules/auth/application/emailVerification/confirmEmailVerification.ts) | Confirma o código de e-mail, ativa a conta e, quando permitido pela política da senha, cria dispositivo confiável e sessão na mesma transação. |
+| 1019 | [Aplicativo/back/src/modules/auth/application/emailVerification/requestEmailVerification.ts](../Aplicativo/back/src/modules/auth/application/emailVerification/requestEmailVerification.ts) | Localiza conta pendente e solicita o envio de outro código; a rota mantém a resposta genérica de anti-enumeração. |
+| 1020 | [Aplicativo/back/src/modules/auth/application/passwordReset/requestPasswordReset.ts](../Aplicativo/back/src/modules/auth/application/passwordReset/requestPasswordReset.ts) | Localiza conta elegível, cria desafio de recuperação e invalida o desafio se a entrega de e-mail falhar. |
+| 1021 | [Aplicativo/back/src/modules/auth/application/passwordReset/confirmPasswordReset.ts](../Aplicativo/back/src/modules/auth/application/passwordReset/confirmPasswordReset.ts) | Verifica código/senha, atualiza a credencial e revoga sessões, dispositivos e desafios afetados em transação. |
+| 1022 | [Aplicativo/back/src/modules/auth/application/passwordUpdate/requestPasswordUpdate.ts](../Aplicativo/back/src/modules/auth/application/passwordUpdate/requestPasswordUpdate.ts) | Valida a credencial atual, cria o código de confirmação da nova senha e trata a falha de entrega. |
+| 1023 | [Aplicativo/back/src/modules/auth/application/passwordUpdate/confirmPasswordUpdate.ts](../Aplicativo/back/src/modules/auth/application/passwordUpdate/confirmPasswordUpdate.ts) | Confirma a atualização de senha, registra tentativas e revoga sessões/dispositivos/desafios após sucesso. |
+| 1024 | [Aplicativo/back/src/modules/auth/application/deviceVerification/confirmDeviceLogin.ts](../Aplicativo/back/src/modules/auth/application/deviceVerification/confirmDeviceLogin.ts) | Confirma código de instalação, aplica limite de tentativas/bloqueio e cria instalação confiável/sessão atomicamente. |
+| 1025 | [Aplicativo/back/src/modules/auth/application/deviceVerification/resendDeviceLoginCode.ts](../Aplicativo/back/src/modules/auth/application/deviceVerification/resendDeviceLoginCode.ts) | Controla cooldown, renova desafio e envia novo código para reconhecimento da instalação; consome o desafio se o envio falhar. |
+| 1026 | [Aplicativo/back/test/auth-presentation-boundary.test.mjs](../Aplicativo/back/test/auth-presentation-boundary.test.mjs) | Teste que impede imports Drizzle/banco e chamadas diretas ao cliente de banco na apresentação de Auth. |
+
+**Arquivos existentes reorganizados nesta unidade:** `auth/application/registration/createCommercialAccount.ts`; handlers `csrfRoutes.ts`, `deviceVerificationRoutes.ts`, `emailVerificationRoutes.ts`, `passwordResetRoutes.ts`, `passwordUpdateRoutes.ts`, `registrationRoutes.ts`, `sessionRoutes.ts` e `trustedDeviceRoutes.ts`; `package.json` raiz recebeu o teste de fronteira na suíte `pnpm test`. O teste de integração com banco não foi executado por ausência das duas variáveis de destino exigidas; nenhuma escrita ocorreu.
+
+**Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos na etapa Accounts + 7 adicionados em Accounts + 14 adicionados em Auth = **1.024 arquivos** no estado observado atual. O delta não declara concluída a auditoria dos demais domínios nem do frontend.
