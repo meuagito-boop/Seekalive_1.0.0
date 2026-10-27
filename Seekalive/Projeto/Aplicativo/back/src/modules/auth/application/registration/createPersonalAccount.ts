@@ -1,20 +1,35 @@
 import type { RegisterRequest } from "@workspace/api-zod";
-import { createPendingAccount } from "./createPendingAccount";
+import {
+  createPendingAccount,
+  type UsernameClaimLocker,
+} from "./createPendingAccount";
 
-type PersonalRegistration = Extract<RegisterRequest, { accountType: "personal" }>;
+type PersonalRegistration = Extract<
+  RegisterRequest,
+  { accountType: "personal" }
+>;
 
 export function createPersonalAccount(
   registration: PersonalRegistration,
-  identity: { username: string; email: string; passwordHash: string; acceptedTermsVersion: string },
+  identity: {
+    username: string;
+    email: string;
+    passwordHash: string;
+    acceptedTermsVersion: string;
+  },
+  dependencies: { lockUsernameClaims: UsernameClaimLocker },
 ) {
   const firstName = registration.firstName.trim();
   const lastName = registration.lastName.trim();
-  return createPendingAccount({
-    ...identity,
-    age: registration.age,
-    accountType: "personal",
-    displayName: `${firstName} ${lastName}`.trim(),
-    firstName,
-    lastName,
-  });
+  return createPendingAccount(
+    {
+      ...identity,
+      age: registration.age,
+      accountType: "personal",
+      displayName: `${firstName} ${lastName}`.trim(),
+      firstName,
+      lastName,
+    },
+    dependencies.lockUsernameClaims,
+  );
 }

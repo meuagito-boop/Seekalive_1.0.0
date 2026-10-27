@@ -8,7 +8,11 @@ import {
   findActiveAccountByUsername as readActiveAccountByUsername,
   findActiveAccountsByIds,
 } from "../infrastructure/accountReadRepository";
-import type { AccountReadPort, AccountSocialViewPort } from "../application/ports";
+import { lockUsernameClaims as lockUsernameClaimsAdapter } from "../infrastructure/usernameClaimLock";
+import type {
+  AccountReadPort,
+  AccountSocialViewPort,
+} from "../application/ports";
 import { createAccountViews } from "../application/accountViews";
 
 const accountReads: AccountReadPort = {
@@ -29,5 +33,9 @@ export const {
   findActiveAccountById,
   findActiveAccountByUsername,
 } = createAccountViews(accountReads, socialViews);
+
+export const usernameClaimLocks = Object.freeze({
+  lock: lockUsernameClaimsAdapter,
+});
 
 export type { PublicAccountRow } from "../domain/publicAccount";

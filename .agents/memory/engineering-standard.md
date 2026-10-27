@@ -9,10 +9,12 @@ Antes de iniciar cada nova atividade neste projeto, reler integralmente o prompt
 
 Investigar a implementação real antes de alterar; preservar decisões e contratos aprovados; separar responsabilidades por domínio com modularidade equilibrada; avaliar banco, segurança, dependências, testes e efeitos nos módulos relacionados; explicar riscos e pedir esclarecimento antes de decisões irreversíveis; validar com comandos reais; nunca mascarar falhas nem afirmar verificações não executadas; relatar alterações, resultados e pendências com clareza.
 
+Não criar arquivos cuja única função seja reexportar símbolos. Consumidores devem importar do módulo proprietário ou de uma composição que realmente conecte dependências; não usar fachadas vazias para esconder acoplamentos.
+
 As instruções explícitas do usuário definem o escopo e as decisões de produto: não reduzir, ampliar, substituir ou reinterpretar uma ordem por iniciativa própria. Manter recomendações separadas das decisões aprovadas. Se houver ambiguidade essencial, conflito ou limitação técnica/de segurança que impeça executar exatamente o pedido, explicar isso com clareza antes de mudar o escopo.
 
 Toda pendência encontrada que não seja resolvida no escopo atual deve ser registrada em uma seção de pendências do plano de ação, com status, motivo/bloqueio, próxima ação e critério de encerramento. O relatório da etapa pode resumir e apontar para ela, mas não substitui o registro no plano.
 
-**Why:** o usuário designou explicitamente esse prompt como padrão contínuo, pediu releitura a cada atividade e determinou que pendências não resolvidas permaneçam no plano de ação, para não se perderem entre relatórios ou etapas.
+**Why:** o usuário designou o prompt como padrão contínuo, pediu releitura a cada atividade e determinou que não quer arquivos cuja única função seja reexportar código. Isso evita fachadas sem responsabilidade que mascaram acoplamentos.
 
-**How to apply:** no começo de cada tarefa, reler o prompt integral antes de explorar ou editar. Cumprir o escopo explícito e comunicar evidências, riscos e limitações. Ao concluir cada etapa, atualizar a seção de pendências do plano com status, motivo/bloqueio, próxima ação e critério de encerramento; o relatório final deve apontar para esse registro, não substituí-lo.
+**How to apply:** antes de criar um barrel ou fachada, conferir se há composição real, validação ou comportamento próprio. Se for só reexportação, remover o arquivo e atualizar os consumidores para o módulo proprietário; manter acoplamentos restantes explícitos. No começo de cada tarefa, reler o prompt integral antes de explorar ou editar; validar com comandos reais e manter qualquer pendência não resolvida no plano com motivo, próxima ação e critério de fechamento.

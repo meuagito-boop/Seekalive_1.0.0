@@ -7,9 +7,14 @@ import {
   passwordCredentials,
 } from "@workspace/db";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { lockUsernameClaims } from "../../../accounts/infrastructure/usernameClaimLock";
 
-type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type AccountRegistrationTransaction = Parameters<
+  Parameters<typeof db.transaction>[0]
+>[0];
+export type UsernameClaimLocker = (
+  transaction: AccountRegistrationTransaction,
+  usernames: readonly string[],
+) => Promise<void>;
 
 export type PendingAccountInput = {
   username: string;
@@ -21,19 +26,27 @@ export type PendingAccountInput = {
   displayName: string;
   firstName: string | null;
   lastName: string | null;
-  initializeProfile?: (transaction: DatabaseTransaction, accountId: string) => Promise<void>;
+  initializeProfile?: (
+    transaction: AccountRegistrationTransaction,
+    accountId: string,
+  ) => Promise<void>;
 };
 
-export async function createPendingAccount(input: PendingAccountInput) {
+export async function createPendingAccount(
+  input: PendingAccountInput,
+  lockUsernameClaims: UsernameClaimLocker,
+) {
   return db.transaction(async (tx) => {
     await lockUsernameClaims(tx, [input.username]);
     const now = new Date();
     await tx
       .delete(accountUsernameReservations)
-      .where(and(
-        eq(accountUsernameReservations.username, input.username),
-        lte(accountUsernameReservations.reservedUntil, now),
-      ));
+      .where(
+        and(
+          eq(accountUsernameReservations.username, input.username),
+          lte(accountUsernameReservations.reservedUntil, now),
+        ),
+      );
     const [existingUsername] = await tx
       .select({ id: accounts.id })
       .from(accounts)
@@ -42,10 +55,12 @@ export async function createPendingAccount(input: PendingAccountInput) {
     const [activeReservation] = await tx
       .select({ username: accountUsernameReservations.username })
       .from(accountUsernameReservations)
-      .where(and(
-        eq(accountUsernameReservations.username, input.username),
-        gt(accountUsernameReservations.reservedUntil, now),
-      ))
+      .where(
+        and(
+          eq(accountUsernameReservations.username, input.username),
+          gt(accountUsernameReservations.reservedUntil, now),
+        ),
+      )
       .limit(1);
     if (existingUsername || activeReservation) return null;
 
