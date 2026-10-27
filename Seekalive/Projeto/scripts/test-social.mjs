@@ -18,6 +18,7 @@ try {
     "Aplicativo/front/tests/tabKeyboard.test.ts",
     "Aplicativo/front/tests/authSessionState.test.ts",
     "Aplicativo/front/tests/httpClient.test.ts",
+    "Aplicativo/front/tests/registrationForm.test.ts",
   ];
   const testFiles = [];
   for (const entryPoint of testEntries) {

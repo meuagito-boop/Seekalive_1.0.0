@@ -662,10 +662,10 @@ test("seguimentos escolhidos no onboarding permanecem vinculados à conta no nav
   }
 });
 test("idade é coletada no cadastro, mas não exibida após a criação da conta", () => {
-  const registration = readFileSync(
+  const registrationAgeField = readFileSync(
     join(
       process.cwd(),
-      "Aplicativo/front/src/modules/auth/screens/Register.tsx",
+      "Aplicativo/front/src/modules/auth/components/registration/RegistrationAgeField.tsx",
     ),
     "utf8",
   );
@@ -676,7 +676,7 @@ test("idade é coletada no cadastro, mas não exibida após a criação da conta
     ),
     "utf8",
   );
-  assert.match(registration, /data-testid="input-age"/);
+  assert.match(registrationAgeField, /data-testid="input-age"/);
   assert.doesNotMatch(accountSettings, /draft\.age|\bIdade\b/i);
 });
 test("alteração de nome de usuário sincroniza as fontes da conta e do Social", () => {

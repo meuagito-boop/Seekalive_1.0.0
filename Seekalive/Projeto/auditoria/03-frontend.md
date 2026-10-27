@@ -77,12 +77,12 @@ O inventário inicial continha 13 arquivos TypeScript/TSX e 1.895 linhas. A sepa
 
 1. **Contrato HTTP de autenticação não é integralmente gerado/validado no frontend.** Os serviços montam URLs e tipos de resposta localmente. `shared/api-spec/openapi.yaml` documenta apenas mudança de e-mail/senha em Auth; endpoints de login, cadastro, verificação, sessão e recuperação aparecem no `docs/api/backend/openapi.json`, mas não nessa especificação usada pelo cliente gerado. Isso cria risco de divergência; não foi constatada uma resposta específica incompatível nesta revisão.
 2. **Resposta de sucesso pode falhar silenciosamente no cliente.** Em `modules/app/api/httpClient.ts`, falha de `response.json()` é convertida em `undefined`, e `parseResponse<T>` retorna o payload com cast para `T`, sem validação de runtime. Um servidor que retorne JSON inválido/vazio com status de sucesso pode ser tratado como sucesso tipado. Respostas `204` para operações `void` são o caso esperado; os outros endpoints precisam contrato explícito.
-3. **Consentimento de termos não está ligado a documentos visíveis.** `Register.tsx` envia `acceptedTermsVersion: "v1"` hardcoded; os nomes “Termos de Serviço” e “Política de Privacidade” são `span`s, não links para conteúdo. O controle é um botão `role="checkbox"` dentro de `label`, sem associação HTML válida com o texto clicável. A validação server-side do aceite existe no contrato, mas a interface não dá acesso ao conteúdo que está sendo aceito.
+3. **Consentimento de termos não está ligado a documentos visíveis.** `application/registrationPayload.ts` envia `acceptedTermsVersion: "v1"`; os nomes “Termos de Serviço” e “Política de Privacidade” são `span`s, não links para conteúdo. O controle é um botão `role="checkbox"` dentro de `label`, sem associação HTML válida com o texto clicável. A validação server-side do aceite existe no contrato, mas a interface não dá acesso ao conteúdo que está sendo aceito.
 4. **Campos OTP de confirmação de e-mail sem nome acessível.** Os seis inputs em `VerifyEmail.tsx` não têm `aria-label`, `aria-labelledby` ou descrição individual. Os campos de código do login têm rótulo; a confirmação por e-mail não tem. Isso prejudica uso por leitor de tela.
-5. **Responsabilidade concentrada nas telas.** `Login.tsx` ainda combina vários estados de fluxo e comunicação; `Register.tsx` ainda combina schema, normalização/montagem do payload e formulários pessoal/comercial. São candidatas concretas a decomposição proporcional; permanecem sem refatoração estrutural nesta etapa.
+5. **Responsabilidade concentrada nas telas — corrigida em 27/10/2026.** A extração estrutural descrita abaixo retirou dos componentes de tela a orquestração dos fluxos de login, desafio de instalação, atualização obrigatória de senha e cadastro pessoal/comercial. Não houve alteração intencional das regras de negócio ou dos contratos.
 6. **Fronteira de transporte compartilhado — corrigida em 27/10/2026.** `modules/social/services/socialGraphApi.ts`, `modules/onboarding/services/onboardingApi.ts` e os serviços de Auth agora importam o cliente de `modules/app/api/httpClient.ts`, não de Auth. O cliente é propriedade da API comum do aplicativo, e Auth mantém apenas os serviços dos seus próprios fluxos. Endpoints, cabeçalhos, cookies, payloads e tratamento de sessão foram preservados.
 7. **“Salvar senha” é apenas uma dica ao navegador.** O checkbox no Login alterna o atributo `autoComplete` entre `current-password` e `off`; a aplicação não salva a senha. O texto diz que o gerenciador do navegador é responsável, mas esse atributo é uma solicitação ao navegador e não garante que ele vá persistir a credencial.
-8. **Cobertura frontend é limitada para fluxos completos.** Há agora três testes unitários do cliente HTTP compartilhado (CSRF/POST, GET/DELETE e contrato de erro). Ainda não foram encontrados testes de componente ou E2E cobrindo login, cadastro, confirmação/reenvio de e-mail, desafio de instalação ou recuperação de senha. A suíte geral passou, mas isso não substitui esses fluxos.
+8. **Cobertura frontend é limitada para fluxos completos.** Há três testes unitários do cliente HTTP compartilhado (CSRF/POST, GET/DELETE e contrato de erro) e três testes novos de validação/montagem do cadastro. Ainda não foram encontrados testes de componente ou E2E cobrindo login, cadastro, confirmação/reenvio de e-mail, desafio de instalação ou recuperação de senha. A suíte geral passou, mas isso não substitui esses fluxos.
 
 **Controles observados:** os segredos não são armazenados no estado do app; requisições usam origem relativa e `credentials: "include"`; os schemas compartilhados cobrem política de senha, cadastro/idade, username e recuperação; o login não libera conta não verificada e apresenta desafio para instalação não reconhecida; a recuperação evita indicar se um e-mail está cadastrado. A validação autoritativa e a proteção contra abuso permanecem responsabilidade do backend.
 
@@ -90,9 +90,41 @@ O inventário inicial continha 13 arquivos TypeScript/TSX e 1.895 linhas. A sepa
 
 `auth/services/http.ts` foi removido após verificar todos os consumidores. O transporte comum agora fica em `app/api/httpClient.ts`, ao lado de `apiErrors.ts`, e os consumidores de Auth, Social e Onboarding foram atualizados. A classe interna de erro foi renomeada de `AuthApiError` para `ApiRequestError`, pois representa respostas da API em todos esses domínios. Nenhuma URL, regra de CSRF, método HTTP, cookie, formato de resposta ou tratamento de erro foi intencionalmente alterado. Foram adicionados três testes diretos para POST com CSRF, GET/DELETE e propagação dos metadados de erro.
 
-**Validação desta correção:** `pnpm test` passou; `pnpm build` e typecheck de todos os workspaces passaram; Prettier e busca por importações antigas passaram. Os três testes novos validam o transporte isoladamente, mas não substituem jornadas reais de login/cadastro nem validam estruturalmente os corpos de sucesso. A revisão estrutural de Auth permanece aberta para separar as responsabilidades de Login e Cadastro e tratar os demais achados registrados.
+**Validação desta correção:** `pnpm test` passou; `pnpm build` e typecheck de todos os workspaces passaram; Prettier e busca por importações antigas passaram. Os três testes novos validam o transporte isoladamente, mas não substituem jornadas reais de login/cadastro nem validam estruturalmente os corpos de sucesso. Naquele momento, a revisão estrutural de Auth ainda aguardava a separação de Login e Cadastro; o estado atualizado está na seção seguinte.
 
 **Validação disponível:** `pnpm test:social` passou (60/60), incluindo `authSessionState.test.ts` e `contracts.test.ts`; typecheck e build completos passaram no estado atual. Não foi feita verificação visual/interativa dos formulários nem chamada a e-mail ou cadastro real. A melhoria/correção dos achados ficará para a fase posterior de correções solicitada pelo usuário.
+
+### Separação estrutural de Login e Cadastro — 27/10/2026
+
+As telas agora compõem responsabilidades do domínio Auth em vez de concentrá-las:
+
+| Arquivo/módulo | Responsabilidade |
+| --- | --- |
+| `application/loginFormSchema.ts` | Schemas de credenciais e atualização obrigatória de senha. |
+| `application/useLoginSubmission.ts` | Submissão de credenciais e despacho dos resultados: conta autenticada, desafio de instalação, troca obrigatória ou e-mail não confirmado. |
+| `application/useDeviceLoginChallenge.ts` | Estado e operações do desafio de instalação: confirmar código, reenviar, temporizador, erros e cancelamento. |
+| `application/usePasswordPolicyUpdate.ts` | Troca obrigatória, confirmação por e-mail e novo login após a alteração. |
+| `components/login/LoginCredentialsForm.tsx` | Campos de usuário/e-mail, senha, visibilidade, opção do gerenciador do navegador e acesso à recuperação. |
+| `components/login/DeviceLoginVerificationPanel.tsx` | Apresentação e entrada do código de novo dispositivo/instalação. |
+| `components/login/PasswordPolicyUpdateForm.tsx` | Formulário da nova senha e confirmação local. |
+| `components/login/PasswordUpdateVerificationPanel.tsx` | Entrada do código para confirmar a troca de senha. |
+| `application/registrationFormSchema.ts` | Regras client-side do cadastro, incluindo campos condicionais pessoal/comercial. |
+| `application/registrationPayload.ts` | Normalização permitida e montagem dos payloads discriminados de cadastro pessoal/comercial. |
+| `components/registration/RegistrationAccountTypeField.tsx` | Seleção pessoal/comercial. |
+| `components/registration/PersonalRegistrationFields.tsx` | Nome e sobrenome da conta pessoal. |
+| `components/registration/CommercialRegistrationNameField.tsx` | Nome público da empresa/prestador. |
+| `components/registration/CommercialRegistrationFields.tsx` | Categoria, tipo de presença no Seek e endereço comercial. |
+| `components/registration/RegistrationAgeField.tsx` | Coleta privada da idade e rótulo condicional do responsável comercial. |
+| `components/registration/RegistrationIdentityFields.tsx` | @ e e-mail compartilhados entre os tipos de conta. |
+| `components/registration/RegistrationCredentialsFields.tsx` | Senha, exibição da senha e confirmação. |
+| `components/registration/RegistrationTermsField.tsx` | Apresentação do aceite já existente. |
+| `screens/Login.tsx` / `screens/Register.tsx` | Composição da tela, navegação, feedback e conexão entre os componentes e os casos de uso. |
+
+O formulário preserva a ordem visual anterior dos campos, os valores iniciais, validações, mapeamento de payload, chamadas e rotas. O esquema não passou a aceitar um @ inicial: isso não era permitido pela regra existente. A atualização obrigatória da senha continua exigindo a credencial atual e confirmação de e-mail; a confirmação de novo dispositivo continua com tentativas/reenvio e bloqueio conforme resposta da API. As operações de e-mail continuam ligadas aos serviços existentes.
+
+**Verificações executadas:** `pnpm test` passou integralmente, incluindo 69 testes frontend e todas as suítes de backend/limites; `pnpm --filter @workspace/social typecheck` passou; `pnpm build` passou em todos os workspaces com typecheck e checagem de conteúdo demonstrativo; Prettier passou nos arquivos alterados. As páginas públicas Login e Cadastro foram conferidas no preview a 402×874 e 1365×900; os registros do navegador mostraram apenas conexão Vite e a informação do React DevTools. Não foi feita interação com credenciais, desafio de instalação, envio de e-mail ou cadastro real.
+
+**Limite residual:** a verificação `git diff --check` não foi executada porque a proteção do workspace bloqueou o acesso ao índice Git; isso não foi contornado. Permanecem os achados 1–4 e 7–8 acima, que são gaps de contrato, validação de fronteira, acessibilidade e testes de jornada, não foram alterados nesta refatoração. O corte estrutural de Login/Cadastro está concluído; não se declara o domínio Auth inteiro pronto para produção nem se inicia outro domínio nesta etapa.
 
 ## Divisão pessoal e comercial
 
