@@ -1,13 +1,24 @@
-import { persistOnboardingCompletion } from "../infrastructure/onboardingRepository";
+import type { PersistOnboardingCompletion } from "./ports";
 
-export async function completeOnboarding(
-  accountId: string,
-  input: { interests: string[]; skipped: boolean },
-): Promise<number> {
-  const interests = input.skipped ? [] : input.interests;
-  const completedAt = new Date();
+export type CompleteOnboardingInput = {
+  interests: string[];
+  skipped: boolean;
+};
 
-  await persistOnboardingCompletion(accountId, interests, completedAt);
+export function createOnboardingCompleter(
+  persistCompletion: PersistOnboardingCompletion,
+) {
+  return async function completeOnboarding(
+    accountId: string,
+    input: CompleteOnboardingInput,
+  ): Promise<number> {
+    const interests = input.skipped ? [] : input.interests;
+    const completedAt = new Date();
 
-  return interests.length;
+    await persistCompletion(accountId, interests, completedAt);
+
+    return interests.length;
+  };
 }
+
+export type CompleteOnboarding = ReturnType<typeof createOnboardingCompleter>;

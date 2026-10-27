@@ -7,11 +7,13 @@ export async function persistOnboardingCompletion(
   completedAt: Date,
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx.delete(accountInterests).where(eq(accountInterests.accountId, accountId));
+    await tx
+      .delete(accountInterests)
+      .where(eq(accountInterests.accountId, accountId));
     if (interests.length > 0) {
-      await tx.insert(accountInterests).values(
-        interests.map((interestKey) => ({ accountId, interestKey })),
-      );
+      await tx
+        .insert(accountInterests)
+        .values(interests.map((interestKey) => ({ accountId, interestKey })));
     }
     await tx
       .update(accounts)

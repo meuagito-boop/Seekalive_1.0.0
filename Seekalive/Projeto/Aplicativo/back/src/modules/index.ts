@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import authRouter from "./auth/presentation/routes";
 import { checkDatabaseReadiness } from "./health/infrastructure/databaseReadiness";
 import { createHealthRouter } from "./health/presentation/routes";
-import onboardingRouter from "./onboarding/presentation/routes";
+import onboardingRouter from "./onboarding/composition/router";
 import accountsRouter from "./profiles/presentation/routes";
 import relationsRouter from "./social/presentation/routes";
 import feedRouter from "./feed/composition/router";

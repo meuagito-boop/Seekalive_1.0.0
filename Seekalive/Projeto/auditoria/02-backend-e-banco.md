@@ -101,13 +101,13 @@ As rotas e respostas continuam iguais: `/healthz` é independente da disponibili
 
 ### Unidade estrutural concluída: Onboarding
 
-O handler `presentation/routes.ts` continua responsável pelo transporte: exige CSRF, carrega sessão ativa, valida `onboardingCompletionSchema` e mantém o formato de resposta existente. O caso de uso `application/completeOnboarding.ts` aplica a regra aprovada de que uma etapa pulada salva lista vazia e informa a quantidade final de interesses. A operação de banco está agora em `infrastructure/onboardingRepository.ts`, único arquivo do módulo que importa `@workspace/db`/Drizzle.
+`presentation/routes.ts` mantém o transporte: exige CSRF, carrega sessão ativa, valida `onboardingCompletionSchema` e preserva o formato de resposta. Agora cria o router recebendo `CompleteOnboarding` como dependência de tipo, sem importar o caso de uso em runtime. `application/completeOnboarding.ts` aplica a regra de que uma etapa pulada salva uma lista vazia e retorna a contagem final; recebe `PersistOnboardingCompletion` por uma porta declarada em `application/ports.ts`, sem importar persistência.
 
-O adapter mantém uma única transação para remover os interesses anteriores, inserir a nova seleção quando não vazia e atualizar `onboardingCompletedAt` e `updatedAt` apenas para conta ativa. A tabela `account_interests` continua no schema de Accounts, ligada por FK à conta; esta unidade não moveu schema nem alterou migrações.
+`composition/router.ts` conecta o caso de uso ao repositório e à fábrica de router; `modules/index.ts` monta essa composição. `infrastructure/onboardingRepository.ts` continua mantendo uma única transação para remover interesses anteriores, inserir a nova seleção quando não vazia e atualizar `onboardingCompletedAt` e `updatedAt` somente para conta ativa. A tabela `account_interests` continua no schema de Accounts, ligada por FK à conta; esta unidade não moveu schema nem alterou migrations.
 
-O teste de fronteira confirma que aplicação e apresentação não importam persistência e que a transação e as três operações permanecem na infraestrutura. O teste de integração isolado que inclui cadastro e persistência de interesses não foi executado: a proteção parou o comando antes de conexão por falta de `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`. Nenhum schema ou dado foi criado/modificado.
+`onboarding-layer-boundary.test.mjs` protege aplicação, apresentação, infraestrutura, composição e ponto de entrada; três testes de injeção cobrem seleção, etapa pulada e propagação de falha de persistência. A suíte `api-isolated-db.test.mjs` inclui cadastro, confirmação, persistência de onboarding e regras sociais no mesmo schema temporário. A execução desta etapa não foi feita porque faltavam as variáveis de confirmação do banco-alvo; não houve conexão nem escrita no banco nesta execução. A etapa anterior registrou uma execução bem-sucedida do conjunto isolado, mas isso não substitui uma repetição após a refatoração atual.
 
-**Contrato pendente observado:** a rota `POST /v1/onboarding/interests` existe no backend e é usada pelo app, mas não está descrita no OpenAPI nem no cliente gerado. A alteração do contrato ficou fora desta reorganização e deve ser feita em etapa própria, incluindo geração e teste de compatibilidade.
+**Contrato verificado:** `POST /v1/onboarding/interests` está descrito em `docs/api/backend/openapi.json` e `docs/api/backend/endpoints.md`; o schema de entrada está em `shared/contracts`. Esta refatoração não alterou nem regenerou o contrato.
 
 ## Domínios e dependências cruzadas
 
