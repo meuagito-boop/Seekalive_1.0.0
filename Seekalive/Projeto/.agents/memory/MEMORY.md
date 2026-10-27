@@ -5,3 +5,4 @@
 - [Interface Social e Seek](social-interface-rules.md) — Laranja, navegação sem redundância e nenhum sucesso simulado ao retirar avisos de demonstração.
 - [Identidade visual Seekalive](seekalive-brand.md) — Elo aprovado para o aplicativo; grafia correta é Seekalive, somente com S inicial maiúsculo.
 - [Localização do Seek](seek-location.md) — Catálogo IBGE versionado; GPS explícito e sem persistência; não simular distâncias nem catálogo real com exemplos.
+- [Entrega de email na autenticação](auth-email-delivery.md) — Reorganizar camadas nunca pode retirar nem alterar os fluxos de envio, falha ou indisponibilidade de email.

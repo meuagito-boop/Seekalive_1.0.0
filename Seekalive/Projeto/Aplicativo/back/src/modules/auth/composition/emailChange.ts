@@ -3,15 +3,55 @@ import { createConfirmNewEmailChange } from "../application/emailChange/confirmN
 import { createStartEmailChange } from "../application/emailChange/startEmailChange";
 import { accountSecurityOperations } from "./accountSecurity";
 import { emailChangeRepository } from "../infrastructure/emailChangeRepository";
+import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
+
+const startEmailChange = createStartEmailChange(
+  emailChangeRepository,
+  accountSecurityOperations,
+);
+const confirmCurrentEmailChange = createConfirmCurrentEmailChange(
+  emailChangeRepository,
+  accountSecurityOperations,
+);
+const confirmNewEmailChange = createConfirmNewEmailChange(
+  emailChangeRepository,
+);
 
 export const emailChangeOperations = {
-  startEmailChange: createStartEmailChange(
-    emailChangeRepository,
-    accountSecurityOperations,
-  ),
-  confirmCurrentEmailChange: createConfirmCurrentEmailChange(
-    emailChangeRepository,
-    accountSecurityOperations,
-  ),
-  confirmNewEmailChange: createConfirmNewEmailChange(emailChangeRepository),
+  startEmailChange(
+    accountId: string,
+    currentPassword: string,
+    newEmail: string,
+  ) {
+    return startEmailChange(
+      accountId,
+      currentPassword,
+      newEmail,
+      getAuthEmailDelivery(),
+    );
+  },
+  confirmCurrentEmailChange(
+    accountId: string,
+    challengeId: string,
+    submittedCode: string,
+  ) {
+    return confirmCurrentEmailChange(
+      accountId,
+      challengeId,
+      submittedCode,
+      getAuthEmailDelivery(),
+    );
+  },
+  confirmNewEmailChange(
+    accountId: string,
+    challengeId: string,
+    submittedCode: string,
+  ) {
+    return confirmNewEmailChange(
+      accountId,
+      challengeId,
+      submittedCode,
+      getAuthEmailDelivery(),
+    );
+  },
 };

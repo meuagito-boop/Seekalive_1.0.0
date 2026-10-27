@@ -5,22 +5,30 @@ import { createConfirmPasswordReset } from "../application/passwordReset/confirm
 import { createRequestPasswordReset } from "../application/passwordReset/requestPasswordReset";
 import { passwordResetConfirmationRepository } from "../infrastructure/passwordResetConfirmationRepository";
 import { passwordResetRequestRepository } from "../infrastructure/passwordResetRequestRepository";
+import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { challengeOperations } from "./challenges";
 
-export const passwordResetOperations = {
-  request: createRequestPasswordReset({
-    repository: passwordResetRequestRepository,
-    createChallenge: challengeOperations.createPasswordResetChallenge,
-    invalidateChallenge: challengeOperations.invalidatePasswordResetChallenge,
-    logger: {
-      warn(fields, message) {
-        logger.warn(fields, message);
-      },
-      error(fields, message) {
-        logger.error(fields, message);
-      },
+const requestPasswordReset = createRequestPasswordReset({
+  repository: passwordResetRequestRepository,
+  createChallenge: challengeOperations.createPasswordResetChallenge,
+  invalidateChallenge: challengeOperations.invalidatePasswordResetChallenge,
+  logger: {
+    warn(fields, message) {
+      logger.warn(fields, message);
     },
-  }),
+    error(fields, message) {
+      logger.error(fields, message);
+    },
+  },
+});
+
+export const passwordResetOperations = {
+  isDeliveryConfigured() {
+    return getAuthEmailDelivery().isConfigured;
+  },
+  request(email: string) {
+    return requestPasswordReset(email, getAuthEmailDelivery());
+  },
   confirm: createConfirmPasswordReset(passwordResetConfirmationRepository, {
     verifyPasswordHash(passwordHash, password) {
       return argon2.verify(passwordHash, password);

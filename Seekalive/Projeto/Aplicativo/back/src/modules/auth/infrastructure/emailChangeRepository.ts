@@ -48,18 +48,21 @@ export const emailChangeRepository: EmailChangeRepository = {
               email: accountEmails.emailNormalized,
               emailVerifiedAt: accountEmails.verifiedAt,
               displayName: accounts.displayName,
-              passwordHash: passwordCredentials.passwordHash,
             })
             .from(accounts)
             .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-            .leftJoin(
-              passwordCredentials,
-              eq(passwordCredentials.accountId, accounts.id),
-            )
             .where(eq(accounts.id, accountId))
             .for("update")
             .limit(1);
-          return owner ?? null;
+          if (!owner) return null;
+
+          const [credential] = await tx
+            .select({ passwordHash: passwordCredentials.passwordHash })
+            .from(passwordCredentials)
+            .where(eq(passwordCredentials.accountId, accountId))
+            .for("update")
+            .limit(1);
+          return { ...owner, passwordHash: credential?.passwordHash ?? null };
         },
 
         async isEmailInUse(email) {

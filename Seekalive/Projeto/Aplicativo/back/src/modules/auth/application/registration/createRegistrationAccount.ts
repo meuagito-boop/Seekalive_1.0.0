@@ -1,28 +1,19 @@
 import type { RegisterRequest } from "@workspace/api-zod";
-import {
-  createCommercialAccount,
-  type CommercialProfileInitializer,
-} from "./createCommercialAccount";
+import { createCommercialAccount } from "./createCommercialAccount";
 import { createPersonalAccount } from "./createPersonalAccount";
-import type { UsernameClaimLocker } from "./createPendingAccount";
+import type {
+  RegistrationAccountWriter,
+  RegistrationIdentity,
+} from "./registrationPorts";
 
-type RegistrationIdentity = {
-  username: string;
-  email: string;
-  passwordHash: string;
-  acceptedTermsVersion: string;
-};
-
-export function createRegistrationAccount(dependencies: {
-  lockUsernameClaims: UsernameClaimLocker;
-  initializeCommercialProfile: CommercialProfileInitializer;
-}) {
+export function createRegistrationAccount(
+  accountWriter: RegistrationAccountWriter,
+) {
   return (registration: RegisterRequest, identity: RegistrationIdentity) => {
-    if (registration.accountType === "personal") {
-      return createPersonalAccount(registration, identity, {
-        lockUsernameClaims: dependencies.lockUsernameClaims,
-      });
-    }
-    return createCommercialAccount(registration, identity, dependencies);
+    const accountInput =
+      registration.accountType === "personal"
+        ? createPersonalAccount(registration, identity)
+        : createCommercialAccount(registration, identity);
+    return accountWriter.createPendingAccount(accountInput);
   };
 }

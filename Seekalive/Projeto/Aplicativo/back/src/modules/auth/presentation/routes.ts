@@ -1,5 +1,4 @@
 import { Router, type IRouter } from "express";
-import { setAuthEmailDeliveryForTests } from "../infrastructure/emailDelivery";
 import accountSecurityRouter from "./accountSecurityRoutes";
 import csrfRouter from "./csrfRoutes";
 import deviceVerificationRouter from "./deviceVerificationRoutes";
@@ -29,5 +28,4 @@ router.use(emailVerificationRouter);
 router.use(sessionRouter);
 router.use(trustedDeviceRouter);
 
-export { setAuthEmailDeliveryForTests };
 export default router;

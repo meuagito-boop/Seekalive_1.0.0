@@ -1,8 +1,8 @@
 import type { RegisterRequest } from "@workspace/api-zod";
-import {
-  createPendingAccount,
-  type UsernameClaimLocker,
-} from "./createPendingAccount";
+import type {
+  PendingAccountInput,
+  RegistrationIdentity,
+} from "./registrationPorts";
 
 type PersonalRegistration = Extract<
   RegisterRequest,
@@ -11,25 +11,16 @@ type PersonalRegistration = Extract<
 
 export function createPersonalAccount(
   registration: PersonalRegistration,
-  identity: {
-    username: string;
-    email: string;
-    passwordHash: string;
-    acceptedTermsVersion: string;
-  },
-  dependencies: { lockUsernameClaims: UsernameClaimLocker },
-) {
+  identity: RegistrationIdentity,
+): PendingAccountInput {
   const firstName = registration.firstName.trim();
   const lastName = registration.lastName.trim();
-  return createPendingAccount(
-    {
-      ...identity,
-      age: registration.age,
-      accountType: "personal",
-      displayName: `${firstName} ${lastName}`.trim(),
-      firstName,
-      lastName,
-    },
-    dependencies.lockUsernameClaims,
-  );
+  return {
+    ...identity,
+    age: registration.age,
+    accountType: "personal",
+    displayName: `${firstName} ${lastName}`.trim(),
+    firstName,
+    lastName,
+  };
 }

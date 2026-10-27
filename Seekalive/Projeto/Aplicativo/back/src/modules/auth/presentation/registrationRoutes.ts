@@ -4,13 +4,11 @@ import { logger } from "../../../common/logger";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
 import { hashPassword } from "../application/passwordHashing";
-import { createRegistrationAccountService } from "../composition/registration";
-import { emailVerificationOperations } from "../composition/emailVerification";
 import {
-  findRegistrationEmail,
-  isRegistrationUsernameUnavailable,
-} from "../application/registration/registrationAvailability";
-import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
+  createRegistrationAccountService,
+  registrationAvailabilityOperations,
+} from "../composition/registration";
+import { emailVerificationOperations } from "../composition/emailVerification";
 import { sendError, sendValidationError } from "./responses";
 
 const router: IRouter = Router();
@@ -29,7 +27,6 @@ router.post(
       return;
     }
     const registration = parsed.data;
-    const delivery = getAuthEmailDelivery();
     if (registration.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
       sendError(
         response,
@@ -39,7 +36,7 @@ router.post(
       );
       return;
     }
-    if (!delivery.isConfigured) {
+    if (!emailVerificationOperations.isDeliveryConfigured()) {
       sendError(
         response,
         503,
@@ -51,7 +48,11 @@ router.post(
 
     const username = registration.username.toLowerCase();
     const email = registration.email.toLowerCase();
-    if (await isRegistrationUsernameUnavailable(username)) {
+    if (
+      await registrationAvailabilityOperations.isRegistrationUsernameUnavailable(
+        username,
+      )
+    ) {
       sendError(
         response,
         409,
@@ -61,12 +62,12 @@ router.post(
       return;
     }
 
-    const emailMatch = await findRegistrationEmail(email);
+    const emailMatch =
+      await registrationAvailabilityOperations.findRegistrationEmail(email);
     if (emailMatch) {
       if (emailMatch.status === "pending_verification") {
         try {
           await emailVerificationOperations.sendVerificationCode(
-            delivery,
             emailMatch,
             email,
           );
@@ -112,11 +113,7 @@ router.post(
       }
 
       try {
-        await emailVerificationOperations.sendVerificationCode(
-          delivery,
-          account,
-          email,
-        );
+        await emailVerificationOperations.sendVerificationCode(account, email);
       } catch {
         logger.warn(
           { code: "EMAIL_DELIVERY_FAILED" },

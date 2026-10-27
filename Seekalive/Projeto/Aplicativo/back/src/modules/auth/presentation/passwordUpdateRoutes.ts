@@ -11,7 +11,6 @@ import {
   requireCsrf,
 } from "../../../security/session";
 import { passwordUpdateOperations } from "../composition/passwordUpdate";
-import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import {
   sendError,
   sendValidationError,
@@ -35,7 +34,6 @@ router.post(
       parsed.data.identifier,
       parsed.data.currentPassword,
       parsed.data.newPassword,
-      getAuthEmailDelivery(),
     );
     if (result.kind === "invalid_credentials") {
       sendError(

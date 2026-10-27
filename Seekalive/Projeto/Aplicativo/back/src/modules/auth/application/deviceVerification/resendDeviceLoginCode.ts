@@ -11,10 +11,7 @@ import {
   DEVICE_RESEND_COOLDOWN_MS,
   MAX_DEVICE_LOGIN_ATTEMPTS,
 } from "../challenges/deviceLogin";
-import {
-  EmailDeliveryUnavailableError,
-  type AuthEmailDelivery,
-} from "../../infrastructure/emailDelivery";
+import { type AuthEmailDelivery } from "../emailDelivery";
 import type { DeviceVerificationRepository } from "./ports";
 
 export type DeviceLoginResendResult =
@@ -93,8 +90,15 @@ export function createResendDeviceLoginCode(
     });
 
     if (update.kind !== "sent") return update;
+    if (!delivery.isConfigured) {
+      logger.warn(
+        { code: "DEVICE_LOGIN_RESEND_FAILED" },
+        "Device verification email could not be delivered",
+      );
+      await repository.invalidateChallenge(challengeId, new Date());
+      return { kind: "delivery_unavailable" };
+    }
     try {
-      if (!delivery.isConfigured) throw new EmailDeliveryUnavailableError();
       await delivery.sendDeviceLoginCode({
         email: update.email,
         displayName: update.displayName,
@@ -106,9 +110,7 @@ export function createResendDeviceLoginCode(
         "Device verification email could not be delivered",
       );
       await repository.invalidateChallenge(challengeId, new Date());
-      return delivery.isConfigured
-        ? { kind: "delivery_failed" }
-        : { kind: "delivery_unavailable" };
+      return { kind: "delivery_failed" };
     }
     return {
       kind: "sent",

@@ -11,7 +11,6 @@ import {
   requireCsrf,
 } from "../../../security/session";
 import { passwordResetOperations } from "../composition/passwordReset";
-import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import {
   sendError,
   sendValidationError,
@@ -37,10 +36,9 @@ router.post(
     }
 
     const email = parsed.data.email;
-    const delivery = getAuthEmailDelivery();
 
-    if (delivery.isConfigured) {
-      await passwordResetOperations.request(email, delivery);
+    if (passwordResetOperations.isDeliveryConfigured()) {
+      await passwordResetOperations.request(email);
     }
 
     const responseDelay = Math.max(0, 200 - (Date.now() - startedAt));

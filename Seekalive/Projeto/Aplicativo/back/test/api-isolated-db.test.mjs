@@ -9,17 +9,24 @@ import { fileURLToPath } from "node:url";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 const schemaName = `seekalive_test_${randomUUID().replaceAll("-", "")}`;
-const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const projectRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../..",
+);
 const expectedDatabase = process.env.SEEKALIVE_EXPECTED_DATABASE?.trim();
 const isProductionRuntime =
   process.env.NODE_ENV?.trim().toLowerCase() === "production" ||
   Boolean(process.env.REPLIT_DEPLOYMENT?.trim());
 
 if (process.env.SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS !== "1") {
-  throw new Error("Set SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 to authorize this isolated write test.");
+  throw new Error(
+    "Set SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 to authorize this isolated write test.",
+  );
 }
 if (isProductionRuntime) {
-  throw new Error("Isolated database tests are not allowed in a production runtime.");
+  throw new Error(
+    "Isolated database tests are not allowed in a production runtime.",
+  );
 }
 if (!process.env.DATABASE_URL || !expectedDatabase) {
   throw new Error("DATABASE_URL and SEEKALIVE_EXPECTED_DATABASE are required.");
@@ -80,8 +87,8 @@ const expectedTables = [
   "accounts",
   "auth_challenges",
   "business_profiles",
-  "feed_posts",
   "password_credentials",
+  "posts",
   "sessions",
   "trusted_devices",
 ];
@@ -127,12 +134,14 @@ async function publicSchemaFingerprint() {
     `),
   ]);
   return createHash("sha256")
-    .update(JSON.stringify({
-      columns: columns.rows,
-      constraints: constraints.rows,
-      indexes: indexes.rows,
-      views: views.rows,
-    }))
+    .update(
+      JSON.stringify({
+        columns: columns.rows,
+        constraints: constraints.rows,
+        indexes: indexes.rows,
+        views: views.rows,
+      }),
+    )
     .digest("hex");
 }
 
@@ -150,7 +159,9 @@ const accountEmailChangeNewMessages = [];
 const accountEmailChangeSecurityNotices = [];
 
 before(async () => {
-  const { rows } = await pool.query("SELECT current_database() AS database_name");
+  const { rows } = await pool.query(
+    "SELECT current_database() AS database_name",
+  );
   assert.equal(
     rows[0]?.database_name,
     expectedDatabase,
@@ -177,17 +188,27 @@ before(async () => {
     "[DATABASE_URL REDACTED]",
   );
   if (push.error || push.status !== 0) {
-    throw new Error(`Drizzle could not create the isolated schema (exit ${push.status ?? "unknown"}):\n${pushOutput}`);
+    throw new Error(
+      `Drizzle could not create the isolated schema (exit ${push.status ?? "unknown"}):\n${pushOutput}`,
+    );
   }
 
   const createdTables = await pool.query(
     `SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' ORDER BY table_name`,
     [schemaName],
   );
-  assert.deepEqual(createdTables.rows.map((row) => row.table_name), expectedTables);
-  assert.equal(await publicSchemaFingerprint(), publicSchemaBefore, "Schema push changed the public schema.");
+  assert.deepEqual(
+    createdTables.rows.map((row) => row.table_name),
+    expectedTables,
+  );
+  assert.equal(
+    await publicSchemaFingerprint(),
+    publicSchemaBefore,
+    "Schema push changed the public schema.",
+  );
 
-  const { setAuthEmailDeliveryForTests } = await import("../src/modules/auth/presentation/routes.ts");
+  const { setAuthEmailDeliveryForTests } =
+    await import("../src/modules/auth/infrastructure/emailDelivery.ts");
   setAuthEmailDeliveryForTests({
     isConfigured: true,
     async sendVerificationCode(message) {
@@ -234,7 +255,9 @@ after(async () => {
   }
   try {
     if (schemaCreated) {
-      await pool.query(`DROP SCHEMA ${quoteGeneratedSchema(schemaName)} CASCADE`);
+      await pool.query(
+        `DROP SCHEMA ${quoteGeneratedSchema(schemaName)} CASCADE`,
+      );
       schemaCreated = false;
       console.log("Isolated test schema dropped.");
     }
@@ -276,11 +299,15 @@ function mergeResponseCookies(auth, response) {
     if (separator < 0) continue;
     const name = pair.slice(0, separator);
     const value = pair.slice(separator + 1);
-    const isCleared = attributes.some((attribute) => attribute.trim().toLowerCase() === "max-age=0");
+    const isCleared = attributes.some(
+      (attribute) => attribute.trim().toLowerCase() === "max-age=0",
+    );
     if (isCleared || value === "") values.delete(name);
     else values.set(name, value);
   }
-  auth.cookie = [...values].map(([name, value]) => `${name}=${value}`).join("; ");
+  auth.cookie = [...values]
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
 }
 
 async function request(
@@ -312,13 +339,18 @@ async function request(
   if (auth && parsedBody?.csrfToken) auth.csrfToken = parsedBody.csrfToken;
 
   if (
-    autoDeviceVerification
-    && path === "/api/v1/auth/login"
-    && response.status === 202
-    && parsedBody?.status === "device_verification_required"
+    autoDeviceVerification &&
+    path === "/api/v1/auth/login" &&
+    response.status === 202 &&
+    parsedBody?.status === "device_verification_required"
   ) {
-    const message = deviceLoginMessages.slice(deviceMessageCount).findLast((item) => item.code);
-    assert.ok(message, "A device login challenge must send a code to the test email sink.");
+    const message = deviceLoginMessages
+      .slice(deviceMessageCount)
+      .findLast((item) => item.code);
+    assert.ok(
+      message,
+      "A device login challenge must send a code to the test email sink.",
+    );
     return request("/api/v1/auth/device-verification/confirm", {
       method: "POST",
       body: { challengeId: parsedBody.challengeId, code: message.code },
@@ -330,13 +362,18 @@ async function request(
   }
 
   if (
-    autoCompletePasswordUpdate
-    && path === "/api/v1/auth/password/update"
-    && response.status === 202
-    && parsedBody?.status === "password_update_verification_required"
+    autoCompletePasswordUpdate &&
+    path === "/api/v1/auth/password/update" &&
+    response.status === 202 &&
+    parsedBody?.status === "password_update_verification_required"
   ) {
-    const message = passwordUpdateMessages.slice(passwordUpdateMessageCount).findLast((item) => item.code);
-    assert.ok(message, "A password update challenge must send a code to the test email sink.");
+    const message = passwordUpdateMessages
+      .slice(passwordUpdateMessageCount)
+      .findLast((item) => item.code);
+    assert.ok(
+      message,
+      "A password update challenge must send a code to the test email sink.",
+    );
     return request("/api/v1/auth/password/update/confirm", {
       method: "POST",
       body: { challengeId: parsedBody.challengeId, code: message.code },
@@ -393,17 +430,23 @@ async function registerAccount(registration, preAuth, clientIp) {
   assert.equal(body.status, "verification_required");
   const email = registration.email.toLowerCase();
   const message = emailMessages.findLast((item) => item.email === email);
-  assert.ok(message, "The test email sink should capture the verification message.");
+  assert.ok(
+    message,
+    "The test email sink should capture the verification message.",
+  );
   return { email, password: registration.password, message };
 }
 
 async function confirmAccount(pending, preAuth, clientIp) {
-  const { response, body } = await request("/api/v1/auth/verification/confirm", {
-    method: "POST",
-    body: { email: pending.email, code: pending.message.code },
-    auth: preAuth,
-    clientIp,
-  });
+  const { response, body } = await request(
+    "/api/v1/auth/verification/confirm",
+    {
+      method: "POST",
+      body: { email: pending.email, code: pending.message.code },
+      auth: preAuth,
+      clientIp,
+    },
+  );
   assert.equal(response.status, 200, JSON.stringify(body));
   assert.equal(body.emailVerified, true);
   return {
@@ -465,7 +508,11 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     "A1!bc", // too short
   ];
   for (const candidate of invalidPasswordPolicyCases) {
-    assert.equal(passwordPolicySchema.safeParse(candidate).success, false, `Expected policy rejection for ${candidate}`);
+    assert.equal(
+      passwordPolicySchema.safeParse(candidate).success,
+      false,
+      `Expected policy rejection for ${candidate}`,
+    );
   }
   assert.equal(passwordPolicySchema.safeParse(password).success, true);
   const weakPasswordRegistration = await request("/api/v1/auth/register", {
@@ -485,15 +532,17 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   });
   assert.equal(weakPasswordRegistration.response.status, 400);
 
-  const rejectedDatabaseInsert = await pool.query(
-    `INSERT INTO ${quoteGeneratedSchema(schemaName)}.accounts
+  const rejectedDatabaseInsert = await pool
+    .query(
+      `INSERT INTO ${quoteGeneratedSchema(schemaName)}.accounts
       (username, age, accepted_terms_version, display_name, account_type)
      VALUES ($1, 17, 'v1', 'Menor de idade', 'personal')`,
-    [`db_${suffix}`],
-  ).then(
-    () => null,
-    (error) => error,
-  );
+      [`db_${suffix}`],
+    )
+    .then(
+      () => null,
+      (error) => error,
+    );
   assert.equal(rejectedDatabaseInsert?.code, "23514");
   assert.equal(rejectedDatabaseInsert?.constraint, "accounts_age_adult_range");
 
@@ -521,7 +570,9 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   const personal = await confirmAccount(pendingPersonal, preAuth);
   assert.equal(personal.account.accountType, "personal");
   const [newPersonalCredential] = await db
-    .select({ passwordPolicyVersion: passwordCredentials.passwordPolicyVersion })
+    .select({
+      passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
+    })
     .from(passwordCredentials)
     .where(eq(passwordCredentials.accountId, personal.account.id));
   assert.equal(newPersonalCredential.passwordPolicyVersion, 1);
@@ -541,7 +592,9 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     .update(sessions)
     .set({ passwordPolicyVersion: 0 })
     .where(eq(sessions.accountId, personal.account.id));
-  const legacySessionRejected = await request("/api/v1/auth/session", { auth: oldPersonalSession });
+  const legacySessionRejected = await request("/api/v1/auth/session", {
+    auth: oldPersonalSession,
+  });
   assert.equal(legacySessionRejected.body.authenticated, false);
 
   const legacyLoginPreAuth = await createPreAuth();
@@ -553,7 +606,9 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(legacyLogin.response.status, 403);
   assert.equal(legacyLogin.body.error.key, "PASSWORD_UPDATE_REQUIRED");
   assert.equal(
-    responseCookies(legacyLogin.response).some((cookie) => cookie.startsWith("__Host-seekalive_session=")),
+    responseCookies(legacyLogin.response).some((cookie) =>
+      cookie.startsWith("__Host-seekalive_session="),
+    ),
     false,
     "A legacy password outside policy must not receive a session.",
   );
@@ -580,8 +635,14 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
     auth: await createPreAuth(),
   });
-  assert.equal(passwordUpdate.response.status, 200, JSON.stringify(passwordUpdate.body));
-  const revokedLegacySession = await request("/api/v1/auth/session", { auth: oldPersonalSession });
+  assert.equal(
+    passwordUpdate.response.status,
+    200,
+    JSON.stringify(passwordUpdate.body),
+  );
+  const revokedLegacySession = await request("/api/v1/auth/session", {
+    auth: oldPersonalSession,
+  });
   assert.equal(revokedLegacySession.body.authenticated, false);
 
   const oldPasswordLogin = await request("/api/v1/auth/login", {
@@ -592,49 +653,81 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(oldPasswordLogin.response.status, 401);
   const upgradedLogin = await request("/api/v1/auth/login", {
     method: "POST",
-    body: { identifier: pendingPersonal.email, password: "B03_Updated_Test_2026!" },
+    body: {
+      identifier: pendingPersonal.email,
+      password: "B03_Updated_Test_2026!",
+    },
     auth: await createPreAuth(),
   });
-  assert.equal(upgradedLogin.response.status, 200, JSON.stringify(upgradedLogin.body));
-  personal.cookie = cookieValue(upgradedLogin.response, "__Host-seekalive_session");
+  assert.equal(
+    upgradedLogin.response.status,
+    200,
+    JSON.stringify(upgradedLogin.body),
+  );
+  personal.cookie = cookieValue(
+    upgradedLogin.response,
+    "__Host-seekalive_session",
+  );
   personal.csrfToken = upgradedLogin.body.csrfToken;
 
-  const unknownResetRequest = await request("/api/v1/auth/password/reset/request", {
-    method: "POST",
-    body: { email: `unknown-${suffix}@example.com` },
-    auth: await createPreAuth(),
-  });
+  const unknownResetRequest = await request(
+    "/api/v1/auth/password/reset/request",
+    {
+      method: "POST",
+      body: { email: `unknown-${suffix}@example.com` },
+      auth: await createPreAuth(),
+    },
+  );
   assert.equal(unknownResetRequest.response.status, 202);
   assert.equal(unknownResetRequest.body.status, "reset_requested");
   assert.equal(passwordResetMessages.length, 0);
 
-  const validResetRequest = await request("/api/v1/auth/password/reset/request", {
-    method: "POST",
-    body: { email: pendingPersonal.email },
-    auth: await createPreAuth(),
-  });
+  const validResetRequest = await request(
+    "/api/v1/auth/password/reset/request",
+    {
+      method: "POST",
+      body: { email: pendingPersonal.email },
+      auth: await createPreAuth(),
+    },
+  );
   assert.equal(validResetRequest.response.status, 202);
-  assert.deepEqual(validResetRequest.body, unknownResetRequest.body, "Reset request must not reveal whether the address exists.");
+  assert.deepEqual(
+    validResetRequest.body,
+    unknownResetRequest.body,
+    "Reset request must not reveal whether the address exists.",
+  );
   assert.equal(passwordResetMessages.length, 1);
   const resetCode = passwordResetMessages.at(-1).code;
   const [storedResetChallenge] = await db
-    .select({ tokenHash: authChallenges.tokenHash, purpose: authChallenges.purpose })
+    .select({
+      tokenHash: authChallenges.tokenHash,
+      purpose: authChallenges.purpose,
+    })
     .from(authChallenges)
-    .where(and(
-      eq(authChallenges.accountId, personal.account.id),
-      eq(authChallenges.purpose, "reset_password"),
-    ));
+    .where(
+      and(
+        eq(authChallenges.accountId, personal.account.id),
+        eq(authChallenges.purpose, "reset_password"),
+      ),
+    );
   assert.equal(storedResetChallenge.purpose, "reset_password");
   assert.notEqual(storedResetChallenge.tokenHash, resetCode);
   assert.equal(storedResetChallenge.tokenHash.length, 64);
 
-  const cooledDownResetRequest = await request("/api/v1/auth/password/reset/request", {
-    method: "POST",
-    body: { email: pendingPersonal.email },
-    auth: await createPreAuth(),
-  });
+  const cooledDownResetRequest = await request(
+    "/api/v1/auth/password/reset/request",
+    {
+      method: "POST",
+      body: { email: pendingPersonal.email },
+      auth: await createPreAuth(),
+    },
+  );
   assert.deepEqual(cooledDownResetRequest.body, unknownResetRequest.body);
-  assert.equal(passwordResetMessages.length, 1, "Account cooldown must suppress repeated reset emails.");
+  assert.equal(
+    passwordResetMessages.length,
+    1,
+    "Account cooldown must suppress repeated reset emails.",
+  );
 
   const wrongResetCode = await request("/api/v1/auth/password/reset/confirm", {
     method: "POST",
@@ -659,90 +752,145 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
     auth: await createPreAuth(),
   });
-  assert.equal(resetPassword.response.status, 200, JSON.stringify(resetPassword.body));
+  assert.equal(
+    resetPassword.response.status,
+    200,
+    JSON.stringify(resetPassword.body),
+  );
   assert.equal(resetPassword.body.status, "password_reset");
   assert.equal(
-    responseCookies(resetPassword.response).some((cookie) =>
-      cookie.startsWith("__Host-seekalive_session=") && /Expires=Thu, 01 Jan 1970/i.test(cookie)),
+    responseCookies(resetPassword.response).some(
+      (cookie) =>
+        cookie.startsWith("__Host-seekalive_session=") &&
+        /Expires=Thu, 01 Jan 1970/i.test(cookie),
+    ),
     true,
   );
   assert.equal(
-    responseCookies(resetPassword.response).some((cookie) =>
-      cookie.startsWith("__Host-seekalive_device=") && /Expires=Thu, 01 Jan 1970/i.test(cookie)),
+    responseCookies(resetPassword.response).some(
+      (cookie) =>
+        cookie.startsWith("__Host-seekalive_device=") &&
+        /Expires=Thu, 01 Jan 1970/i.test(cookie),
+    ),
     true,
   );
-  const sessionRevokedByReset = await request("/api/v1/auth/session", { auth: personal });
+  const sessionRevokedByReset = await request("/api/v1/auth/session", {
+    auth: personal,
+  });
   assert.equal(sessionRevokedByReset.body.authenticated, false);
 
-  const replayedResetCode = await request("/api/v1/auth/password/reset/confirm", {
-    method: "POST",
-    body: {
-      email: pendingPersonal.email,
-      code: resetCode,
-      newPassword: "D05_Replay_Test_2026!",
-      passwordConfirmation: "D05_Replay_Test_2026!",
+  const replayedResetCode = await request(
+    "/api/v1/auth/password/reset/confirm",
+    {
+      method: "POST",
+      body: {
+        email: pendingPersonal.email,
+        code: resetCode,
+        newPassword: "D05_Replay_Test_2026!",
+        passwordConfirmation: "D05_Replay_Test_2026!",
+      },
+      auth: await createPreAuth(),
     },
-    auth: await createPreAuth(),
-  });
+  );
   assert.equal(replayedResetCode.response.status, 400);
   assert.equal(replayedResetCode.body.error.key, "INVALID_PASSWORD_RESET");
 
   const resetPasswordLogin = await request("/api/v1/auth/login", {
     method: "POST",
-    body: { identifier: pendingPersonal.email, password: "C04_Recovered_Test_2026!" },
+    body: {
+      identifier: pendingPersonal.email,
+      password: "C04_Recovered_Test_2026!",
+    },
     auth: await createPreAuth(),
   });
-  assert.equal(resetPasswordLogin.response.status, 200, JSON.stringify(resetPasswordLogin.body));
-  personal.cookie = cookieValue(resetPasswordLogin.response, "__Host-seekalive_session");
+  assert.equal(
+    resetPasswordLogin.response.status,
+    200,
+    JSON.stringify(resetPasswordLogin.body),
+  );
+  personal.cookie = cookieValue(
+    resetPasswordLogin.response,
+    "__Host-seekalive_session",
+  );
   personal.csrfToken = resetPasswordLogin.body.csrfToken;
 
   await db
     .update(authChallenges)
     .set({ createdAt: new Date(Date.now() - 61_000) })
-    .where(and(
-      eq(authChallenges.accountId, personal.account.id),
-      eq(authChallenges.purpose, "reset_password"),
-    ));
-  const expiredCodeRequest = await request("/api/v1/auth/password/reset/request", {
-    method: "POST",
-    body: { email: pendingPersonal.email },
-    auth: await createPreAuth(),
-  });
+    .where(
+      and(
+        eq(authChallenges.accountId, personal.account.id),
+        eq(authChallenges.purpose, "reset_password"),
+      ),
+    );
+  const expiredCodeRequest = await request(
+    "/api/v1/auth/password/reset/request",
+    {
+      method: "POST",
+      body: { email: pendingPersonal.email },
+      auth: await createPreAuth(),
+    },
+  );
   assert.equal(expiredCodeRequest.response.status, 202);
   const expiredCode = passwordResetMessages.at(-1).code;
   await db
     .update(authChallenges)
     .set({ expiresAt: new Date(Date.now() - 1) })
-    .where(and(
-      eq(authChallenges.accountId, personal.account.id),
-      eq(authChallenges.purpose, "reset_password"),
-      isNull(authChallenges.consumedAt),
-    ));
-  const expiredResetConfirmation = await request("/api/v1/auth/password/reset/confirm", {
-    method: "POST",
-    body: {
-      email: pendingPersonal.email,
-      code: expiredCode,
-      newPassword: "E06_Expired_Test_2026!",
-      passwordConfirmation: "E06_Expired_Test_2026!",
+    .where(
+      and(
+        eq(authChallenges.accountId, personal.account.id),
+        eq(authChallenges.purpose, "reset_password"),
+        isNull(authChallenges.consumedAt),
+      ),
+    );
+  const expiredResetConfirmation = await request(
+    "/api/v1/auth/password/reset/confirm",
+    {
+      method: "POST",
+      body: {
+        email: pendingPersonal.email,
+        code: expiredCode,
+        newPassword: "E06_Expired_Test_2026!",
+        passwordConfirmation: "E06_Expired_Test_2026!",
+      },
+      auth: await createPreAuth(),
     },
-    auth: await createPreAuth(),
-  });
+  );
   assert.equal(expiredResetConfirmation.response.status, 400);
-  assert.equal(expiredResetConfirmation.body.error.key, "INVALID_PASSWORD_RESET");
+  assert.equal(
+    expiredResetConfirmation.body.error.key,
+    "INVALID_PASSWORD_RESET",
+  );
 
-  const currentSession = await request("/api/v1/auth/session", { auth: personal });
+  const currentSession = await request("/api/v1/auth/session", {
+    auth: personal,
+  });
   assert.equal(currentSession.response.status, 200);
   assert.equal(currentSession.body.authenticated, true);
-  const personalOwnerProfile = await request("/api/v1/accounts/me", { auth: personal });
-  assert.equal(personalOwnerProfile.response.status, 200, JSON.stringify(personalOwnerProfile.body));
-  assert.equal(personalOwnerProfile.body.email, personalRegistration.email.toLowerCase());
+  const personalOwnerProfile = await request("/api/v1/accounts/me", {
+    auth: personal,
+  });
+  assert.equal(
+    personalOwnerProfile.response.status,
+    200,
+    JSON.stringify(personalOwnerProfile.body),
+  );
+  assert.equal(
+    personalOwnerProfile.body.email,
+    personalRegistration.email.toLowerCase(),
+  );
   assert.equal("age" in personalOwnerProfile.body, false);
   assert.equal(personalOwnerProfile.body.firstName, "Conta");
   assert.equal(personalOwnerProfile.body.lastName, "Isolada");
   assert.equal(personalOwnerProfile.body.commercialProfile, null);
-  assert.ok(Date.parse(personalOwnerProfile.body.publicNameChangeAvailableAt) > Date.now());
-  assert.ok(Date.parse(personalOwnerProfile.body.usernameChangeAvailableAt) > Date.now());
+  assert.ok(
+    Date.parse(personalOwnerProfile.body.publicNameChangeAvailableAt) >
+      Date.now(),
+  );
+  assert.ok(
+    Date.parse(personalOwnerProfile.body.usernameChangeAvailableAt) >
+      Date.now(),
+  );
   assert.equal("email" in personalOwnerProfile.body.account, false);
   assert.equal("age" in personalOwnerProfile.body.account, false);
 
@@ -767,17 +915,28 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(earlyPersonalUsernameChange.response.status, 409);
-  assert.equal(earlyPersonalUsernameChange.body.error.key, "USERNAME_CHANGE_COOLDOWN");
+  assert.equal(
+    earlyPersonalUsernameChange.body.error.key,
+    "USERNAME_CHANGE_COOLDOWN",
+  );
 
   await pool.query(
     `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
      SET created_at = now() - interval '31 days' WHERE id = $1`,
     [personal.account.id],
   );
-  const eligiblePersonalProfile = await request("/api/v1/accounts/me", { auth: personal });
+  const eligiblePersonalProfile = await request("/api/v1/accounts/me", {
+    auth: personal,
+  });
   assert.equal(eligiblePersonalProfile.response.status, 200);
-  assert.ok(Date.parse(eligiblePersonalProfile.body.publicNameChangeAvailableAt) < Date.now());
-  assert.ok(Date.parse(eligiblePersonalProfile.body.usernameChangeAvailableAt) < Date.now());
+  assert.ok(
+    Date.parse(eligiblePersonalProfile.body.publicNameChangeAvailableAt) <
+      Date.now(),
+  );
+  assert.ok(
+    Date.parse(eligiblePersonalProfile.body.usernameChangeAvailableAt) <
+      Date.now(),
+  );
 
   const updatedPersonalProfile = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -789,14 +948,30 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       version: eligiblePersonalProfile.body.account.version,
     },
   });
-  assert.equal(updatedPersonalProfile.response.status, 200, JSON.stringify(updatedPersonalProfile.body));
-  assert.equal(updatedPersonalProfile.body.account.displayName, "Conta Revisada Isolada");
+  assert.equal(
+    updatedPersonalProfile.response.status,
+    200,
+    JSON.stringify(updatedPersonalProfile.body),
+  );
+  assert.equal(
+    updatedPersonalProfile.body.account.displayName,
+    "Conta Revisada Isolada",
+  );
   assert.equal(updatedPersonalProfile.body.account.username, `pnew_${suffix}`);
   assert.equal(updatedPersonalProfile.body.firstName, "Conta Revisada");
   assert.equal("age" in updatedPersonalProfile.body, false);
-  assert.equal(updatedPersonalProfile.body.email, personalRegistration.email.toLowerCase());
-  assert.ok(Date.parse(updatedPersonalProfile.body.publicNameChangeAvailableAt) > Date.now());
-  assert.ok(Date.parse(updatedPersonalProfile.body.usernameChangeAvailableAt) > Date.now());
+  assert.equal(
+    updatedPersonalProfile.body.email,
+    personalRegistration.email.toLowerCase(),
+  );
+  assert.ok(
+    Date.parse(updatedPersonalProfile.body.publicNameChangeAvailableAt) >
+      Date.now(),
+  );
+  assert.ok(
+    Date.parse(updatedPersonalProfile.body.usernameChangeAvailableAt) >
+      Date.now(),
+  );
 
   const immediateSecondNameChange = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -808,7 +983,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(immediateSecondNameChange.response.status, 409);
-  assert.equal(immediateSecondNameChange.body.error.key, "NAME_CHANGE_COOLDOWN");
+  assert.equal(
+    immediateSecondNameChange.body.error.key,
+    "NAME_CHANGE_COOLDOWN",
+  );
 
   const immediateSecondUsernameChange = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -819,7 +997,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(immediateSecondUsernameChange.response.status, 409);
-  assert.equal(immediateSecondUsernameChange.body.error.key, "USERNAME_CHANGE_COOLDOWN");
+  assert.equal(
+    immediateSecondUsernameChange.body.error.key,
+    "USERNAME_CHANGE_COOLDOWN",
+  );
 
   const oldUsernameAvailability = await request(
     `/api/v1/accounts/availability?username=${encodeURIComponent(personalRegistration.username)}`,
@@ -860,7 +1041,11 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       email: `reclaimed-${suffix}@example.com`,
     },
   });
-  assert.equal(reclaimedUsernameRegistration.response.status, 202, JSON.stringify(reclaimedUsernameRegistration.body));
+  assert.equal(
+    reclaimedUsernameRegistration.response.status,
+    202,
+    JSON.stringify(reclaimedUsernameRegistration.body),
+  );
 
   const personalCommercialFieldAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -877,7 +1062,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(personalCommercialFieldAttempt.response.status, 400);
-  assert.equal(personalCommercialFieldAttempt.body.error.key, "ACCOUNT_FIELD_NOT_ALLOWED");
+  assert.equal(
+    personalCommercialFieldAttempt.body.error.key,
+    "ACCOUNT_FIELD_NOT_ALLOWED",
+  );
 
   const personalAgeEditAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -889,7 +1077,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   const personalStaleVersionAttempt = await request("/api/v1/accounts/me", {
     method: "PATCH",
     auth: personal,
-    body: { bio: "Atualização antiga", version: personalOwnerProfile.body.account.version },
+    body: {
+      bio: "Atualização antiga",
+      version: personalOwnerProfile.body.account.version,
+    },
   });
   assert.equal(personalStaleVersionAttempt.response.status, 409);
   assert.equal(personalStaleVersionAttempt.body.error.key, "VERSION_CONFLICT");
@@ -904,13 +1095,20 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     auth: personal,
     body: { interests: ["cafes", "gastronomia"], skipped: false },
   });
-  assert.equal(onboarding.response.status, 200, JSON.stringify(onboarding.body));
+  assert.equal(
+    onboarding.response.status,
+    200,
+    JSON.stringify(onboarding.body),
+  );
   assert.equal(onboarding.body.interestCount, 2);
   const savedInterests = await db
     .select({ interestKey: accountInterests.interestKey })
     .from(accountInterests)
     .where(eq(accountInterests.accountId, personal.account.id));
-  assert.deepEqual(savedInterests.map((row) => row.interestKey).sort(), ["cafes", "gastronomia"]);
+  assert.deepEqual(savedInterests.map((row) => row.interestKey).sort(), [
+    "cafes",
+    "gastronomia",
+  ]);
 
   const suffixCommercial = `${suffix}c`;
   const commercialPreAuth = await createPreAuth();
@@ -931,15 +1129,25 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     passwordConfirmation: password,
     acceptedTermsVersion: "v1",
   };
-  const pendingCommercial = await registerAccount(commercialRegistration, commercialPreAuth);
+  const pendingCommercial = await registerAccount(
+    commercialRegistration,
+    commercialPreAuth,
+  );
   const resetMessagesBeforeUnverifiedAccount = passwordResetMessages.length;
-  const pendingAccountResetRequest = await request("/api/v1/auth/password/reset/request", {
-    method: "POST",
-    body: { email: pendingCommercial.email },
-    auth: await createPreAuth(),
-  });
+  const pendingAccountResetRequest = await request(
+    "/api/v1/auth/password/reset/request",
+    {
+      method: "POST",
+      body: { email: pendingCommercial.email },
+      auth: await createPreAuth(),
+    },
+  );
   assert.deepEqual(pendingAccountResetRequest.body, unknownResetRequest.body);
-  assert.equal(passwordResetMessages.length, resetMessagesBeforeUnverifiedAccount, "Unverified accounts must not receive password-reset messages.");
+  assert.equal(
+    passwordResetMessages.length,
+    resetMessagesBeforeUnverifiedAccount,
+    "Unverified accounts must not receive password-reset messages.",
+  );
   const [pendingCommercialAccount] = await db
     .select({ id: accounts.id })
     .from(accounts)
@@ -950,19 +1158,33 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     .update(passwordCredentials)
     .set({ passwordPolicyVersion: 0 })
     .where(eq(passwordCredentials.accountId, pendingCommercialAccount.id));
-  const legacyCommercialConfirmation = await request("/api/v1/auth/verification/confirm", {
-    method: "POST",
-    body: { email: pendingCommercial.email, code: pendingCommercial.message.code },
-    auth: commercialPreAuth,
-  });
-  assert.equal(legacyCommercialConfirmation.response.status, 200, JSON.stringify(legacyCommercialConfirmation.body));
+  const legacyCommercialConfirmation = await request(
+    "/api/v1/auth/verification/confirm",
+    {
+      method: "POST",
+      body: {
+        email: pendingCommercial.email,
+        code: pendingCommercial.message.code,
+      },
+      auth: commercialPreAuth,
+    },
+  );
+  assert.equal(
+    legacyCommercialConfirmation.response.status,
+    200,
+    JSON.stringify(legacyCommercialConfirmation.body),
+  );
   assert.equal(legacyCommercialConfirmation.body.passwordUpdateRequired, true);
   const commercialLogin = await request("/api/v1/auth/login", {
     method: "POST",
     body: { identifier: pendingCommercial.email, password },
     auth: await createPreAuth(),
   });
-  assert.equal(commercialLogin.response.status, 200, JSON.stringify(commercialLogin.body));
+  assert.equal(
+    commercialLogin.response.status,
+    200,
+    JSON.stringify(commercialLogin.body),
+  );
   const commercial = {
     account: commercialLogin.body.account,
     cookie: cookieValue(commercialLogin.response, "__Host-seekalive_session"),
@@ -970,24 +1192,43 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   };
   assert.equal(commercial.account.accountType, "commercial");
 
-  const initialSessionPage = await request("/api/v1/auth/sessions", { auth: personal });
-  assert.equal(initialSessionPage.response.status, 200, JSON.stringify(initialSessionPage.body));
+  const initialSessionPage = await request("/api/v1/auth/sessions", {
+    auth: personal,
+  });
+  assert.equal(
+    initialSessionPage.response.status,
+    200,
+    JSON.stringify(initialSessionPage.body),
+  );
   assert.ok(initialSessionPage.body.items.some((session) => session.isCurrent));
-  assert.equal(initialSessionPage.body.items.some((session) => session.id === commercialLogin.body.session.id), false);
+  assert.equal(
+    initialSessionPage.body.items.some(
+      (session) => session.id === commercialLogin.body.session.id,
+    ),
+    false,
+  );
 
-  const anonymousSessionList = await request("/api/v1/auth/sessions", { auth: await createPreAuth() });
+  const anonymousSessionList = await request("/api/v1/auth/sessions", {
+    auth: await createPreAuth(),
+  });
   assert.equal(anonymousSessionList.response.status, 401);
-  const invalidSessionCursor = await request("/api/v1/auth/sessions?cursor=not-valid!", { auth: personal });
+  const invalidSessionCursor = await request(
+    "/api/v1/auth/sessions?cursor=not-valid!",
+    { auth: personal },
+  );
   assert.equal(invalidSessionCursor.response.status, 400);
   const invalidSessionId = await request("/api/v1/auth/sessions/not-a-uuid", {
     method: "DELETE",
     auth: personal,
   });
   assert.equal(invalidSessionId.response.status, 400);
-  const revokeCurrentSession = await request(`/api/v1/auth/sessions/${resetPasswordLogin.body.session.id}`, {
-    method: "DELETE",
-    auth: personal,
-  });
+  const revokeCurrentSession = await request(
+    `/api/v1/auth/sessions/${resetPasswordLogin.body.session.id}`,
+    {
+      method: "DELETE",
+      auth: personal,
+    },
+  );
   assert.equal(revokeCurrentSession.response.status, 409);
   const revokeWithoutCsrf = await request("/api/v1/auth/sessions/others", {
     method: "DELETE",
@@ -999,63 +1240,122 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     `/api/v1/auth/sessions/${commercialLogin.body.session.id}`,
     { method: "DELETE", auth: personal },
   );
-  assert.equal(crossAccountSessionRevoke.response.status, 404, "A session ID from another account must not be accessible.");
+  assert.equal(
+    crossAccountSessionRevoke.response.status,
+    404,
+    "A session ID from another account must not be accessible.",
+  );
 
   const secondPersonalLogin = await request("/api/v1/auth/login", {
     method: "POST",
-    body: { identifier: pendingPersonal.email, password: "C04_Recovered_Test_2026!" },
+    body: {
+      identifier: pendingPersonal.email,
+      password: "C04_Recovered_Test_2026!",
+    },
     auth: await createPreAuth(),
   });
-  assert.equal(secondPersonalLogin.response.status, 200, JSON.stringify(secondPersonalLogin.body));
+  assert.equal(
+    secondPersonalLogin.response.status,
+    200,
+    JSON.stringify(secondPersonalLogin.body),
+  );
   const secondPersonalSession = {
-    cookie: cookieValue(secondPersonalLogin.response, "__Host-seekalive_session"),
+    cookie: cookieValue(
+      secondPersonalLogin.response,
+      "__Host-seekalive_session",
+    ),
     csrfToken: secondPersonalLogin.body.csrfToken,
   };
-  const sessionsWithTwoLogins = await request("/api/v1/auth/sessions", { auth: personal });
-  assert.equal(sessionsWithTwoLogins.response.status, 200);
-  assert.equal(sessionsWithTwoLogins.body.items.length, 2);
-  assert.equal(sessionsWithTwoLogins.body.items.filter((session) => session.isCurrent).length, 1);
-
-  const revokeOneSession = await request(`/api/v1/auth/sessions/${secondPersonalLogin.body.session.id}`, {
-    method: "DELETE",
+  const sessionsWithTwoLogins = await request("/api/v1/auth/sessions", {
     auth: personal,
   });
+  assert.equal(sessionsWithTwoLogins.response.status, 200);
+  assert.equal(sessionsWithTwoLogins.body.items.length, 2);
+  assert.equal(
+    sessionsWithTwoLogins.body.items.filter((session) => session.isCurrent)
+      .length,
+    1,
+  );
+
+  const revokeOneSession = await request(
+    `/api/v1/auth/sessions/${secondPersonalLogin.body.session.id}`,
+    {
+      method: "DELETE",
+      auth: personal,
+    },
+  );
   assert.equal(revokeOneSession.response.status, 204);
-  const revokedIndividualSession = await request("/api/v1/auth/session", { auth: secondPersonalSession });
+  const revokedIndividualSession = await request("/api/v1/auth/session", {
+    auth: secondPersonalSession,
+  });
   assert.equal(revokedIndividualSession.body.authenticated, false);
 
   const thirdPersonalLogin = await request("/api/v1/auth/login", {
     method: "POST",
-    body: { identifier: pendingPersonal.email, password: "C04_Recovered_Test_2026!" },
+    body: {
+      identifier: pendingPersonal.email,
+      password: "C04_Recovered_Test_2026!",
+    },
     auth: await createPreAuth(),
   });
-  assert.equal(thirdPersonalLogin.response.status, 200, JSON.stringify(thirdPersonalLogin.body));
+  assert.equal(
+    thirdPersonalLogin.response.status,
+    200,
+    JSON.stringify(thirdPersonalLogin.body),
+  );
   const thirdPersonalSession = {
-    cookie: cookieValue(thirdPersonalLogin.response, "__Host-seekalive_session"),
+    cookie: cookieValue(
+      thirdPersonalLogin.response,
+      "__Host-seekalive_session",
+    ),
     csrfToken: thirdPersonalLogin.body.csrfToken,
   };
   const revokeOtherSessions = await request("/api/v1/auth/sessions/others", {
     method: "DELETE",
     auth: personal,
   });
-  assert.equal(revokeOtherSessions.response.status, 200, JSON.stringify(revokeOtherSessions.body));
+  assert.equal(
+    revokeOtherSessions.response.status,
+    200,
+    JSON.stringify(revokeOtherSessions.body),
+  );
   assert.equal(revokeOtherSessions.body.revokedCount, 1);
-  assert.equal((await request("/api/v1/auth/session", { auth: personal })).body.authenticated, true);
-  assert.equal((await request("/api/v1/auth/session", { auth: thirdPersonalSession })).body.authenticated, false);
-  const repeatedRevokeOtherSessions = await request("/api/v1/auth/sessions/others", {
-    method: "DELETE",
-    auth: personal,
-  });
+  assert.equal(
+    (await request("/api/v1/auth/session", { auth: personal })).body
+      .authenticated,
+    true,
+  );
+  assert.equal(
+    (await request("/api/v1/auth/session", { auth: thirdPersonalSession })).body
+      .authenticated,
+    false,
+  );
+  const repeatedRevokeOtherSessions = await request(
+    "/api/v1/auth/sessions/others",
+    {
+      method: "DELETE",
+      auth: personal,
+    },
+  );
   assert.equal(repeatedRevokeOtherSessions.response.status, 200);
   assert.equal(repeatedRevokeOtherSessions.body.revokedCount, 0);
 
   const [upgradedCommercialCredential] = await db
-    .select({ passwordPolicyVersion: passwordCredentials.passwordPolicyVersion })
+    .select({
+      passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
+    })
     .from(passwordCredentials)
     .where(eq(passwordCredentials.accountId, commercial.account.id));
   assert.equal(upgradedCommercialCredential.passwordPolicyVersion, 1);
-  const publicProfile = await request(`/api/v1/profiles/${commercial.account.username}`, { auth: personal });
-  assert.equal(publicProfile.response.status, 200, JSON.stringify(publicProfile.body));
+  const publicProfile = await request(
+    `/api/v1/profiles/${commercial.account.username}`,
+    { auth: personal },
+  );
+  assert.equal(
+    publicProfile.response.status,
+    200,
+    JSON.stringify(publicProfile.body),
+  );
   assert.equal(publicProfile.body.account.id, commercial.account.id);
   assert.equal(publicProfile.body.visibility.canViewPublicContent, true);
   assert.deepEqual(publicProfile.body.posts, { items: [], nextCursor: null });
@@ -1064,10 +1364,19 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal("address" in publicProfile.body.account, false);
   assert.equal("email" in publicProfile.body.account, false);
   assert.equal("age" in publicProfile.body.account, false);
-  const commercialOwnerProfile = await request("/api/v1/accounts/me", { auth: commercial });
-  assert.equal(commercialOwnerProfile.response.status, 200, JSON.stringify(commercialOwnerProfile.body));
+  const commercialOwnerProfile = await request("/api/v1/accounts/me", {
+    auth: commercial,
+  });
+  assert.equal(
+    commercialOwnerProfile.response.status,
+    200,
+    JSON.stringify(commercialOwnerProfile.body),
+  );
   assert.equal(commercialOwnerProfile.body.account.id, commercial.account.id);
-  assert.equal(commercialOwnerProfile.body.email, commercialRegistration.email.toLowerCase());
+  assert.equal(
+    commercialOwnerProfile.body.email,
+    commercialRegistration.email.toLowerCase(),
+  );
   assert.equal("age" in commercialOwnerProfile.body, false);
   assert.deepEqual(commercialOwnerProfile.body.commercialProfile, {
     categoryKey: "cafes",
@@ -1088,15 +1397,23 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(earlyCommercialNameChange.response.status, 409);
-  assert.equal(earlyCommercialNameChange.body.error.key, "NAME_CHANGE_COOLDOWN");
+  assert.equal(
+    earlyCommercialNameChange.body.error.key,
+    "NAME_CHANGE_COOLDOWN",
+  );
 
   await pool.query(
     `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
      SET created_at = now() - interval '31 days' WHERE id = $1`,
     [commercial.account.id],
   );
-  const eligibleCommercialProfile = await request("/api/v1/accounts/me", { auth: commercial });
-  assert.ok(Date.parse(eligibleCommercialProfile.body.publicNameChangeAvailableAt) < Date.now());
+  const eligibleCommercialProfile = await request("/api/v1/accounts/me", {
+    auth: commercial,
+  });
+  assert.ok(
+    Date.parse(eligibleCommercialProfile.body.publicNameChangeAvailableAt) <
+      Date.now(),
+  );
 
   const usernameAlreadyTaken = await request("/api/v1/accounts/me", {
     method: "PATCH",
@@ -1124,9 +1441,19 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       version: eligibleCommercialProfile.body.account.version,
     },
   });
-  assert.equal(updatedCommercialProfile.response.status, 200, JSON.stringify(updatedCommercialProfile.body));
-  assert.equal(updatedCommercialProfile.body.account.displayName, "Comércio Revisado A02");
-  assert.ok(Date.parse(updatedCommercialProfile.body.publicNameChangeAvailableAt) > Date.now());
+  assert.equal(
+    updatedCommercialProfile.response.status,
+    200,
+    JSON.stringify(updatedCommercialProfile.body),
+  );
+  assert.equal(
+    updatedCommercialProfile.body.account.displayName,
+    "Comércio Revisado A02",
+  );
+  assert.ok(
+    Date.parse(updatedCommercialProfile.body.publicNameChangeAvailableAt) >
+      Date.now(),
+  );
   assert.equal("age" in updatedCommercialProfile.body, false);
   assert.deepEqual(updatedCommercialProfile.body.commercialProfile, {
     categoryKey: "cafes",
@@ -1153,33 +1480,49 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(commercialPersonalFieldAttempt.response.status, 400);
-  assert.equal(commercialPersonalFieldAttempt.body.error.key, "ACCOUNT_FIELD_NOT_ALLOWED");
+  assert.equal(
+    commercialPersonalFieldAttempt.body.error.key,
+    "ACCOUNT_FIELD_NOT_ALLOWED",
+  );
 
   const publicProfileAfterCommercialEdit = await request(
     `/api/v1/profiles/${commercial.account.username}`,
     { auth: personal },
   );
   assert.equal(publicProfileAfterCommercialEdit.response.status, 200);
-  assert.equal(publicProfileAfterCommercialEdit.body.account.displayName, "Comércio Revisado A02");
+  assert.equal(
+    publicProfileAfterCommercialEdit.body.account.displayName,
+    "Comércio Revisado A02",
+  );
   assert.equal("email" in publicProfileAfterCommercialEdit.body.account, false);
   assert.equal("age" in publicProfileAfterCommercialEdit.body.account, false);
 
-  const immediateSecondCommercialNameChange = await request("/api/v1/accounts/me", {
-    method: "PATCH",
-    auth: commercial,
-    body: {
-      displayName: "Outra Empresa",
-      version: updatedCommercialProfile.body.account.version,
+  const immediateSecondCommercialNameChange = await request(
+    "/api/v1/accounts/me",
+    {
+      method: "PATCH",
+      auth: commercial,
+      body: {
+        displayName: "Outra Empresa",
+        version: updatedCommercialProfile.body.account.version,
+      },
     },
-  });
+  );
   assert.equal(immediateSecondCommercialNameChange.response.status, 409);
-  assert.equal(immediateSecondCommercialNameChange.body.error.key, "NAME_CHANGE_COOLDOWN");
+  assert.equal(
+    immediateSecondCommercialNameChange.body.error.key,
+    "NAME_CHANGE_COOLDOWN",
+  );
 
   const accountSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
     { auth: personal },
   );
-  assert.equal(accountSearch.response.status, 200, JSON.stringify(accountSearch.body));
+  assert.equal(
+    accountSearch.response.status,
+    200,
+    JSON.stringify(accountSearch.body),
+  );
 
   await pool.query(
     `UPDATE ${quoteGeneratedSchema(schemaName)}.accounts
@@ -1187,8 +1530,12 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
      WHERE id = $1`,
     [personal.account.id],
   );
-  const currentPersonal = await request("/api/v1/accounts/me", { auth: personal });
-  const currentCommercial = await request("/api/v1/accounts/me", { auth: commercial });
+  const currentPersonal = await request("/api/v1/accounts/me", {
+    auth: personal,
+  });
+  const currentCommercial = await request("/api/v1/accounts/me", {
+    auth: commercial,
+  });
   const contestedUsername = `race_${suffix}`;
   const concurrentUsernameChanges = await Promise.all([
     request("/api/v1/accounts/me", {
@@ -1212,30 +1559,56 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     concurrentUsernameChanges.map((result) => result.response.status).sort(),
     [200, 409],
   );
-  const rejectedConcurrentUsernameChange = concurrentUsernameChanges.find((result) => result.response.status === 409);
-  assert.equal(rejectedConcurrentUsernameChange?.body.error.key, "USERNAME_UNAVAILABLE");
-  const personalAfterConcurrentRename = await request("/api/v1/accounts/me", { auth: personal });
+  const rejectedConcurrentUsernameChange = concurrentUsernameChanges.find(
+    (result) => result.response.status === 409,
+  );
+  assert.equal(
+    rejectedConcurrentUsernameChange?.body.error.key,
+    "USERNAME_UNAVAILABLE",
+  );
+  const personalAfterConcurrentRename = await request("/api/v1/accounts/me", {
+    auth: personal,
+  });
   assert.equal(personalAfterConcurrentRename.response.status, 200);
-  const currentPersonalUsername = personalAfterConcurrentRename.body.account.username;
-  assert.ok([`pnew_${suffix}`, contestedUsername].includes(currentPersonalUsername));
-  assert.ok(accountSearch.body.items.some((account) => account.id === commercial.account.id));
+  const currentPersonalUsername =
+    personalAfterConcurrentRename.body.account.username;
+  assert.ok(
+    [`pnew_${suffix}`, contestedUsername].includes(currentPersonalUsername),
+  );
+  assert.ok(
+    accountSearch.body.items.some(
+      (account) => account.id === commercial.account.id,
+    ),
+  );
   const unauthenticatedSearch = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
   );
   assert.equal(unauthenticatedSearch.response.status, 401);
-  const shortSearch = await request("/api/v1/social/accounts?q=x", { auth: personal });
+  const shortSearch = await request("/api/v1/social/accounts?q=x", {
+    auth: personal,
+  });
   assert.equal(shortSearch.response.status, 400);
-  const wildcardSearch = await request("/api/v1/social/accounts?q=%25%25", { auth: personal });
+  const wildcardSearch = await request("/api/v1/social/accounts?q=%25%25", {
+    auth: personal,
+  });
   assert.equal(wildcardSearch.response.status, 200);
   assert.deepEqual(wildcardSearch.body.items, []);
 
   const [businessProfile] = await db
-    .select({ cityName: commercialProfiles.cityName, categoryKey: commercialProfiles.categoryKey })
+    .select({
+      cityName: commercialProfiles.cityName,
+      categoryKey: commercialProfiles.categoryKey,
+    })
     .from(commercialProfiles)
     .where(eq(commercialProfiles.accountId, commercial.account.id));
-  assert.deepEqual(businessProfile, { cityName: "Campinas", categoryKey: "cafes" });
+  assert.deepEqual(businessProfile, {
+    cityName: "Campinas",
+    categoryKey: "cafes",
+  });
 
-  const privacy = await request("/api/v1/accounts/me/privacy", { auth: personal });
+  const privacy = await request("/api/v1/accounts/me/privacy", {
+    auth: personal,
+  });
   assert.equal(privacy.response.status, 200);
   const privateProfile = await request("/api/v1/accounts/me/privacy", {
     method: "PUT",
@@ -1247,12 +1620,19 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       version: privacy.body.version,
     },
   });
-  assert.equal(privateProfile.response.status, 200, JSON.stringify(privateProfile.body));
+  assert.equal(
+    privateProfile.response.status,
+    200,
+    JSON.stringify(privateProfile.body),
+  );
 
-  const followRequest = await request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
-    method: "PUT",
-    auth: commercial,
-  });
+  const followRequest = await request(
+    `/api/v1/social/accounts/${personal.account.id}/follow`,
+    {
+      method: "PUT",
+      auth: commercial,
+    },
+  );
   assert.equal(followRequest.response.status, 200);
   assert.equal(followRequest.body.status, "pending");
   const createdPublicPost = await request("/api/v1/social/posts", {
@@ -1263,7 +1643,11 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       audience: "public",
     },
   });
-  assert.equal(createdPublicPost.response.status, 201, JSON.stringify(createdPublicPost.body));
+  assert.equal(
+    createdPublicPost.response.status,
+    201,
+    JSON.stringify(createdPublicPost.body),
+  );
   assert.equal(createdPublicPost.body.authorId, personal.account.id);
   assert.equal(createdPublicPost.body.format, "text");
   assert.equal(createdPublicPost.body.likes, 0);
@@ -1296,7 +1680,11 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       },
     },
   });
-  assert.equal(createdArticle.response.status, 201, JSON.stringify(createdArticle.body));
+  assert.equal(
+    createdArticle.response.status,
+    201,
+    JSON.stringify(createdArticle.body),
+  );
   assert.equal(createdArticle.body.format, "article");
   assert.equal(createdArticle.body.article.title, "Artigo de teste");
   const firstOwnerPostPage = await request(
@@ -1312,7 +1700,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   assert.equal(secondOwnerPostPage.response.status, 200);
   assert.equal(secondOwnerPostPage.body.items.length, 1);
-  assert.notEqual(secondOwnerPostPage.body.items[0].id, firstOwnerPostPage.body.items[0].id);
+  assert.notEqual(
+    secondOwnerPostPage.body.items[0].id,
+    firstOwnerPostPage.body.items[0].id,
+  );
   const reusedCursor = await request(
     `/api/v1/social/accounts/${commercial.account.id}/posts?limit=1&format=all&cursor=${encodeURIComponent(firstOwnerPostPage.body.nextCursor)}`,
     { auth: personal },
@@ -1344,13 +1735,19 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(unsupportedMediaPost.response.status, 422);
   assert.equal(unsupportedMediaPost.body.error.key, "CONTENT_MEDIA_NOT_READY");
 
-  const deniedPendingPost = await request(`/api/v1/social/posts/${createdPublicPost.body.id}`, {
-    auth: commercial,
-  });
+  const deniedPendingPost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}`,
+    {
+      auth: commercial,
+    },
+  );
   assert.equal(deniedPendingPost.response.status, 404);
-  const deniedPendingArticle = await request(`/api/v1/social/articles/${createdArticle.body.id}`, {
-    auth: commercial,
-  });
+  const deniedPendingArticle = await request(
+    `/api/v1/social/articles/${createdArticle.body.id}`,
+    {
+      auth: commercial,
+    },
+  );
   assert.equal(deniedPendingArticle.response.status, 404);
   const deniedPendingProfilePosts = await request(
     `/api/v1/social/accounts/${personal.account.id}/posts?format=all`,
@@ -1367,7 +1764,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     [personal.account.id],
   );
   assert.equal(currentProfileIdentity.rowCount, 1);
-  assert.equal(currentProfileIdentity.rows[0].username, currentPersonalUsername);
+  assert.equal(
+    currentProfileIdentity.rows[0].username,
+    currentPersonalUsername,
+  );
   assert.equal(currentProfileIdentity.rows[0].status, "active");
   assert.ok(currentProfileIdentity.rows[0].verified_at);
   const profileBlocksBeforeBlockTest = await pool.query(
@@ -1377,73 +1777,149 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     [personal.account.id, commercial.account.id],
   );
   assert.equal(profileBlocksBeforeBlockTest.rowCount, 0);
-  const profileWhileRequestPending = await request(`/api/v1/profiles/${currentPersonalUsername}`, {
-    auth: commercial,
-  });
-  assert.equal(profileWhileRequestPending.response.status, 200, JSON.stringify(profileWhileRequestPending.body));
-  assert.equal(profileWhileRequestPending.body.visibility.canViewPublicContent, false);
-  assert.equal(profileWhileRequestPending.body.visibility.canViewCircleContent, false);
+  const profileWhileRequestPending = await request(
+    `/api/v1/profiles/${currentPersonalUsername}`,
+    {
+      auth: commercial,
+    },
+  );
+  assert.equal(
+    profileWhileRequestPending.response.status,
+    200,
+    JSON.stringify(profileWhileRequestPending.body),
+  );
+  assert.equal(
+    profileWhileRequestPending.body.visibility.canViewPublicContent,
+    false,
+  );
+  assert.equal(
+    profileWhileRequestPending.body.visibility.canViewCircleContent,
+    false,
+  );
   const privateFollowersBeforeApproval = await request(
     `/api/v1/social/accounts/${personal.account.id}/followers`,
     { auth: commercial },
   );
   assert.equal(privateFollowersBeforeApproval.response.status, 403);
 
-  const requests = await request("/api/v1/social/follow-requests", { auth: personal });
-  assert.ok(requests.body.items.some((item) => item.account.id === commercial.account.id));
-
-  const accepted = await request(`/api/v1/social/follow-requests/${commercial.account.id}/accept`, {
-    method: "POST",
+  const requests = await request("/api/v1/social/follow-requests", {
     auth: personal,
   });
+  assert.ok(
+    requests.body.items.some(
+      (item) => item.account.id === commercial.account.id,
+    ),
+  );
+
+  const accepted = await request(
+    `/api/v1/social/follow-requests/${commercial.account.id}/accept`,
+    {
+      method: "POST",
+      auth: personal,
+    },
+  );
   assert.equal(accepted.response.status, 200);
   assert.equal(accepted.body.status, "accepted");
-  const profileAfterApproval = await request(`/api/v1/profiles/${currentPersonalUsername}`, {
-    auth: commercial,
-  });
+  const profileAfterApproval = await request(
+    `/api/v1/profiles/${currentPersonalUsername}`,
+    {
+      auth: commercial,
+    },
+  );
   assert.equal(profileAfterApproval.response.status, 200);
   assert.equal(profileAfterApproval.body.visibility.canViewPublicContent, true);
-  assert.equal(profileAfterApproval.body.visibility.canViewCircleContent, false);
-  assert.ok(profileAfterApproval.body.posts.items.some((post) => post.id === createdPublicPost.body.id));
-  assert.ok(profileAfterApproval.body.articles.items.some((post) => post.id === createdArticle.body.id));
-  assert.ok(!profileAfterApproval.body.posts.items.some((post) => post.id === createdCirclePost.body.id));
-  const deniedPrivatePost = await request(`/api/v1/social/posts/${createdPrivatePost.body.id}`, {
-    auth: commercial,
-  });
+  assert.equal(
+    profileAfterApproval.body.visibility.canViewCircleContent,
+    false,
+  );
+  assert.ok(
+    profileAfterApproval.body.posts.items.some(
+      (post) => post.id === createdPublicPost.body.id,
+    ),
+  );
+  assert.ok(
+    profileAfterApproval.body.articles.items.some(
+      (post) => post.id === createdArticle.body.id,
+    ),
+  );
+  assert.ok(
+    !profileAfterApproval.body.posts.items.some(
+      (post) => post.id === createdCirclePost.body.id,
+    ),
+  );
+  const deniedPrivatePost = await request(
+    `/api/v1/social/posts/${createdPrivatePost.body.id}`,
+    {
+      auth: commercial,
+    },
+  );
   assert.equal(deniedPrivatePost.response.status, 404);
 
-  const reciprocalFollow = await request(`/api/v1/social/accounts/${commercial.account.id}/follow`, {
-    method: "PUT",
-    auth: personal,
-  });
+  const reciprocalFollow = await request(
+    `/api/v1/social/accounts/${commercial.account.id}/follow`,
+    {
+      method: "PUT",
+      auth: personal,
+    },
+  );
   assert.equal(reciprocalFollow.response.status, 200);
   assert.equal(reciprocalFollow.body.status, "accepted");
 
-  const personalCircle = await request("/api/v1/social/circles", { auth: personal });
-  assert.ok(personalCircle.body.items.some((item) => item.account.id === commercial.account.id && item.isMutual));
-  const commercialCircle = await request("/api/v1/social/circles", { auth: commercial });
-  assert.ok(commercialCircle.body.items.some((item) => item.account.id === personal.account.id && item.isMutual));
-  const profileAfterMutualFollow = await request(`/api/v1/profiles/${currentPersonalUsername}`, {
-    auth: commercial,
-  });
-  assert.equal(profileAfterMutualFollow.body.visibility.canViewCircleContent, true);
-  const visibleCirclePost = await request(`/api/v1/social/posts/${createdCirclePost.body.id}`, {
-    auth: commercial,
-  });
-  assert.equal(visibleCirclePost.response.status, 200);
-  const ownerPrivatePost = await request(`/api/v1/social/posts/${createdPrivatePost.body.id}`, {
+  const personalCircle = await request("/api/v1/social/circles", {
     auth: personal,
   });
-  assert.equal(ownerPrivatePost.response.status, 200);
-  const articleRead = await request(`/api/v1/social/articles/${createdArticle.body.id}`, {
+  assert.ok(
+    personalCircle.body.items.some(
+      (item) => item.account.id === commercial.account.id && item.isMutual,
+    ),
+  );
+  const commercialCircle = await request("/api/v1/social/circles", {
     auth: commercial,
   });
+  assert.ok(
+    commercialCircle.body.items.some(
+      (item) => item.account.id === personal.account.id && item.isMutual,
+    ),
+  );
+  const profileAfterMutualFollow = await request(
+    `/api/v1/profiles/${currentPersonalUsername}`,
+    {
+      auth: commercial,
+    },
+  );
+  assert.equal(
+    profileAfterMutualFollow.body.visibility.canViewCircleContent,
+    true,
+  );
+  const visibleCirclePost = await request(
+    `/api/v1/social/posts/${createdCirclePost.body.id}`,
+    {
+      auth: commercial,
+    },
+  );
+  assert.equal(visibleCirclePost.response.status, 200);
+  const ownerPrivatePost = await request(
+    `/api/v1/social/posts/${createdPrivatePost.body.id}`,
+    {
+      auth: personal,
+    },
+  );
+  assert.equal(ownerPrivatePost.response.status, 200);
+  const articleRead = await request(
+    `/api/v1/social/articles/${createdArticle.body.id}`,
+    {
+      auth: commercial,
+    },
+  );
   assert.equal(articleRead.response.status, 200);
 
-  const deniedDeleteByOtherAccount = await request(`/api/v1/social/posts/${createdPublicPost.body.id}`, {
-    method: "DELETE",
-    auth: commercial,
-  });
+  const deniedDeleteByOtherAccount = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}`,
+    {
+      method: "DELETE",
+      auth: commercial,
+    },
+  );
   assert.equal(deniedDeleteByOtherAccount.response.status, 404);
 
   await request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
@@ -1470,24 +1946,40 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     .select()
     .from(accountFollows)
     .where(eq(accountFollows.followerId, commercial.account.id));
-  assert.ok(!relationshipsAfterConcurrentBlock.some((row) => row.followedId === personal.account.id));
+  assert.ok(
+    !relationshipsAfterConcurrentBlock.some(
+      (row) => row.followedId === personal.account.id,
+    ),
+  );
   const requestsAfterConcurrentBlock = await db
     .select()
     .from(accountFollowRequests)
     .where(eq(accountFollowRequests.requesterId, commercial.account.id));
-  assert.ok(!requestsAfterConcurrentBlock.some((row) => row.targetId === personal.account.id));
+  assert.ok(
+    !requestsAfterConcurrentBlock.some(
+      (row) => row.targetId === personal.account.id,
+    ),
+  );
   const searchAfterBlock = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(commercial.account.username)}`,
     { auth: personal },
   );
   assert.equal(searchAfterBlock.response.status, 200);
-  assert.ok(!searchAfterBlock.body.items.some((account) => account.id === commercial.account.id));
+  assert.ok(
+    !searchAfterBlock.body.items.some(
+      (account) => account.id === commercial.account.id,
+    ),
+  );
   const reverseSearchAfterBlock = await request(
     `/api/v1/social/accounts?q=${encodeURIComponent(currentPersonalUsername)}`,
     { auth: commercial },
   );
   assert.equal(reverseSearchAfterBlock.response.status, 200);
-  assert.ok(!reverseSearchAfterBlock.body.items.some((account) => account.id === personal.account.id));
+  assert.ok(
+    !reverseSearchAfterBlock.body.items.some(
+      (account) => account.id === personal.account.id,
+    ),
+  );
   const blockerCannotViewBlockedProfile = await request(
     `/api/v1/profiles/${commercial.account.username}`,
     { auth: personal },
@@ -1503,34 +1995,59 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     { auth: commercial },
   );
   assert.equal(blockedCannotReadRelationshipList.response.status, 404);
-  const blockedAccountCannotListBlocker = await request("/api/v1/social/blocks", { auth: commercial });
+  const blockedAccountCannotListBlocker = await request(
+    "/api/v1/social/blocks",
+    { auth: commercial },
+  );
   assert.deepEqual(blockedAccountCannotListBlocker.body.items, []);
-  const blockedRelationship = await request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
-    method: "PUT",
-    auth: commercial,
-  });
+  const blockedRelationship = await request(
+    `/api/v1/social/accounts/${personal.account.id}/follow`,
+    {
+      method: "PUT",
+      auth: commercial,
+    },
+  );
   assert.equal(blockedRelationship.response.status, 404);
 
-  const reverseUnblockAttempt = await request(`/api/v1/social/blocks/${personal.account.id}`, {
-    method: "DELETE",
-    auth: commercial,
-  });
+  const reverseUnblockAttempt = await request(
+    `/api/v1/social/blocks/${personal.account.id}`,
+    {
+      method: "DELETE",
+      auth: commercial,
+    },
+  );
   assert.equal(reverseUnblockAttempt.response.status, 204);
-  const stillBlocked = await request("/api/v1/social/blocks", { auth: personal });
-  assert.ok(stillBlocked.body.items.some((item) => item.id === commercial.account.id));
-
-  const unblocked = await request(`/api/v1/social/blocks/${commercial.account.id}`, {
-    method: "DELETE",
+  const stillBlocked = await request("/api/v1/social/blocks", {
     auth: personal,
   });
-  assert.equal(unblocked.response.status, 204);
-  const circleAfterUnblock = await request("/api/v1/social/circles", { auth: personal });
-  assert.ok(!circleAfterUnblock.body.items.some((item) => item.account.id === commercial.account.id));
+  assert.ok(
+    stillBlocked.body.items.some((item) => item.id === commercial.account.id),
+  );
 
-  const pendingAgain = await request(`/api/v1/social/accounts/${personal.account.id}/follow`, {
-    method: "PUT",
-    auth: commercial,
+  const unblocked = await request(
+    `/api/v1/social/blocks/${commercial.account.id}`,
+    {
+      method: "DELETE",
+      auth: personal,
+    },
+  );
+  assert.equal(unblocked.response.status, 204);
+  const circleAfterUnblock = await request("/api/v1/social/circles", {
+    auth: personal,
   });
+  assert.ok(
+    !circleAfterUnblock.body.items.some(
+      (item) => item.account.id === commercial.account.id,
+    ),
+  );
+
+  const pendingAgain = await request(
+    `/api/v1/social/accounts/${personal.account.id}/follow`,
+    {
+      method: "PUT",
+      auth: commercial,
+    },
+  );
   assert.equal(pendingAgain.response.status, 200);
   assert.equal(pendingAgain.body.status, "pending");
   const [acceptDuringBlock, reblocked] = await Promise.all([
@@ -1545,28 +2062,50 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   ]);
   assert.equal(reblocked.response.status, 204);
   assert.ok([200, 404].includes(acceptDuringBlock.response.status));
-  const hiddenPostAfterBlock = await request(`/api/v1/social/posts/${createdPublicPost.body.id}`, {
-    auth: commercial,
-  });
+  const hiddenPostAfterBlock = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}`,
+    {
+      auth: commercial,
+    },
+  );
   assert.equal(hiddenPostAfterBlock.response.status, 404);
-  const ownerDelete = await request(`/api/v1/social/posts/${createdPrivatePost.body.id}`, {
-    method: "DELETE",
-    auth: personal,
-  });
+  const ownerDelete = await request(
+    `/api/v1/social/posts/${createdPrivatePost.body.id}`,
+    {
+      method: "DELETE",
+      auth: personal,
+    },
+  );
   assert.equal(ownerDelete.response.status, 204);
-  const [deletedPrivatePost] = await db.select().from(feedPosts)
+  const [deletedPrivatePost] = await db
+    .select()
+    .from(feedPosts)
     .where(eq(feedPosts.id, createdPrivatePost.body.id));
   assert.equal(deletedPrivatePost, undefined);
   const relationshipsAfterAcceptRace = await db
     .select()
     .from(accountFollows)
     .where(eq(accountFollows.followerId, commercial.account.id));
-  assert.ok(!relationshipsAfterAcceptRace.some((row) => row.followedId === personal.account.id));
-  const requestsAfterBlock = await request("/api/v1/social/follow-requests", { auth: personal });
+  assert.ok(
+    !relationshipsAfterAcceptRace.some(
+      (row) => row.followedId === personal.account.id,
+    ),
+  );
+  const requestsAfterBlock = await request("/api/v1/social/follow-requests", {
+    auth: personal,
+  });
   assert.deepEqual(requestsAfterBlock.body.items, []);
 
-  assert.equal(emailMessages.length, 3, "Personal, commercial and reclaimed-username verifications must use the test sink.");
-  assert.equal(await publicSchemaFingerprint(), publicSchemaBefore, "API tests changed the public schema.");
+  assert.equal(
+    emailMessages.length,
+    3,
+    "Personal, commercial and reclaimed-username verifications must use the test sink.",
+  );
+  assert.equal(
+    await publicSchemaFingerprint(),
+    publicSchemaBefore,
+    "API tests changed the public schema.",
+  );
 });
 
 test("unknown installations require email confirmation; password changes revoke every trusted installation", async () => {
@@ -1574,17 +2113,21 @@ test("unknown installations require email confirmation; password changes revoke 
   const password = "A01_Device_Test_2026!";
   const clientIp = "203.0.113.90";
   const preAuth = await createPreAuth();
-  const pending = await registerAccount({
-    accountType: "personal",
-    firstName: "Conta",
-    lastName: "Dispositivo",
-    username: `device_${suffix}`,
-    email: `device-${suffix}@example.com`,
-    age: 29,
-    password,
-    passwordConfirmation: password,
-    acceptedTermsVersion: "v1",
-  }, preAuth, clientIp);
+  const pending = await registerAccount(
+    {
+      accountType: "personal",
+      firstName: "Conta",
+      lastName: "Dispositivo",
+      username: `device_${suffix}`,
+      email: `device-${suffix}@example.com`,
+      age: 29,
+      password,
+      passwordConfirmation: password,
+      acceptedTermsVersion: "v1",
+    },
+    preAuth,
+    clientIp,
+  );
   const account = await confirmAccount(pending, preAuth, clientIp);
 
   const newBrowser = await createPreAuth();
@@ -1599,17 +2142,29 @@ test("unknown installations require email confirmation; password changes revoke 
   assert.equal(challenge.response.status, 202, JSON.stringify(challenge.body));
   assert.equal(challenge.body.status, "device_verification_required");
   assert.equal(deviceLoginMessages.length, messageCount + 1);
-  assert.equal(responseCookies(challenge.response).some((cookie) => cookie.startsWith("__Host-seekalive_session=")), false);
-  assert.equal((await request("/api/v1/auth/session", { auth: newBrowser, clientIp })).body.authenticated, false);
+  assert.equal(
+    responseCookies(challenge.response).some((cookie) =>
+      cookie.startsWith("__Host-seekalive_session="),
+    ),
+    false,
+  );
+  assert.equal(
+    (await request("/api/v1/auth/session", { auth: newBrowser, clientIp })).body
+      .authenticated,
+    false,
+  );
 
   const deliveredCode = deviceLoginMessages.at(-1).code;
   const wrongCode = deliveredCode === "000000" ? "000001" : "000000";
-  const wrongAttempt = await request("/api/v1/auth/device-verification/confirm", {
-    method: "POST",
-    body: { challengeId: challenge.body.challengeId, code: wrongCode },
-    auth: newBrowser,
-    clientIp,
-  });
+  const wrongAttempt = await request(
+    "/api/v1/auth/device-verification/confirm",
+    {
+      method: "POST",
+      body: { challengeId: challenge.body.challengeId, code: wrongCode },
+      auth: newBrowser,
+      clientIp,
+    },
+  );
   assert.equal(wrongAttempt.response.status, 400);
   assert.equal(wrongAttempt.body.error.key, "INVALID_DEVICE_CODE");
   assert.equal(wrongAttempt.body.error.attemptsRemaining, 2);
@@ -1627,18 +2182,31 @@ test("unknown installations require email confirmation; password changes revoke 
   assert.equal(resent.response.status, 200, JSON.stringify(resent.body));
   const confirmed = await request("/api/v1/auth/device-verification/confirm", {
     method: "POST",
-    body: { challengeId: challenge.body.challengeId, code: deviceLoginMessages.at(-1).code },
+    body: {
+      challengeId: challenge.body.challengeId,
+      code: deviceLoginMessages.at(-1).code,
+    },
     auth: newBrowser,
     clientIp,
   });
   assert.equal(confirmed.response.status, 200, JSON.stringify(confirmed.body));
   assert.equal(confirmed.body.account.id, account.account.id);
-  assert.equal((await request("/api/v1/auth/session", { auth: newBrowser, clientIp })).body.authenticated, true);
+  assert.equal(
+    (await request("/api/v1/auth/session", { auth: newBrowser, clientIp })).body
+      .authenticated,
+    true,
+  );
 
-  const devices = await request("/api/v1/auth/devices", { auth: newBrowser, clientIp });
+  const devices = await request("/api/v1/auth/devices", {
+    auth: newBrowser,
+    clientIp,
+  });
   assert.equal(devices.response.status, 200);
   assert.equal(devices.body.items.length, 2);
-  assert.equal(devices.body.items.filter((device) => device.isCurrent).length, 1);
+  assert.equal(
+    devices.body.items.filter((device) => device.isCurrent).length,
+    1,
+  );
 
   const passwordUpdate = await request("/api/v1/auth/password/update", {
     method: "POST",
@@ -1652,26 +2220,53 @@ test("unknown installations require email confirmation; password changes revoke 
     clientIp,
     autoCompletePasswordUpdate: false,
   });
-  assert.equal(passwordUpdate.response.status, 202, JSON.stringify(passwordUpdate.body));
-  assert.equal(passwordUpdate.body.status, "password_update_verification_required");
+  assert.equal(
+    passwordUpdate.response.status,
+    202,
+    JSON.stringify(passwordUpdate.body),
+  );
+  assert.equal(
+    passwordUpdate.body.status,
+    "password_update_verification_required",
+  );
   const passwordUpdateCode = passwordUpdateMessages.at(-1).code;
-  const passwordUpdateConfirmed = await request("/api/v1/auth/password/update/confirm", {
-    method: "POST",
-    body: { challengeId: passwordUpdate.body.challengeId, code: passwordUpdateCode },
-    auth: newBrowser,
-    clientIp,
-  });
-  assert.equal(passwordUpdateConfirmed.response.status, 200, JSON.stringify(passwordUpdateConfirmed.body));
+  const passwordUpdateConfirmed = await request(
+    "/api/v1/auth/password/update/confirm",
+    {
+      method: "POST",
+      body: {
+        challengeId: passwordUpdate.body.challengeId,
+        code: passwordUpdateCode,
+      },
+      auth: newBrowser,
+      clientIp,
+    },
+  );
+  assert.equal(
+    passwordUpdateConfirmed.response.status,
+    200,
+    JSON.stringify(passwordUpdateConfirmed.body),
+  );
 
   const activeDevices = await db
     .select({ id: trustedDevices.id })
     .from(trustedDevices)
-    .where(and(eq(trustedDevices.accountId, account.account.id), isNull(trustedDevices.revokedAt)));
+    .where(
+      and(
+        eq(trustedDevices.accountId, account.account.id),
+        isNull(trustedDevices.revokedAt),
+      ),
+    );
   assert.equal(activeDevices.length, 0);
   const activeSessions = await db
     .select({ id: sessions.id })
     .from(sessions)
-    .where(and(eq(sessions.accountId, account.account.id), isNull(sessions.revokedAt)));
+    .where(
+      and(
+        eq(sessions.accountId, account.account.id),
+        isNull(sessions.revokedAt),
+      ),
+    );
   assert.equal(activeSessions.length, 0);
 
   const reauth = await createPreAuth();
@@ -1691,17 +2286,21 @@ test("three incorrect device codes lock the account and expose the configured su
   const password = "A01_Lock_Test_2026!";
   const clientIp = "203.0.113.91";
   const preAuth = await createPreAuth();
-  const pending = await registerAccount({
-    accountType: "personal",
-    firstName: "Conta",
-    lastName: "Bloqueada",
-    username: `locked_${suffix}`,
-    email: `locked-${suffix}@example.com`,
-    age: 31,
-    password,
-    passwordConfirmation: password,
-    acceptedTermsVersion: "v1",
-  }, preAuth, clientIp);
+  const pending = await registerAccount(
+    {
+      accountType: "personal",
+      firstName: "Conta",
+      lastName: "Bloqueada",
+      username: `locked_${suffix}`,
+      email: `locked-${suffix}@example.com`,
+      age: 31,
+      password,
+      passwordConfirmation: password,
+      acceptedTermsVersion: "v1",
+    },
+    preAuth,
+    clientIp,
+  );
   const account = await confirmAccount(pending, preAuth, clientIp);
   const newBrowser = await createPreAuth();
   const challenge = await request("/api/v1/auth/login", {
@@ -1723,14 +2322,22 @@ test("three incorrect device codes lock the account and expose the configured su
       auth: newBrowser,
       clientIp,
     });
-    assert.equal(result.response.status, attempt === 3 ? 423 : 400, JSON.stringify(result.body));
-    if (attempt < 3) assert.equal(result.body.error.attemptsRemaining, 3 - attempt);
+    assert.equal(
+      result.response.status,
+      attempt === 3 ? 423 : 400,
+      JSON.stringify(result.body),
+    );
+    if (attempt < 3)
+      assert.equal(result.body.error.attemptsRemaining, 3 - attempt);
     if (attempt === 3) lockResponse = result.response;
   }
   assert.ok(lockResponse);
   assert.equal(
-    responseCookies(lockResponse).some((cookie) =>
-      cookie.startsWith("__Host-seekalive_device=") && /Expires=Thu, 01 Jan 1970/i.test(cookie)),
+    responseCookies(lockResponse).some(
+      (cookie) =>
+        cookie.startsWith("__Host-seekalive_device=") &&
+        /Expires=Thu, 01 Jan 1970/i.test(cookie),
+    ),
     true,
   );
 
@@ -1758,73 +2365,116 @@ test("authenticated e-mail and password changes verify both mailboxes and revoke
   const currentEmail = `change-${suffix}@example.com`;
   const newEmail = `changed-${suffix}@example.com`;
   const preAuth = await createPreAuth();
-  const pending = await registerAccount({
-    accountType: "personal",
-    firstName: "Conta",
-    lastName: "Alteracao",
-    username: `change_${suffix}`,
-    email: currentEmail,
-    age: 32,
-    password: currentPassword,
-    passwordConfirmation: currentPassword,
-    acceptedTermsVersion: "v1",
-  }, preAuth, clientIp);
+  const pending = await registerAccount(
+    {
+      accountType: "personal",
+      firstName: "Conta",
+      lastName: "Alteracao",
+      username: `change_${suffix}`,
+      email: currentEmail,
+      age: 32,
+      password: currentPassword,
+      passwordConfirmation: currentPassword,
+      acceptedTermsVersion: "v1",
+    },
+    preAuth,
+    clientIp,
+  );
   const account = await confirmAccount(pending, preAuth, clientIp);
 
-  const malformedEmail = await request("/api/v1/auth/account/email/change/request", {
-    method: "POST",
-    body: { currentPassword, newEmail: "not-an-email" },
-    auth: account,
-    clientIp,
-  });
+  const malformedEmail = await request(
+    "/api/v1/auth/account/email/change/request",
+    {
+      method: "POST",
+      body: { currentPassword, newEmail: "not-an-email" },
+      auth: account,
+      clientIp,
+    },
+  );
   assert.equal(malformedEmail.response.status, 400);
-  const wrongCurrentPassword = await request("/api/v1/auth/account/email/change/request", {
-    method: "POST",
-    body: { currentPassword: "Incorrect_Password_2026!", newEmail },
-    auth: account,
-    clientIp,
-  });
+  const wrongCurrentPassword = await request(
+    "/api/v1/auth/account/email/change/request",
+    {
+      method: "POST",
+      body: { currentPassword: "Incorrect_Password_2026!", newEmail },
+      auth: account,
+      clientIp,
+    },
+  );
   assert.equal(wrongCurrentPassword.response.status, 401);
   assert.equal(wrongCurrentPassword.body.error.key, "INVALID_CURRENT_PASSWORD");
 
-  const emailRequest = await request("/api/v1/auth/account/email/change/request", {
-    method: "POST",
-    body: { currentPassword, newEmail },
-    auth: account,
-    clientIp,
-  });
-  assert.equal(emailRequest.response.status, 202, JSON.stringify(emailRequest.body));
+  const emailRequest = await request(
+    "/api/v1/auth/account/email/change/request",
+    {
+      method: "POST",
+      body: { currentPassword, newEmail },
+      auth: account,
+      clientIp,
+    },
+  );
+  assert.equal(
+    emailRequest.response.status,
+    202,
+    JSON.stringify(emailRequest.body),
+  );
   assert.equal(emailRequest.body.status, "current_email_verification_required");
   const currentEmailCode = accountEmailChangeCurrentMessages.at(-1);
   assert.equal(currentEmailCode.email, currentEmail);
 
-  const wrongCurrentCode = currentEmailCode.code === "000000" ? "000001" : "000000";
-  const rejectedCurrentCode = await request("/api/v1/auth/account/email/change/confirm-current", {
-    method: "POST",
-    body: { challengeId: emailRequest.body.challengeId, code: wrongCurrentCode },
-    auth: account,
-    clientIp,
-  });
+  const wrongCurrentCode =
+    currentEmailCode.code === "000000" ? "000001" : "000000";
+  const rejectedCurrentCode = await request(
+    "/api/v1/auth/account/email/change/confirm-current",
+    {
+      method: "POST",
+      body: {
+        challengeId: emailRequest.body.challengeId,
+        code: wrongCurrentCode,
+      },
+      auth: account,
+      clientIp,
+    },
+  );
   assert.equal(rejectedCurrentCode.response.status, 400);
 
-  const currentEmailConfirmed = await request("/api/v1/auth/account/email/change/confirm-current", {
-    method: "POST",
-    body: { challengeId: emailRequest.body.challengeId, code: currentEmailCode.code },
-    auth: account,
-    clientIp,
-  });
-  assert.equal(currentEmailConfirmed.response.status, 202, JSON.stringify(currentEmailConfirmed.body));
-  assert.equal(currentEmailConfirmed.body.status, "new_email_verification_required");
+  const currentEmailConfirmed = await request(
+    "/api/v1/auth/account/email/change/confirm-current",
+    {
+      method: "POST",
+      body: {
+        challengeId: emailRequest.body.challengeId,
+        code: currentEmailCode.code,
+      },
+      auth: account,
+      clientIp,
+    },
+  );
+  assert.equal(
+    currentEmailConfirmed.response.status,
+    202,
+    JSON.stringify(currentEmailConfirmed.body),
+  );
+  assert.equal(
+    currentEmailConfirmed.body.status,
+    "new_email_verification_required",
+  );
   const newEmailCode = accountEmailChangeNewMessages.at(-1);
   assert.equal(newEmailCode.email, newEmail);
 
   const wrongNewCode = newEmailCode.code === "000000" ? "000001" : "000000";
-  const rejectedNewCode = await request("/api/v1/auth/account/email/change/confirm-new", {
-    method: "POST",
-    body: { challengeId: currentEmailConfirmed.body.challengeId, code: wrongNewCode },
-    auth: account,
-    clientIp,
-  });
+  const rejectedNewCode = await request(
+    "/api/v1/auth/account/email/change/confirm-new",
+    {
+      method: "POST",
+      body: {
+        challengeId: currentEmailConfirmed.body.challengeId,
+        code: wrongNewCode,
+      },
+      auth: account,
+      clientIp,
+    },
+  );
   assert.equal(rejectedNewCode.response.status, 400);
 
   const [emailBeforeFinalCode] = await db
@@ -1833,13 +2483,23 @@ test("authenticated e-mail and password changes verify both mailboxes and revoke
     .where(eq(accountEmails.accountId, account.account.id));
   assert.equal(emailBeforeFinalCode.email, currentEmail);
 
-  const newEmailConfirmed = await request("/api/v1/auth/account/email/change/confirm-new", {
-    method: "POST",
-    body: { challengeId: currentEmailConfirmed.body.challengeId, code: newEmailCode.code },
-    auth: account,
-    clientIp,
-  });
-  assert.equal(newEmailConfirmed.response.status, 200, JSON.stringify(newEmailConfirmed.body));
+  const newEmailConfirmed = await request(
+    "/api/v1/auth/account/email/change/confirm-new",
+    {
+      method: "POST",
+      body: {
+        challengeId: currentEmailConfirmed.body.challengeId,
+        code: newEmailCode.code,
+      },
+      auth: account,
+      clientIp,
+    },
+  );
+  assert.equal(
+    newEmailConfirmed.response.status,
+    200,
+    JSON.stringify(newEmailConfirmed.body),
+  );
   assert.equal(newEmailConfirmed.body.status, "email_changed");
   assert.equal(newEmailConfirmed.body.email, newEmail);
   assert.equal(newEmailConfirmed.body.securityNoticeSent, true);
@@ -1853,57 +2513,98 @@ test("authenticated e-mail and password changes verify both mailboxes and revoke
   const consumedEmailChanges = await db
     .select({ pendingEmail: authChallenges.pendingEmail })
     .from(authChallenges)
-    .where(and(
-      eq(authChallenges.accountId, account.account.id),
-      inArray(authChallenges.purpose, ["account_email_change_current", "account_email_change_new"]),
-    ));
+    .where(
+      and(
+        eq(authChallenges.accountId, account.account.id),
+        inArray(authChallenges.purpose, [
+          "account_email_change_current",
+          "account_email_change_new",
+        ]),
+      ),
+    );
   assert.ok(consumedEmailChanges.length >= 2);
-  assert.ok(consumedEmailChanges.every((challenge) => challenge.pendingEmail === null));
+  assert.ok(
+    consumedEmailChanges.every((challenge) => challenge.pendingEmail === null),
+  );
 
-  const passwordRequest = await request("/api/v1/auth/account/password/change/request", {
-    method: "POST",
-    body: {
-      currentPassword,
-      newPassword,
-      passwordConfirmation: newPassword,
+  const passwordRequest = await request(
+    "/api/v1/auth/account/password/change/request",
+    {
+      method: "POST",
+      body: {
+        currentPassword,
+        newPassword,
+        passwordConfirmation: newPassword,
+      },
+      auth: account,
+      clientIp,
     },
-    auth: account,
-    clientIp,
-  });
-  assert.equal(passwordRequest.response.status, 202, JSON.stringify(passwordRequest.body));
-  assert.equal(passwordRequest.body.status, "password_change_verification_required");
+  );
+  assert.equal(
+    passwordRequest.response.status,
+    202,
+    JSON.stringify(passwordRequest.body),
+  );
+  assert.equal(
+    passwordRequest.body.status,
+    "password_change_verification_required",
+  );
   assert.equal(accountPasswordChangeMessages.at(-1).email, newEmail);
 
   const passwordChangeMessage = accountPasswordChangeMessages.at(-1);
-  const wrongPasswordCode = passwordChangeMessage.code === "000000" ? "000001" : "000000";
-  const rejectedPasswordCode = await request("/api/v1/auth/account/password/change/confirm", {
-    method: "POST",
-    body: { challengeId: passwordRequest.body.challengeId, code: wrongPasswordCode },
-    auth: account,
-    clientIp,
-  });
+  const wrongPasswordCode =
+    passwordChangeMessage.code === "000000" ? "000001" : "000000";
+  const rejectedPasswordCode = await request(
+    "/api/v1/auth/account/password/change/confirm",
+    {
+      method: "POST",
+      body: {
+        challengeId: passwordRequest.body.challengeId,
+        code: wrongPasswordCode,
+      },
+      auth: account,
+      clientIp,
+    },
+  );
   assert.equal(rejectedPasswordCode.response.status, 400);
 
-  const passwordConfirmed = await request("/api/v1/auth/account/password/change/confirm", {
-    method: "POST",
-    body: {
-      challengeId: passwordRequest.body.challengeId,
-      code: passwordChangeMessage.code,
+  const passwordConfirmed = await request(
+    "/api/v1/auth/account/password/change/confirm",
+    {
+      method: "POST",
+      body: {
+        challengeId: passwordRequest.body.challengeId,
+        code: passwordChangeMessage.code,
+      },
+      auth: account,
+      clientIp,
     },
-    auth: account,
-    clientIp,
-  });
-  assert.equal(passwordConfirmed.response.status, 200, JSON.stringify(passwordConfirmed.body));
+  );
+  assert.equal(
+    passwordConfirmed.response.status,
+    200,
+    JSON.stringify(passwordConfirmed.body),
+  );
   assert.equal(passwordConfirmed.body.status, "password_changed");
   const activeSessions = await db
     .select({ id: sessions.id })
     .from(sessions)
-    .where(and(eq(sessions.accountId, account.account.id), isNull(sessions.revokedAt)));
+    .where(
+      and(
+        eq(sessions.accountId, account.account.id),
+        isNull(sessions.revokedAt),
+      ),
+    );
   assert.equal(activeSessions.length, 0);
   const activeDevices = await db
     .select({ id: trustedDevices.id })
     .from(trustedDevices)
-    .where(and(eq(trustedDevices.accountId, account.account.id), isNull(trustedDevices.revokedAt)));
+    .where(
+      and(
+        eq(trustedDevices.accountId, account.account.id),
+        isNull(trustedDevices.revokedAt),
+      ),
+    );
   assert.equal(activeDevices.length, 0);
   const consumedPasswordChanges = await db
     .select({
@@ -1911,14 +2612,20 @@ test("authenticated e-mail and password changes verify both mailboxes and revoke
       basePasswordHash: authChallenges.basePasswordHash,
     })
     .from(authChallenges)
-    .where(and(
-      eq(authChallenges.accountId, account.account.id),
-      eq(authChallenges.purpose, "account_password_change"),
-    ));
+    .where(
+      and(
+        eq(authChallenges.accountId, account.account.id),
+        eq(authChallenges.purpose, "account_password_change"),
+      ),
+    );
   assert.ok(consumedPasswordChanges.length >= 1);
-  assert.ok(consumedPasswordChanges.every(
-    (challenge) => challenge.pendingPasswordHash === null && challenge.basePasswordHash === null,
-  ));
+  assert.ok(
+    consumedPasswordChanges.every(
+      (challenge) =>
+        challenge.pendingPasswordHash === null &&
+        challenge.basePasswordHash === null,
+    ),
+  );
 
   const nextLogin = await request("/api/v1/auth/login", {
     method: "POST",

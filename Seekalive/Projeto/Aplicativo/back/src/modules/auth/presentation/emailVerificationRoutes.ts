@@ -11,7 +11,6 @@ import {
   setSessionCookie,
 } from "../../../security/session";
 import { emailVerificationOperations } from "../composition/emailVerification";
-import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { authResult } from "./authResult";
 import { sendError, sendValidationError } from "./responses";
 
@@ -29,8 +28,7 @@ router.post(
       sendValidationError(response, parsed.error.issues);
       return;
     }
-    const delivery = getAuthEmailDelivery();
-    if (!delivery.isConfigured) {
+    if (!emailVerificationOperations.isDeliveryConfigured()) {
       sendError(
         response,
         503,
@@ -41,10 +39,8 @@ router.post(
     }
 
     const email = parsed.data.email.toLowerCase();
-    const result = await emailVerificationOperations.requestEmailVerification(
-      email,
-      delivery,
-    );
+    const result =
+      await emailVerificationOperations.requestEmailVerification(email);
     if (result === "delivery_failed") {
       sendError(
         response,

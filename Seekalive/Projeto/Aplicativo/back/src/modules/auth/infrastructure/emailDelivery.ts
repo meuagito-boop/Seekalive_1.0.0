@@ -1,4 +1,12 @@
 import { SUPPORT_EMAIL } from "@workspace/api-zod";
+import type {
+  AccountEmailChangeSecurityNotice,
+  AuthEmailDelivery,
+  DeviceLoginEmail,
+  PasswordResetEmail,
+  PasswordUpdateEmail,
+  VerificationEmail,
+} from "../application/emailDelivery";
 
 export class EmailDeliveryUnavailableError extends Error {
   constructor() {
@@ -7,52 +15,15 @@ export class EmailDeliveryUnavailableError extends Error {
   }
 }
 
-export type VerificationEmail = {
-  email: string;
-  displayName: string;
-  code: string;
-};
-
-export type PasswordResetEmail = {
-  email: string;
-  code: string;
-};
-
-export type DeviceLoginEmail = {
-  email: string;
-  displayName: string;
-  code: string;
-};
-
-export type PasswordUpdateEmail = {
-  email: string;
-  displayName: string;
-  code: string;
-};
-
-export type AccountEmailChangeSecurityNotice = {
-  email: string;
-  displayName: string;
-  newEmailMasked: string;
-};
-
-export interface AuthEmailDelivery {
-  readonly isConfigured: boolean;
-  sendVerificationCode(message: VerificationEmail): Promise<void>;
-  sendPasswordResetCode(message: PasswordResetEmail): Promise<void>;
-  sendDeviceLoginCode(message: DeviceLoginEmail): Promise<void>;
-  sendPasswordUpdateCode(message: PasswordUpdateEmail): Promise<void>;
-  sendAccountPasswordChangeCode(message: PasswordUpdateEmail): Promise<void>;
-  sendAccountEmailChangeCurrentCode(message: PasswordUpdateEmail): Promise<void>;
-  sendAccountEmailChangeNewCode(message: PasswordUpdateEmail): Promise<void>;
-  sendAccountEmailChangeSecurityNotice(message: AccountEmailChangeSecurityNotice): Promise<void>;
-}
-
 let testAuthEmailDelivery: AuthEmailDelivery | undefined;
 
-export function setAuthEmailDeliveryForTests(delivery: AuthEmailDelivery): void {
+export function setAuthEmailDeliveryForTests(
+  delivery: AuthEmailDelivery,
+): void {
   if (process.env.NODE_ENV !== "test") {
-    throw new Error("Test email delivery can only be configured in NODE_ENV=test.");
+    throw new Error(
+      "Test email delivery can only be configured in NODE_ENV=test.",
+    );
   }
   testAuthEmailDelivery = delivery;
 }
@@ -64,8 +35,9 @@ export function getAuthEmailDelivery(): AuthEmailDelivery {
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
 const isDevelopment = process.env.NODE_ENV === "development";
 const resendEnabled = process.env.RESEND_ENABLED === "true";
-const resendFrom = process.env.RESEND_FROM_EMAIL?.trim()
-  || (isDevelopment ? "Seekalive Test <onboarding@resend.dev>" : "");
+const resendFrom =
+  process.env.RESEND_FROM_EMAIL?.trim() ||
+  (isDevelopment ? "Seekalive Test <onboarding@resend.dev>" : "");
 
 function escapeHtml(value: string): string {
   return value
@@ -105,14 +77,17 @@ async function sendResendEmail(message: {
   if (!response.ok) {
     // Do not include provider response bodies or credentials in thrown/logged
     // errors; auth routes return a generic delivery failure to the client.
-    throw new Error(`Resend email request failed with status ${response.status}.`);
+    throw new Error(
+      `Resend email request failed with status ${response.status}.`,
+    );
   }
 }
 
 // Resend is intentionally enabled only in development. Production remains
 // disabled until its sender domain and deployment policy are explicitly set up.
 export const authEmailDelivery: AuthEmailDelivery = {
-  isConfigured: isDevelopment && resendEnabled && Boolean(resendApiKey && resendFrom),
+  isConfigured:
+    isDevelopment && resendEnabled && Boolean(resendApiKey && resendFrom),
   async sendVerificationCode(message) {
     const displayName = escapeHtml(message.displayName);
     await sendResendEmail({
