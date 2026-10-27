@@ -18,6 +18,7 @@ O roteiro parte do estado real da auditoria: código Drizzle com 13 tabelas em c
 - Segurança, mensageria, filas e algoritmo têm contratos e critérios de aceitação próprios; nenhuma regra aprovada é alterada silenciosamente.
 - Testes, typecheck, build, verificações de migrations, testes de contrato e testes de integração pertinentes passam no corte final, ou cada bloqueio fica explicitamente impedindo a aprovação.
 - Documentos-fonte, contratos e código refletem o mesmo estado; arquivos gerados são regenerados a partir de suas fontes.
+- Toda pendência não resolvida aparece no registro de pendências deste plano, com evidência, motivo, próxima ação, dependências e critério de encerramento.
 - O backend só volta a receber novas capacidades depois da aprovação do Gate de prontidão.
 
 ## Out of scope
@@ -36,7 +37,99 @@ O roteiro parte do estado real da auditoria: código Drizzle com 13 tabelas em c
 ### Gate 0A — corrigir primeiro a estrutura do frontend e do backend
 
 Antes do Gate 1 ou de novas funcionalidades, auditar e corrigir a responsabilidade real dos arquivos por domínio, camada e aplicação; não basta criar pastas ou mover código. Trabalhar um domínio por vez, em ordem alfabética dentro de cada aplicativo, concluir e validar a pasta atual antes de passar à próxima e parar para revisão do usuário a cada domínio. Começar pelo domínio backend `accounts`, já iniciado nesta etapa; depois concluir os demais domínios do backend e então revisar o frontend. Preservar rotas, contratos, regras, permissões e comportamento visual; nenhuma migration, mudança de schema ou início do Shop nesta fase. Considerar concluído somente quando os domínios atuais de ambos os lados tiverem sido inspecionados, as responsabilidades independentes estiverem nos arquivos apropriados e as verificações de imports, ciclos, testes, tipos e build passarem.
-**Progresso registrado em 27/10/2026:** `accounts`, `auth`, `feed`, `health` e `onboarding` concluídos estruturalmente e validados por testes, typecheck e build. Auth, Feed, Health e Onboarding mantêm a persistência fora dos handlers e casos de uso; suas fronteiras estão cobertas por testes. A integração Onboarding contra schema isolado não foi executada porque a barreira de escrita não estava habilitada. A rota de interesses também ainda não aparece no OpenAPI. O próximo domínio backend em ordem alfabética é `profiles`; aguardar revisão de Onboarding antes de avançar.
+**Progresso registrado em 27/10/2026:** `accounts`, `auth`, `feed`, `health` e `onboarding` tiveram a etapa estrutural executada e validada por testes, typecheck e build. A separação de apresentação foi testada em Auth e Feed; Health e Onboarding mantêm o acesso a banco na infraestrutura. **Auth ainda executa operações Drizzle na camada de aplicação**, e a validação de persistência contra banco isolado não foi concluída. A rota de interesses e a prontidão `/readyz` também não constam no OpenAPI. Perfis, Social e frontend ainda têm trabalho arquitetural e de integração registrado abaixo e nas etapas seguintes. O próximo domínio backend em ordem alfabética é `profiles`; aguardar revisão de Onboarding antes de avançar.
+
+## Pendências identificadas e não encerradas
+
+Esta seção consolida achados abertos dos relatórios `00` a `05` e das etapas estruturais. Uma pendência só sai daqui quando sua correção ou validação for realizada e comprovada; o relatório de uma etapa não substitui este registro. Os itens que representam capacidades futuras estão marcados como incompletude de produto, não como defeito de uma função já declarada concluída.
+
+### 1. Estado físico do banco e divergência de migrações
+
+- **Status:** aberto e não verificado no banco de desenvolvimento.
+- **Achado:** o schema Drizzle e as migrations descrevem 13 tabelas, incluindo `feed.posts`; documentos anteriores afirmam 12, o dicionário lista 11 e omite `account_username_reservations`, e a aplicação da migration `0005` não foi confirmada.
+- **Por que permanece:** `drizzle-kit check` valida consistência dos arquivos locais, não o estado físico do banco. Nenhuma leitura do banco foi feita nesta auditoria.
+- **Próxima ação:** obter evidência explícita do destino de desenvolvimento, consultar estado de migrations/tabelas em modo somente leitura e reconciliar schema fonte, journal, estado físico e dicionário. Apresentar diff, impacto e recuperação antes de qualquer migration no banco principal.
+- **Critério de encerramento:** estado de cada migration e tabela registrado separadamente como modelado, migrado e aplicado; dicionário corrigido e compatível com as evidências.
+
+### 2. Testes de integração com persistência isolada
+
+- **Status:** não concluídos para Accounts/Auth/Feed/Onboarding.
+- **Achado:** o teste isolado não chegou a conectar. Na tentativa de Auth faltavam `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; na tentativa de Onboarding, `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1` não estava ativo. Nenhum schema, dado ou migration foi criado/modificado.
+- **Por que permanece:** faltou a confirmação explícita do banco de desenvolvimento e o opt-in de escrita exigido pela proteção. Não se deve contornar a barreira.
+- **Próxima ação:** verificar a cobertura existente e, quando todas as variáveis de segurança apontarem explicitamente para desenvolvimento, executar a suíte isolada cobrindo os fluxos pertinentes e a limpeza do schema temporário.
+- **Critério de encerramento:** cenários existentes de persistência passam no schema temporário; o destino é confirmado como desenvolvimento; o schema é removido e nenhuma tabela/dado fora dele é alterado.
+
+### 3. Fronteiras arquiteturais restantes no backend
+
+- **Status:** aberto; previsto no Gate 0A, por domínio e em ordem alfabética.
+- **Achado:** `profiles/presentation/publicProfileRoutes.ts` compõe perfil público e relações entre Accounts, Social e Feed dentro da rota. Rotas de Profiles (`accountAvailabilityRoutes.ts`, `privacyRoutes.ts`) e Social (`accountSearchRoutes.ts`, `blockListRoutes.ts`, `circleRoutes.ts`, `followerListRoutes.ts`, `followingListRoutes.ts`, `followRequestListRoutes.ts`) ainda acessam persistência diretamente. Além disso, Auth separou operações dos handlers, mas seus casos de uso ainda importam Drizzle.
+- **Por que permanece:** apenas os domínios já revisados foram alterados; não foi feita uma extração generalizada nem criada abstração de repositório sem prova de necessidade.
+- **Próxima ação:** concluir Profiles, depois Social; mover composição de leitura para aplicação e persistência das rotas para a camada correta. Em Auth/Accounts, validar se a persistência direta na aplicação prejudica testabilidade/manutenção antes de decidir por repositórios.
+- **Critério de encerramento:** nenhum handler de produto acessa banco diretamente; composição entre domínios ocorre por interfaces/casos de uso apropriados; testes protegem as fronteiras e não há ciclos introduzidos.
+
+### 4. Estado transversal do frontend
+
+- **Status:** aberto; pendente na revisão do frontend do Gate 0A.
+- **Achado:** `SocialApplicationContext`, seus tipos e o reducer agregam estado/ações de Social, Feed, Seek, Mensagens e Notificações. `app` funciona como fachada de negócio para vários domínios, apesar de existirem reducers e ações nas pastas próprias.
+- **Por que permanece:** nenhuma alteração de frontend foi feita nas unidades estruturais atuais.
+- **Próxima ação:** revisar domínio por domínio e separar providers/stores e contratos de estado sem alterar navegação, dimensões, botões, regras de privacidade ou comportamento de preview.
+- **Critério de encerramento:** cada domínio possui responsabilidade de estado clara, dependências são direcionadas, não há ciclos, e os testes de regressão confirmam o comportamento visual e funcional existente.
+
+### 5. Contratos OpenAPI e cliente gerado
+
+- **Status:** abertos; não corrigidos nas refatorações estruturais.
+- **Achado:** `/readyz` não está documentado no OpenAPI; `POST /v1/onboarding/interests` não aparece na especificação nem no cliente gerado.
+- **Por que permanece:** as etapas estruturais preservaram as rotas e não alteraram contratos ou artefatos gerados.
+- **Próxima ação:** revisar e documentar as operações existentes, incluindo método, caminho, sessão/CSRF, entrada, respostas e erros; regenerar cliente e documentação pelos comandos oficiais.
+- **Critério de encerramento:** OpenAPI, cliente gerado e implementação correspondem; testes de contrato cobrem sucesso, validações e erros relevantes, sem edição manual de saída gerada.
+
+### 6. Documentação e artefatos desatualizados
+
+- **Status:** aberto; depende da estabilização dos contratos e do estado do banco.
+- **Achado:** há divergências sobre recuperação de senha, integração de perfis, Feed/posts, estado da migration `0005`, contagem de tabelas, caminhos e inventário do frontend. `index.html`, `openapi.json`, `endpoints.md` e o ZIP são artefatos derivados e podem ficar desatualizados quando suas fontes mudam.
+- **Por que permanece:** os documentos são snapshots de datas diferentes; a auditoria não reescreveu conteúdo fora do escopo estrutural.
+- **Próxima ação:** corrigir primeiro as fontes Markdown/OpenAPI/dicionário conforme código e banco comprovados; regenerar HTML, JSON, endpoints e pacote ZIP usando os geradores oficiais.
+- **Critério de encerramento:** documentação diferencia endpoint implementado, migration aplicada, consumo real do cliente e fluxo E2E validado; caminhos/contagens correspondem ao inventário e artefatos são reproduzíveis a partir das fontes.
+
+### 7. Integrações funcionais ainda locais ou incompletas
+
+- **Status:** capacidades pendentes de implementação por etapas posteriores; não são declarações de que toda UI já esteja conectada.
+- **Achado:** publicação/comentário do frontend ainda usam `demoContentAdapter`; likes, reposts, favoritos e atividade são locais; mídia persistente não está integrada. O Seek ainda depende de fixtures/estado local e não tem backend completo para descoberta, localização/busca, eventos e avaliações. Mensagens, notificações e algumas preferências de configuração não têm persistência/API ativa no cliente; Trust & Safety ainda não tem integração operacional.
+- **Por que permanece:** o sistema está sendo construído gradualmente; não se deve simular sincronização remota nem marcar recursos demonstrativos como completos.
+- **Próxima ação:** após fechar os gates de estrutura/contratos/banco, implementar as capacidades verticais dos Gates 5, 8, 9 e 10; definir ownership, autorização e persistência de mídia antes de ligar o cliente; definir o recorte de Trust & Safety conforme as regras aprovadas. Shop continua fora do escopo atual por decisão do usuário.
+- **Critério de encerramento:** cada fluxo planejado tem API e autorização no backend, persistência verificada, cliente remoto conectado, estados de erro/carregamento/vazio, testes de contrato e integração, e documentação atualizada. Dados demonstrativos permanecem identificados como demo e não são apresentados como sincronizados.
+
+### 8. Revisão de segurança e contrato de erros
+
+- **Status:** revisão abrangente ainda não concluída.
+- **Achado:** a auditoria de código não foi uma auditoria formal de segurança nem um teste de penetração; não há teste dedicado que comprove a unicidade/distribuição do catálogo de códigos de erro.
+- **Por que permanece:** as etapas estruturais focaram fronteiras de módulos; a revisão de segurança e os testes de códigos ainda não foram executados.
+- **Próxima ação:** executar o Gate 6 com matriz de ameaças e testes pertinentes, incluir teste automatizado dos códigos de erro e registrar limites de qualquer análise.
+- **Critério de encerramento:** testes de segurança, autorização e códigos passam; riscos restantes são listados sem alegar segurança absoluta.
+
+### 9. Runtime declarado versus runtime de desenvolvimento
+
+- **Status:** incompatibilidade de configuração não resolvida.
+- **Achado:** `.replit` declara Node 20; o pacote raiz exige Node `>=22.18.0`; a validação desta auditoria ocorreu em Node 22.23.4 e não comprovou execução no Node 20.
+- **Por que permanece:** ainda não foi reconciliado qual runtime a configuração de desenvolvimento deve declarar e executar.
+- **Próxima ação:** escolher a versão compatível com os manifests e validar instalação, testes e build no runtime declarado; alinhar `.replit`, engine e workflow somente após essa verificação.
+- **Critério de encerramento:** configuração e runtime efetivamente usado no desenvolvimento correspondem, com typecheck, testes e build executados nessa versão.
+
+### 10. Cobertura ponta a ponta e revisão visual
+
+- **Status:** cobertura parcial; não equivale a defeito de compilação.
+- **Achado:** a suíte executada não cobre todas as jornadas por navegador; o preview verificado mostrou a página inicial, não todas as rotas, estados autenticados, interações e tamanhos de tela.
+- **Por que permanece:** as etapas estruturais validaram testes existentes, build e preview básico; não fizeram uma auditoria visual/interativa completa.
+- **Próxima ação:** no Gate 7, listar jornadas críticas por domínio e executar E2E/validação visual e de acessibilidade nos viewports relevantes, incluindo estados de erro, vazio e autenticação.
+- **Critério de encerramento:** resultados por jornada e viewport registrados; regressões corrigidas ou explicitamente bloqueando a aprovação do gate.
+
+## Observações auditadas sem defeito confirmado
+
+- `.npmrc` desativa instalação automática de peers e validação estrita; a auditoria não encontrou incompatibilidade concreta. Não alterar por precaução sem demonstrar um conflito; revisar quando dependências forem modificadas.
+- Zod direto `4.6.7` e Orval `8.44.0` não apresentaram conflito de versões diretas nos pacotes inspecionados. Não há upgrade pendente comprovado.
+- `api-isolated-db.test.mjs` tem 1.933 linhas e concentra casos de mais de um fluxo. Isso é uma oportunidade de revisão, não prova isolada de erro; dividir somente se a análise confirmar responsabilidades coesas que justifiquem a divisão.
+- Arquivos de tela extensos no frontend são candidatos a revisão de coesão, mas tamanho sozinho não justifica fragmentação.
+
 2. **Gate 1 — reconciliar o modelo de dados** — Comparar schemas/tabelas Drizzle, migrations, journal, documentação e estado físico confirmado, incluindo `account_username_reservations` e `feed.posts`; atualizar o dicionário e a matriz de estado sem declarar migration aplicada antes da evidência. Validar migrations em schema temporário isolado; apresentar qualquer alteração necessária e seu plano de rollback para aprovação antes de aplicá-la ao schema principal de desenvolvimento.
 3. **Gate 2 — fechar as fronteiras de persistência Auth e Accounts no backend** — Revalidar os casos de uso/repositorios após a reconciliação do banco, testar os fluxos de cadastro, e-mail, login/sessões, senha e dispositivos confiáveis em schema temporário de desenvolvimento e verificar que nenhuma regra de persistência/segurança ficou apenas no handler. Não repetir a extração HTTP já concluída no Gate 0A. Preservar API, mensagens de erro e regras aprovadas; obter evidência de destino de desenvolvimento antes de qualquer escrita.
 4. **Gate 3 — corrigir a fronteira de Profiles** — Mover a composição de perfil público para um caso de uso de leitura e estabelecer consultas entre Accounts, Social e Feed por contratos exportados pelos domínios proprietários, sem acesso direto às tabelas de outro domínio. Validar bloqueios, privacidade, perfis pessoais/comerciais, paginação e respostas HTTP antes da aprovação do gate.

@@ -11,10 +11,8 @@ Investigar a implementação real antes de alterar; preservar decisões e contra
 
 As instruções explícitas do usuário definem o escopo e as decisões de produto: não reduzir, ampliar, substituir ou reinterpretar uma ordem por iniciativa própria. Manter recomendações separadas das decisões aprovadas. Se houver ambiguidade essencial, conflito ou limitação técnica/de segurança que impeça executar exatamente o pedido, explicar isso com clareza antes de mudar o escopo.
 
-## Why
+Toda pendência encontrada que não seja resolvida no escopo atual deve ser registrada em uma seção de pendências do plano de ação, com status, motivo/bloqueio, próxima ação e critério de encerramento. O relatório da etapa pode resumir e apontar para ela, mas não substitui o registro no plano.
 
-O usuário designou explicitamente esse prompt como padrão contínuo de trabalho, pediu que seja relido no início de cada atividade e reforçou que suas ordens não devem ser reinterpretadas por preferência do agente. O conteúdo não estava duplicado em `replit.md`.
+**Why:** o usuário designou explicitamente esse prompt como padrão contínuo, pediu releitura a cada atividade e determinou que pendências não resolvidas permaneçam no plano de ação, para não se perderem entre relatórios ou etapas.
 
-## How to apply
-
-No começo de cada nova tarefa, abrir e reler o arquivo-fonte completo antes de explorar ou editar. Cumprir o escopo explícito sem reduzi-lo nem acrescentar trabalho não solicitado; apresentar recomendações sem executá-las como se fossem ordens aprovadas. Comunicar evidências, riscos, impossibilidades e validação sem ocultar falhas.
+**How to apply:** no começo de cada tarefa, reler o prompt integral antes de explorar ou editar. Cumprir o escopo explícito e comunicar evidências, riscos e limitações. Ao concluir cada etapa, atualizar a seção de pendências do plano com status, motivo/bloqueio, próxima ação e critério de encerramento; o relatório final deve apontar para esse registro, não substituí-lo.
