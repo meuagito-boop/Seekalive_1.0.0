@@ -1,5 +1,5 @@
 - [Social module layout architecture](social-layout-arch.md) — Feed uses SocialLayout (not AppLayout); extract /feed from AppLayout in AuthRouter to give it its own 3-column layout.
-- [Consultoria técnica do projeto](consultoria-tecnica.md) — separar evidências, inferências e recomendações; explicar riscos relevantes antes de decisões de alto impacto.
+- [Consultoria e rigor técnico](consultoria-tecnica.md) — separar evidências de recomendações e aplicar alto rigor arquitetural, de qualidade e segurança sem mascarar falhas.
 - [Visão e contas do Seek](seek-positioning.md) — Seek deve superar Yelp e Dianping; comércios são contas comerciais da própria rede Social.
 - [Galeria de mídias Social](social-media-gallery.md) — Mídia publicada alimenta a galeria da conta; priorizar o front-end antes de banco e persistência no servidor.
 - [Escopo dos módulos](product-scope.md) — Comunidades foram retiradas; Círculo só existe como seguimento mútuo, sem convites ou relação própria.
