@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import type { User } from "@/modules/profile/types/user";
 import { saveSocialAccount } from "@/modules/profile/data/accountStorage";
@@ -31,6 +39,7 @@ import { selectSocialView } from "@/modules/social/application/selectSocialView"
 import { selectVisibleMessages } from "@/modules/messages/application/selectVisibleMessages";
 import { selectVisibleNotifications } from "@/modules/notifications/application/selectVisibleNotifications";
 import {
+  canHydrateDevelopmentPreview,
   createInitialState,
   socialReducer,
 } from "@/modules/app/state/socialApplicationState";
@@ -41,8 +50,12 @@ const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
 // ── Provider ──────────────────────────────────────────────────────────
 export function SocialProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(socialReducer, undefined, createInitialState);
   const { currentUser, updateAccount, isDevelopmentPreview } = useAppContext();
+  const [state, dispatch] = useReducer(
+    socialReducer,
+    isDevelopmentPreview,
+    createInitialState,
+  );
   const isRemoteSocialSession = Boolean(currentUser && !isDevelopmentPreview);
   const viewer = currentUser;
   const actorId = currentUser?.id ?? viewer?.id ?? "guest";
@@ -66,7 +79,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   });
   const { ids: localBlockedUserIds, toggle: toggleBlockedUser } =
     useAccountScopedIds("seekalive-blocked-users", actorId);
-  const blockedUserIds = isRemoteSocialSession ? remoteBlockedUserIds : localBlockedUserIds;
+  const blockedUserIds = isRemoteSocialSession
+    ? remoteBlockedUserIds
+    : localBlockedUserIds;
   const blockedUserIdSet = new Set(blockedUserIds);
   const blockRelations = readAccountScopedIdsMap("seekalive-blocked-users");
   const blockProjection = getAccountBlockProjection(blockRelations, actorId);
@@ -74,7 +89,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     ? new Set<string>()
     : new Set(blockProjection.blockingViewerIds);
   const blockedAccountIds = new Set(blockProjection.unavailableAccountIds);
-  const [activityByAccount, setActivityByAccount] = useState(readAccountActivityMap);
+  const [activityByAccount, setActivityByAccount] = useState(
+    readAccountActivityMap,
+  );
   const accountActivity = useMemo(
     () => getAccountActivity(activityByAccount, actorId),
     [activityByAccount, actorId],
@@ -93,7 +110,13 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     accountActivity,
     accountActivities: Object.values(activityByAccount),
   });
-  const { blockedPostIds, posts, comments: postComments, repostEntries, users } = socialView;
+  const {
+    blockedPostIds,
+    posts,
+    comments: postComments,
+    repostEntries,
+    users,
+  } = socialView;
   const visibleNotifications = selectVisibleNotifications({
     notifications: state.notifications,
     actorId,
@@ -103,20 +126,17 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     blockedPostIds,
     readNotificationIds: accountActivity.readNotificationIds,
   });
-  const {
-    visibleConversations,
-    visibleMessages,
-    visibleConversationIds,
-  } = selectVisibleMessages({
-    conversations: state.conversations,
-    messages: state.messages,
-    actorId,
-    currentUserId: currentUser?.id,
-    isDevelopmentPreview,
-    blockedAccountIds,
-    readConversationIds: accountActivity.readConversationIds,
-    readMessageIds: accountActivity.readMessageIds,
-  });
+  const { visibleConversations, visibleMessages, visibleConversationIds } =
+    selectVisibleMessages({
+      conversations: state.conversations,
+      messages: state.messages,
+      actorId,
+      currentUserId: currentUser?.id,
+      isDevelopmentPreview,
+      blockedAccountIds,
+      readConversationIds: accountActivity.readConversationIds,
+      readMessageIds: accountActivity.readMessageIds,
+    });
   const { assertSession, assertReadable } = createPostAccessPolicy({
     posts: state.posts,
     users,
@@ -137,7 +157,10 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   }, [state.followRequests, isRemoteSocialSession]);
 
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
+    if (
+      !canHydrateDevelopmentPreview(import.meta.env.DEV, isDevelopmentPreview)
+    )
+      return;
     let active = true;
     void import("@/data/demo/previewFixtures")
       .then(({ createDevelopmentPreviewState }) => {
@@ -152,7 +175,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         if (active) {
           toast({
             title: "Dados de demonstração indisponíveis",
-            description: "Não foi possível carregar os exemplos neste ambiente. Recarregue a página para tentar novamente.",
+            description:
+              "Não foi possível carregar os exemplos neste ambiente. Recarregue a página para tentar novamente.",
             variant: "destructive",
           });
         }
@@ -160,30 +184,42 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [dispatch]);
+  }, [dispatch, isDevelopmentPreview]);
 
   function showRefreshWarning() {
     toast({
       title: "Alteração salva",
-      description: "Não foi possível atualizar todos os dados exibidos. Recarregue a tela.",
+      description:
+        "Não foi possível atualizar todos os dados exibidos. Recarregue a tela.",
       variant: "destructive",
     });
   }
 
-  const loadRemoteProfile = useCallback(async (username: string): Promise<User | null> => {
-    if (!isRemoteSocialSession) return null;
-    const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
-    if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) return null;
-    const profile = await socialGraphApi.getProfileByUsername(normalizedUsername);
-    const user = accountViewToUser(profile.account);
-    dispatch({ type: "ADD_USER", user });
-    return user;
-  }, [isRemoteSocialSession]);
+  const loadRemoteProfile = useCallback(
+    async (username: string): Promise<User | null> => {
+      if (!isRemoteSocialSession) return null;
+      const normalizedUsername = username
+        .trim()
+        .replace(/^@/, "")
+        .toLowerCase();
+      if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) return null;
+      const profile =
+        await socialGraphApi.getProfileByUsername(normalizedUsername);
+      const user = accountViewToUser(profile.account);
+      dispatch({ type: "ADD_USER", user });
+      return user;
+    },
+    [isRemoteSocialSession],
+  );
 
-  const upsertRemoteUser = useCallback((user: User) => dispatch({
-    type: "ADD_USER",
-    user: { ...user, source: "server" },
-  }), []);
+  const upsertRemoteUser = useCallback(
+    (user: User) =>
+      dispatch({
+        type: "ADD_USER",
+        user: { ...user, source: "server" },
+      }),
+    [],
+  );
 
   const relationshipActions = createSocialRelationshipActions({
     state,
@@ -208,7 +244,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     assertSession,
     assertReadable,
   });
-  const reviewActions = createSocialReviewActions({ state, currentUser, dispatch });
+  const reviewActions = createSocialReviewActions({
+    state,
+    currentUser,
+    dispatch,
+  });
   const messageActions = createMessageActions({
     state,
     currentUser,
@@ -238,23 +278,33 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     socialGraphError,
     retrySocialGraph,
 
-    getPostById: (id) => posts.find(p => p.id === id),
+    getPostById: (id) => posts.find((p) => p.id === id),
     getUserById: (id) => {
       if (id === currentUser?.id) return currentUser;
       if (id === "me") return currentUser ?? undefined;
-      return users.find(u => u.id === id);
+      return users.find((u) => u.id === id);
     },
-    getConversationMessages: (convId) => visibleConversationIds.has(convId)
-      ? visibleMessages.filter(message => message.conversationId === convId) : [],
-    unreadNotifications: visibleNotifications.filter(notification => !notification.isRead).length,
-    unreadMessages: visibleConversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
+    getConversationMessages: (convId) =>
+      visibleConversationIds.has(convId)
+        ? visibleMessages.filter((message) => message.conversationId === convId)
+        : [],
+    unreadNotifications: visibleNotifications.filter(
+      (notification) => !notification.isRead,
+    ).length,
+    unreadMessages: visibleConversations.reduce(
+      (total, conversation) => total + conversation.unreadCount,
+      0,
+    ),
     incomingFollowRequests: isRemoteSocialSession
-      ? remoteFollowRequests.filter((request) => !blockedUserIdSet.has(request.requesterId))
-      : state.followRequests.filter(request =>
-        request.targetId === currentUser?.id
-        && !blockedUserIdSet.has(request.requesterId)
-        && !accountsBlockingViewerSet.has(request.requesterId)
-      ),
+      ? remoteFollowRequests.filter(
+          (request) => !blockedUserIdSet.has(request.requesterId),
+        )
+      : state.followRequests.filter(
+          (request) =>
+            request.targetId === currentUser?.id &&
+            !blockedUserIdSet.has(request.requesterId) &&
+            !accountsBlockingViewerSet.has(request.requesterId),
+        ),
     loadRemoteProfile,
     upsertRemoteUser,
 
@@ -273,7 +323,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     ...notificationActions,
   };
 
-  return <SocialContext.Provider value={ctx}>{children}</SocialContext.Provider>;
+  return (
+    <SocialContext.Provider value={ctx}>{children}</SocialContext.Provider>
+  );
 }
 
 export function useSocial() {

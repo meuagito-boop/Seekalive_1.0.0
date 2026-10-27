@@ -29,7 +29,12 @@ import {
 } from "@/modules/messages/state/messageReducer";
 
 export interface SocialState
-  extends SocialContentState, SocialGraphState, SeekReviewState, NotificationState, MessageState {}
+  extends
+    SocialContentState,
+    SocialGraphState,
+    SeekReviewState,
+    NotificationState,
+    MessageState {}
 
 export type SocialAction =
   | SocialContentAction
@@ -39,13 +44,26 @@ export type SocialAction =
   | MessageAction
   | { type: "HYDRATE_DEVELOPMENT_PREVIEW"; preview: SocialState };
 
-function mergeById<T extends { id: string }>(previewItems: T[], currentItems: T[]): T[] {
+export function canHydrateDevelopmentPreview(
+  isDevelopmentBuild: boolean,
+  isDevelopmentPreview: boolean,
+): boolean {
+  return isDevelopmentBuild && isDevelopmentPreview;
+}
+
+function mergeById<T extends { id: string }>(
+  previewItems: T[],
+  currentItems: T[],
+): T[] {
   const merged = new Map(previewItems.map((item) => [item.id, item]));
   for (const item of currentItems) merged.set(item.id, item);
   return [...merged.values()];
 }
 
-export function mergeDevelopmentPreviewState(current: SocialState, preview: SocialState): SocialState {
+export function mergeDevelopmentPreviewState(
+  current: SocialState,
+  preview: SocialState,
+): SocialState {
   return {
     posts: mergeById(preview.posts, current.posts),
     users: mergeById(preview.users, current.users),
@@ -59,7 +77,10 @@ export function mergeDevelopmentPreviewState(current: SocialState, preview: Soci
   };
 }
 
-export function socialReducer(state: SocialState, action: SocialAction): SocialState {
+export function socialReducer(
+  state: SocialState,
+  action: SocialAction,
+): SocialState {
   switch (action.type) {
     case "HYDRATE_DEVELOPMENT_PREVIEW":
       return mergeDevelopmentPreviewState(state, action.preview);
@@ -102,9 +123,13 @@ const initialState: SocialState = {
   followRequests: [],
 };
 
-export function createInitialState(): SocialState {
+export function createInitialState(includeBrowserState = true): SocialState {
+  if (!includeBrowserState) return initialState;
+
   const usersById = new Map(getStoredAccounts().map((user) => [user.id, user]));
-  const reviewsById = new Map(getStoredSeekReviews().map((review) => [review.id, review]));
+  const reviewsById = new Map(
+    getStoredSeekReviews().map((review) => [review.id, review]),
+  );
   return {
     ...initialState,
     users: [...usersById.values()],
