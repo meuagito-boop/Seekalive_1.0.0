@@ -1,11 +1,21 @@
-import { postJson } from "./http";
-import type { AuthResult, LoginResult, PasswordUpdateVerificationRequired } from "../types";
+import { postJson } from "@/modules/app/api/httpClient";
+import type {
+  AuthResult,
+  LoginResult,
+  PasswordUpdateVerificationRequired,
+} from "../types";
 
-export function loginAccount(payload: { identifier: string; password: string }) {
+export function loginAccount(payload: {
+  identifier: string;
+  password: string;
+}) {
   return postJson<LoginResult>("/auth/login", payload);
 }
 
-export function confirmDeviceLogin(payload: { challengeId: string; code: string }) {
+export function confirmDeviceLogin(payload: {
+  challengeId: string;
+  code: string;
+}) {
   return postJson<AuthResult>("/auth/device-verification/confirm", payload);
 }
 
@@ -23,9 +33,18 @@ export function updatePasswordPolicy(payload: {
   newPassword: string;
   passwordConfirmation: string;
 }) {
-  return postJson<PasswordUpdateVerificationRequired>("/auth/password/update", payload);
+  return postJson<PasswordUpdateVerificationRequired>(
+    "/auth/password/update",
+    payload,
+  );
 }
 
-export function confirmPasswordPolicyUpdate(payload: { challengeId: string; code: string }) {
-  return postJson<{ status: "password_updated" }>("/auth/password/update/confirm", payload);
+export function confirmPasswordPolicyUpdate(payload: {
+  challengeId: string;
+  code: string;
+}) {
+  return postJson<{ status: "password_updated" }>(
+    "/auth/password/update/confirm",
+    payload,
+  );
 }

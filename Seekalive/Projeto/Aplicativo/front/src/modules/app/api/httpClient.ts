@@ -1,7 +1,7 @@
 import type { ApiErrorKey } from "@workspace/api-zod";
 import { readApiError } from "@/modules/app/api/apiErrors";
 
-export class AuthApiError extends Error {
+export class ApiRequestError extends Error {
   constructor(
     message: string,
     readonly status: number,
@@ -14,15 +14,18 @@ export class AuthApiError extends Error {
     readonly resendAvailableAt?: string,
   ) {
     super(message);
-    this.name = "AuthApiError";
+    this.name = "ApiRequestError";
   }
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = response.status === 204 ? undefined : await response.json().catch(() => undefined);
+  const payload =
+    response.status === 204
+      ? undefined
+      : await response.json().catch(() => undefined);
   if (!response.ok) {
     const error = readApiError(payload);
-    throw new AuthApiError(
+    throw new ApiRequestError(
       error.message,
       response.status,
       error.code,

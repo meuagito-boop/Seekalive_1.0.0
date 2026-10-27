@@ -1,5 +1,11 @@
-import { postJson } from "@/modules/auth/services/http";
+import { postJson } from "@/modules/app/api/httpClient";
 
-export function completeOnboarding(payload: { interests: string[]; skipped: boolean }) {
-  return postJson<{ onboardingCompleted: true; interestCount: number }>("/onboarding/interests", payload);
+export function completeOnboarding(payload: {
+  interests: string[];
+  skipped: boolean;
+}) {
+  return postJson<{ onboardingCompleted: true; interestCount: number }>(
+    "/onboarding/interests",
+    payload,
+  );
 }

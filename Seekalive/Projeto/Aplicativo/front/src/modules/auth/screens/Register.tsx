@@ -9,9 +9,16 @@ import { Eye, EyeOff, Check } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { AuthApiError } from "@/modules/auth/services/http";
+import { ApiRequestError } from "@/modules/app/api/httpClient";
 import { registerAccount as submitRegistration } from "@/modules/auth/services/registrationApi";
 import { useAppContext } from "@/modules/app/state/AppContext";
 
@@ -25,68 +32,94 @@ const commercialCategories = [
   { value: "lazer", label: "Lazer" },
 ];
 
-const schema = z.object({
-  accountType: z.enum(["personal", "commercial"]),
-  firstName: z.string(),
-  lastName: z.string(),
-  businessName: z.string(),
-  age: z.string().trim().regex(/^\d{1,3}$/, "Informe uma idade válida")
-    .refine(value => Number(value) >= 18 && Number(value) <= 120, "O cadastro está disponível para pessoas com 18 anos ou mais"),
-  businessCategory: z.string(),
-  discoveryKind: z.enum(["place", "provider"]),
-  address: z.string(),
-  postalCode: z.string(),
-  city: z.string(),
-  state: z.string(),
-  country: z.string(),
-  username: z.string().trim()
-    .min(3, "O nome de usuário deve ter ao menos 3 caracteres")
-    .max(20, "O nome de usuário deve ter no máximo 20 caracteres")
-    .regex(/^[a-z0-9_]+$/, "Use letras minúsculas, números e _"),
-  email: z.string().trim().email("E-mail inválido").max(254, "O e-mail é muito longo"),
-  password: passwordPolicySchema,
-  confirmPassword: passwordPolicySchema,
-  terms: z.boolean().refine(v => v, "Aceite os termos para continuar"),
-}).superRefine((data, ctx) => {
-  if (data.accountType === "personal") {
-    if (data.firstName.trim().length < 2) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe seu nome", path: ["firstName"] });
+const schema = z
+  .object({
+    accountType: z.enum(["personal", "commercial"]),
+    firstName: z.string(),
+    lastName: z.string(),
+    businessName: z.string(),
+    age: z
+      .string()
+      .trim()
+      .regex(/^\d{1,3}$/, "Informe uma idade válida")
+      .refine(
+        (value) => Number(value) >= 18 && Number(value) <= 120,
+        "O cadastro está disponível para pessoas com 18 anos ou mais",
+      ),
+    businessCategory: z.string(),
+    discoveryKind: z.enum(["place", "provider"]),
+    address: z.string(),
+    postalCode: z.string(),
+    city: z.string(),
+    state: z.string(),
+    country: z.string(),
+    username: z
+      .string()
+      .trim()
+      .min(3, "O nome de usuário deve ter ao menos 3 caracteres")
+      .max(20, "O nome de usuário deve ter no máximo 20 caracteres")
+      .regex(/^[a-z0-9_]+$/, "Use letras minúsculas, números e _"),
+    email: z
+      .string()
+      .trim()
+      .email("E-mail inválido")
+      .max(254, "O e-mail é muito longo"),
+    password: passwordPolicySchema,
+    confirmPassword: passwordPolicySchema,
+    terms: z.boolean().refine((v) => v, "Aceite os termos para continuar"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.accountType === "personal") {
+      if (data.firstName.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Informe seu nome",
+          path: ["firstName"],
+        });
+      }
+      if (data.lastName.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Informe seu sobrenome",
+          path: ["lastName"],
+        });
+      }
+    } else if (data.businessName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe o nome da empresa ou do prestador",
+        path: ["businessName"],
+      });
     }
-    if (data.lastName.trim().length < 2) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe seu sobrenome", path: ["lastName"] });
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Senhas não coincidem",
+        path: ["confirmPassword"],
+      });
     }
-  } else if (data.businessName.trim().length < 2) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe o nome da empresa ou do prestador", path: ["businessName"] });
-  }
-  if (data.password !== data.confirmPassword) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Senhas não coincidem",
-      path: ["confirmPassword"],
-    });
-  }
-  if (data.accountType === "commercial" && !data.businessCategory) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Selecione a categoria do perfil comercial",
-      path: ["businessCategory"],
-    });
-  }
-  if (data.accountType === "commercial") {
-    const requiredBusinessFields = [
-      ["address", "Informe o endereço", 3],
-      ["postalCode", "Informe o CEP", 5],
-      ["city", "Informe a cidade", 2],
-      ["state", "Informe o estado", 2],
-      ["country", "Informe o país", 2],
-    ] as const;
-    for (const [field, message, min] of requiredBusinessFields) {
-      if (data[field].trim().length < min) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: [field] });
+    if (data.accountType === "commercial" && !data.businessCategory) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Selecione a categoria do perfil comercial",
+        path: ["businessCategory"],
+      });
+    }
+    if (data.accountType === "commercial") {
+      const requiredBusinessFields = [
+        ["address", "Informe o endereço", 3],
+        ["postalCode", "Informe o CEP", 5],
+        ["city", "Informe a cidade", 2],
+        ["state", "Informe o estado", 2],
+        ["country", "Informe o país", 2],
+      ] as const;
+      for (const [field, message, min] of requiredBusinessFields) {
+        if (data[field].trim().length < min) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: [field] });
+        }
       }
     }
-  }
-});
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -130,25 +163,26 @@ export default function Register() {
       passwordConfirmation: values.confirmPassword,
       acceptedTermsVersion: "v1",
     };
-    const payload = values.accountType === "personal"
-      ? {
-          ...common,
-          accountType: "personal" as const,
-          firstName: values.firstName.trim(),
-          lastName: values.lastName.trim(),
-        }
-      : {
-          ...common,
-          accountType: "commercial" as const,
-          businessName: values.businessName.trim(),
-          categoryKey: values.businessCategory,
-          discoveryKind: values.discoveryKind,
-          address: values.address.trim(),
-          postalCode: values.postalCode.trim(),
-          city: values.city.trim(),
-          state: values.state.trim(),
-          country: values.country.trim(),
-        };
+    const payload =
+      values.accountType === "personal"
+        ? {
+            ...common,
+            accountType: "personal" as const,
+            firstName: values.firstName.trim(),
+            lastName: values.lastName.trim(),
+          }
+        : {
+            ...common,
+            accountType: "commercial" as const,
+            businessName: values.businessName.trim(),
+            categoryKey: values.businessCategory,
+            discoveryKind: values.discoveryKind,
+            address: values.address.trim(),
+            postalCode: values.postalCode.trim(),
+            city: values.city.trim(),
+            state: values.state.trim(),
+            country: values.country.trim(),
+          };
 
     try {
       const result = await submitRegistration(payload);
@@ -156,13 +190,19 @@ export default function Register() {
       toast({ title: "Confirme seu e-mail", description: result.message });
       setLocation("/verify-email");
     } catch (error) {
-      if (error instanceof AuthApiError && error.key === "USERNAME_UNAVAILABLE") {
+      if (
+        error instanceof ApiRequestError &&
+        error.key === "USERNAME_UNAVAILABLE"
+      ) {
         form.setError("username", { type: "server", message: error.message });
         return;
       }
       toast({
         title: "Não foi possível concluir o cadastro",
-        description: error instanceof Error ? error.message : "Tente novamente mais tarde.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Tente novamente mais tarde.",
         variant: "destructive",
       });
     }
@@ -170,7 +210,10 @@ export default function Register() {
 
   const username = form.watch("username").replace(/^@/, "").toLowerCase();
   const accountType = form.watch("accountType");
-  const isUsernameValidFormat = username.length > 2 && username.length <= 20 && /^[a-z0-9_]+$/.test(username);
+  const isUsernameValidFormat =
+    username.length > 2 &&
+    username.length <= 20 &&
+    /^[a-z0-9_]+$/.test(username);
 
   return (
     <div className="relative flex min-h-[100dvh] items-start justify-center overflow-hidden bg-background px-4 py-8 sm:items-center sm:py-12">
@@ -189,11 +232,20 @@ export default function Register() {
           <span className="text-2xl font-bold tracking-tight">Seekalive</span>
         </div>
 
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Seu próximo capítulo começa aqui</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          Seu próximo capítulo começa aqui
+        </p>
         <h1 className="mb-2 text-3xl font-bold tracking-tight">Criar conta</h1>
-        <p className="mb-8 text-sm leading-6 text-muted-foreground">Um perfil para compartilhar sua vida e, se quiser, apresentar seu negócio no Seek.</p>
-        <p role="note" className="mb-6 rounded-xl border border-border bg-background/70 px-4 py-3 text-xs leading-5 text-muted-foreground">
-          Você só poderá entrar depois de confirmar o e-mail. O cadastro não cria uma sessão antes da verificação.
+        <p className="mb-8 text-sm leading-6 text-muted-foreground">
+          Um perfil para compartilhar sua vida e, se quiser, apresentar seu
+          negócio no Seek.
+        </p>
+        <p
+          role="note"
+          className="mb-6 rounded-xl border border-border bg-background/70 px-4 py-3 text-xs leading-5 text-muted-foreground"
+        >
+          Você só poderá entrar depois de confirmar o e-mail. O cadastro não
+          cria uma sessão antes da verificação.
         </p>
 
         <Form {...form}>
@@ -203,11 +255,25 @@ export default function Register() {
               name="accountType"
               render={({ field }) => (
                 <FormItem>
-                  <p className="mb-2 text-sm font-semibold">Escolha seu tipo de conta</p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="group" aria-label="Tipo de conta">
+                  <p className="mb-2 text-sm font-semibold">
+                    Escolha seu tipo de conta
+                  </p>
+                  <div
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                    role="group"
+                    aria-label="Tipo de conta"
+                  >
                     {[
-                      { value: "personal", title: "Pessoal", hint: "Para compartilhar e acompanhar pessoas" },
-                      { value: "commercial", title: "Comercial", hint: "Seu perfil Social também aparece no Seek" },
+                      {
+                        value: "personal",
+                        title: "Pessoal",
+                        hint: "Para compartilhar e acompanhar pessoas",
+                      },
+                      {
+                        value: "commercial",
+                        title: "Comercial",
+                        hint: "Seu perfil Social também aparece no Seek",
+                      },
                     ].map((option) => (
                       <button
                         key={option.value}
@@ -221,8 +287,12 @@ export default function Register() {
                             : "border-border bg-card hover:border-primary/40"
                         }`}
                       >
-                        <span className="block text-sm font-semibold">{option.title}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">{option.hint}</span>
+                        <span className="block text-sm font-semibold">
+                          {option.title}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {option.hint}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -239,7 +309,14 @@ export default function Register() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input {...field} aria-label="Nome" autoComplete="given-name" placeholder="Nome" data-testid="input-first-name" className="h-12 bg-card border-border rounded-xl" />
+                        <Input
+                          {...field}
+                          aria-label="Nome"
+                          autoComplete="given-name"
+                          placeholder="Nome"
+                          data-testid="input-first-name"
+                          className="h-12 bg-card border-border rounded-xl"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -251,7 +328,14 @@ export default function Register() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input {...field} aria-label="Sobrenome" autoComplete="family-name" placeholder="Sobrenome" data-testid="input-last-name" className="h-12 bg-card border-border rounded-xl" />
+                        <Input
+                          {...field}
+                          aria-label="Sobrenome"
+                          autoComplete="family-name"
+                          placeholder="Sobrenome"
+                          data-testid="input-last-name"
+                          className="h-12 bg-card border-border rounded-xl"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -265,7 +349,14 @@ export default function Register() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input {...field} aria-label="Nome da empresa ou do prestador de serviço" autoComplete="organization" placeholder="Nome da empresa ou do prestador de serviço" data-testid="input-business-name" className="h-12 bg-card border-border rounded-xl" />
+                      <Input
+                        {...field}
+                        aria-label="Nome da empresa ou do prestador de serviço"
+                        autoComplete="organization"
+                        placeholder="Nome da empresa ou do prestador de serviço"
+                        data-testid="input-business-name"
+                        className="h-12 bg-card border-border rounded-xl"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -279,7 +370,25 @@ export default function Register() {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input {...field} type="number" min={18} max={120} inputMode="numeric" aria-label={accountType === "commercial" ? "Idade do responsável" : "Idade"} placeholder={accountType === "commercial" ? "Idade do responsável" : "Idade"} data-testid="input-age" className="h-12 bg-card border-border rounded-xl" />
+                    <Input
+                      {...field}
+                      type="number"
+                      min={18}
+                      max={120}
+                      inputMode="numeric"
+                      aria-label={
+                        accountType === "commercial"
+                          ? "Idade do responsável"
+                          : "Idade"
+                      }
+                      placeholder={
+                        accountType === "commercial"
+                          ? "Idade do responsável"
+                          : "Idade"
+                      }
+                      data-testid="input-age"
+                      className="h-12 bg-card border-border rounded-xl"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -300,9 +409,13 @@ export default function Register() {
                           data-testid="select-business-category"
                           className="h-12 w-full rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus:border-primary/50"
                         >
-                           <option value="">Categoria do perfil comercial</option>
+                          <option value="">
+                            Categoria do perfil comercial
+                          </option>
                           {commercialCategories.map((category) => (
-                            <option key={category.value} value={category.value}>{category.label}</option>
+                            <option key={category.value} value={category.value}>
+                              {category.label}
+                            </option>
                           ))}
                         </select>
                       </FormControl>
@@ -316,8 +429,15 @@ export default function Register() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <select {...field} aria-label="Tipo de perfil no Seek" data-testid="select-discovery-kind" className="h-12 w-full rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus:border-primary/50">
-                          <option value="place">Empresa ou estabelecimento</option>
+                        <select
+                          {...field}
+                          aria-label="Tipo de perfil no Seek"
+                          data-testid="select-discovery-kind"
+                          className="h-12 w-full rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                        >
+                          <option value="place">
+                            Empresa ou estabelecimento
+                          </option>
                           <option value="provider">Prestador de serviço</option>
                         </select>
                       </FormControl>
@@ -330,7 +450,16 @@ export default function Register() {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormControl><Input {...field} aria-label="Endereço" autoComplete="street-address" placeholder="Endereço" data-testid="input-business-address" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          aria-label="Endereço"
+                          autoComplete="street-address"
+                          placeholder="Endereço"
+                          data-testid="input-business-address"
+                          className="h-12 bg-card border-border rounded-xl"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -341,7 +470,16 @@ export default function Register() {
                     name="postalCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormControl><Input {...field} aria-label="CEP" autoComplete="postal-code" placeholder="CEP" data-testid="input-postal-code" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            aria-label="CEP"
+                            autoComplete="postal-code"
+                            placeholder="CEP"
+                            data-testid="input-postal-code"
+                            className="h-12 bg-card border-border rounded-xl"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -351,7 +489,16 @@ export default function Register() {
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormControl><Input {...field} aria-label="Cidade" autoComplete="address-level2" placeholder="Cidade" data-testid="input-city" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            aria-label="Cidade"
+                            autoComplete="address-level2"
+                            placeholder="Cidade"
+                            data-testid="input-city"
+                            className="h-12 bg-card border-border rounded-xl"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -361,7 +508,16 @@ export default function Register() {
                     name="state"
                     render={({ field }) => (
                       <FormItem>
-                        <FormControl><Input {...field} aria-label="Estado" autoComplete="address-level1" placeholder="Estado" data-testid="input-state" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            aria-label="Estado"
+                            autoComplete="address-level1"
+                            placeholder="Estado"
+                            data-testid="input-state"
+                            className="h-12 bg-card border-border rounded-xl"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -371,7 +527,16 @@ export default function Register() {
                     name="country"
                     render={({ field }) => (
                       <FormItem>
-                        <FormControl><Input {...field} aria-label="País" autoComplete="country-name" placeholder="País" data-testid="input-country" className="h-12 bg-card border-border rounded-xl" /></FormControl>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            aria-label="País"
+                            autoComplete="country-name"
+                            placeholder="País"
+                            data-testid="input-country"
+                            className="h-12 bg-card border-border rounded-xl"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -387,7 +552,9 @@ export default function Register() {
                 <FormItem>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                        @
+                      </span>
                       <Input
                         {...field}
                         aria-label="Nome de usuário"
@@ -396,7 +563,10 @@ export default function Register() {
                         className="h-12 bg-card border-border rounded-xl pl-8 pr-10"
                       />
                       {isUsernameValidFormat && (
-                        <span aria-label="Formato válido" className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
+                        <span
+                          aria-label="Formato válido"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500"
+                        >
                           <Check className="w-4 h-4" />
                         </span>
                       )}
@@ -448,18 +618,25 @@ export default function Register() {
                       />
                       <button
                         type="button"
-                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        aria-label={
+                          showPassword ? "Ocultar senha" : "Mostrar senha"
+                        }
                         aria-pressed={showPassword}
-                        onClick={() => setShowPassword(v => !v)}
+                        onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
                         data-testid="button-toggle-password"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </FormControl>
                   <FormDescription>
-                    De 8 a 128 caracteres, com maiúscula, minúscula, número e caractere especial.
+                    De 8 a 128 caracteres, com maiúscula, minúscula, número e
+                    caractere especial.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -495,7 +672,10 @@ export default function Register() {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <label className="flex items-center gap-3 cursor-pointer" data-testid="checkbox-terms">
+                    <label
+                      className="flex items-center gap-3 cursor-pointer"
+                      data-testid="checkbox-terms"
+                    >
                       <button
                         type="button"
                         role="checkbox"
@@ -504,13 +684,19 @@ export default function Register() {
                         className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${field.value ? "bg-primary border-primary" : "border-border"}`}
                         onClick={() => field.onChange(!field.value)}
                       >
-                        {field.value && <Check className="w-3 h-3 text-primary-foreground" />}
+                        {field.value && (
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        )}
                       </button>
                       <span className="text-sm text-muted-foreground">
                         Aceito os{" "}
-                        <span className="text-primary hover:underline cursor-pointer">Termos de Serviço</span>
-                        {" "}e{" "}
-                        <span className="text-primary hover:underline cursor-pointer">Política de Privacidade</span>
+                        <span className="text-primary hover:underline cursor-pointer">
+                          Termos de Serviço
+                        </span>{" "}
+                        e{" "}
+                        <span className="text-primary hover:underline cursor-pointer">
+                          Política de Privacidade
+                        </span>
                       </span>
                     </label>
                   </FormControl>
@@ -532,7 +718,11 @@ export default function Register() {
 
         <p className="text-center text-sm text-muted-foreground mt-8">
           Já tem conta?{" "}
-          <Link href="/login" className="text-primary font-semibold hover:underline" data-testid="link-login">
+          <Link
+            href="/login"
+            className="text-primary font-semibold hover:underline"
+            data-testid="link-login"
+          >
             Entrar
           </Link>
         </p>

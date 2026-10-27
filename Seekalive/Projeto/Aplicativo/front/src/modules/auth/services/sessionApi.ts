@@ -1,5 +1,10 @@
-import { deleteJson, getJson, postJson } from "./http";
-import type { AuthAccount, AuthSessionPage, CurrentSession, TrustedDevicePage } from "../types";
+import { deleteJson, getJson, postJson } from "@/modules/app/api/httpClient";
+import type {
+  AuthAccount,
+  AuthSessionPage,
+  CurrentSession,
+  TrustedDevicePage,
+} from "../types";
 
 export type {
   AuthAccount,
@@ -31,14 +36,24 @@ export function revokeAuthSession(sessionId: string): Promise<void> {
   return deleteJson<void>(`/auth/sessions/${encodeURIComponent(sessionId)}`);
 }
 
-export function revokeOtherAuthSessions(): Promise<{ status: "other_sessions_revoked"; revokedCount: number }> {
-  return deleteJson<{ status: "other_sessions_revoked"; revokedCount: number }>("/auth/sessions/others");
+export function revokeOtherAuthSessions(): Promise<{
+  status: "other_sessions_revoked";
+  revokedCount: number;
+}> {
+  return deleteJson<{ status: "other_sessions_revoked"; revokedCount: number }>(
+    "/auth/sessions/others",
+  );
 }
 
 export function revokeTrustedDevice(deviceId: string): Promise<void> {
   return deleteJson<void>(`/auth/devices/${encodeURIComponent(deviceId)}`);
 }
 
-export function revokeOtherTrustedDevices(): Promise<{ status: "other_devices_revoked"; revokedCount: number }> {
-  return deleteJson<{ status: "other_devices_revoked"; revokedCount: number }>("/auth/devices/others");
+export function revokeOtherTrustedDevices(): Promise<{
+  status: "other_devices_revoked";
+  revokedCount: number;
+}> {
+  return deleteJson<{ status: "other_devices_revoked"; revokedCount: number }>(
+    "/auth/devices/others",
+  );
 }

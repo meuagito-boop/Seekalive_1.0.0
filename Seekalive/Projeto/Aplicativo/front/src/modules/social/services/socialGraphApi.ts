@@ -29,7 +29,7 @@ import type {
 import { API_ERROR_CODES, type ApiErrorKey } from "@workspace/api-zod";
 import type { FollowRequest } from "@/modules/social/types/followRequest";
 import type { User } from "@/modules/profile/types/user";
-import { getCsrfToken } from "@/modules/auth/services/http";
+import { getCsrfToken } from "@/modules/app/api/httpClient";
 import { readApiError } from "@/modules/app/api/apiErrors";
 
 type RequestOptions = Parameters<typeof getMyAccount>[0];
@@ -51,12 +51,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalizeError(error: unknown): SocialGraphApiError {
-  const fallbackMessage = error instanceof Error
-    ? error.message
-    : "Não foi possível concluir a solicitação.";
+  const fallbackMessage =
+    error instanceof Error
+      ? error.message
+      : "Não foi possível concluir a solicitação.";
   const parsed = readApiError(error, fallbackMessage);
-  const status = isRecord(error) && typeof error.status === "number" ? error.status : undefined;
-  return new SocialGraphApiError(parsed.message, status, parsed.code, parsed.key);
+  const status =
+    isRecord(error) && typeof error.status === "number"
+      ? error.status
+      : undefined;
+  return new SocialGraphApiError(
+    parsed.message,
+    status,
+    parsed.code,
+    parsed.key,
+  );
 }
 
 async function request<T>(operation: () => Promise<T>): Promise<T> {
@@ -69,7 +78,9 @@ async function request<T>(operation: () => Promise<T>): Promise<T> {
 
 const readOptions: RequestOptions = { credentials: "include" };
 
-async function write<T>(operation: (options: RequestOptions) => Promise<T>): Promise<T> {
+async function write<T>(
+  operation: (options: RequestOptions) => Promise<T>,
+): Promise<T> {
   return request(async () => {
     const csrfToken = await getCsrfToken();
     return operation({
@@ -98,7 +109,8 @@ export function accountViewToUser(account: AccountView): User {
     isInCircle: account.relationship.inCircle,
     isBlockedByViewer: account.relationship.blockedByMe,
     blocksViewer: account.relationship.blockedByThem,
-    isBlocked: account.relationship.blockedByMe || account.relationship.blockedByThem,
+    isBlocked:
+      account.relationship.blockedByMe || account.relationship.blockedByThem,
     source: "server",
   };
 }
@@ -136,7 +148,8 @@ export function myAccountToUser(response: MyAccountResponse): User {
       lastName: response.lastName ?? undefined,
     };
   }
-  const category = commercialCategoryLabels[commercial.categoryKey] ?? commercial.categoryKey;
+  const category =
+    commercialCategoryLabels[commercial.categoryKey] ?? commercial.categoryKey;
   const location = `${commercial.cityName}, ${commercial.stateName}`;
   return {
     ...user,
@@ -192,21 +205,26 @@ export const socialGraphApi = {
   getFollowing: (accountId: string, cursor?: string) =>
     request(() => getFollowing(accountId, { limit: 20, cursor }, readOptions)),
   getIncomingFollowRequests: (cursor?: string) =>
-    request(() => getIncomingFollowRequests({ limit: 100, cursor }, readOptions)),
+    request(() =>
+      getIncomingFollowRequests({ limit: 100, cursor }, readOptions),
+    ),
   getCircle: (cursor?: string) =>
     request(() => getCircle({ limit: 20, cursor }, readOptions)),
   getBlockedAccounts: () => request(() => getBlockedAccounts(readOptions)),
   getPrivacySettings: (): Promise<PrivacySettings> =>
     request(() => getMyPrivacySettings(readOptions)),
-  follow: (accountId: string) => write((options) => followAccount(accountId, options)),
-  unfollow: (accountId: string) => write((options) => unfollowAccount(accountId, options)),
+  follow: (accountId: string) =>
+    write((options) => followAccount(accountId, options)),
+  unfollow: (accountId: string) =>
+    write((options) => unfollowAccount(accountId, options)),
   acceptFollowRequest: (accountId: string) =>
     write((options) => acceptFollowRequest(accountId, options)),
   declineFollowRequest: (accountId: string) =>
     write((options) => declineFollowRequest(accountId, options)),
-  block: (accountId: string) => write((options) => blockAccount(accountId, options)),
-  unblock: (accountId: string) => write((options) => unblockAccount(accountId, options)),
+  block: (accountId: string) =>
+    write((options) => blockAccount(accountId, options)),
+  unblock: (accountId: string) =>
+    write((options) => unblockAccount(accountId, options)),
   updatePrivacySettings: (settings: PrivacySettingsWrite) =>
     write((options) => updateMyPrivacySettings(settings, options)),
 };
-

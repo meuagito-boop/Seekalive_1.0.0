@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useAppContext } from "@/modules/app/state/AppContext";
-import { AuthApiError } from "@/modules/auth/services/http";
-import { confirmEmail, resendVerification } from "@/modules/auth/services/emailVerificationApi";
+import { ApiRequestError } from "@/modules/app/api/httpClient";
+import {
+  confirmEmail,
+  resendVerification,
+} from "@/modules/auth/services/emailVerificationApi";
 
 export default function VerifyEmail() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -32,9 +35,12 @@ export default function VerifyEmail() {
     }
     const newCode = [...code];
     if (digits.length > 1) {
-      digits.slice(0, 6 - index).split("").forEach((digit, offset) => {
-        newCode[index + offset] = digit;
-      });
+      digits
+        .slice(0, 6 - index)
+        .split("")
+        .forEach((digit, offset) => {
+          newCode[index + offset] = digit;
+        });
       setCode(newCode);
       inputRefs.current[Math.min(index + digits.length, 5)]?.focus();
       return;
@@ -52,12 +58,19 @@ export default function VerifyEmail() {
 
   async function handleVerify() {
     if (!email.trim()) {
-      toast({ title: "Informe seu e-mail", description: "Use o mesmo e-mail informado no cadastro.", variant: "destructive" });
+      toast({
+        title: "Informe seu e-mail",
+        description: "Use o mesmo e-mail informado no cadastro.",
+        variant: "destructive",
+      });
       return;
     }
     setIsSubmitting(true);
     try {
-      const result = await confirmEmail({ email: email.trim().toLowerCase(), code: code.join("") });
+      const result = await confirmEmail({
+        email: email.trim().toLowerCase(),
+        code: code.join(""),
+      });
       if ("passwordUpdateRequired" in result) {
         setPendingVerificationEmail(null);
         toast({ title: "E-mail confirmado", description: result.message });
@@ -65,12 +78,20 @@ export default function VerifyEmail() {
         return;
       }
       setAuthenticatedAccount(result.account);
-      toast({ title: "E-mail confirmado", description: "Sua conta está ativa." });
-      setLocation(result.account.onboardingCompleted ? "/feed" : "/onboarding/interests");
+      toast({
+        title: "E-mail confirmado",
+        description: "Sua conta está ativa.",
+      });
+      setLocation(
+        result.account.onboardingCompleted ? "/feed" : "/onboarding/interests",
+      );
     } catch (error) {
       toast({
         title: "Não foi possível confirmar",
-        description: error instanceof Error ? error.message : "Confira o código e tente novamente.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Confira o código e tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -80,26 +101,37 @@ export default function VerifyEmail() {
 
   async function handleResend() {
     if (!email.trim()) {
-      toast({ title: "Informe seu e-mail", description: "Use o mesmo e-mail informado no cadastro.", variant: "destructive" });
+      toast({
+        title: "Informe seu e-mail",
+        description: "Use o mesmo e-mail informado no cadastro.",
+        variant: "destructive",
+      });
       return;
     }
     setIsSubmitting(true);
     try {
-      const result = await resendVerification({ email: email.trim().toLowerCase() });
+      const result = await resendVerification({
+        email: email.trim().toLowerCase(),
+      });
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
       toast({ title: "Solicitação recebida", description: result.message });
     } catch (error) {
-      const description = error instanceof AuthApiError
-        ? error.message
-        : "Não foi possível enviar um novo código. Tente novamente mais tarde.";
-      toast({ title: "Reenvio indisponível", description, variant: "destructive" });
+      const description =
+        error instanceof ApiRequestError
+          ? error.message
+          : "Não foi possível enviar um novo código. Tente novamente mais tarde.";
+      toast({
+        title: "Reenvio indisponível",
+        description,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  const isFull = code.every(c => c !== "");
+  const isFull = code.every((c) => c !== "");
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -114,65 +146,73 @@ export default function VerifyEmail() {
         </div>
 
         <>
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Circle className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">Verificar email</h1>
-            <p className="text-muted-foreground mb-8 text-sm">
-              Confirme o e-mail da sua conta para liberar o acesso ao Seekalive.
-            </p>
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Circle className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold mb-2">Verificar email</h1>
+          <p className="text-muted-foreground mb-8 text-sm">
+            Confirme o e-mail da sua conta para liberar o acesso ao Seekalive.
+          </p>
 
-            <label className="mb-5 block text-left text-sm font-medium">
-              E-mail
+          <label className="mb-5 block text-left text-sm font-medium">
+            E-mail
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setPendingVerificationEmail(event.target.value || null);
+              }}
+              placeholder="seu@email.com"
+              className="mt-2 h-12 w-full rounded-xl border border-border bg-card px-4 text-foreground outline-none focus:border-primary"
+              data-testid="input-verification-email"
+            />
+          </label>
+          <p className="-mt-3 mb-5 text-left text-xs leading-5 text-muted-foreground">
+            Por privacidade, o endereço fica apenas em memória. Se recarregar
+            esta tela, digite-o novamente.
+          </p>
+
+          <div className="flex gap-2 justify-center mb-8">
+            {code.map((digit, i) => (
               <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  setPendingVerificationEmail(event.target.value || null);
+                key={i}
+                ref={(el) => {
+                  inputRefs.current[i] = el;
                 }}
-                placeholder="seu@email.com"
-                className="mt-2 h-12 w-full rounded-xl border border-border bg-card px-4 text-foreground outline-none focus:border-primary"
-                data-testid="input-verification-email"
+                type="text"
+                inputMode="numeric"
+                value={digit}
+                onChange={(e) => handleChange(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
+                maxLength={1}
+                data-testid={`input-otp-${i}`}
+                className="w-11 h-14 text-center text-xl font-bold bg-card border-2 border-border rounded-xl text-foreground focus:border-primary focus:outline-none transition-colors"
               />
-            </label>
-            <p className="-mt-3 mb-5 text-left text-xs leading-5 text-muted-foreground">
-              Por privacidade, o endereço fica apenas em memória. Se recarregar esta tela, digite-o novamente.
-            </p>
+            ))}
+          </div>
 
-            <div className="flex gap-2 justify-center mb-8">
-              {code.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={el => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  value={digit}
-                  onChange={e => handleChange(i, e.target.value)}
-                  onKeyDown={e => handleKeyDown(i, e)}
-                  maxLength={1}
-                  data-testid={`input-otp-${i}`}
-                  className="w-11 h-14 text-center text-xl font-bold bg-card border-2 border-border rounded-xl text-foreground focus:border-primary focus:outline-none transition-colors"
-                />
-              ))}
-            </div>
+          <Button
+            className="w-full h-12 rounded-xl font-semibold"
+            onClick={handleVerify}
+            disabled={!isFull || isSubmitting || !email.trim()}
+            data-testid="button-verify"
+          >
+            {isSubmitting ? "Verificando..." : "Verificar"}
+          </Button>
 
-            <Button
-              className="w-full h-12 rounded-xl font-semibold"
-              onClick={handleVerify}
-              disabled={!isFull || isSubmitting || !email.trim()}
-              data-testid="button-verify"
+          <div className="mt-6 text-sm text-muted-foreground">
+            <button
+              className="text-primary hover:underline disabled:opacity-50"
+              onClick={handleResend}
+              disabled={isSubmitting || !email.trim()}
+              data-testid="button-resend"
             >
-              {isSubmitting ? "Verificando..." : "Verificar"}
-            </Button>
-
-            <div className="mt-6 text-sm text-muted-foreground">
-              <button className="text-primary hover:underline disabled:opacity-50" onClick={handleResend} disabled={isSubmitting || !email.trim()} data-testid="button-resend">
-                Tentar enviar novamente
-              </button>
-            </div>
-          </>
+              Tentar enviar novamente
+            </button>
+          </div>
+        </>
       </motion.div>
     </div>
   );
