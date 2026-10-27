@@ -1,5 +1,9 @@
-import { persistFollowRequestDecline } from "../infrastructure/followMutationRepository";
+import type { RelationshipMutationPort } from "./ports";
 
-export async function declineFollowRequest(targetId: string, requesterId: string): Promise<void> {
-  await persistFollowRequestDecline(targetId, requesterId);
+export function createDeclineFollowRequest(
+  port: Pick<RelationshipMutationPort, "declineFollowRequest">,
+) {
+  return async (targetId: string, requesterId: string): Promise<void> => {
+    await port.declineFollowRequest(targetId, requesterId);
+  };
 }

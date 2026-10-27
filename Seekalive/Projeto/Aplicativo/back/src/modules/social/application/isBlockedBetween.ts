@@ -1,8 +1,6 @@
-import { readBlockedBetween } from "../infrastructure/relationshipReadRepository";
+import type { RelationshipReadPort } from "./ports";
 
-export async function isBlockedBetween(
-  firstId: string,
-  secondId: string,
-): Promise<boolean> {
-  return readBlockedBetween(firstId, secondId);
+export function createIsBlockedBetween(port: Pick<RelationshipReadPort, "readBlockedBetween">) {
+  return (firstId: string, secondId: string): Promise<boolean> =>
+    port.readBlockedBetween(firstId, secondId);
 }

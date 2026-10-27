@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { loadActiveSession } from "../../../security/session";
-import { resolveRelationshipListTarget } from "../application/resolveRelationshipListTarget";
+import { resolveRelationshipListTarget } from "../composition/relationshipListServices";
 import { sendError } from "./routeSupport";
 
 export async function requireVisibleRelationshipTarget(

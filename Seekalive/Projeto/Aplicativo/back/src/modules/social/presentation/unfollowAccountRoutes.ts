@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { requireCsrf } from "../../../security/session";
-import { unfollowAccount } from "../application/unfollowAccount";
+import { unfollowAccount } from "../composition/publicApi";
 import { activeAccountId, isAccountId, sendError } from "./routeSupport";
 
 const router: IRouter = Router();

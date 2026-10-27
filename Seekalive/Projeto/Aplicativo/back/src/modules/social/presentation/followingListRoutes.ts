@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { followingAccountViews } from "../application/relationshipListQueries";
+import { followingAccountViews } from "../composition/relationshipListServices";
 import { isAccountId, pageResult, parsePage, sendError } from "./routeSupport";
 import { requireVisibleRelationshipTarget } from "./relationshipListSupport";
 

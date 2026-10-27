@@ -1,8 +1,8 @@
 import {
   getAccountSocialStats,
-} from "../../social/application/getAccountSocialStats";
-import { getAccountSocialSummariesByIds } from "../../social/application/getAccountSocialSummariesByIds";
-import { getRelationshipFor } from "../../social/application/getRelationshipFor";
+  getAccountSocialSummariesByIds,
+  getRelationshipFor,
+} from "../../social/composition/publicApi";
 import type { RelationshipView } from "../../social/domain/relationshipView";
 import {
   findActiveAccountById,

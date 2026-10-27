@@ -1,5 +1,8 @@
-import { persistFollowRequestAcceptance } from "../infrastructure/followMutationRepository";
+import type { RelationshipMutationPort } from "./ports";
 
-export async function acceptFollowRequest(targetId: string, requesterId: string): Promise<boolean> {
-  return persistFollowRequestAcceptance(targetId, requesterId);
+export function createAcceptFollowRequest(
+  port: Pick<RelationshipMutationPort, "acceptFollowRequest">,
+) {
+  return (targetId: string, requesterId: string): Promise<boolean> =>
+    port.acceptFollowRequest(targetId, requesterId);
 }

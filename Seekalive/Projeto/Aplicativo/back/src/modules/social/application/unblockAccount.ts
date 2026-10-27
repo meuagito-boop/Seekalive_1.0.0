@@ -1,5 +1,7 @@
-import { persistUnblockAccount } from "../infrastructure/blockMutationRepository";
+import type { RelationshipMutationPort } from "./ports";
 
-export async function unblockAccount(actorId: string, targetId: string): Promise<void> {
-  await persistUnblockAccount(actorId, targetId);
+export function createUnblockAccount(port: Pick<RelationshipMutationPort, "unblock">) {
+  return async (actorId: string, targetId: string): Promise<void> => {
+    await port.unblock(actorId, targetId);
+  };
 }

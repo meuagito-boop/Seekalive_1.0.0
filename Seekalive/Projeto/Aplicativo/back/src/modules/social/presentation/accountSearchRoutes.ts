@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { createAuthRateLimit } from "../../../security/request-origin";
-import { searchAccountViews } from "../application/relationshipListQueries";
+import { searchAccountViews } from "../composition/relationshipListServices";
 import { activeAccountId, parsePage, sendError } from "./routeSupport";
 
 const router: IRouter = Router();

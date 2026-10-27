@@ -1,10 +1,14 @@
-import { countFeedPostsByAuthorIds } from "../infrastructure/postRepository";
+import type { AuthorPostCountRow } from "./postCountMapping";
 import { mapAuthorPostCounts } from "./postCountMapping";
 
-export async function countAllPostsByAuthorIds(authorIds: string[]): Promise<Map<string, number>> {
-  const ids = [...new Set(authorIds)];
-  if (ids.length === 0) return new Map();
+export type CountPostRows = (authorIds: string[]) => Promise<AuthorPostCountRow[]>;
 
-  const rows = await countFeedPostsByAuthorIds(ids);
-  return mapAuthorPostCounts(ids, rows);
+export function createCountAllPostsByAuthorIds(countRows: CountPostRows) {
+  return async (authorIds: string[]): Promise<Map<string, number>> => {
+    const ids = [...new Set(authorIds)];
+    if (ids.length === 0) return new Map();
+
+    const rows = await countRows(ids);
+    return mapAuthorPostCounts(ids, rows);
+  };
 }

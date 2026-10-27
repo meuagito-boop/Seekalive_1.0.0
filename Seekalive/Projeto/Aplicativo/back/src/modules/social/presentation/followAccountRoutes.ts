@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
-import { followAccount } from "../application/followAccount";
+import { followAccount } from "../composition/publicApi";
 import { activeAccountId, isAccountId, sendError } from "./routeSupport";
 
 const router: IRouter = Router();

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { circleAccountViews } from "../application/relationshipListQueries";
+import { circleAccountViews } from "../composition/relationshipListServices";
 import { activeAccountId, pageResult, parsePage, sendError } from "./routeSupport";
 
 const router: IRouter = Router();

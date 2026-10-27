@@ -1,5 +1,5 @@
-import { persistBlockAccount } from "../infrastructure/blockMutationRepository";
+import type { RelationshipMutationPort } from "./ports";
 
-export async function blockAccount(actorId: string, targetId: string): Promise<boolean> {
-  return persistBlockAccount(actorId, targetId);
+export function createBlockAccount(port: Pick<RelationshipMutationPort, "block">) {
+  return (actorId: string, targetId: string): Promise<boolean> => port.block(actorId, targetId);
 }

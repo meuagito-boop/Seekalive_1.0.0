@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { blockedAccountViews } from "../application/relationshipListQueries";
+import { blockedAccountViews } from "../composition/relationshipListServices";
 import { activeAccountId } from "./routeSupport";
 
 const router: IRouter = Router();

@@ -1,5 +1,4 @@
-import { countAllPostsByAuthorIds } from "../../feed/application/countAuthorPosts";
-import { readAccountSocialStats } from "../infrastructure/socialStatisticsRepository";
+import type { PostCountPort, SocialStatisticsPort } from "./ports";
 
 export type AccountSocialStats = {
   posts: number;
@@ -8,15 +7,18 @@ export type AccountSocialStats = {
   circles: number;
 };
 
-export async function getAccountSocialStats(
-  accountId: string,
-): Promise<AccountSocialStats> {
-  const [stats, postCounts] = await Promise.all([
-    readAccountSocialStats(accountId),
-    countAllPostsByAuthorIds([accountId]),
-  ]);
-  return {
-    posts: postCounts.get(accountId) ?? 0,
-    ...stats,
+export function createGetAccountSocialStats(
+  statistics: Pick<SocialStatisticsPort, "readAccountSocialStats">,
+  postCounts: PostCountPort,
+) {
+  return async (accountId: string): Promise<AccountSocialStats> => {
+    const [stats, counts] = await Promise.all([
+      statistics.readAccountSocialStats(accountId),
+      postCounts.countAllPostsByAuthorIds([accountId]),
+    ]);
+    return {
+      posts: counts.get(accountId) ?? 0,
+      ...stats,
+    };
   };
 }

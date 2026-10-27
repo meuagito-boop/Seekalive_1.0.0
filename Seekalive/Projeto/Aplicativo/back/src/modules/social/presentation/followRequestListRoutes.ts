@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { incomingFollowRequestViews } from "../application/relationshipListQueries";
+import { incomingFollowRequestViews } from "../composition/relationshipListServices";
 import { activeAccountId, pageResult, parsePage, sendError } from "./routeSupport";
 
 const router: IRouter = Router();

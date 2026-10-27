@@ -1,5 +1,7 @@
-import { persistUnfollowAccount } from "../infrastructure/followMutationRepository";
+import type { RelationshipMutationPort } from "./ports";
 
-export async function unfollowAccount(actorId: string, targetId: string): Promise<void> {
-  await persistUnfollowAccount(actorId, targetId);
+export function createUnfollowAccount(port: Pick<RelationshipMutationPort, "unfollow">) {
+  return async (actorId: string, targetId: string): Promise<void> => {
+    await port.unfollow(actorId, targetId);
+  };
 }

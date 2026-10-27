@@ -5,8 +5,7 @@ import {
   type PublicAccountRow,
 } from "../../accounts/application/accountViews";
 import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
-import { getRelationshipFor } from "../../social/application/getRelationshipFor";
-import { isBlockedBetween } from "../../social/application/isBlockedBetween";
+import { getRelationshipFor, isBlockedBetween } from "../../social/composition/publicApi";
 import { listProfilePosts } from "../../feed/application/listProfilePosts";
 
 const emptyPage = { items: [], nextCursor: null };

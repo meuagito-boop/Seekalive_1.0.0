@@ -1,5 +1,5 @@
-import { readRelationshipState } from "../infrastructure/relationshipReadRepository";
 import { buildRelationshipView, type RelationshipView } from "../domain/relationshipView";
+import type { RelationshipReadPort } from "./ports";
 
 const emptyRelationship: RelationshipView = {
   following: "none",
@@ -9,11 +9,10 @@ const emptyRelationship: RelationshipView = {
   mutedByMe: false,
 };
 
-export async function getRelationshipFor(
-  viewerId: string | null,
-  targetId: string,
-): Promise<RelationshipView> {
-  if (!viewerId || viewerId === targetId) return emptyRelationship;
+export function createGetRelationshipFor(port: Pick<RelationshipReadPort, "readRelationshipState">) {
+  return async (viewerId: string | null, targetId: string): Promise<RelationshipView> => {
+    if (!viewerId || viewerId === targetId) return emptyRelationship;
 
-  return buildRelationshipView(await readRelationshipState(viewerId, targetId));
+    return buildRelationshipView(await port.readRelationshipState(viewerId, targetId));
+  };
 }
