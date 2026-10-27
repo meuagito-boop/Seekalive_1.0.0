@@ -3,9 +3,9 @@ import { registerRequestSchema } from "@workspace/api-zod";
 import { logger } from "../../../common/logger";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
-import { deliverVerificationCode } from "../application/emailVerification";
 import { hashPassword } from "../application/passwordHashing";
 import { createRegistrationAccountService } from "../composition/registration";
+import { emailVerificationOperations } from "../composition/emailVerification";
 import {
   findRegistrationEmail,
   isRegistrationUsernameUnavailable,
@@ -65,7 +65,11 @@ router.post(
     if (emailMatch) {
       if (emailMatch.status === "pending_verification") {
         try {
-          await deliverVerificationCode(delivery, emailMatch, email);
+          await emailVerificationOperations.sendVerificationCode(
+            delivery,
+            emailMatch,
+            email,
+          );
         } catch {
           logger.warn(
             { code: "EMAIL_DELIVERY_FAILED" },
@@ -108,7 +112,11 @@ router.post(
       }
 
       try {
-        await deliverVerificationCode(delivery, account, email);
+        await emailVerificationOperations.sendVerificationCode(
+          delivery,
+          account,
+          email,
+        );
       } catch {
         logger.warn(
           { code: "EMAIL_DELIVERY_FAILED" },

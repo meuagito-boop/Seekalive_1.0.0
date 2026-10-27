@@ -1,31 +1,36 @@
-import { eq } from "drizzle-orm";
-import { accountEmails, accounts, db } from "@workspace/db";
-import type { AuthEmailDelivery } from "../../infrastructure/emailDelivery";
-import { deliverVerificationCode } from "../emailVerification";
+import type {
+  EmailVerificationDelivery,
+  EmailVerificationRepository,
+} from "./ports";
 
-export async function requestEmailVerification(
+type SendVerificationCode = (
+  delivery: EmailVerificationDelivery,
+  account: { id: string; displayName: string },
   email: string,
-  delivery: AuthEmailDelivery,
-): Promise<"sent" | "not_pending" | "delivery_failed"> {
-  const [account] = await db
-    .select({
-      id: accounts.id,
-      displayName: accounts.displayName,
-      status: accounts.status,
-      verifiedAt: accountEmails.verifiedAt,
-    })
-    .from(accounts)
-    .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-    .where(eq(accountEmails.emailNormalized, email))
-    .limit(1);
+) => Promise<void>;
 
-  if (account?.status !== "pending_verification" || account.verifiedAt) {
-    return "not_pending";
-  }
-  try {
-    await deliverVerificationCode(delivery, account, email);
-  } catch {
-    return "delivery_failed";
-  }
-  return "sent";
+export function createRequestEmailVerification(
+  repository: EmailVerificationRepository,
+  sendVerificationCode: SendVerificationCode,
+) {
+  return async function requestEmailVerification(
+    email: string,
+    delivery: EmailVerificationDelivery,
+  ): Promise<"sent" | "not_pending" | "delivery_failed"> {
+    const account = await repository.findResendAccountByEmail(email);
+    if (account?.status !== "pending_verification" || account.verifiedAt) {
+      return "not_pending";
+    }
+
+    try {
+      await sendVerificationCode(
+        delivery,
+        { id: account.id, displayName: account.displayName },
+        email,
+      );
+    } catch {
+      return "delivery_failed";
+    }
+    return "sent";
+  };
 }
