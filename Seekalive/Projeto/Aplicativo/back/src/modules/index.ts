@@ -5,7 +5,7 @@ import { createHealthRouter } from "./health/presentation/routes";
 import onboardingRouter from "./onboarding/presentation/routes";
 import accountsRouter from "./profiles/presentation/routes";
 import relationsRouter from "./social/presentation/routes";
-import feedRouter from "./feed/presentation/routes";
+import feedRouter from "./feed/composition/router";
 
 const router: IRouter = Router();
 

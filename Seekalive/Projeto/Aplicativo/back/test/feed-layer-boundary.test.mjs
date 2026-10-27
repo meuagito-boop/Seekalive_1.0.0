@@ -11,11 +11,13 @@ const feedDirectory = path.resolve(
 
 async function findTypeScriptFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
-  const nestedFiles = await Promise.all(entries.map(async (entry) => {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) return findTypeScriptFiles(entryPath);
-    return entry.isFile() && entry.name.endsWith(".ts") ? [entryPath] : [];
-  }));
+  const nestedFiles = await Promise.all(
+    entries.map(async (entry) => {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) return findTypeScriptFiles(entryPath);
+      return entry.isFile() && entry.name.endsWith(".ts") ? [entryPath] : [];
+    }),
+  );
   return nestedFiles.flat();
 }
 
@@ -23,7 +25,10 @@ test("Feed application and presentation do not access persistence directly", asy
   for (const layer of ["application", "presentation"]) {
     const directory = path.join(feedDirectory, layer);
     const files = await findTypeScriptFiles(directory);
-    assert.ok(files.length > 0, `Feed ${layer} should contain focused modules.`);
+    assert.ok(
+      files.length > 0,
+      `Feed ${layer} should contain focused modules.`,
+    );
 
     for (const file of files) {
       const source = await readFile(file, "utf8");
@@ -38,15 +43,38 @@ test("Feed application and presentation do not access persistence directly", asy
         /\bdb\s*\./,
         `${relativePath} must not call the database client directly.`,
       );
+      if (layer === "application") {
+        assert.doesNotMatch(
+          source,
+          /(?:from\s*|import\s*\()\s*["']\.\.\/(?:infrastructure|presentation|composition)\//,
+          `${relativePath} must depend on ports, not outer Feed layers.`,
+        );
+      }
+      if (layer === "presentation") {
+        const useCaseImports = source.matchAll(
+          /^import (.*?) from ["']\.\.\/application\/(createPost|deletePost|readPost|listProfilePosts|readArticle)["'];/gm,
+        );
+        for (const statement of useCaseImports) {
+          assert.match(
+            statement[0],
+            /^import type\b/,
+            `${relativePath} must receive runtime use cases from composition.`,
+          );
+        }
+      }
     }
   }
 
-  const infrastructureFiles = await findTypeScriptFiles(path.join(feedDirectory, "infrastructure"));
+  const infrastructureFiles = await findTypeScriptFiles(
+    path.join(feedDirectory, "infrastructure"),
+  );
   const infrastructureSources = await Promise.all(
     infrastructureFiles.map((file) => readFile(file, "utf8")),
   );
   assert.ok(
-    infrastructureSources.some((source) => /from\s*["']@workspace\/db["']/.test(source)),
+    infrastructureSources.some((source) =>
+      /from\s*["']@workspace\/db["']/.test(source),
+    ),
     "Feed infrastructure must own the database adapter.",
   );
 });

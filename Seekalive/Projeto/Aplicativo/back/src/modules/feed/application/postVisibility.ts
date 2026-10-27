@@ -1,6 +1,6 @@
 import type { FeedPost } from "../domain/post";
 
-type AuthorAccessView = {
+export type FeedAuthorAccessView = {
   id: string;
   isPrivate: boolean;
   relationship: {
@@ -14,14 +14,19 @@ type AuthorAccessView = {
 export function canReadPost(
   post: Pick<FeedPost, "authorId" | "audience">,
   viewerId: string | null,
-  author: AuthorAccessView | undefined,
+  author: FeedAuthorAccessView | undefined,
 ): boolean {
-  if (!author || author.relationship.blockedByMe || author.relationship.blockedByThem) {
+  if (
+    !author ||
+    author.relationship.blockedByMe ||
+    author.relationship.blockedByThem
+  ) {
     return false;
   }
   const isOwner = viewerId === post.authorId;
   if (isOwner) return true;
-  if (author.isPrivate && author.relationship.following !== "accepted") return false;
+  if (author.isPrivate && author.relationship.following !== "accepted")
+    return false;
   if (post.audience === "public") return true;
   if (post.audience === "circles") return author.relationship.inCircle;
   return false;

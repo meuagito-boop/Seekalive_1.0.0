@@ -1,8 +1,6 @@
 import type { FeedPost } from "../domain/post";
 
-export function toPostView(
-  post: FeedPost,
-) {
+export function toPostView(post: FeedPost) {
   return {
     id: post.id,
     authorId: post.authorId,
@@ -22,3 +20,5 @@ export function toPostView(
     isReposted: false,
   };
 }
+
+export type FeedPostView = ReturnType<typeof toPostView>;

@@ -31,13 +31,13 @@ O proxy de desenvolvimento é configurado em `Aplicativo/front/vite.config.ts`: 
 
 Os schemas/tabelas Drizzle estão em `infra/database/src/schema/`:
 
-| Schema PostgreSQL | Arquivo de schema | Tabelas declaradas em código | Domínio |
-|---|---|---|---|
-| `accounts` | `accounts.ts` | `accounts`, `account_emails`, `account_interests`, `account_username_reservations` | Identidade da conta, e-mail, interesses e reservas temporárias do @ |
-| `security` | `security.ts` | `password_credentials`, `auth_challenges`, `trusted_devices`, `sessions` | Credenciais, desafios de confirmação, instalações confiáveis e sessões |
-| `profiles` | `social.ts` | `account_follows`, `account_follow_requests`, `account_blocks` | Relações entre contas, solicitações e bloqueios |
-| `seek` | `seek.ts` | `business_profiles` | Dados de perfil comercial do Seek |
-| `feed` | `feed.ts` | `posts` | Publicações |
+| Schema PostgreSQL | Arquivo de schema | Tabelas declaradas em código                                                       | Domínio                                                                |
+| ----------------- | ----------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `accounts`        | `accounts.ts`     | `accounts`, `account_emails`, `account_interests`, `account_username_reservations` | Identidade da conta, e-mail, interesses e reservas temporárias do @    |
+| `security`        | `security.ts`     | `password_credentials`, `auth_challenges`, `trusted_devices`, `sessions`           | Credenciais, desafios de confirmação, instalações confiáveis e sessões |
+| `profiles`        | `social.ts`       | `account_follows`, `account_follow_requests`, `account_blocks`                     | Relações entre contas, solicitações e bloqueios                        |
+| `seek`            | `seek.ts`         | `business_profiles`                                                                | Dados de perfil comercial do Seek                                      |
+| `feed`            | `feed.ts`         | `posts`                                                                            | Publicações                                                            |
 
 **Total do modelo fonte:** 13 tabelas em 5 schemas com tabelas. A configuração reconhece 12 schemas de domínio, além do schema `public` (13 no total); vários domínios ainda não possuem tabelas.
 
@@ -83,13 +83,13 @@ O código de aplicação desses fluxos ainda usa Drizzle diretamente para execut
 
 ### Unidade estrutural concluída: Feed
 
-Feed possui agora 18 arquivos TypeScript distribuídos entre `domain/`, `application/`, `infrastructure/` e `presentation/`. `domain/post.ts` define a forma da publicação usada internamente; `infrastructure/postRepository.ts` é o único arquivo do módulo que importa `@workspace/db`/Drizzle e valida os valores persistidos antes de devolvê-los à aplicação. Os casos de uso de criar, excluir, ler publicação/artigo e listar conteúdo de perfil não acessam a tabela diretamente.
+Feed possui agora 22 arquivos TypeScript distribuídos entre `domain/`, `application/`, `infrastructure/`, `composition/` e `presentation/`. `domain/post.ts` define a forma interna da publicação; `application/ports.ts` define os contratos de persistência e de consulta de autor usados pelos casos de uso. Criar, excluir, ler publicação/artigo, listar conteúdo de perfil e contar publicações recebem suas dependências por composição; `application/` não importa infraestrutura, apresentação, composição, `@workspace/db` ou Drizzle.
 
-Os adaptadores HTTP estão separados por fluxo: criação e exclusão de publicação, leitura de publicação, criação/leitura de artigo e lista paginada de conteúdo no perfil. `routes.ts` compõe os adaptadores. Os caminhos em `/v1/social` e os contratos OpenAPI/clientes gerados não mudaram. A aplicação continua consultando `accounts/application/accountViews` para validar existência e calcular visibilidade por relação social; não foi criada uma identidade paralela para autores.
+`composition/router.ts` conecta os casos de uso aos adaptadores de `infrastructure/postRepository.ts` e às rotas de apresentação. Os routers são construídos com os casos de uso injetados; `presentation/` não importa casos de uso em runtime. `composition/publicApi.ts` fornece a contagem de publicações para Social e uma fábrica explícita para a listagem consumida por Profiles. A consulta de autores é passada como dependência, evitando um ciclo entre Accounts, Social e Feed. Os caminhos em `/v1/social` e os contratos OpenAPI/clientes gerados não mudaram; não foi criada uma identidade paralela de autores.
 
-Foram mantidas a política de privacidade, a ocultação por bloqueio, a mutualidade exigida para Círculo, a paginação estável por `createdAt`/`id`, os limites de leitura, CSRF e a rejeição explícita de mídia ainda não integrada. Não foi ligada uma timeline recomendada nem implementada interação social nesta unidade.
+Foram preservadas a política de privacidade, a ocultação por bloqueio, a mutualidade exigida para Círculo, a paginação estável por `createdAt`/`id`, os limites de leitura, CSRF e a rejeição explícita de mídia ainda não integrada. Nenhuma timeline recomendada ou interação social foi adicionada nesta etapa.
 
-O teste `Aplicativo/back/test/feed-layer-boundary.test.mjs` proíbe persistência direta em `application/` e `presentation/` e confirma o ownership do adapter na infraestrutura. Não houve teste contra banco físico; esse estado segue não verificado e nenhuma migration foi aplicada.
+`Aplicativo/back/test/feed-layer-boundary.test.mjs` protege a separação entre aplicação, infraestrutura, apresentação e composição. `feed-application-injection.test.mjs` cobre criação, exclusão, leitura, leitura de artigo e listagem com dependências falsas; os testes existentes preservam regras de visibilidade, cursor e contagens. A suíte de inicialização da API também detectou um ciclo de importação durante a alteração; ele foi removido e a inicialização voltou a passar. Não houve teste de Feed contra banco físico, leitura/escrita no banco ou migration nesta etapa.
 
 ### Unidade estrutural concluída: Health
 

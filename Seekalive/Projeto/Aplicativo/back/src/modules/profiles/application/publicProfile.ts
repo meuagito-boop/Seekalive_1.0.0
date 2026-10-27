@@ -1,12 +1,18 @@
 import {
+  accountViewsByIds,
   accountView,
   findActiveAccountById,
   findActiveAccountByUsername,
   type PublicAccountRow,
 } from "../../accounts/composition/publicApi";
 import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
-import { getRelationshipFor, isBlockedBetween } from "../../social/composition/publicApi";
-import { listProfilePosts } from "../../feed/application/listProfilePosts";
+import { createProfilePostListApi } from "../../feed/composition/publicApi";
+import {
+  getRelationshipFor,
+  isBlockedBetween,
+} from "../../social/composition/publicApi";
+
+const listProfilePosts = createProfilePostListApi(accountViewsByIds);
 
 const emptyPage = { items: [], nextCursor: null };
 
@@ -28,7 +34,9 @@ const defaultDependencies: PublicProfileDependencies = {
   listProfilePosts,
 };
 
-type PublicProfileResult<T> = { kind: "not_found" } | { kind: "found"; data: T };
+type PublicProfileResult<T> =
+  | { kind: "not_found" }
+  | { kind: "found"; data: T };
 
 type ProfilePage = NonNullable<Awaited<ReturnType<typeof listProfilePosts>>>;
 
@@ -48,7 +56,7 @@ async function composePublicProfile(
   viewerId: string | null,
   dependencies: PublicProfileDependencies,
 ): Promise<PublicProfileResult<PublicProfileData>> {
-  if (viewerId && await dependencies.isBlockedBetween(viewerId, row.id)) {
+  if (viewerId && (await dependencies.isBlockedBetween(viewerId, row.id))) {
     return { kind: "not_found" };
   }
 
@@ -101,7 +109,7 @@ export async function getPublicAccountById(
 ): Promise<PublicProfileResult<Awaited<ReturnType<typeof accountView>>>> {
   const row = await dependencies.findActiveAccountById(accountId);
   if (!row) return { kind: "not_found" };
-  if (viewerId && await dependencies.isBlockedBetween(viewerId, accountId)) {
+  if (viewerId && (await dependencies.isBlockedBetween(viewerId, accountId))) {
     return { kind: "not_found" };
   }
 
