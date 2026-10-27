@@ -1,8 +1,7 @@
-import { and, eq, isNotNull } from "drizzle-orm";
-import { accountEmails, accounts, db } from "@workspace/db";
 import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
 import { nextIdentityChangeAt } from "../../accounts/domain/usernamePolicy";
 import { accountView, findActiveAccountById } from "../../accounts/application/accountViews";
+import { findOwnerProfileIdentity } from "../infrastructure/ownerProfileRepository";
 
 export type OwnerProfileFailure = {
   ok: false;
@@ -37,25 +36,7 @@ export async function loadOwnerProfileIdentity(
     };
   }
 
-  const [ownerDetails] = await db
-    .select({
-      accountType: accounts.accountType,
-      firstName: accounts.firstName,
-      lastName: accounts.lastName,
-      publicNameChangedAt: accounts.publicNameChangedAt,
-      usernameChangedAt: accounts.usernameChangedAt,
-    })
-    .from(accounts)
-    .where(eq(accounts.id, accountId))
-    .limit(1);
-  const [verifiedEmail] = await db
-    .select({ email: accountEmails.emailNormalized })
-    .from(accountEmails)
-    .where(and(
-      eq(accountEmails.accountId, accountId),
-      isNotNull(accountEmails.verifiedAt),
-    ))
-    .limit(1);
+  const ownerDetails = await findOwnerProfileIdentity(accountId);
 
   if (!ownerDetails) {
     return {
@@ -73,21 +54,12 @@ export async function loadOwnerProfileIdentity(
       message: "Não foi possível identificar o tipo desta conta.",
     };
   }
-  if (!verifiedEmail) {
-    return {
-      ok: false,
-      status: 500,
-      code: "ACCOUNT_EMAIL_MISSING",
-      message: "Não foi possível carregar o e-mail verificado desta conta.",
-    };
-  }
-
   return {
     ok: true,
     accountType: ownerDetails.accountType,
     data: {
       account: await accountView(row, accountId),
-      email: verifiedEmail.email,
+      email: ownerDetails.email,
       firstName: ownerDetails.firstName,
       lastName: ownerDetails.lastName,
       publicNameChangeAvailableAt: nextIdentityChangeAt(

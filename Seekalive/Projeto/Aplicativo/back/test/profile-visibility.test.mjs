@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildAccountView } from "../src/modules/accounts/application/accountViewMapper.ts";
 import { canViewPrivateProfileContent } from "../src/modules/accounts/domain/accountVisibility.ts";
+import { getPublicProfileByUsername } from "../src/modules/profiles/application/publicProfile.ts";
 
 const account = {
   id: "account",
@@ -58,4 +59,37 @@ test("account view mapper shows private profile details to the owner", () => {
   assert.equal(view.bio, "Private biography");
   assert.equal(view.location, "São Paulo");
   assert.equal(view.website, "https://example.test");
+});
+
+test("public profile composition hides a blocked profile before loading its content", async () => {
+  let contentWasLoaded = false;
+  const result = await getPublicProfileByUsername("blocked_user", "viewer", {
+    accountView: async () => ({}),
+    findActiveAccountById: async () => null,
+    findActiveAccountByUsername: async () => ({ ...account, id: "blocked-account" }),
+    getRelationshipFor: async () => relationship,
+    isBlockedBetween: async () => true,
+    listProfilePosts: async () => {
+      contentWasLoaded = true;
+      return { items: [], nextCursor: null };
+    },
+  });
+
+  assert.deepEqual(result, { kind: "not_found" });
+  assert.equal(contentWasLoaded, false);
+});
+
+test("public profile composition delegates private-content access to the visibility policy", async () => {
+  const result = await getPublicProfileByUsername("private_user", null, {
+    accountView: async () => ({ id: "account" }),
+    findActiveAccountById: async () => null,
+    findActiveAccountByUsername: async () => ({ ...account, id: "account" }),
+    getRelationshipFor: async () => relationship,
+    isBlockedBetween: async () => false,
+    listProfilePosts: async () => ({ items: [], nextCursor: null }),
+  });
+
+  assert.equal(result.kind, "found");
+  assert.equal(result.data.visibility.canViewPublicContent, false);
+  assert.equal(result.data.visibility.canViewCircleContent, false);
 });

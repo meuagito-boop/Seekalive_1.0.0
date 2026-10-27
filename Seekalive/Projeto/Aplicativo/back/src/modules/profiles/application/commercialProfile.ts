@@ -1,26 +1,8 @@
-import { eq } from "drizzle-orm";
-import { commercialProfiles, db } from "@workspace/db";
 import {
   type OwnerProfileFailure,
   type OwnerProfileIdentity,
 } from "./ownerProfileCommon";
-
-async function loadCommercialProfileDetails(accountId: string) {
-  const [profile] = await db
-    .select({
-      categoryKey: commercialProfiles.categoryKey,
-      discoveryKind: commercialProfiles.discoveryKind,
-      address: commercialProfiles.address,
-      postalCode: commercialProfiles.postalCode,
-      cityName: commercialProfiles.cityName,
-      stateName: commercialProfiles.stateName,
-      countryName: commercialProfiles.countryName,
-    })
-    .from(commercialProfiles)
-    .where(eq(commercialProfiles.accountId, accountId))
-    .limit(1);
-  return profile ?? null;
-}
+import { findCommercialProfileDetails } from "../infrastructure/ownerProfileRepository";
 
 export async function loadCommercialProfile(
   accountId: string,
@@ -28,7 +10,7 @@ export async function loadCommercialProfile(
 ): Promise<OwnerProfileFailure | {
   ok: true;
   data: OwnerProfileIdentity["data"] & {
-    commercialProfile: NonNullable<Awaited<ReturnType<typeof loadCommercialProfileDetails>>>;
+    commercialProfile: NonNullable<Awaited<ReturnType<typeof findCommercialProfileDetails>>>;
   };
 }> {
   if (identity.accountType !== "commercial") {
@@ -39,7 +21,7 @@ export async function loadCommercialProfile(
       message: "Esta conta não possui perfil comercial.",
     };
   }
-  const commercialProfile = await loadCommercialProfileDetails(accountId);
+  const commercialProfile = await findCommercialProfileDetails(accountId);
   if (
     !commercialProfile?.categoryKey
     || !commercialProfile.discoveryKind

@@ -1,54 +1,12 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { loadActiveSession } from "../../../security/session";
 import {
-  accountView,
-  findActiveAccountById,
-  findActiveAccountByUsername,
-} from "../../accounts/application/accountViews";
-import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
-import type { PublicAccountRow } from "../../accounts/application/accountViews";
-import { getRelationshipFor } from "../../social/application/getRelationshipFor";
-import { isBlockedBetween } from "../../social/application/isBlockedBetween";
-import { listProfilePosts } from "../../feed/application/listProfilePosts";
+  getPublicAccountById,
+  getPublicProfileByUsername,
+} from "../application/publicProfile";
 import { sendError } from "./routeSupport";
 
 const router: IRouter = Router();
-const emptyPage = { items: [], nextCursor: null };
-
-async function respondWithProfile(
-  request: Request,
-  response: Response,
-  row: PublicAccountRow,
-): Promise<void> {
-  const session = await loadActiveSession(request);
-  const viewerId = session?.accountId ?? null;
-  if (viewerId && await isBlockedBetween(viewerId, row.id)) {
-    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Este perfil não está disponível.");
-    return;
-  }
-  const relationship = await getRelationshipFor(viewerId, row.id);
-  const canViewPublicContent = canViewPrivateProfileContent(
-    row.isPrivate,
-    viewerId,
-    row.id,
-    relationship.following,
-  );
-  const account = await accountView(row, viewerId, relationship);
-  const [posts, articles] = await Promise.all([
-    listProfilePosts(row.id, viewerId, 20, null, "text"),
-    listProfilePosts(row.id, viewerId, 20, null, "article"),
-  ]);
-  response.json({
-    account,
-    visibility: {
-      canViewPublicContent,
-      canViewCircleContent: relationship.inCircle || viewerId === row.id,
-    },
-    posts: posts ?? emptyPage,
-    articles: articles ?? emptyPage,
-    media: emptyPage,
-  });
-}
 
 router.get("/profiles/:username", async (request, response) => {
   const username = typeof request.params.username === "string" ? request.params.username.toLowerCase() : "";
@@ -56,12 +14,13 @@ router.get("/profiles/:username", async (request, response) => {
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Este perfil não está disponível.");
     return;
   }
-  const row = await findActiveAccountByUsername(username);
-  if (!row) {
+  const session = await loadActiveSession(request);
+  const profile = await getPublicProfileByUsername(username, session?.accountId ?? null);
+  if (profile.kind === "not_found") {
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Este perfil não está disponível.");
     return;
   }
-  await respondWithProfile(request, response, row);
+  response.json(profile.data);
 });
 
 router.get("/accounts/:accountId", async (request, response) => {
@@ -70,18 +29,13 @@ router.get("/accounts/:accountId", async (request, response) => {
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Este perfil não está disponível.");
     return;
   }
-  const row = await findActiveAccountById(accountId);
-  if (!row) {
-    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Este perfil não está disponível.");
-    return;
-  }
   const session = await loadActiveSession(request);
-  const viewerId = session?.accountId ?? null;
-  if (viewerId && await isBlockedBetween(viewerId, accountId)) {
+  const profile = await getPublicAccountById(accountId, session?.accountId ?? null);
+  if (profile.kind === "not_found") {
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Este perfil não está disponível.");
     return;
   }
-  response.json(await accountView(row, viewerId));
+  response.json(profile.data);
 });
 
 export default router;
