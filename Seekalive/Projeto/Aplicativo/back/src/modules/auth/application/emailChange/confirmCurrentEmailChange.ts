@@ -7,7 +7,7 @@ import {
   invalidChallengeMessage,
   MAX_ACCOUNT_CHANGE_CODE_ATTEMPTS,
 } from "../accountSecurity/policy";
-import { invalidateChallenge } from "../accountSecurity/invalidateChallenge";
+import type { AccountSecurityOperations } from "../accountSecurity/ports";
 import { maskEmail } from "../emailMasking";
 import { constantTimeEquals, hashAccountEmailChangeCode } from "../../../../security/session";
 import { logger } from "../../../../common/logger";
@@ -30,6 +30,7 @@ export async function confirmCurrentEmailChange(
   accountId: string,
   challengeId: string,
   submittedCode: string,
+  security: AccountSecurityOperations,
 ): Promise<ConfirmCurrentEmailResult> {
   const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
   const nextChallengeId = randomUUID();
@@ -132,7 +133,11 @@ export async function confirmCurrentEmailChange(
     });
   } catch {
     logger.warn({ code: "ACCOUNT_EMAIL_CHANGE_NEW_CODE_FAILED" }, "New-address confirmation code could not be delivered");
-    await invalidateChallenge(nextChallengeId, accountId, "account_email_change_new");
+    await security.invalidateChallenge(
+      nextChallengeId,
+      accountId,
+      "account_email_change_new",
+    );
     return { kind: "delivery_failed" };
   }
 

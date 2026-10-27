@@ -12,6 +12,7 @@ import {
 } from "../../../security/session";
 import { confirmPasswordUpdate } from "../application/passwordUpdate/confirmPasswordUpdate";
 import { requestPasswordUpdate } from "../application/passwordUpdate/requestPasswordUpdate";
+import { challengeOperations } from "../composition/challenges";
 import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { sendError, sendValidationError, supportLockMessage } from "./responses";
 
@@ -29,6 +30,11 @@ router.post("/password/update", createAuthRateLimit("password-update", 5, 15 * 6
     parsed.data.currentPassword,
     parsed.data.newPassword,
     getAuthEmailDelivery(),
+    {
+      createChallenge: challengeOperations.createPasswordUpdateChallenge,
+      invalidateChallenge:
+        challengeOperations.invalidatePasswordUpdateChallenge,
+    },
   );
   if (result.kind === "invalid_credentials") {
     sendError(response, 401, "INVALID_CREDENTIALS", "Usuário/e-mail ou senha inválidos.");

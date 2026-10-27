@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { accountEmailChangeRequestSchema, challengeConfirmSchema } from "@workspace/api-zod";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
+import { accountSecurityOperations } from "../composition/accountSecurity";
 import {
   confirmCurrentEmailChange,
 } from "../application/emailChange/confirmCurrentEmailChange";
@@ -25,7 +26,12 @@ router.post(
       return;
     }
 
-    const result = await startEmailChange(accountId, parsed.data.currentPassword, parsed.data.newEmail);
+    const result = await startEmailChange(
+      accountId,
+      parsed.data.currentPassword,
+      parsed.data.newEmail,
+      accountSecurityOperations,
+    );
     if (result.kind === "invalid_current_password") {
       sendError(response, 401, "INVALID_CURRENT_PASSWORD", "A senha atual está incorreta.");
       return;
@@ -83,7 +89,12 @@ router.post(
       return;
     }
 
-    const result = await confirmCurrentEmailChange(accountId, parsed.data.challengeId, parsed.data.code);
+    const result = await confirmCurrentEmailChange(
+      accountId,
+      parsed.data.challengeId,
+      parsed.data.code,
+      accountSecurityOperations,
+    );
     if (result.kind === "account_unavailable") {
       sendError(response, 423, "ACCOUNT_UNAVAILABLE", "Esta conta não pode alterar seus dados de segurança.");
       return;

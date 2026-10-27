@@ -10,6 +10,7 @@ import {
 } from "../../../security/session";
 import { authenticateLogin } from "../application/login/authenticateLogin";
 import { startDeviceVerification } from "../application/login/startDeviceVerification";
+import { challengeOperations } from "../composition/challenges";
 import { authResult } from "./authResult";
 import { sendError, sendValidationError, supportLockMessage } from "./responses";
 
@@ -56,7 +57,10 @@ router.post("/login", createAuthRateLimit("login", 10, 15 * 60 * 1000), requireC
     return;
   }
   if (result.kind === "unknown_device") {
-    const verification = await startDeviceVerification(result.account.id);
+    const verification = await startDeviceVerification(result.account.id, {
+      createChallenge: challengeOperations.createDeviceLoginChallenge,
+      invalidateChallenge: challengeOperations.invalidateDeviceLoginChallenge,
+    });
     if (verification.kind === "delivery_unavailable") {
       sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código para reconhecer esta instalação.");
       return;

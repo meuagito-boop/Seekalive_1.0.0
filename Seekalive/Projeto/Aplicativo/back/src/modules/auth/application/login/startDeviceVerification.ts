@@ -1,9 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
-import { authChallenges, db } from "@workspace/db";
 import { logger } from "../../../../common/logger";
 import { hashToken } from "../../../../security/session";
-import { createDeviceLoginChallenge } from "../challenges/deviceLogin";
+import type {
+  ChallengeByIdInvalidator,
+  DeviceLoginChallengeCreator,
+} from "../challenges/ports";
 import { getAuthEmailDelivery } from "../../infrastructure/emailDelivery";
 
 export type DeviceVerificationStartResult =
@@ -13,16 +14,22 @@ export type DeviceVerificationStartResult =
   | {
       kind: "challenge_created";
       rawDeviceToken: string;
-      challenge: NonNullable<Awaited<ReturnType<typeof createDeviceLoginChallenge>>>;
+      challenge: NonNullable<Awaited<ReturnType<DeviceLoginChallengeCreator>>>;
     };
 
-export async function startDeviceVerification(accountId: string): Promise<DeviceVerificationStartResult> {
+export async function startDeviceVerification(
+  accountId: string,
+  dependencies: {
+    createChallenge: DeviceLoginChallengeCreator;
+    invalidateChallenge: ChallengeByIdInvalidator;
+  },
+): Promise<DeviceVerificationStartResult> {
   const delivery = getAuthEmailDelivery();
   if (!delivery.isConfigured) return { kind: "delivery_unavailable" };
 
   const rawDeviceToken = randomBytes(32).toString("base64url");
   const pendingDeviceHash = hashToken(rawDeviceToken);
-  const challenge = await createDeviceLoginChallenge(accountId, pendingDeviceHash);
+  const challenge = await dependencies.createChallenge(accountId, pendingDeviceHash);
   if (!challenge) return { kind: "account_unavailable" };
 
   try {
@@ -33,10 +40,7 @@ export async function startDeviceVerification(accountId: string): Promise<Device
     });
   } catch {
     logger.warn({ code: "DEVICE_LOGIN_EMAIL_FAILED" }, "Device verification email could not be delivered");
-    await db
-      .update(authChallenges)
-      .set({ consumedAt: new Date() })
-      .where(and(eq(authChallenges.id, challenge.challengeId), isNull(authChallenges.consumedAt)));
+    await dependencies.invalidateChallenge(challenge.challengeId);
     return { kind: "delivery_failed" };
   }
 

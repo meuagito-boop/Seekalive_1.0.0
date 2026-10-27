@@ -12,6 +12,7 @@ import {
 } from "../../../security/session";
 import { confirmPasswordReset } from "../application/passwordReset/confirmPasswordReset";
 import { requestPasswordReset } from "../application/passwordReset/requestPasswordReset";
+import { challengeOperations } from "../composition/challenges";
 import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { sendError, sendValidationError, supportLockMessage } from "./responses";
 
@@ -32,7 +33,11 @@ router.post("/password/reset/request", createAuthRateLimit("password-reset-reque
   const delivery = getAuthEmailDelivery();
 
   if (delivery.isConfigured) {
-    await requestPasswordReset(email, delivery);
+    await requestPasswordReset(email, delivery, {
+      createChallenge: challengeOperations.createPasswordResetChallenge,
+      invalidateChallenge:
+        challengeOperations.invalidatePasswordResetChallenge,
+    });
   }
 
   const responseDelay = Math.max(0, 200 - (Date.now() - startedAt));

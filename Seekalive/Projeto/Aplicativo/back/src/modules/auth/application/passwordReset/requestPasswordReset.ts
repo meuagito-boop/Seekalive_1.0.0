@@ -1,12 +1,19 @@
-import { and, eq, isNull } from "drizzle-orm";
-import { accountEmails, accounts, authChallenges, db } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { accountEmails, accounts, db } from "@workspace/db";
 import { logger } from "../../../../common/logger";
-import { createPasswordResetChallenge } from "../challenges/passwordReset";
+import type {
+  PasswordResetChallengeCreator,
+  PasswordResetChallengeInvalidator,
+} from "../challenges/ports";
 import type { AuthEmailDelivery } from "../../infrastructure/emailDelivery";
 
 export async function requestPasswordReset(
   email: string,
   delivery: AuthEmailDelivery,
+  dependencies: {
+    createChallenge: PasswordResetChallengeCreator;
+    invalidateChallenge: PasswordResetChallengeInvalidator;
+  },
 ): Promise<void> {
   const [account] = await db
     .select({
@@ -21,21 +28,17 @@ export async function requestPasswordReset(
     .limit(1);
 
   if (account?.status !== "active" || !account.verifiedAt || account.securityLockedAt) return;
-  const challenge = await createPasswordResetChallenge(account.id);
+  const challenge = await dependencies.createChallenge(account.id);
   if (!challenge) return;
 
   void delivery.sendPasswordResetCode({ email, code: challenge.code }).catch(async () => {
     logger.warn({ code: "PASSWORD_RESET_EMAIL_FAILED" }, "Password reset email could not be delivered");
     try {
-      await db
-        .update(authChallenges)
-        .set({ consumedAt: new Date() })
-        .where(and(
-          eq(authChallenges.accountId, account.id),
-          eq(authChallenges.purpose, "reset_password"),
-          eq(authChallenges.tokenHash, challenge.tokenHash),
-          isNull(authChallenges.consumedAt),
-        ));
+      await dependencies.invalidateChallenge(
+        account.id,
+        challenge.tokenHash,
+        new Date(),
+      );
     } catch {
       logger.error({ code: "PASSWORD_RESET_CHALLENGE_INVALIDATION_FAILED" }, "Failed email challenge could not be invalidated");
     }

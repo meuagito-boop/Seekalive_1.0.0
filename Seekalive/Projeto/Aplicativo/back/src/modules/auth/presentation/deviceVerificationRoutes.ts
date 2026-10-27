@@ -14,8 +14,7 @@ import {
   setDeviceCookie,
   setSessionCookie,
 } from "../../../security/session";
-import { confirmDeviceLogin } from "../application/deviceVerification/confirmDeviceLogin";
-import { resendDeviceLoginCode } from "../application/deviceVerification/resendDeviceLoginCode";
+import { deviceVerificationOperations } from "../composition/deviceVerification";
 import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { authResult } from "./authResult";
 import { sendError, sendValidationError, supportLockMessage } from "./responses";
@@ -36,7 +35,7 @@ router.post("/device-verification/confirm", createAuthRateLimit("device-login-co
     return;
   }
 
-  const result = await confirmDeviceLogin(
+  const result = await deviceVerificationOperations.confirmDeviceLogin(
     parsed.data.challengeId,
     parsed.data.code,
     rawDeviceToken,
@@ -85,7 +84,7 @@ router.post("/device-verification/resend", createAuthRateLimit("device-login-res
     return;
   }
 
-  const result = await resendDeviceLoginCode(
+  const result = await deviceVerificationOperations.resendDeviceLoginCode(
     parsed.data.challengeId,
     rawDeviceToken,
     getAuthEmailDelivery(),

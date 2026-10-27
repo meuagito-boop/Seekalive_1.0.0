@@ -9,6 +9,7 @@ import {
   clearSessionCookie,
   requireCsrf,
 } from "../../../security/session";
+import { accountSecurityOperations } from "../composition/accountSecurity";
 import { confirmPasswordChange } from "../application/passwordChange/confirmPasswordChange";
 import { requestPasswordChange } from "../application/passwordChange/requestPasswordChange";
 import { authenticatedAccountId, sendThrottleError } from "./accountSecurityHttp";
@@ -33,6 +34,7 @@ router.post(
       accountId,
       parsed.data.currentPassword,
       parsed.data.newPassword,
+      accountSecurityOperations,
     );
     if (result.kind === "invalid_current_password") {
       sendError(response, 401, "INVALID_CURRENT_PASSWORD", "A senha atual está incorreta.");

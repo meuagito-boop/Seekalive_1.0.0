@@ -8,8 +8,7 @@ import {
   cooldownSeconds,
   MAX_ACCOUNT_CHANGE_SENDS_PER_HOUR,
 } from "../accountSecurity/policy";
-import { invalidateChallenge } from "../accountSecurity/invalidateChallenge";
-import { verifyCurrentPassword } from "../accountSecurity/verifyCurrentPassword";
+import type { AccountSecurityOperations } from "../accountSecurity/ports";
 import { maskEmail } from "../emailMasking";
 import { hashAccountEmailChangeCode } from "../../../../security/session";
 import { logger } from "../../../../common/logger";
@@ -37,8 +36,9 @@ export async function startEmailChange(
   accountId: string,
   currentPassword: string,
   newEmail: string,
+  security: AccountSecurityOperations,
 ): Promise<StartEmailChangeResult> {
-  const current = await verifyCurrentPassword(accountId, currentPassword);
+  const current = await security.verifyCurrentPassword(accountId, currentPassword);
   if (current.kind === "invalid_credentials") return { kind: "invalid_current_password" };
   if (current.kind === "account_unavailable") return { kind: "account_unavailable" };
   if (newEmail === current.email) return { kind: "email_unchanged" };
@@ -127,7 +127,11 @@ export async function startEmailChange(
     });
   } catch {
     logger.warn({ code: "ACCOUNT_EMAIL_CHANGE_CURRENT_CODE_FAILED" }, "Account email-change code could not be delivered");
-    await invalidateChallenge(challengeId, accountId, "account_email_change_current");
+    await security.invalidateChallenge(
+      challengeId,
+      accountId,
+      "account_email_change_current",
+    );
     return { kind: "delivery_failed" };
   }
 

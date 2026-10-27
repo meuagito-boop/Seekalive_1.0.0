@@ -1,11 +1,12 @@
 import argon2 from "argon2";
-import { and, eq, isNull } from "drizzle-orm";
-import { accountEmails, accounts, authChallenges, db, passwordCredentials } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { accountEmails, accounts, db, passwordCredentials } from "@workspace/db";
 import { logger } from "../../../../common/logger";
 import { fallbackPasswordHashPromise, hashPassword } from "../passwordHashing";
-import {
-  createPasswordUpdateChallenge,
-} from "../challenges/passwordUpdate";
+import type {
+  ChallengeByIdInvalidator,
+  PasswordUpdateChallengeCreator,
+} from "../challenges/ports";
 import type { AuthEmailDelivery } from "../../infrastructure/emailDelivery";
 
 export type PasswordUpdateRequestResult =
@@ -29,6 +30,10 @@ export async function requestPasswordUpdate(
   currentPassword: string,
   newPassword: string,
   delivery: AuthEmailDelivery,
+  dependencies: {
+    createChallenge: PasswordUpdateChallengeCreator;
+    invalidateChallenge: ChallengeByIdInvalidator;
+  },
 ): Promise<PasswordUpdateRequestResult> {
   const identifier = rawIdentifier.trim().replace(/^@/, "").toLowerCase();
   const condition = identifier.includes("@")
@@ -67,7 +72,11 @@ export async function requestPasswordUpdate(
   const newPasswordHash = await hashPassword(newPassword);
   if (!delivery.isConfigured) return { kind: "delivery_unavailable" };
 
-  const challenge = await createPasswordUpdateChallenge(row.id, newPasswordHash, row.passwordHash);
+  const challenge = await dependencies.createChallenge(
+    row.id,
+    newPasswordHash,
+    row.passwordHash,
+  );
   if (!challenge) return { kind: "credentials_changed" };
   try {
     await delivery.sendPasswordUpdateCode({
@@ -77,13 +86,7 @@ export async function requestPasswordUpdate(
     });
   } catch {
     logger.warn({ code: "PASSWORD_UPDATE_EMAIL_FAILED" }, "Password update confirmation email could not be delivered");
-    await db
-      .update(authChallenges)
-      .set({ consumedAt: new Date() })
-      .where(and(
-        eq(authChallenges.id, challenge.challengeId),
-        isNull(authChallenges.consumedAt),
-      ));
+    await dependencies.invalidateChallenge(challenge.challengeId);
     return { kind: "delivery_failed" };
   }
 

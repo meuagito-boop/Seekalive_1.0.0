@@ -9,8 +9,7 @@ import {
   cooldownSeconds,
   MAX_ACCOUNT_CHANGE_SENDS_PER_HOUR,
 } from "../accountSecurity/policy";
-import { invalidateChallenge } from "../accountSecurity/invalidateChallenge";
-import { verifyCurrentPassword } from "../accountSecurity/verifyCurrentPassword";
+import type { AccountSecurityOperations } from "../accountSecurity/ports";
 import { maskEmail } from "../emailMasking";
 import { hashPassword } from "../passwordHashing";
 import { hashAccountPasswordChangeCode } from "../../../../security/session";
@@ -37,8 +36,9 @@ export async function requestPasswordChange(
   accountId: string,
   currentPassword: string,
   newPassword: string,
+  security: AccountSecurityOperations,
 ): Promise<RequestPasswordChangeResult> {
-  const current = await verifyCurrentPassword(accountId, currentPassword);
+  const current = await security.verifyCurrentPassword(accountId, currentPassword);
   if (current.kind === "invalid_credentials") return { kind: "invalid_current_password" };
   if (current.kind === "account_unavailable") return { kind: "account_unavailable" };
   if (await argon2.verify(current.passwordHash, newPassword).catch(() => false)) {
@@ -122,7 +122,11 @@ export async function requestPasswordChange(
     });
   } catch {
     logger.warn({ code: "ACCOUNT_PASSWORD_CHANGE_CODE_FAILED" }, "Account password-change code could not be delivered");
-    await invalidateChallenge(challengeId, accountId, "account_password_change");
+    await security.invalidateChallenge(
+      challengeId,
+      accountId,
+      "account_password_change",
+    );
     return { kind: "delivery_failed" };
   }
 

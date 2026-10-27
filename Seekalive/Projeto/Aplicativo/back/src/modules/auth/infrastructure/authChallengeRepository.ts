@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { authChallenges, db } from "@workspace/db";
 
-export async function invalidateChallenge(
+export async function invalidateAuthChallenge(
   challengeId: string,
   accountId: string,
   purpose: string,
@@ -14,10 +14,12 @@ export async function invalidateChallenge(
       pendingPasswordHash: null,
       basePasswordHash: null,
     })
-    .where(and(
-      eq(authChallenges.id, challengeId),
-      eq(authChallenges.accountId, accountId),
-      eq(authChallenges.purpose, purpose),
-      isNull(authChallenges.consumedAt),
-    ));
+    .where(
+      and(
+        eq(authChallenges.id, challengeId),
+        eq(authChallenges.accountId, accountId),
+        eq(authChallenges.purpose, purpose),
+        isNull(authChallenges.consumedAt),
+      ),
+    );
 }
