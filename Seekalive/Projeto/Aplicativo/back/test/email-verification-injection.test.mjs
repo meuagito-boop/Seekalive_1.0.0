@@ -131,7 +131,8 @@ test("sending a verification code replaces active challenges and stores only its
   );
   assert.equal(stored.accountId, account.id);
   assert.ok(stored.expiresAt.getTime() > startedAt + 599_000);
-  assert.ok(stored.expiresAt.getTime() <= startedAt + 600_000);
+  // The use case starts its TTL after this test's clock; allow async setup time.
+  assert.ok(stored.expiresAt.getTime() <= startedAt + 610_000);
   assert.equal(
     repository.calls.some(
       (call) => Array.isArray(call) && call[0] === "replaceChallenge",

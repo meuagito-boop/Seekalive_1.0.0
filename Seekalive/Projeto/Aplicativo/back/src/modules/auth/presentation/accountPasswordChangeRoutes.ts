@@ -9,10 +9,11 @@ import {
   clearSessionCookie,
   requireCsrf,
 } from "../../../security/session";
-import { accountSecurityOperations } from "../composition/accountSecurity";
-import { confirmPasswordChange } from "../application/passwordChange/confirmPasswordChange";
-import { requestPasswordChange } from "../application/passwordChange/requestPasswordChange";
-import { authenticatedAccountId, sendThrottleError } from "./accountSecurityHttp";
+import { passwordChangeOperations } from "../composition/passwordChange";
+import {
+  authenticatedAccountId,
+  sendThrottleError,
+} from "./accountSecurityHttp";
 import { sendError, sendValidationError } from "./responses";
 
 const router: IRouter = Router();
@@ -30,30 +31,54 @@ router.post(
       return;
     }
 
-    const result = await requestPasswordChange(
+    const result = await passwordChangeOperations.request(
       accountId,
       parsed.data.currentPassword,
       parsed.data.newPassword,
-      accountSecurityOperations,
     );
     if (result.kind === "invalid_current_password") {
-      sendError(response, 401, "INVALID_CURRENT_PASSWORD", "A senha atual está incorreta.");
+      sendError(
+        response,
+        401,
+        "INVALID_CURRENT_PASSWORD",
+        "A senha atual está incorreta.",
+      );
       return;
     }
     if (result.kind === "account_unavailable") {
-      sendError(response, 423, "ACCOUNT_UNAVAILABLE", "Esta conta não pode alterar seus dados de segurança.");
+      sendError(
+        response,
+        423,
+        "ACCOUNT_UNAVAILABLE",
+        "Esta conta não pode alterar seus dados de segurança.",
+      );
       return;
     }
     if (result.kind === "password_reuse") {
-      sendError(response, 400, "PASSWORD_REUSE", "Escolha uma senha diferente da senha atual.");
+      sendError(
+        response,
+        400,
+        "PASSWORD_REUSE",
+        "Escolha uma senha diferente da senha atual.",
+      );
       return;
     }
     if (result.kind === "delivery_unavailable") {
-      sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "O envio de códigos por e-mail não está disponível.");
+      sendError(
+        response,
+        503,
+        "EMAIL_DELIVERY_UNAVAILABLE",
+        "O envio de códigos por e-mail não está disponível.",
+      );
       return;
     }
     if (result.kind === "credentials_changed") {
-      sendError(response, 409, "CREDENTIALS_CHANGED", "A senha mudou. Atualize a tela e tente novamente.");
+      sendError(
+        response,
+        409,
+        "CREDENTIALS_CHANGED",
+        "A senha mudou. Atualize a tela e tente novamente.",
+      );
       return;
     }
     if (result.kind === "rate_limited") {
@@ -61,7 +86,12 @@ router.post(
       return;
     }
     if (result.kind === "delivery_failed") {
-      sendError(response, 503, "EMAIL_DELIVERY_UNAVAILABLE", "Não foi possível enviar o código. Tente novamente mais tarde.");
+      sendError(
+        response,
+        503,
+        "EMAIL_DELIVERY_UNAVAILABLE",
+        "Não foi possível enviar o código. Tente novamente mais tarde.",
+      );
       return;
     }
 
@@ -88,13 +118,27 @@ router.post(
       return;
     }
 
-    const result = await confirmPasswordChange(accountId, parsed.data.challengeId, parsed.data.code);
+    const result = await passwordChangeOperations.confirm(
+      accountId,
+      parsed.data.challengeId,
+      parsed.data.code,
+    );
     if (result.kind === "account_unavailable") {
-      sendError(response, 423, "ACCOUNT_UNAVAILABLE", "Esta conta não pode alterar seus dados de segurança.");
+      sendError(
+        response,
+        423,
+        "ACCOUNT_UNAVAILABLE",
+        "Esta conta não pode alterar seus dados de segurança.",
+      );
       return;
     }
     if (result.kind === "credentials_changed") {
-      sendError(response, 409, "CREDENTIALS_CHANGED", "As credenciais mudaram. Inicie novamente a alteração.");
+      sendError(
+        response,
+        409,
+        "CREDENTIALS_CHANGED",
+        "As credenciais mudaram. Inicie novamente a alteração.",
+      );
       return;
     }
     if (result.kind === "invalid") {
