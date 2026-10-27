@@ -91,6 +91,14 @@ Foram mantidas a política de privacidade, a ocultação por bloqueio, a mutuali
 
 O teste `Aplicativo/back/test/feed-layer-boundary.test.mjs` proíbe persistência direta em `application/` e `presentation/` e confirma o ownership do adapter na infraestrutura. Não houve teste contra banco físico; esse estado segue não verificado e nenhuma migration foi aplicada.
 
+### Unidade estrutural concluída: Health
+
+O domínio Health contém três adaptadores de apresentação para composição e endpoints de liveness/readiness, além de um adapter de infraestrutura para o banco. `presentation/readinessRoutes.ts` recebe `checkDatabase` por injeção e converte sucesso/falha em respostas HTTP; `infrastructure/databaseReadiness.ts` executa apenas `SELECT 1`, com o timeout já usado antes; `modules/index.ts` é o composition root que conecta a implementação concreta à rota. A apresentação não importa `@workspace/db` nem Drizzle. Uma camada de aplicação não foi criada: não existe neste fluxo uma regra de negócio ou orquestração que justifique uma função intermediária.
+
+As rotas e respostas continuam iguais: `/healthz` é independente da disponibilidade do banco, `/readyz` retorna `ready` quando a verificação passa e `not_ready` com HTTP 503 em falha, sem divulgar detalhes internos. A suíte agora testa as duas saídas com probe injetado, inclusive que liveness continua `200` quando readiness falha.
+
+**Contrato pendente observado:** o OpenAPI documenta `/healthz`, mas não `/readyz`. A unidade não mudou contratos; a ausência de `/readyz` na especificação permanece identificada para revisão de contrato.
+
 ## Domínios e dependências cruzadas
 
 Dependências verificadas entre módulos de backend incluem:
@@ -139,6 +147,8 @@ O pacote de banco tem schemas reservados para esses domínios, mas schema reserv
 
 ## Testes de backend e banco
 
-Na validação da unidade Feed, `pnpm test` passou em 97 casos, o typecheck completo e o build da API passaram. Testes de fronteira protegem Auth e Feed contra retorno de acesso direto ao banco nas rotas; Feed também impede esse acesso na aplicação. O teste que cria schema temporário exige `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e `DATABASE_URL`; foi tentado com a barreira explícita e parou antes da conexão porque as duas variáveis de destino estavam ausentes. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
+Na validação da unidade Health, `pnpm test` passou em 99 casos, o typecheck completo e o build da API passaram. Testes de fronteira protegem Auth e Feed contra retorno de acesso direto ao banco nos handlers; Feed também impede esse acesso na aplicação, e o teste de Health mantém a consulta fora da apresentação. O runtime test observou `/api/readyz` responder 200 neste ambiente; o teste isolado também cobre a resposta 503 sem necessidade de banco.
+
+O teste que cria schema temporário exige `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e `DATABASE_URL`; na validação Auth ele parou antes da conexão porque as variáveis explícitas de destino estavam ausentes. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
 
 O arquivo `Aplicativo/back/test/api-isolated-db.test.mjs` é muito maior do que os demais testes (1.933 linhas) e concentra testes isolados de várias partes; há oportunidade de dividir por contrato/domínio sem alterar o comportamento, mas não foi dividido nesta auditoria.

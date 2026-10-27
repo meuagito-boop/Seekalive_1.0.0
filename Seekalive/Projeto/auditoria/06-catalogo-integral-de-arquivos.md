@@ -1105,7 +1105,7 @@
 
 ### Delta da primeira reorganização estrutural — `accounts`
 
-Os registros 1–1.005 são a linha de base do catálogo. Para o estado após `accounts`, removem-se os registros 64 e 65 e acrescentam-se os sete caminhos a seguir, totalizando 1.010. A etapa `auth` acrescentou 14 caminhos, totalizando 1.024; Feed acrescentou sete e removeu um, totalizando **1.030 arquivos**. O restante da árvore ainda não foi reorganizado.
+Os registros 1–1.005 são a linha de base do catálogo. Para o estado após `accounts`, removem-se os registros 64 e 65 e acrescentam-se os sete caminhos a seguir, totalizando 1.010. A etapa `auth` acrescentou 14 caminhos, totalizando 1.024; Feed acrescentou sete e removeu um, totalizando 1.030; Health acrescentou dois, totalizando **1.032 arquivos**. O restante da árvore ainda não foi reorganizado.
 
 | Nº atual | Arquivo | O que é / para que serve |
 |---:|---|---|
@@ -1162,4 +1162,17 @@ Foram adicionados sete caminhos e removido o antigo arquivo combinado `postWrite
 
 **Arquivos existentes alterados:** casos de uso `createPost.ts`, `deletePost.ts`, `listProfilePosts.ts`, `postCursor.ts`, `postView.ts`, `postVisibility.ts` e `readPost.ts`; adaptadores `articleWriteRoutes.ts`, `postReadRoutes.ts` e `routes.ts`; `package.json` raiz passou a executar o teste de fronteira Feed. `postWriteRoutes.ts` foi substituído por adaptadores separados de criação e exclusão. Nenhuma migration nem artefato gerado foi editado.
 
-**Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed = **1.030 arquivos** no estado observado atual. Profiles, Social, os demais domínios e frontend ainda não foram reorganizados.
+**Conferência cumulativa até Feed:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed = **1.030 arquivos** naquele estado. Profiles, Social, os demais domínios e frontend ainda não foram reorganizados.
+
+### Delta da quarta unidade estrutural — `health` — 26/10/2026
+
+Foram adicionados dois caminhos — um adapter de infraestrutura e um teste — sem remover arquivos: 1.030 → **1.032**. Foram alterados a apresentação de prontidão, a composição das rotas e a montagem geral de módulos. Nenhum caminho HTTP, resposta, configuração de banco, migration, código gerado ou cliente foi alterado.
+
+| Nº atual | Arquivo | O que é / para que serve |
+|---:|---|---|
+| 1034 | [Aplicativo/back/src/modules/health/infrastructure/databaseReadiness.ts](../Aplicativo/back/src/modules/health/infrastructure/databaseReadiness.ts) | Adapter de infraestrutura que executa `SELECT 1` no pool com o timeout por consulta de 1,5 s já usado pelo sistema. |
+| 1035 | [Aplicativo/back/test/health-readiness.test.mjs](../Aplicativo/back/test/health-readiness.test.mjs) | Testa respostas ready/not_ready, liveness independente de falha de banco e a fronteira entre apresentação e persistência. |
+
+**Arquivos existentes alterados:** `health/presentation/readinessRoutes.ts` agora recebe um probe por injeção; `health/presentation/routes.ts` compõe liveness/readiness com o probe injetado; `modules/index.ts` conecta o adapter de infraestrutura ao router; `package.json` raiz executa o teste de Health na suíte TypeScript.
+
+**Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed + 2 adicionados em Health = **1.032 arquivos** observados. O próximo domínio backend em ordem alfabética é `onboarding`. Profiles, Social, os demais domínios e frontend ainda não foram reorganizados.

@@ -17,12 +17,12 @@
 ## Conclusões executivas
 
 1. A estrutura é um monorepo pnpm com o aplicativo React/Vite, API Express, banco Drizzle/PostgreSQL, contratos OpenAPI/Zod, cliente React gerado, sandbox de componentes, scripts, documentação e materiais de validação.
-2. A auditoria inicial registrou build do front/API, typecheck e testes passando. Na etapa atual, `pnpm test` passou com 97 testes, o typecheck completo do workspace passou e o build da API passou. O teste de integração que escreve em schema temporário não foi executado: as variáveis obrigatórias para identificar o banco de desenvolvimento não estavam configuradas. Esses resultados não provam que todas as funcionalidades estejam completas, que o banco esteja migrado ou que o produto esteja pronto para lançamento.
+2. A auditoria inicial registrou build do front/API, typecheck e testes passando. Na etapa atual, `pnpm test` passou com 99 testes, o typecheck completo do workspace passou e o build da API passou. O teste de integração que escreve em schema temporário não foi executado: as variáveis obrigatórias para identificar o banco de desenvolvimento não estavam configuradas. Esses resultados não provam que todas as funcionalidades estejam completas, que o banco esteja migrado ou que o produto esteja pronto para lançamento.
 3. A arquitetura apresenta separação real em muitos módulos, mas ainda não cumpre integralmente a separação por domínio pedida: `SocialApplicationContext` e seus tipos expõem operações de cinco domínios, e a composição do reducer de estado da aplicação fica em `modules/app/state`. Auth e Feed agora mantêm persistência fora dos adaptadores HTTP e da aplicação; ainda há rotas de Profiles e Social com consultas SQL diretas.
 4. O código-fonte do banco define **13 tabelas em 5 schemas com tabelas**. Os documentos de backend descrevem 12 tabelas ativas e indicam que a migração do Feed ainda não foi aplicada. O banco não foi consultado nesta auditoria; portanto, o estado físico atual do banco não foi confirmado. O código e os documentos deixam uma diferença que precisa ser reconciliada antes de declarar a implantação das migrações.
 5. Existem documentos gerados ou históricos que divergem do código atual, incluindo o catálogo de tabelas, o mapa de integração do front, a auditoria de prontidão do front, o status de recuperação de senha e a classificação de algumas operações de Feed.
 6. Dependências diretas do workspace usam Zod `4.6.7`; Orval está em `8.44.0`. Não encontrei conflito de versões diretas Zod/Orval nos pacotes inspecionados. Versões transitivas no lockfile não devem ser tratadas como conflito sem demonstrar incompatibilidade.
-7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após `accounts`, o total intermediário era 1.010; após `auth`, 1.024; após `feed`, o total observado passou a **1.030 arquivos**. O catálogo mantém a linha de base e registra os deltas por etapa.
+7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após `accounts`, o total intermediário era 1.010; após `auth`, 1.024; após `feed`, 1.030; após `health`, o total observado passou a **1.032 arquivos**. O catálogo mantém a linha de base e registra os deltas por etapa.
 
 ## Método e limites
 
@@ -32,7 +32,7 @@
 - Para cada arquivo do inventário, registrei categoria, finalidade inferida do caminho/conteúdo e referências diretas detectáveis. “Nenhuma referência detectada” não significa arquivo órfão: entradas, recursos estáticos, arquivos gerados, configuração e código referenciado por convenção podem não ter importador textual.
 - O inventário exclui somente árvores de dependências instaladas (`node_modules`, incluindo `.pnpm`). Não havia diretório `.git` em `Seekalive/Projeto`. Diretórios vazios não são linhas do inventário.
 - A análise de conexões é estática e delimitada ao conteúdo existente; não prova comportamento de integrações remotas, ambiente publicado, banco físico, contas reais, fluxos autenticados em navegador ou dispositivos de produção.
-- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010; `auth` acrescentou 14, totalizando 1.024; `feed` acrescentou sete e removeu um, totalizando 1.030. O inventário integral será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
+- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010; `auth` acrescentou 14, totalizando 1.024; `feed` acrescentou sete e removeu um, totalizando 1.030; `health` acrescentou dois, totalizando 1.032. O inventário integral será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
 
 ## Atualização da primeira unidade estrutural — 26/10/2026
 
@@ -52,14 +52,23 @@
 
 - **Escopo:** o módulo Feed e o registro do teste de fronteira na suíte raiz. Foram preservados endpoint, formato das respostas, validação, rate limits, CSRF, visibilidade, paginação, schemas e migrations; não houve mudança no frontend, em OpenAPI/cliente gerado, no banco, em Profiles, Gestor ou Painel.
 - **Correção:** o domínio agora possui tipo próprio de publicação, repositório único para acesso Drizzle à tabela `feed.posts`, casos de uso de aplicação sem acesso direto ao banco e adaptadores separados para criação/exclusão de publicação e leitura/escrita de artigos. A composição das rotas mantém os mesmos caminhos. A política de privacidade continua sendo recalculada em cada leitura.
-- **Verificações:** `pnpm test` passou com 97 testes; `pnpm run typecheck` passou no workspace; `pnpm --filter @workspace/api-server build` passou; teste de fronteira confirmou que Feed `application` e `presentation` não acessam Drizzle diretamente; a verificação estática encontrou zero ciclos entre os 125 arquivos TypeScript dos módulos backend; `git diff --check` passou.
+- **Verificações do Feed naquela etapa:** `pnpm test` passou com 97 testes; `pnpm run typecheck` passou no workspace; `pnpm --filter @workspace/api-server build` passou; teste de fronteira confirmou que Feed `application` e `presentation` não acessam Drizzle diretamente; a verificação estática encontrou zero ciclos entre os 125 arquivos TypeScript dos módulos backend; `git diff --check` passou. O resultado acumulado mais recente está registrado na unidade Health abaixo.
 - **Limite:** o repositório foi typechecked e compilado, mas não foi validado contra banco real/temporário porque as variáveis de destino de desenvolvimento continuam ausentes. Nenhum SQL foi executado contra o banco. Interações (curtidas, comentários, repostagens), upload/mídia e algoritmo cronológico/recomendado permanecem fora da capacidade implementada e não foram simulados nesta etapa.
+
+## Atualização da quarta unidade estrutural — backend `health` — 26/10/2026
+
+- **Escopo:** os três arquivos Health preexistentes, um novo adapter de infraestrutura, a composição central de rotas e testes de contrato/camada. Nenhuma rota, resposta HTTP ou configuração de banco foi alterada.
+- **Correção:** `SELECT 1` foi retirado do handler HTTP e concentrado em `health/infrastructure/databaseReadiness.ts`. O adaptador de prontidão recebe a verificação por injeção; `modules/index.ts` liga a implementação concreta. O liveness segue independente do banco. Não foi criada camada `application`: neste caso ela seria apenas uma função pass-through sem regra/orquestração própria.
+- **Comportamento preservado:** `/healthz` continua respondendo `200 {"status":"ok"}`; `/readyz` faz `SELECT 1` com `query_timeout` de 1,5 s e responde `200 {"status":"ready"}` ou `503 {"status":"not_ready"}`, sem expor detalhes da falha.
+- **Verificações:** teste focado de Health passou (2); `pnpm test` passou com 99 testes; typecheck completo do workspace e build da API passaram; `git diff --check` passou após o registro desta etapa. A suíte de runtime também observou `/api/readyz` responder 200 neste ambiente, e os testes injetados cobriram as respostas de sucesso e falha.
+- **Limite conhecido preservado:** o OpenAPI declara `/healthz`, mas não `/readyz`. Não alterei o contrato OpenAPI nesta tarefa estrutural; a cobertura formal de `/readyz` deve ser decidida e corrigida numa revisão de contrato, não por mudança silenciosa nesta etapa.
+- **Nota de compatibilidade:** o typecheck detectou que `@types/pg` não declara `query_timeout` no tipo de consulta, embora `pg` 8.20.0 o leia no objeto de query em runtime. Isso foi verificado no código instalado do driver. A opção foi mantida em objeto nomeado, sem cast nem supressão, preservando o prazo existente e passando o typecheck.
 
 ## Verificações executadas nesta auditoria
 
 | Verificação | Resultado observado |
 |---|---|
-| `pnpm test` | Passou na validação mais recente do Feed: 97 testes, 0 falhas |
+| `pnpm test` | Passou na validação mais recente do Health: 99 testes, 0 falhas |
 | `pnpm run typecheck` | Passou nos pacotes do workspace |
 | `pnpm --filter @workspace/db run check` | Passou: Drizzle informou `Everything's fine` |
 | `pnpm run build` | Passou; API, front e sandbox foram compilados |

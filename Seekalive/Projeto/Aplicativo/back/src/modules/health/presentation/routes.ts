@@ -1,10 +1,12 @@
 import { Router, type IRouter } from "express";
 import livenessRouter from "./livenessRoutes";
-import readinessRouter from "./readinessRoutes";
+import { createReadinessRouter } from "./readinessRoutes";
 
-const router: IRouter = Router();
+export function createHealthRouter(checkDatabase: () => Promise<void>): IRouter {
+  const router: IRouter = Router();
 
-router.use(livenessRouter);
-router.use(readinessRouter);
+  router.use(livenessRouter);
+  router.use(createReadinessRouter(checkDatabase));
 
-export default router;
+  return router;
+}
