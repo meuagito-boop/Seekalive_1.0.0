@@ -1,3 +1,4 @@
+import { countAllPostsByAuthorIds } from "../../feed/application/countAuthorPosts";
 import { readSocialSummaryRows } from "../infrastructure/socialStatisticsRepository";
 import { buildRelationshipView, type RelationshipView } from "../domain/relationshipView";
 import type { AccountSocialStats } from "./getAccountSocialStats";
@@ -15,7 +16,10 @@ export async function getAccountSocialSummariesByIds(
   const ids = [...new Set(accountIds)];
   if (ids.length === 0) return new Map();
 
-  const rows = await readSocialSummaryRows(ids, viewerId);
+  const [rows, postCounts] = await Promise.all([
+    readSocialSummaryRows(ids, viewerId),
+    countAllPostsByAuthorIds(ids),
+  ]);
 
   const followingSet = new Set<string>();
   const pendingSet = new Set<string>();
@@ -48,7 +52,7 @@ export async function getAccountSocialSummariesByIds(
         blockedByThem,
       }),
       stats: {
-        posts: 0,
+        posts: postCounts.get(id) ?? 0,
         followers: followers.get(id) ?? 0,
         following: following.get(id) ?? 0,
         circles: circles.get(id) ?? 0,

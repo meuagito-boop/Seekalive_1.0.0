@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { postAudienceSchema } from "@workspace/api-zod";
 import { db, feedPosts } from "@workspace/db";
 import type {
@@ -48,6 +48,19 @@ export async function deleteOwnedFeedPost(postId: string, actorId: string): Prom
     .where(and(eq(feedPosts.id, postId), eq(feedPosts.authorId, actorId)))
     .returning({ id: feedPosts.id });
   return deleted.length > 0;
+}
+
+export async function countFeedPostsByAuthorIds(authorIds: string[]) {
+  const ids = [...new Set(authorIds)];
+  if (ids.length === 0) return [];
+
+  return db.select({
+    authorId: feedPosts.authorId,
+    total: count(),
+  })
+    .from(feedPosts)
+    .where(inArray(feedPosts.authorId, ids))
+    .groupBy(feedPosts.authorId);
 }
 
 export async function listFeedPostsByAuthor(input: {

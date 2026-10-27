@@ -9,6 +9,8 @@ A rede social é o núcleo do produto e a fonte de identidade das contas. No cad
 
 O Shop é uma frente futura do mesmo produto e deve evoluir sobre a identidade já existente, não criar uma árvore de contas concorrente.
 
-**Why:** O usuário confirmou explicitamente que Social é o núcleo, que Seek é abastecido pelos perfis comerciais do Social e que Shop virá no futuro.
+Na contagem pública de publicações do perfil, considerar todas as publicações da conta, sem filtrar por audiência ou formato.
 
-**How to apply:** Ao projetar schemas, APIs, onboarding, busca, indexação ou integrações entre módulos, manter a conta no domínio Social como origem do perfil comercial e tratar Seek como descoberta/projeção desses perfis. Não implementar contas comerciais independentes no Seek. Manter Shop fora do escopo atual até o usuário iniciar essa frente.
+**Why:** O usuário confirmou explicitamente que Social é o núcleo, que Seek é abastecido pelos perfis comerciais do Social, que Shop virá no futuro e que o contador do perfil deve incluir todas as publicações da conta.
+
+**How to apply:** Ao projetar schemas, APIs, onboarding, busca, indexação ou integrações entre módulos, manter a conta no domínio Social como origem do perfil comercial e tratar Seek como descoberta/projeção desses perfis. Feed é dono dos dados de publicações; outros módulos devem consumir sua contagem por contrato, sem ler tabelas Feed diretamente. No perfil, contar todas as publicações da conta independentemente de audiência/formato. Não implementar contas comerciais independentes no Seek. Manter Shop fora do escopo atual até o usuário iniciar essa frente.
