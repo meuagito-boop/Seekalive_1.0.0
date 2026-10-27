@@ -1,47 +1,36 @@
-import {
-  accountViewsByIds,
-  accountView,
-  findActiveAccountById,
-  findActiveAccountByUsername,
-  type PublicAccountRow,
-} from "../../accounts/composition/publicApi";
+import type { AccountReadPort } from "../../accounts/application/ports";
+import type { createAccountViews } from "../../accounts/application/accountViews";
+import type { PublicAccountRow } from "../../accounts/domain/publicAccount";
 import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
-import { createProfilePostListApi } from "../../feed/composition/publicApi";
-import {
-  getRelationshipFor,
-  isBlockedBetween,
-} from "../../social/composition/publicApi";
-
-const listProfilePosts = createProfilePostListApi(accountViewsByIds);
+import type { ListProfilePosts } from "../../feed/application/listProfilePosts";
+import type { RelationshipView } from "../../social/domain/relationshipView";
 
 const emptyPage = { items: [], nextCursor: null };
+type AccountViewReader = ReturnType<typeof createAccountViews>["accountView"];
 
 export type PublicProfileDependencies = {
-  accountView: typeof accountView;
-  findActiveAccountById: typeof findActiveAccountById;
-  findActiveAccountByUsername: typeof findActiveAccountByUsername;
-  getRelationshipFor: typeof getRelationshipFor;
-  isBlockedBetween: typeof isBlockedBetween;
-  listProfilePosts: typeof listProfilePosts;
+  accountView: AccountViewReader;
+  findActiveAccountById: AccountReadPort["findActiveAccountById"];
+  findActiveAccountByUsername: AccountReadPort["findActiveAccountByUsername"];
+  getRelationshipFor: (
+    viewerId: string | null,
+    targetId: string,
+  ) => Promise<RelationshipView>;
+  isBlockedBetween: (
+    firstAccountId: string,
+    secondAccountId: string,
+  ) => Promise<boolean>;
+  listProfilePosts: ListProfilePosts;
 };
 
-const defaultDependencies: PublicProfileDependencies = {
-  accountView,
-  findActiveAccountById,
-  findActiveAccountByUsername,
-  getRelationshipFor,
-  isBlockedBetween,
-  listProfilePosts,
-};
-
-type PublicProfileResult<T> =
+export type PublicProfileResult<T> =
   | { kind: "not_found" }
   | { kind: "found"; data: T };
 
-type ProfilePage = NonNullable<Awaited<ReturnType<typeof listProfilePosts>>>;
+type ProfilePage = NonNullable<Awaited<ReturnType<ListProfilePosts>>>;
 
-type PublicProfileData = {
-  account: Awaited<ReturnType<typeof accountView>>;
+export type PublicProfileData = {
+  account: Awaited<ReturnType<AccountViewReader>>;
   visibility: {
     canViewPublicContent: boolean;
     canViewCircleContent: boolean;
@@ -91,7 +80,7 @@ async function composePublicProfile(
 export async function getPublicProfileByUsername(
   usernameInput: string,
   viewerId: string | null,
-  dependencies: PublicProfileDependencies = defaultDependencies,
+  dependencies: PublicProfileDependencies,
 ): Promise<PublicProfileResult<PublicProfileData>> {
   const username = usernameInput.toLowerCase();
   if (!/^[a-z0-9_]{3,20}$/.test(username)) return { kind: "not_found" };
@@ -105,8 +94,8 @@ export async function getPublicProfileByUsername(
 export async function getPublicAccountById(
   accountId: string,
   viewerId: string | null,
-  dependencies: PublicProfileDependencies = defaultDependencies,
-): Promise<PublicProfileResult<Awaited<ReturnType<typeof accountView>>>> {
+  dependencies: PublicProfileDependencies,
+): Promise<PublicProfileResult<Awaited<ReturnType<AccountViewReader>>>> {
   const row = await dependencies.findActiveAccountById(accountId);
   if (!row) return { kind: "not_found" };
   if (viewerId && (await dependencies.isBlockedBetween(viewerId, accountId))) {
@@ -118,3 +107,12 @@ export async function getPublicAccountById(
     data: await dependencies.accountView(row, viewerId),
   };
 }
+
+export type PublicProfileByUsernameQuery = (
+  usernameInput: string,
+  viewerId: string | null,
+) => Promise<PublicProfileResult<PublicProfileData>>;
+export type PublicAccountByIdQuery = (
+  accountId: string,
+  viewerId: string | null,
+) => Promise<PublicProfileResult<Awaited<ReturnType<AccountViewReader>>>>;

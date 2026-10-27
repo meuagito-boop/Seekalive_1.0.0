@@ -1,8 +1,11 @@
 import { and, eq, sql } from "drizzle-orm";
 import { accounts, db } from "@workspace/db";
 import type { PrivacyWrite } from "@workspace/api-zod";
+import type { PrivacySettingsRecord } from "../application/ports";
 
-export async function findPrivacySettings(accountId: string) {
+export async function findPrivacySettings(
+  accountId: string,
+): Promise<PrivacySettingsRecord | null> {
   const [row] = await db
     .select({
       isPrivate: accounts.isPrivate,
@@ -17,7 +20,10 @@ export async function findPrivacySettings(accountId: string) {
   return row ?? null;
 }
 
-export async function savePrivacySettings(accountId: string, input: PrivacyWrite) {
+export async function savePrivacySettings(
+  accountId: string,
+  input: PrivacyWrite,
+): Promise<{ version: number } | null> {
   const [updated] = await db
     .update(accounts)
     .set({
@@ -27,11 +33,13 @@ export async function savePrivacySettings(accountId: string, input: PrivacyWrite
       updatedAt: new Date(),
       version: sql`${accounts.version} + 1`,
     })
-    .where(and(
-      eq(accounts.id, accountId),
-      eq(accounts.version, input.version),
-      eq(accounts.status, "active"),
-    ))
+    .where(
+      and(
+        eq(accounts.id, accountId),
+        eq(accounts.version, input.version),
+        eq(accounts.status, "active"),
+      ),
+    )
     .returning({ version: accounts.version });
 
   return updated ?? null;

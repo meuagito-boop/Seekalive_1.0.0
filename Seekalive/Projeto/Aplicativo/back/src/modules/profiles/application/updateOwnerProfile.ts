@@ -1,17 +1,17 @@
 import type { AccountPatchInput } from "@workspace/api-zod";
-import {
-  nextIdentityChangeAt,
-} from "../../accounts/domain/usernamePolicy";
-import { persistOwnerProfileUpdate } from "../infrastructure/ownerProfileUpdateRepository";
+import { nextIdentityChangeAt } from "../../accounts/domain/usernamePolicy";
 import { prepareCommercialProfileUpdate } from "./commercialProfileUpdate";
 import { preparePersonalProfileUpdate } from "./personalProfileUpdate";
+import type { OwnerProfileUpdateWriter } from "./ports";
 import type {
   ProfileUpdateDecision,
   ProfileUpdateOwner,
   ProfileUpdateOwnerSnapshot,
 } from "./profileUpdateTypes";
 
-function isProfileAccountType(value: string): value is ProfileUpdateOwner["accountType"] {
+function isProfileAccountType(
+  value: string,
+): value is ProfileUpdateOwner["accountType"] {
   return value === "personal" || value === "commercial";
 }
 
@@ -28,14 +28,16 @@ function evaluateProfileUpdate(
     ...owner,
     accountType: owner.accountType,
   };
-  const profileChanges = profileOwner.accountType === "personal"
-    ? preparePersonalProfileUpdate(profileOwner, patch)
-    : prepareCommercialProfileUpdate(profileOwner, patch);
+  const profileChanges =
+    profileOwner.accountType === "personal"
+      ? preparePersonalProfileUpdate(profileOwner, patch)
+      : prepareCommercialProfileUpdate(profileOwner, patch);
   if (!profileChanges.ok) {
     return { kind: "reject", result: { kind: profileChanges.kind } };
   }
 
-  const usernameChanged = patch.username !== undefined && patch.username !== owner.username;
+  const usernameChanged =
+    patch.username !== undefined && patch.username !== owner.username;
   const publicNameAvailableAt = nextIdentityChangeAt(
     owner.publicNameChangedAt,
     owner.createdAt,
@@ -48,23 +50,36 @@ function evaluateProfileUpdate(
   if (profileChanges.changes.publicNameChanged && now < publicNameAvailableAt) {
     return {
       kind: "reject",
-      result: { kind: "name_change_cooldown", availableAt: publicNameAvailableAt },
+      result: {
+        kind: "name_change_cooldown",
+        availableAt: publicNameAvailableAt,
+      },
     };
   }
   if (usernameChanged && now < usernameAvailableAt) {
     return {
       kind: "reject",
-      result: { kind: "username_change_cooldown", availableAt: usernameAvailableAt },
+      result: {
+        kind: "username_change_cooldown",
+        availableAt: usernameAvailableAt,
+      },
     };
   }
 
   return { kind: "apply", changes: profileChanges.changes };
 }
 
-export function updateOwnerProfile(accountId: string, patch: AccountPatchInput) {
-  return persistOwnerProfileUpdate(
-    accountId,
-    patch,
-    (owner, now) => evaluateProfileUpdate(owner, patch, now),
-  );
+export function createOwnerProfileUpdater(
+  persistOwnerProfileUpdate: OwnerProfileUpdateWriter,
+) {
+  return function updateOwnerProfile(
+    accountId: string,
+    patch: AccountPatchInput,
+  ) {
+    return persistOwnerProfileUpdate(accountId, patch, (owner, now) =>
+      evaluateProfileUpdate(owner, patch, now),
+    );
+  };
 }
+
+export type OwnerProfileUpdater = ReturnType<typeof createOwnerProfileUpdater>;

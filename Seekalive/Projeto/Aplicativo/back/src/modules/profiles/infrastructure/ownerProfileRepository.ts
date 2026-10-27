@@ -1,31 +1,45 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { accountEmails, accounts, commercialProfiles, db } from "@workspace/db";
+import type {
+  CommercialProfileDetails,
+  OwnerProfileIdentityRecord,
+} from "../application/ports";
 
-export async function findOwnerProfileIdentity(accountId: string) {
+export async function findOwnerProfileIdentity(
+  accountId: string,
+): Promise<OwnerProfileIdentityRecord | null> {
   const [[owner], [verifiedEmail]] = await Promise.all([
-    db.select({
-      accountType: accounts.accountType,
-      firstName: accounts.firstName,
-      lastName: accounts.lastName,
-      publicNameChangedAt: accounts.publicNameChangedAt,
-      usernameChangedAt: accounts.usernameChangedAt,
-    })
+    db
+      .select({
+        accountType: accounts.accountType,
+        firstName: accounts.firstName,
+        lastName: accounts.lastName,
+        publicNameChangedAt: accounts.publicNameChangedAt,
+        usernameChangedAt: accounts.usernameChangedAt,
+      })
       .from(accounts)
       .where(eq(accounts.id, accountId))
       .limit(1),
-    db.select({ email: accountEmails.emailNormalized })
+    db
+      .select({ email: accountEmails.emailNormalized })
       .from(accountEmails)
-      .where(and(
-        eq(accountEmails.accountId, accountId),
-        isNotNull(accountEmails.verifiedAt),
-      ))
+      .where(
+        and(
+          eq(accountEmails.accountId, accountId),
+          isNotNull(accountEmails.verifiedAt),
+        ),
+      )
       .limit(1),
   ]);
 
-  return owner && verifiedEmail ? { ...owner, email: verifiedEmail.email } : null;
+  return owner && verifiedEmail
+    ? { ...owner, email: verifiedEmail.email }
+    : null;
 }
 
-export async function findCommercialProfileDetails(accountId: string) {
+export async function findCommercialProfileDetails(
+  accountId: string,
+): Promise<CommercialProfileDetails | null> {
   const [profile] = await db
     .select({
       categoryKey: commercialProfiles.categoryKey,

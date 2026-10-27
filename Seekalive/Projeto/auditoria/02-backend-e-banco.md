@@ -61,23 +61,17 @@ O `drizzle-kit check` passou sobre a consistência do histórico local. Isso val
 3. migrations efetivamente aplicadas ao banco;
 4. domínios futuros sem tabelas.
 
-## Camada de apresentação ainda ligada ao banco
+## Persistência e apresentação
 
-Na auditoria inicial havia import de `@workspace/db` em 17 arquivos de apresentação: 16 ligados a fluxos de produto e um de prontidão operacional. Na etapa atual, os oito arquivos Auth foram corrigidos. Permanecem nove rotas com import/persistência direta: oito ligadas a fluxos de produto e uma de prontidão operacional. As ocorrências restantes são:
+A auditoria inicial encontrou imports de `@workspace/db` em 17 arquivos de apresentação. Na varredura atual dos arquivos TypeScript de `modules/*/presentation`, nenhum importa diretamente `@workspace/db` ou Drizzle. Isso comprova a direção dos imports no código-fonte, não a execução de cada integração com o banco.
 
-- **Profiles:** `accountAvailabilityRoutes.ts`, `privacyRoutes.ts`.
-- **Social:** `accountSearchRoutes.ts`, `blockListRoutes.ts`, `circleRoutes.ts`, `followerListRoutes.ts`, `followingListRoutes.ts`, `followRequestListRoutes.ts`.
-- **Health:** `readinessRoutes.ts` usa pool para verificar prontidão do serviço; esta dependência de infraestrutura é compatível com a finalidade de health/readiness.
-
-Nas rotas restantes de Social/Profiles, consultas de listas, busca e privacidade ainda vão ao banco diretamente. O efeito arquitetural é que parte de validação, composição de transação e tratamento HTTP fica acoplada. Não é falha de compilação; é dívida de fronteira de camadas.
-
-`profiles/presentation/publicProfileRoutes.ts` orquestra dentro do handler a leitura da conta, bloqueios, relação de seguimento, visibilidade e publicações/artigos, chamando funções dos módulos `accounts`, `social` e `feed`. A composição é de domínio e deveria ficar num caso de uso de leitura; a rota deveria permanecer como adaptador HTTP.
+As rotas de Profiles agora recebem operações por fábricas de router. `publicProfileRoutes.ts` limita-se a validar parâmetros, resolver a sessão opcional, chamar as consultas recebidas e traduzir resultados para HTTP. A composição de perfil público fica em `application/publicProfile.ts`; `composition/router.ts` conecta Accounts, Social, Feed e os repositórios de Profiles. A fronteira local application→infrastructure também não possui imports diretos na varredura atual.
 
 ### Unidade estrutural concluída: Auth
 
 O módulo Auth tem 50 arquivos TypeScript (33 de aplicação, 16 de apresentação e um de infraestrutura). A camada de apresentação não importa `@workspace/db` nem `drizzle-orm`; a regra é protegida pelo teste `Aplicativo/back/test/auth-presentation-boundary.test.mjs`.
 
-As operações extraídas dos handlers são cadastro/pré-consulta, rotação do token CSRF, listagem/revogação de sessões, listagem/revogação de instalações confiáveis, pedido/confirmação de verificação de e-mail, confirmação/reenvio de código de instalação e pedido/confirmação de atualização/recuperação de senha. Regras de enumeração, mensagens/status, cookies, cooldowns, contagem de tentativas, bloqueios, revogações e atomicidade das transações foram preservados. O inicializador de dados comerciais está em `profiles/application/initializeCommercialProfile.ts`; Auth apenas o chama durante o cadastro pendente.
+As operações extraídas dos handlers são cadastro/pré-consulta, rotação do token CSRF, listagem/revogação de sessões, listagem/revogação de instalações confiáveis, pedido/confirmação de verificação de e-mail, confirmação/reenvio de código de instalação e pedido/confirmação de atualização/recuperação de senha. Regras de enumeração, mensagens/status, cookies, cooldowns, contagem de tentativas, bloqueios, revogações e atomicidade das transações foram preservados. O inicializador de dados comerciais está em `profiles/infrastructure/initializeCommercialProfile.ts`; Auth o chama durante o cadastro pendente.
 
 O código de aplicação desses fluxos ainda usa Drizzle diretamente para executar suas transações. A separação realizada nesta unidade é entre adaptador HTTP e operação de aplicação; não se declara a criação de um repositório de persistência independente para cada caso de uso, pois isso adicionaria interfaces sem necessidade demonstrada neste recorte. A auditoria posterior de Accounts/Auth e o Gate 2 devem validar se a fronteira de persistência atual permanece sustentável.
 
@@ -105,9 +99,21 @@ As rotas e respostas continuam iguais: `/healthz` é independente da disponibili
 
 `composition/router.ts` conecta o caso de uso ao repositório e à fábrica de router; `modules/index.ts` monta essa composição. `infrastructure/onboardingRepository.ts` continua mantendo uma única transação para remover interesses anteriores, inserir a nova seleção quando não vazia e atualizar `onboardingCompletedAt` e `updatedAt` somente para conta ativa. A tabela `account_interests` continua no schema de Accounts, ligada por FK à conta; esta unidade não moveu schema nem alterou migrations.
 
-`onboarding-layer-boundary.test.mjs` protege aplicação, apresentação, infraestrutura, composição e ponto de entrada; três testes de injeção cobrem seleção, etapa pulada e propagação de falha de persistência. A suíte `api-isolated-db.test.mjs` inclui cadastro, confirmação, persistência de onboarding e regras sociais no mesmo schema temporário. A execução desta etapa não foi feita porque faltavam as variáveis de confirmação do banco-alvo; não houve conexão nem escrita no banco nesta execução. A etapa anterior registrou uma execução bem-sucedida do conjunto isolado, mas isso não substitui uma repetição após a refatoração atual.
+`onboarding-layer-boundary.test.mjs` protege aplicação, apresentação, infraestrutura, composição e ponto de entrada; três testes de injeção cobrem seleção, etapa pulada e propagação de falha de persistência. A suíte `api-isolated-db.test.mjs` inclui cadastro, confirmação, persistência de onboarding e regras sociais no mesmo schema temporário. A tentativa atual, mesmo com a autorização explícita para schema temporário, parou no guard antes de conectar: `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE` não estão configuradas. Não houve conexão nem escrita; a execução anterior aprovada de 5/5 não substitui repetição após a refatoração.
 
 **Contrato verificado:** `POST /v1/onboarding/interests` está descrito em `docs/api/backend/openapi.json` e `docs/api/backend/endpoints.md`; o schema de entrada está em `shared/contracts`. Esta refatoração não alterou nem regenerou o contrato.
+
+### Unidade estrutural concluída: Profiles
+
+O módulo mantém responsabilidades separadas entre `domain`, `application`, `infrastructure`, `presentation` e `composition`. `application/ports.ts` declara os contratos de leitura/escrita usados pelos casos de uso; os repositórios implementam essas portas. A aplicação não importa repositórios próprios nem módulos de composição em runtime. As rotas são construídas por fábricas e recebem operações por parâmetros; `composition/router.ts` liga esses handlers aos casos de uso, à persistência de Profiles e às APIs públicas de Accounts, Social e Feed. O antigo `presentation/routes.ts` foi removido: além da montagem das rotas, ele reexportava funções de Accounts sem consumidores; a montagem agora pertence à composição.
+
+`ownerProfileCommon.ts` compõe a identidade autenticada com o email verificado do titular e as datas de disponibilidade para trocar nome/@. `personalProfile.ts` e `commercialProfile.ts` mantêm as respostas específicas; o carregador comercial verifica os dados obrigatórios antes de responder. `commercialProfileUpdate.ts` e `personalProfileUpdate.ts` preservam regras distintas de edição; `updateOwnerProfile.ts` delega a gravação atômica, cooldowns, reserva do @ e controle de versão ao repositório. Privacidade e disponibilidade de @ também dependem de portas, sem acesso direto à infraestrutura.
+
+As regras de segurança observadas permanecem: `/accounts/me` e suas configurações exigem sessão ativa; PATCH de perfil mantém CSRF e rate limit; a alteração de privacidade mantém CSRF; perfis bloqueados são tratados como não encontrados; o conteúdo privado é avaliado pela política compartilhada de Accounts e pela visibilidade do Feed. O contrato público `PublicAccountRow` e o mapeador de conta não incluem email nem idade; o email verificado aparece somente na resposta autenticada do proprietário. Nenhuma rota, schema de entrada, código de resposta ou regra de negócio foi alterada nesta etapa.
+
+`profiles-presentation-boundary.test.mjs` agora impede imports de banco/infraestrutura na aplicação e apresentação, imports de infraestrutura local na aplicação e imports de casos de uso em runtime pela apresentação; também verifica a composição e o ponto de entrada. Cinco testes novos de injeção cobrem normalização/disponibilidade de @, composição da identidade, bloqueio de leitura comercial em conta pessoal, leitura/conflito de versão de privacidade e encaminhamento da política de atualização. Os testes existentes continuam cobrindo redação de campos privados, bloqueios, acesso de seguidores aprovados, política de Círculo e mapeamento de nomes.
+
+**Limite funcional constatado, não alterado nesta reorganização:** a resposta pública de perfil ainda fornece publicações/artigos e declara `media` como página vazia; não inclui os detalhes comerciais nem a aba de serviços. Também não foi executada integração SQL específica de Profiles. Esses limites são capacidades/API a validar e planejar antes de declarar as páginas públicas prontas, não defeitos que esta reorganização possa corrigir sem ampliar contrato e escopo.
 
 ## Domínios e dependências cruzadas
 
@@ -115,10 +121,10 @@ Dependências verificadas entre módulos de backend incluem:
 
 - `accounts` usa serviços de `social` para estatísticas/estado de relações.
 - `feed` usa política/consulta de `accounts`.
-- `profiles` usa regras e views de `accounts` e relações de `social`.
-- rotas de perfil público agregam os casos de uso de mais de um domínio.
+- `profiles` usa políticas e views públicas de `accounts`, relações de `social` e listagem de conteúdo do `feed`; as dependências são ligadas em `profiles/composition/router.ts`.
+- A apresentação de Profiles não agrega esses domínios; handlers recebem as operações já compostas.
 
-Algumas dependências são legítimas (um perfil precisa expor relações), mas a direção atual não é uniforme e a apresentação participa de agregações. Antes de criar mais domínios, convém explicitar contratos de consulta e a direção autorizada dos imports para evitar ciclos e regras duplicadas.
+As dependências entre esses domínios são explícitas e não acessam tabelas alheias. Testes/build e a inicialização da API verificam a composição em runtime; isso não substitui testes de persistência isolada para os fluxos de Profiles.
 
 ## Segurança e comportamento de conta observados
 
