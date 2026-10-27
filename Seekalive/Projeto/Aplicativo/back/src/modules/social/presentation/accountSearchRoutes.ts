@@ -1,8 +1,6 @@
-import { and, asc, eq, ilike, isNotNull, or } from "drizzle-orm";
 import { Router, type IRouter } from "express";
-import { accountEmails, accounts, db } from "@workspace/db";
 import { createAuthRateLimit } from "../../../security/request-origin";
-import { accountViewsByIds } from "../../accounts/application/accountViews";
+import { searchAccountViews } from "../application/relationshipListQueries";
 import { activeAccountId, parsePage, sendError } from "./routeSupport";
 
 const router: IRouter = Router();
@@ -27,35 +25,7 @@ router.get(
       return;
     }
 
-    const pattern = `%${query.replace(/[\\%_]/g, "\\$&")}%`;
-    const rows = await db
-      .select({ id: accounts.id })
-      .from(accounts)
-      .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-      .where(and(
-        eq(accounts.status, "active"),
-        isNotNull(accountEmails.verifiedAt),
-        or(ilike(accounts.username, pattern), ilike(accounts.displayName, pattern)),
-      ))
-      .orderBy(asc(accounts.username), asc(accounts.id))
-      .limit(page.limit + 1)
-      .offset(page.offset);
-
-    const pageRows = rows.slice(0, page.limit);
-    const accountsById = new Map(
-      (await accountViewsByIds(pageRows.map((row) => row.id), viewerId))
-        .map((account) => [account.id, account]),
-    );
-    const items = pageRows.flatMap((row) => {
-      const account = accountsById.get(row.id);
-      return account ? [account] : [];
-    });
-    response.json({
-      items,
-      nextCursor: rows.length > page.limit
-        ? Buffer.from(String(page.offset + page.limit)).toString("base64url")
-        : null,
-    });
+    response.json(await searchAccountViews(query, viewerId, page));
   },
 );
 

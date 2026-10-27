@@ -3,7 +3,7 @@ import {
 } from "../../social/application/getAccountSocialStats";
 import { getAccountSocialSummariesByIds } from "../../social/application/getAccountSocialSummariesByIds";
 import { getRelationshipFor } from "../../social/application/getRelationshipFor";
-import type { RelationshipView } from "../../social/application/relationshipView";
+import type { RelationshipView } from "../../social/domain/relationshipView";
 import {
   findActiveAccountById,
   findActiveAccountByUsername,
@@ -27,7 +27,11 @@ export async function accountView(
   return buildAccountView(row, viewerId, relationship, stats);
 }
 
-export async function accountViewsByIds(ids: string[], viewerId: string | null) {
+export async function accountViewsByIds(
+  ids: string[],
+  viewerId: string | null,
+  options: { includeBlocked?: boolean } = {},
+) {
   const uniqueIds = [...new Set(ids)];
   if (uniqueIds.length === 0) return [];
 
@@ -37,6 +41,7 @@ export async function accountViewsByIds(ids: string[], viewerId: string | null) 
   const socialSummaries = await getAccountSocialSummariesByIds(
     rows.map((row) => row.id),
     viewerId,
+    options,
   );
   const byId = new Map<string, ReturnType<typeof buildAccountView>>();
   for (const row of rows) {

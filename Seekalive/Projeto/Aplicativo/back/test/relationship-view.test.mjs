@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildRelationshipView } from "../src/modules/social/application/relationshipView.ts";
+import { buildRelationshipView } from "../src/modules/social/domain/relationshipView.ts";
 
 test("new or anonymous relationship has no follow or circle", () => {
   assert.deepEqual(buildRelationshipView({

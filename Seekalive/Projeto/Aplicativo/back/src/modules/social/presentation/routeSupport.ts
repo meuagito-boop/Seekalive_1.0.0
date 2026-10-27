@@ -39,8 +39,12 @@ export function parsePage(request: Request): { limit: number; offset: number } |
   }
 }
 
-export function pageResult<T>(rows: T[], limit: number, offset: number) {
-  const hasMore = rows.length > limit;
+export function pageResult<T>(
+  rows: T[],
+  limit: number,
+  offset: number,
+  hasMore = rows.length > limit,
+) {
   return {
     items: rows.slice(0, limit),
     nextCursor: hasMore ? Buffer.from(String(offset + limit)).toString("base64url") : null,

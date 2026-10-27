@@ -1,10 +1,6 @@
 import type { Request, Response } from "express";
 import { loadActiveSession } from "../../../security/session";
-import {
-  findActiveAccountById,
-} from "../../accounts/application/accountViews";
-import { canViewRelationshipList } from "../application/canViewRelationshipList";
-import { isBlockedBetween } from "../application/isBlockedBetween";
+import { resolveRelationshipListTarget } from "../application/resolveRelationshipListTarget";
 import { sendError } from "./routeSupport";
 
 export async function requireVisibleRelationshipTarget(
@@ -12,20 +8,15 @@ export async function requireVisibleRelationshipTarget(
   response: Response,
   accountId: string,
 ): Promise<{ viewerId: string | null } | null> {
-  const target = await findActiveAccountById(accountId);
-  if (!target) {
-    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
-    return null;
-  }
   const session = await loadActiveSession(request);
-  const viewerId = session?.accountId ?? null;
-  if (viewerId && await isBlockedBetween(viewerId, accountId)) {
+  const result = await resolveRelationshipListTarget(session?.accountId ?? null, accountId);
+  if (result.kind === "not_found") {
     sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
     return null;
   }
-  if (!await canViewRelationshipList(viewerId, accountId, target.isPrivate)) {
+  if (result.kind === "private") {
     sendError(response, 403, "PRIVATE_PROFILE", "A lista não está disponível para este perfil.");
     return null;
   }
-  return { viewerId };
+  return { viewerId: result.viewerId };
 }

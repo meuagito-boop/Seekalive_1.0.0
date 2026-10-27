@@ -1,5 +1,5 @@
 import type { AccountSocialStats } from "../../social/application/getAccountSocialStats";
-import type { RelationshipView } from "../../social/application/relationshipView";
+import type { RelationshipView } from "../../social/domain/relationshipView";
 import { canViewPrivateProfileContent } from "../domain/accountVisibility";
 import type { PublicAccountRow } from "../domain/publicAccount";
 

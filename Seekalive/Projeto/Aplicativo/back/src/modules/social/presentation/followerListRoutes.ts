@@ -1,7 +1,5 @@
-import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { Router, type IRouter } from "express";
-import { accountEmails, accountFollows, accounts, db } from "@workspace/db";
-import { accountViewsByIds } from "../../accounts/application/accountViews";
+import { followerAccountViews } from "../application/relationshipListQueries";
 import { isAccountId, pageResult, parsePage, sendError } from "./routeSupport";
 import { requireVisibleRelationshipTarget } from "./relationshipListSupport";
 
@@ -20,20 +18,7 @@ router.get("/accounts/:accountId/followers", async (request, response) => {
     sendError(response, 400, "VALIDATION_ERROR", "O limite ou cursor da página é inválido.");
     return;
   }
-  const rows = await db
-    .select({ id: accountFollows.followerId })
-    .from(accountFollows)
-    .innerJoin(accounts, eq(accounts.id, accountFollows.followerId))
-    .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
-    .where(and(
-      eq(accountFollows.followedId, accountId),
-      eq(accounts.status, "active"),
-      isNotNull(accountEmails.verifiedAt),
-    ))
-    .orderBy(desc(accountFollows.createdAt))
-    .limit(page.limit + 1)
-    .offset(page.offset);
-  const items = await accountViewsByIds(rows.map((row) => row.id), target.viewerId);
+  const items = await followerAccountViews(accountId, target.viewerId, page);
   response.json(pageResult(items, page.limit, page.offset));
 });
 
