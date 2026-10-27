@@ -1105,7 +1105,7 @@
 
 ### Delta da primeira reorganização estrutural — `accounts`
 
-Os registros 1–1.005 são a linha de base do catálogo. Para o estado após `accounts`, removem-se os registros 64 e 65 e acrescentam-se os sete caminhos a seguir, totalizando 1.010. A etapa `auth` acrescentou 14 caminhos, totalizando 1.024; Feed acrescentou sete e removeu um, totalizando 1.030; Health acrescentou dois, totalizando **1.032 arquivos**. O restante da árvore ainda não foi reorganizado.
+Os registros 1–1.005 são a linha de base do catálogo. Para o estado após `accounts`, removem-se os registros 64 e 65 e acrescentam-se os sete caminhos a seguir, totalizando 1.010. A etapa `auth` acrescentou 14 caminhos, totalizando 1.024; Feed acrescentou sete e removeu um, totalizando 1.030; Health acrescentou dois, totalizando 1.032; Onboarding acrescentou dois, totalizando **1.034 arquivos**. O restante da árvore ainda não foi reorganizado.
 
 | Nº atual | Arquivo | O que é / para que serve |
 |---:|---|---|
@@ -1175,4 +1175,17 @@ Foram adicionados dois caminhos — um adapter de infraestrutura e um teste — 
 
 **Arquivos existentes alterados:** `health/presentation/readinessRoutes.ts` agora recebe um probe por injeção; `health/presentation/routes.ts` compõe liveness/readiness com o probe injetado; `modules/index.ts` conecta o adapter de infraestrutura ao router; `package.json` raiz executa o teste de Health na suíte TypeScript.
 
-**Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed + 2 adicionados em Health = **1.032 arquivos** observados. O próximo domínio backend em ordem alfabética é `onboarding`. Profiles, Social, os demais domínios e frontend ainda não foram reorganizados.
+**Conferência cumulativa até Health:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed + 2 adicionados em Health = **1.032 arquivos** naquele estado. O próximo domínio backend naquele momento era `onboarding`. Profiles, Social, os demais domínios e frontend ainda não foram reorganizados.
+
+### Delta da quinta unidade estrutural — `onboarding` — 27/10/2026
+
+Foram acrescentados dois caminhos — um adapter de persistência e um teste de fronteira — sem remover arquivos: 1.032 → **1.034**. O caso de uso, a rota HTTP e o script raiz de teste foram alterados. Nenhum endpoint, schema, migration ou dado foi modificado.
+
+| Nº atual | Arquivo | O que é / para que serve |
+|---:|---|---|
+| 1036 | [Aplicativo/back/src/modules/onboarding/infrastructure/onboardingRepository.ts](../Aplicativo/back/src/modules/onboarding/infrastructure/onboardingRepository.ts) | Persiste a substituição de interesses e a conclusão do onboarding em uma transação única. |
+| 1037 | [Aplicativo/back/test/onboarding-layer-boundary.test.mjs](../Aplicativo/back/test/onboarding-layer-boundary.test.mjs) | Impede acesso a Drizzle na aplicação/apresentação e verifica o ownership transacional na infraestrutura. |
+
+**Arquivo existente alterado:** `onboarding/application/completeOnboarding.ts` conserva a regra `skipped → []` e delega a gravação ao repositório. `package.json` raiz inclui o teste de fronteira. `onboarding/presentation/routes.ts` não precisou de alteração: sessão, CSRF, schema e resposta já estavam em sua camada correta.
+
+**Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed + 2 adicionados em Health + 2 adicionados em Onboarding = **1.034 arquivos** observados. O próximo domínio backend em ordem alfabética é `profiles`. A rota `POST /v1/onboarding/interests` segue sem entrada no OpenAPI; Profiles, Social e frontend ainda não foram reorganizados.

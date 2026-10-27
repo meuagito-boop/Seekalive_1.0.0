@@ -99,6 +99,16 @@ As rotas e respostas continuam iguais: `/healthz` é independente da disponibili
 
 **Contrato pendente observado:** o OpenAPI documenta `/healthz`, mas não `/readyz`. A unidade não mudou contratos; a ausência de `/readyz` na especificação permanece identificada para revisão de contrato.
 
+### Unidade estrutural concluída: Onboarding
+
+O handler `presentation/routes.ts` continua responsável pelo transporte: exige CSRF, carrega sessão ativa, valida `onboardingCompletionSchema` e mantém o formato de resposta existente. O caso de uso `application/completeOnboarding.ts` aplica a regra aprovada de que uma etapa pulada salva lista vazia e informa a quantidade final de interesses. A operação de banco está agora em `infrastructure/onboardingRepository.ts`, único arquivo do módulo que importa `@workspace/db`/Drizzle.
+
+O adapter mantém uma única transação para remover os interesses anteriores, inserir a nova seleção quando não vazia e atualizar `onboardingCompletedAt` e `updatedAt` apenas para conta ativa. A tabela `account_interests` continua no schema de Accounts, ligada por FK à conta; esta unidade não moveu schema nem alterou migrações.
+
+O teste de fronteira confirma que aplicação e apresentação não importam persistência e que a transação e as três operações permanecem na infraestrutura. O teste de integração isolado que inclui cadastro e persistência de interesses não foi executado: a proteção parou o comando antes de conexão por falta de `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`. Nenhum schema ou dado foi criado/modificado.
+
+**Contrato pendente observado:** a rota `POST /v1/onboarding/interests` existe no backend e é usada pelo app, mas não está descrita no OpenAPI nem no cliente gerado. A alteração do contrato ficou fora desta reorganização e deve ser feita em etapa própria, incluindo geração e teste de compatibilidade.
+
 ## Domínios e dependências cruzadas
 
 Dependências verificadas entre módulos de backend incluem:
@@ -147,7 +157,7 @@ O pacote de banco tem schemas reservados para esses domínios, mas schema reserv
 
 ## Testes de backend e banco
 
-Na validação da unidade Health, `pnpm test` passou em 99 casos, o typecheck completo e o build da API passaram. Testes de fronteira protegem Auth e Feed contra retorno de acesso direto ao banco nos handlers; Feed também impede esse acesso na aplicação, e o teste de Health mantém a consulta fora da apresentação. O runtime test observou `/api/readyz` responder 200 neste ambiente; o teste isolado também cobre a resposta 503 sem necessidade de banco.
+Na validação da unidade Onboarding, `pnpm test` passou em 100 casos, o typecheck completo e o build da API passaram. Testes de fronteira protegem Auth, Feed e Onboarding contra acesso direto à persistência nas camadas que não a possuem; Health também mantém a consulta fora da apresentação. A suíte de runtime observou `/api/healthz` e `/api/readyz` responderem 200 neste ambiente; o teste isolado de Health também cobre a resposta 503 sem necessidade de banco.
 
 O teste que cria schema temporário exige `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e `DATABASE_URL`; na validação Auth ele parou antes da conexão porque as variáveis explícitas de destino estavam ausentes. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
 

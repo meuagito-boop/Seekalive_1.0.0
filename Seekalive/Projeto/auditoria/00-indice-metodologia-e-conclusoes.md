@@ -17,12 +17,12 @@
 ## Conclusões executivas
 
 1. A estrutura é um monorepo pnpm com o aplicativo React/Vite, API Express, banco Drizzle/PostgreSQL, contratos OpenAPI/Zod, cliente React gerado, sandbox de componentes, scripts, documentação e materiais de validação.
-2. A auditoria inicial registrou build do front/API, typecheck e testes passando. Na etapa atual, `pnpm test` passou com 99 testes, o typecheck completo do workspace passou e o build da API passou. O teste de integração que escreve em schema temporário não foi executado: as variáveis obrigatórias para identificar o banco de desenvolvimento não estavam configuradas. Esses resultados não provam que todas as funcionalidades estejam completas, que o banco esteja migrado ou que o produto esteja pronto para lançamento.
+2. A auditoria inicial registrou build do front/API, typecheck e testes passando. Na etapa atual, `pnpm test` passou com 100 testes, o typecheck completo do workspace passou e o build da API passou. O teste de integração que escreve em schema temporário não foi executado: o opt-in explícito de escrita não estava ativo. Esses resultados não provam que todas as funcionalidades estejam completas, que o banco esteja migrado ou que o produto esteja pronto para lançamento.
 3. A arquitetura apresenta separação real em muitos módulos, mas ainda não cumpre integralmente a separação por domínio pedida: `SocialApplicationContext` e seus tipos expõem operações de cinco domínios, e a composição do reducer de estado da aplicação fica em `modules/app/state`. Auth e Feed agora mantêm persistência fora dos adaptadores HTTP e da aplicação; ainda há rotas de Profiles e Social com consultas SQL diretas.
 4. O código-fonte do banco define **13 tabelas em 5 schemas com tabelas**. Os documentos de backend descrevem 12 tabelas ativas e indicam que a migração do Feed ainda não foi aplicada. O banco não foi consultado nesta auditoria; portanto, o estado físico atual do banco não foi confirmado. O código e os documentos deixam uma diferença que precisa ser reconciliada antes de declarar a implantação das migrações.
 5. Existem documentos gerados ou históricos que divergem do código atual, incluindo o catálogo de tabelas, o mapa de integração do front, a auditoria de prontidão do front, o status de recuperação de senha e a classificação de algumas operações de Feed.
 6. Dependências diretas do workspace usam Zod `4.6.7`; Orval está em `8.44.0`. Não encontrei conflito de versões diretas Zod/Orval nos pacotes inspecionados. Versões transitivas no lockfile não devem ser tratadas como conflito sem demonstrar incompatibilidade.
-7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após `accounts`, o total intermediário era 1.010; após `auth`, 1.024; após `feed`, 1.030; após `health`, o total observado passou a **1.032 arquivos**. O catálogo mantém a linha de base e registra os deltas por etapa.
+7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após `accounts`, o total intermediário era 1.010; após `auth`, 1.024; após `feed`, 1.030; após `health`, 1.032; após `onboarding`, o total observado passou a **1.034 arquivos**. O catálogo mantém a linha de base e registra os deltas por etapa.
 
 ## Método e limites
 
@@ -32,7 +32,7 @@
 - Para cada arquivo do inventário, registrei categoria, finalidade inferida do caminho/conteúdo e referências diretas detectáveis. “Nenhuma referência detectada” não significa arquivo órfão: entradas, recursos estáticos, arquivos gerados, configuração e código referenciado por convenção podem não ter importador textual.
 - O inventário exclui somente árvores de dependências instaladas (`node_modules`, incluindo `.pnpm`). Não havia diretório `.git` em `Seekalive/Projeto`. Diretórios vazios não são linhas do inventário.
 - A análise de conexões é estática e delimitada ao conteúdo existente; não prova comportamento de integrações remotas, ambiente publicado, banco físico, contas reais, fluxos autenticados em navegador ou dispositivos de produção.
-- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010; `auth` acrescentou 14, totalizando 1.024; `feed` acrescentou sete e removeu um, totalizando 1.030; `health` acrescentou dois, totalizando 1.032. O inventário integral será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
+- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010; `auth` acrescentou 14, totalizando 1.024; `feed` acrescentou sete e removeu um, totalizando 1.030; `health` acrescentou dois, totalizando 1.032; `onboarding` acrescentou dois, totalizando 1.034. O inventário integral será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
 
 ## Atualização da primeira unidade estrutural — 26/10/2026
 
@@ -64,11 +64,19 @@
 - **Limite conhecido preservado:** o OpenAPI declara `/healthz`, mas não `/readyz`. Não alterei o contrato OpenAPI nesta tarefa estrutural; a cobertura formal de `/readyz` deve ser decidida e corrigida numa revisão de contrato, não por mudança silenciosa nesta etapa.
 - **Nota de compatibilidade:** o typecheck detectou que `@types/pg` não declara `query_timeout` no tipo de consulta, embora `pg` 8.20.0 o leia no objeto de query em runtime. Isso foi verificado no código instalado do driver. A opção foi mantida em objeto nomeado, sem cast nem supressão, preservando o prazo existente e passando o typecheck.
 
+## Atualização da quinta unidade estrutural — backend `onboarding` — 27/10/2026
+
+- **Escopo:** os dois arquivos TypeScript preexistentes do domínio, um adapter de persistência, teste de fronteira, e registro na suíte raiz. A rota `/v1/onboarding/interests`, sua validação, sessão, CSRF e formato de resposta permaneceram inalterados.
+- **Correção:** a aplicação mantém a regra `skipped → interesses vazios` e o total de interesses selecionados; o novo adapter de infraestrutura concentra a transação que substitui as preferências em `account_interests` e atualiza `onboardingCompletedAt`/`updatedAt` da conta ativa. A atomicidade foi preservada. Nenhuma nova camada de domínio foi criada porque não há regra que justifique outra abstração.
+- **Verificações:** teste de fronteira Onboarding passou; `pnpm test` passou com 100 testes; typecheck do workspace e build da API passaram. A leitura e escrita Drizzle ficam apenas em `onboarding/infrastructure/onboardingRepository.ts`.
+- **Limite de integração:** `pnpm --filter @workspace/scripts run test:api-isolated-db` foi executado, mas parou antes de conexão porque `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1` não está habilitado. Nenhum schema temporário foi criado e nenhuma escrita foi feita. O caso de integração de Onboarding existente não foi validado nesta execução; não contornei a proteção.
+- **Contrato/documentação:** o código implementa `POST /v1/onboarding/interests`, mas a rota não aparece no OpenAPI atual. Não alterei a especificação nem clientes gerados nesta reorganização.
+
 ## Verificações executadas nesta auditoria
 
 | Verificação | Resultado observado |
 |---|---|
-| `pnpm test` | Passou na validação mais recente do Health: 99 testes, 0 falhas |
+| `pnpm test` | Passou na validação mais recente do Onboarding: 100 testes, 0 falhas |
 | `pnpm run typecheck` | Passou nos pacotes do workspace |
 | `pnpm --filter @workspace/db run check` | Passou: Drizzle informou `Everything's fine` |
 | `pnpm run build` | Passou; API, front e sandbox foram compilados |
