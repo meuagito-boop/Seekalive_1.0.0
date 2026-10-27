@@ -1,4 +1,4 @@
-import { accountViewsByIds } from "../../accounts/application/accountViews";
+import { accountViewsByIds } from "../../accounts/composition/publicApi";
 import type { FeedPostFormat } from "../domain/post";
 import { listFeedPostsByAuthor } from "../infrastructure/postRepository";
 import type { PostCursor } from "./postCursor";

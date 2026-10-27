@@ -1,7 +1,7 @@
 import {
   accountViewsByIds,
   findActiveAccountById,
-} from "../../accounts/application/accountViews";
+} from "../../accounts/composition/publicApi";
 import { createRelationshipListQueries } from "../application/relationshipListQueries";
 import { createResolveRelationshipListTarget } from "../application/resolveRelationshipListTarget";
 import type { AccountListQueryPort, RelationshipListTargetPort } from "../application/ports";

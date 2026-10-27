@@ -1,6 +1,9 @@
 import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
 import { nextIdentityChangeAt } from "../../accounts/domain/usernamePolicy";
-import { accountView, findActiveAccountById } from "../../accounts/application/accountViews";
+import {
+  accountView,
+  findActiveAccountById,
+} from "../../accounts/composition/publicApi";
 import { findOwnerProfileIdentity } from "../infrastructure/ownerProfileRepository";
 
 export type OwnerProfileFailure = {

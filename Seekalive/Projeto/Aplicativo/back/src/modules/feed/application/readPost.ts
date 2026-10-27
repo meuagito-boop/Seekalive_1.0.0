@@ -1,4 +1,4 @@
-import { accountViewsByIds } from "../../accounts/application/accountViews";
+import { accountViewsByIds } from "../../accounts/composition/publicApi";
 import { findFeedPostById } from "../infrastructure/postRepository";
 import { canReadPost } from "./postVisibility";
 import { toPostView } from "./postView";

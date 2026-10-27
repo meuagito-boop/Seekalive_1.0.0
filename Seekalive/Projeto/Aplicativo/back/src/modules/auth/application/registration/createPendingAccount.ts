@@ -7,7 +7,7 @@ import {
   passwordCredentials,
 } from "@workspace/db";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { lockUsernameClaims } from "../../../accounts/application/usernameClaimLock";
+import { lockUsernameClaims } from "../../../accounts/infrastructure/usernameClaimLock";
 
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

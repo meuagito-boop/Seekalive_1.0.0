@@ -3,7 +3,7 @@ import {
   findActiveAccountById,
   findActiveAccountByUsername,
   type PublicAccountRow,
-} from "../../accounts/application/accountViews";
+} from "../../accounts/composition/publicApi";
 import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
 import { getRelationshipFor, isBlockedBetween } from "../../social/composition/publicApi";
 import { listProfilePosts } from "../../feed/application/listProfilePosts";
