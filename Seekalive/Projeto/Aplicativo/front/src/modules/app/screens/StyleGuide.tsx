@@ -9,8 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IconButton } from "@/components/ui/icon-button";
 import { SectionTitle } from "@/components/ui/section-title";
 import {
-  Bell, Heart, MessageCircle, Search, Settings, Share2,
-  ShoppingBag, Star, Users, X, Plus, Check,
+  Bell, Heart, MapPin, Menu, MessageCircle, Search, Settings, Share2,
+  ShoppingBag, Star, Users, X, Plus,
 } from "lucide-react";
 
 function ColorSwatch({ label, className, style }: { label: string; className?: string; style?: React.CSSProperties }) {
@@ -298,9 +298,10 @@ export default function StyleGuide() {
         <Section title="Navegação" description="Itens da barra inferior">
           <div className="sk-card p-4 flex items-center justify-around">
             {[
-              { icon: Search, label: "Seek", active: false },
+              { icon: Menu, label: "Menu", active: false },
               { icon: Users, label: "Social", active: true },
-              { icon: Plus, label: "Add", active: false },
+              { icon: Plus, label: "Criar", active: false },
+              { icon: MapPin, label: "Seek", active: false },
               { icon: ShoppingBag, label: "Shop", active: false },
             ].map((item) => (
               <div key={item.label} className="flex flex-col items-center gap-1.5">

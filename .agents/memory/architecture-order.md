@@ -12,3 +12,11 @@ Preservar contratos, APIs, regras, permissões e comportamento visual. Criar pas
 **Why:** O usuário estabeleceu a reorganização front/back como primeiro passo, pediu separação sustentável por domínio e arquivos, e determinou que cada pasta seja concluída antes de seguir.
 
 **How to apply:** Antes de qualquer trabalho no banco ou em novas capacidades, terminar o domínio ativo, validar imports e ciclos, rodar testes, typecheck e build aplicáveis, registrar o resultado no plano e aguardar a revisão do usuário antes de avançar.
+
+## Composição de estado no frontend
+
+É aceitável manter um provider global no módulo `app` como raiz de composição do estado cliente quando reducers, políticas e ações continuam nos módulos proprietários. Não fragmentar contextos apenas para aparentar separação; avaliar a largura da API e medir rerenderizações antes de propor extração.
+
+**Why:** A separação por domínio exige propriedade real das regras, mas o app ainda precisa compor sessão, navegação e estado compartilhado entre módulos.
+
+**How to apply:** Ao revisar cada domínio, mantenha suas regras no módulo correspondente. Só mova providers/contratos globais quando houver violação concreta de propriedade ou evidência de desempenho, preservando testes e comportamento.
