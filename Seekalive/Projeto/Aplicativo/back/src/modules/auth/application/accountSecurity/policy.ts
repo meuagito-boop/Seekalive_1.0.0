@@ -11,10 +11,16 @@ export type RecentChallenge = {
   resendAvailableAt: Date | null;
 };
 
-export function cooldownSeconds(recent: RecentChallenge[], now: Date): number | null {
+export function cooldownSeconds(
+  recent: RecentChallenge[],
+  now: Date,
+): number | null {
   const latest = recent[0];
   if (latest?.resendAvailableAt && latest.resendAvailableAt > now) {
-    return Math.max(1, Math.ceil((latest.resendAvailableAt.getTime() - now.getTime()) / 1000));
+    return Math.max(
+      1,
+      Math.ceil((latest.resendAvailableAt.getTime() - now.getTime()) / 1000),
+    );
   }
   if (recent.length >= MAX_ACCOUNT_CHANGE_SENDS_PER_HOUR) {
     const oldestAllowed = recent[MAX_ACCOUNT_CHANGE_SENDS_PER_HOUR - 1];
@@ -22,16 +28,13 @@ export function cooldownSeconds(recent: RecentChallenge[], now: Date): number | 
       return Math.max(
         1,
         Math.ceil(
-          (oldestAllowed.createdAt.getTime() + ACCOUNT_CHANGE_SEND_WINDOW_MS - now.getTime()) / 1000,
+          (oldestAllowed.createdAt.getTime() +
+            ACCOUNT_CHANGE_SEND_WINDOW_MS -
+            now.getTime()) /
+            1000,
         ),
       );
     }
   }
   return null;
-}
-
-export function isUniqueConstraintError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const candidate = error as { code?: unknown; cause?: { code?: unknown } };
-  return candidate.code === "23505" || candidate.cause?.code === "23505";
 }

@@ -2,12 +2,8 @@ import { Router, type IRouter } from "express";
 import { accountEmailChangeRequestSchema, challengeConfirmSchema } from "@workspace/api-zod";
 import { createAuthRateLimit } from "../../../security/request-origin";
 import { requireCsrf } from "../../../security/session";
-import { accountSecurityOperations } from "../composition/accountSecurity";
-import {
-  confirmCurrentEmailChange,
-} from "../application/emailChange/confirmCurrentEmailChange";
-import { confirmNewEmailChange } from "../application/emailChange/confirmNewEmailChange";
-import { startEmailChange } from "../application/emailChange/startEmailChange";
+import { emailChangeOperations } from "../composition/emailChange";
+import { getAuthEmailDelivery } from "../infrastructure/emailDelivery";
 import { authenticatedAccountId, sendThrottleError } from "./accountSecurityHttp";
 import { sendError, sendValidationError } from "./responses";
 
@@ -26,11 +22,11 @@ router.post(
       return;
     }
 
-    const result = await startEmailChange(
+    const result = await emailChangeOperations.startEmailChange(
       accountId,
       parsed.data.currentPassword,
       parsed.data.newEmail,
-      accountSecurityOperations,
+      getAuthEmailDelivery(),
     );
     if (result.kind === "invalid_current_password") {
       sendError(response, 401, "INVALID_CURRENT_PASSWORD", "A senha atual está incorreta.");
@@ -89,11 +85,11 @@ router.post(
       return;
     }
 
-    const result = await confirmCurrentEmailChange(
+    const result = await emailChangeOperations.confirmCurrentEmailChange(
       accountId,
       parsed.data.challengeId,
       parsed.data.code,
-      accountSecurityOperations,
+      getAuthEmailDelivery(),
     );
     if (result.kind === "account_unavailable") {
       sendError(response, 423, "ACCOUNT_UNAVAILABLE", "Esta conta não pode alterar seus dados de segurança.");
@@ -135,7 +131,12 @@ router.post(
       return;
     }
 
-    const result = await confirmNewEmailChange(accountId, parsed.data.challengeId, parsed.data.code);
+    const result = await emailChangeOperations.confirmNewEmailChange(
+      accountId,
+      parsed.data.challengeId,
+      parsed.data.code,
+      getAuthEmailDelivery(),
+    );
     if (result.kind === "account_unavailable") {
       sendError(response, 423, "ACCOUNT_UNAVAILABLE", "Esta conta não pode alterar seus dados de segurança.");
       return;
