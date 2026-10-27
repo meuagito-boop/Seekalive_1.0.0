@@ -82,7 +82,7 @@ O inventário inicial continha 13 arquivos TypeScript/TSX e 1.895 linhas. A sepa
 5. **Responsabilidade concentrada nas telas — corrigida em 27/10/2026.** A extração estrutural descrita abaixo retirou dos componentes de tela a orquestração dos fluxos de login, desafio de instalação, atualização obrigatória de senha e cadastro pessoal/comercial. Não houve alteração intencional das regras de negócio ou dos contratos.
 6. **Fronteira de transporte compartilhado — corrigida em 27/10/2026.** `modules/social/services/socialGraphApi.ts`, `modules/onboarding/services/onboardingApi.ts` e os serviços de Auth agora importam o cliente de `modules/app/api/httpClient.ts`, não de Auth. O cliente é propriedade da API comum do aplicativo, e Auth mantém apenas os serviços dos seus próprios fluxos. Endpoints, cabeçalhos, cookies, payloads e tratamento de sessão foram preservados.
 7. **“Salvar senha” é apenas uma dica ao navegador.** O checkbox no Login alterna o atributo `autoComplete` entre `current-password` e `off`; a aplicação não salva a senha. O texto diz que o gerenciador do navegador é responsável, mas esse atributo é uma solicitação ao navegador e não garante que ele vá persistir a credencial.
-8. **Cobertura frontend é limitada para fluxos completos.** Há três testes unitários do cliente HTTP compartilhado (CSRF/POST, GET/DELETE e contrato de erro) e três testes novos de validação/montagem do cadastro. Ainda não foram encontrados testes de componente ou E2E cobrindo login, cadastro, confirmação/reenvio de e-mail, desafio de instalação ou recuperação de senha. A suíte geral passou, mas isso não substitui esses fluxos.
+8. **Cobertura frontend é limitada para integração real.** Há três testes unitários do cliente HTTP compartilhado, três testes de validação/montagem do cadastro e cinco jornadas de navegador com a API de Auth interceptada por respostas determinísticas. Os testes de navegador cobrem o fluxo cliente, não a integração com o backend, banco ou provedor de e-mail. A cobertura de reenvio, limites de tentativa e recuperação também não é uma jornada real de ponta a ponta.
 
 **Controles observados:** os segredos não são armazenados no estado do app; requisições usam origem relativa e `credentials: "include"`; os schemas compartilhados cobrem política de senha, cadastro/idade, username e recuperação; o login não libera conta não verificada e apresenta desafio para instalação não reconhecida; a recuperação evita indicar se um e-mail está cadastrado. A validação autoritativa e a proteção contra abuso permanecem responsabilidade do backend.
 
@@ -124,7 +124,25 @@ O formulário preserva a ordem visual anterior dos campos, os valores iniciais, 
 
 **Verificações executadas:** `pnpm test` passou integralmente, incluindo 69 testes frontend e todas as suítes de backend/limites; `pnpm --filter @workspace/social typecheck` passou; `pnpm build` passou em todos os workspaces com typecheck e checagem de conteúdo demonstrativo; Prettier passou nos arquivos alterados. As páginas públicas Login e Cadastro foram conferidas no preview a 402×874 e 1365×900; os registros do navegador mostraram apenas conexão Vite e a informação do React DevTools. Não foi feita interação com credenciais, desafio de instalação, envio de e-mail ou cadastro real.
 
-**Limite residual:** a verificação `git diff --check` não foi executada porque a proteção do workspace bloqueou o acesso ao índice Git; isso não foi contornado. Permanecem os achados 1–4 e 7–8 acima, que são gaps de contrato, validação de fronteira, acessibilidade e testes de jornada, não foram alterados nesta refatoração. O corte estrutural de Login/Cadastro está concluído; não se declara o domínio Auth inteiro pronto para produção nem se inicia outro domínio nesta etapa.
+**Limite residual:** a verificação `git diff --check` não foi executada porque a proteção do workspace bloqueou o acesso ao índice Git; isso não foi contornado. Permanecem os achados 1–4 e 7–8 acima, que são gaps de contrato, validação de fronteira, acessibilidade e integração real; os cinco testes browser/client com API simulada são detalhados na seção seguinte. O corte estrutural de Login/Cadastro está concluído; não se declara o domínio Auth inteiro pronto para produção nem se inicia outro domínio nesta etapa.
+
+### Jornadas de Auth no navegador — 27/10/2026
+
+Foi criado um conjunto Playwright separado da suíte padrão, executado por `pnpm --filter @workspace/social run test:e2e:auth`. Requer o workflow `Start application` ativo e Chromium; no Replit usa `/repl/tools/bin/chromium`, com possibilidade de configurar `SEEKALIVE_CHROMIUM_EXECUTABLE_PATH`. `SEEKALIVE_WEB_URL` é restrito a localhost/loopback para impedir que o teste aponte a produção. Todas as requisições `/api/v1/**` são interceptadas: sessão e CSRF têm respostas de teste, endpoints não configurados retornam 501 e são registrados. Uma segunda regra aborta origens externas; o único host externo observado foi `fonts.googleapis.com`, referenciado em `index.html` para Inter. Logo, a tipografia do teste usa fallback e não valida o carregamento remoto.
+
+As cinco jornadas verificadas no navegador foram:
+
+1. Cadastro pessoal, normalização do e-mail, submissão do código e encaminhamento ao onboarding após confirmação.
+2. Cadastro comercial, seleção condicional de categoria/tipo/endereço e envio do payload próprio.
+3. Login em instalação conhecida até o Feed.
+4. Login em instalação não reconhecida, apresentação do desafio e acesso somente após confirmar o código.
+5. Atualização obrigatória da senha, confirmação por e-mail, novo login com a senha alterada, desafio de instalação não reconhecida e acesso somente após a segunda confirmação.
+
+**Validação executada:** `pnpm --filter @workspace/social run test:e2e:auth` passou (5/5); `pnpm test` passou (69 testes frontend e todas as suítes backend/limites); `pnpm build` passou, incluindo typecheck e verificação dos 96 chunks; `pnpm audit` informou zero vulnerabilidades conhecidas; as varreduras de dependências, SAST e HoundDog terminaram sem achados. Playwright `1.64.1` foi adicionado apenas a `devDependencies`; metadados do registro confirmam licença Apache-2.0 e repositório Microsoft. Não houve envio de e-mail real nem acesso a um banco.
+
+**Não verificado:** uma jornada integrada front-end → backend → banco; entrega e confirmação com Resend real; reenvio e cooldown observados no navegador; recuperação de senha completa. Os testes existentes do backend exercitam separadamente regras e dependências injetadas; não são prova dessas integrações. A API simulada é uma fronteira intencional deste teste, não uma afirmação de que tais integrações passaram.
+
+**Risco de privacidade externo identificado:** navegadores de usuários que abrem a página fora deste teste podem solicitar a fonte ao Google Fonts e expor ao provedor metadados de conexão, como IP e agente do navegador. O teste bloqueia essa solicitação; a interface de produção não foi alterada. Antes de lançamento, decidir entre hospedar a fonte localmente ou aprovar explicitamente o carregamento externo.
 
 ## Divisão pessoal e comercial
 
