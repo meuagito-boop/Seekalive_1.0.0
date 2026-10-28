@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { csrfHash, hashToken, SESSION_TTL_SECONDS } from "../../../security/session";
+import { csrfHash } from "../../../security/csrf";
+import { SESSION_TTL_SECONDS } from "../../../security/sessionConfig";
+import { hashToken } from "../../../security/tokenHashing";
 
 export function createSessionMaterial() {
   const rawToken = randomBytes(32).toString("base64url");

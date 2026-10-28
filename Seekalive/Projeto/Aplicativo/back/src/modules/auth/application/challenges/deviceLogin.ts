@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { hashDeviceLoginCode } from "../../../../security/session";
+import { hashDeviceLoginCode } from "../../../../security/tokenHashing";
 import { maskEmail } from "../emailMasking";
 import type { DeviceLoginChallengeWriter } from "./ports";
 

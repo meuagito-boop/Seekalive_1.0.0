@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { hashPasswordResetCode } from "../../../../security/session";
+import { hashPasswordResetCode } from "../../../../security/tokenHashing";
 import type { PasswordResetChallengeWriter } from "./ports";
 
 const PASSWORD_RESET_TTL_MS = 10 * 60 * 1000;

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
 import type { UsernameAvailabilityChecker } from "../application/usernameAvailability";
 import { sendError } from "./routeSupport";
 

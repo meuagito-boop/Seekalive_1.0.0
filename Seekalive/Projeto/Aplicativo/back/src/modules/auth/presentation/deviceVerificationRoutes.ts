@@ -4,16 +4,18 @@ import {
   challengeResendSchema,
   SUPPORT_EMAIL,
 } from "@workspace/api-zod";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
+import {
+  DEVICE_COOKIE,
+  PRE_AUTH_COOKIE,
+} from "../../../security/sessionConfig";
 import {
   clearDeviceCookie,
   clearSessionCookie,
-  DEVICE_COOKIE,
-  PRE_AUTH_COOKIE,
-  requireCsrf,
   setDeviceCookie,
   setSessionCookie,
-} from "../../../security/session";
+} from "../../../security/sessionCookies";
 import { deviceVerificationOperations } from "../composition/deviceVerification";
 import { authResult } from "./authResult";
 import {

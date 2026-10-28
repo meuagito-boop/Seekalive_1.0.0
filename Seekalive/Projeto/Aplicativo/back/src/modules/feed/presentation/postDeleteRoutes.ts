@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { createAuthRateLimit } from "../../../security/request-origin";
-import { requireCsrf } from "../../../security/session";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import type { DeletePost } from "../application/deletePost";
 import { isFeedResourceId, requiredActorId, sendFeedError } from "./feedHttp";
 

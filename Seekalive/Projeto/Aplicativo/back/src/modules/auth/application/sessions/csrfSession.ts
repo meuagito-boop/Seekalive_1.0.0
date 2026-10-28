@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { csrfHash } from "../../../../security/session";
+import { csrfHash } from "../../../../security/csrf";
 
 export type SessionCsrfRepository = {
   updateCsrfTokenHash(sessionId: string, tokenHash: string): Promise<void>;

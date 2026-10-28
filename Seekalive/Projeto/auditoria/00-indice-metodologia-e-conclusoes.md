@@ -18,11 +18,11 @@
 
 1. A estrutura é um monorepo pnpm com o aplicativo React/Vite, API Express, banco Drizzle/PostgreSQL, contratos OpenAPI/Zod, cliente React gerado, sandbox de componentes, scripts, documentação e materiais de validação.
 2. Na etapa atual, `pnpm test` e `pnpm build` passaram; a suíte isolada `pnpm --filter @workspace/scripts run test:api-isolated-db` também passou em 5/5 no banco de desenvolvimento confirmado. Ela criou/removeu um schema aleatório, capturou e-mails em memória e não chamou Resend; o fingerprint de `public` permaneceu igual e uma consulta posterior não encontrou schema temporário. Isso não prova integração do navegador nem entrega real de e-mail.
-3. A arquitetura apresenta separação real em muitos módulos, mas ainda não cumpre integralmente a separação por domínio pedida: `SocialApplicationContext` e seus tipos expõem operações de cinco domínios, e a composição do reducer de estado da aplicação fica em `modules/app/state`. Auth e Feed agora mantêm persistência fora dos adaptadores HTTP e da aplicação; ainda há rotas de Profiles e Social com consultas SQL diretas.
+3. A reconciliação estrutural final do Gate 0A encontrou zero ciclos de importação e zero arquivos compostos apenas por reexports no frontend e no backend. Os módulos `application` e `presentation` da API não importam `@workspace/db` nem `drizzle-orm`. `SocialApplicationContext` continua amplo, mas funciona como composição do estado do cliente; as regras permanecem nos domínios e não houve evidência de ciclo ou acesso direto ao banco nessas camadas.
 4. O código-fonte do banco define **13 tabelas em 5 schemas com tabelas**. A comparação read-only no `heliumdb` confirmou 12 tabelas físicas em `accounts` (4), `profiles` (3), `security` (4) e `seek` (1); as colunas (tipo, tamanho, nulabilidade e default), constraints, FKs e índices dessas 12 correspondem ao DDL exportado do modelo. A diferença física identificada é `feed.posts`, ausente no schema `feed`, embora esteja definida na migration `0005`. A ordem das colunas de `accounts.accounts` difere por migrations aditivas anteriores, mas os atributos das colunas correspondem por nome. Não foi encontrada tabela de histórico de migrations com nome contendo `drizzle` ou `migration`; essa limitação está registrada.
 5. Existem documentos gerados ou históricos que divergem do código atual, incluindo o catálogo de tabelas, o mapa de integração do front, a auditoria de prontidão do front, o status de recuperação de senha e a classificação de algumas operações de Feed.
 6. Dependências diretas do workspace usam Zod `4.6.7`; Orval está em `8.44.0`. Não encontrei conflito de versões diretas Zod/Orval nos pacotes inspecionados. Versões transitivas no lockfile não devem ser tratadas como conflito sem demonstrar incompatibilidade.
-7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Após `accounts`, o total intermediário era 1.010; após `auth`, 1.024; após `feed`, 1.030; após `health`, 1.032; após `onboarding`, o total observado passou a **1.034 arquivos**. O catálogo mantém a linha de base e registra os deltas por etapa.
+7. A linha de base da auditoria tinha **1.005 arquivos**: 997 anteriores e oito documentos na pasta de auditoria. Os totais intermediários por etapa foram 1.010 (`accounts`), 1.024 (`auth`), 1.030 (`feed`), 1.032 (`health`) e 1.034 (`onboarding`). A contagem atual em 28/10/2026 é **1.300 arquivos**, excluindo árvores `node_modules`; o catálogo mantém a linha de base e os deltas estruturais registrados.
 
 ## Método e limites
 
@@ -32,7 +32,7 @@
 - Para cada arquivo do inventário, registrei categoria, finalidade inferida do caminho/conteúdo e referências diretas detectáveis. “Nenhuma referência detectada” não significa arquivo órfão: entradas, recursos estáticos, arquivos gerados, configuração e código referenciado por convenção podem não ter importador textual.
 - O inventário exclui somente árvores de dependências instaladas (`node_modules`, incluindo `.pnpm`). Não havia diretório `.git` em `Seekalive/Projeto`. Diretórios vazios não são linhas do inventário.
 - A análise de conexões é estática e delimitada ao conteúdo existente; não prova comportamento de integrações remotas, ambiente publicado, banco físico, contas reais, fluxos autenticados em navegador ou dispositivos de produção.
-- A árvore e o catálogo integral registram o estado inicial de 1.005 arquivos. `accounts` acrescentou sete caminhos e removeu dois, totalizando 1.010; `auth` acrescentou 14, totalizando 1.024; `feed` acrescentou sete e removeu um, totalizando 1.030; `health` acrescentou dois, totalizando 1.032; `onboarding` acrescentou dois, totalizando 1.034. O inventário integral será refeito após a etapa estrutural, para não misturar a linha de base com mudanças ainda em andamento.
+- A árvore e o catálogo integral registram a linha de base de 1.005 arquivos e deltas por etapa. A contagem atual foi refeita em 28/10/2026: 1.300 arquivos, excluindo `node_modules`; as mudanças estruturais de Social e Segurança estão detalhadas no catálogo. Essa contagem inclui código, documentação, testes, configurações e artefatos presentes no diretório do projeto; não é uma contagem de arquivos de produção.
 
 ## Atualização da primeira unidade estrutural — 26/10/2026
 
@@ -72,7 +72,7 @@
 - **Limite de integração:** `pnpm --filter @workspace/scripts run test:api-isolated-db` foi executado, mas parou antes de conexão porque `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1` não está habilitado. Nenhum schema temporário foi criado e nenhuma escrita foi feita. O caso de integração de Onboarding existente não foi validado nesta execução; não contornei a proteção.
 - **Contrato/documentação:** o código implementa `POST /v1/onboarding/interests`, mas a rota não aparece no OpenAPI atual. Não alterei a especificação nem clientes gerados nesta reorganização.
 
-## Verificações executadas nesta auditoria
+## Verificações executadas nas etapas anteriores
 
 | Verificação | Resultado observado |
 |---|---|
@@ -80,17 +80,28 @@
 | `pnpm run typecheck` | Passou nos pacotes do workspace |
 | `pnpm --filter @workspace/db run check` | Passou: Drizzle informou `Everything's fine` |
 | `pnpm run build` | Passou; API, front e sandbox foram compilados |
-| Banco de dados real/integrado | Teste de schema temporário bloqueado antes da conexão por ausência de `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; nenhuma leitura/escrita foi feita |
+| Reconciliação AST de imports | Frontend: 275 arquivos-fonte; backend: 213; zero ciclos e zero arquivos somente de reexport em ambos |
+| Fronteiras da API | Nenhum import de `@workspace/db` ou `drizzle-orm` em `application`/`presentation`; nenhum import restante dos dois agregadores removidos |
+| `pnpm test` / `pnpm build` após a reconciliação | Ambos passaram; suíte final 126/126, build incluiu typechecks e 97 chunks do frontend |
+| Prettier / `git diff --check` | Passaram nos arquivos backend e scripts alterados nesta reconciliação |
+| Inicialização da API | Workflow reiniciado e ouvindo na porta 8080; `/api/healthz` e `/api/readyz` retornaram 200. `/` retorna 404 `NOT_FOUND` porque a API não serve a interface web na raiz |
+| Banco de desenvolvimento isolado | Teste autorizado passou em 5/5 com schema temporário removido ao final; fingerprint do schema `public` permaneceu inalterado |
 | `git diff --check` | Passou após a última reorganização e atualização da auditoria |
 
 O teste de banco isolado exige a confirmação explícita do nome esperado além das variáveis de conexão. O destino foi confirmado por consulta read-only (`current_database() = heliumdb`) e a suíte autorizada passou com `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1` e `SEEKALIVE_EXPECTED_DATABASE=heliumdb`. Ela removeu o schema aleatório; a consulta posterior confirmou zero schemas `seekalive_test_*`. Isso não autoriza nem representa alteração no schema principal.
+
+### Reconciliação estrutural final do Gate 0A — 28/10/2026
+
+A varredura AST final cobriu 275 arquivos TypeScript/TSX de `Aplicativo/front/src` e 213 arquivos TypeScript de `Aplicativo/back/src`. Não encontrou ciclos de importação nem módulos que contenham somente reexports. No backend, dois agregadores de segurança sem responsabilidade própria foram removidos: `security/request-origin.ts` e `security/session.ts`. Os consumidores agora importam diretamente de `trustedClientIp`, `rateLimit`, `sessionConfig`, `sessionCookies`, `activeSession`, `csrf` e `tokenHashing`; os testes de fronteira também foram atualizados. Nenhuma rota, contrato HTTP, regra de negócio ou efeito de sessão foi alterado.
+
+Os candidatos frontend sem importador interno foram classificados, não apagados às cegas: componentes da biblioteca reutilizável `components/ui`, o catálogo TypeScript do sistema de design e os contratos REST explicitamente propostos e ainda desativados. `forwarded-client-ip.ts` é usado pela configuração Vite, fora de `src`. Não foi encontrada evidência de arquivo funcional órfão que justificasse remoção adicional nesta reconciliação.
 
 ## Achados prioritários
 
 | Prioridade | Achado | Evidência e consequência |
 |---|---|---|
-| Alta | Um contexto de estado no front agrega Feed/Social, Seek, Mensagens e Notificações | [`SocialApplicationContext.tsx`](../Aplicativo/front/src/modules/app/state/SocialApplicationContext.tsx), [`socialApplicationTypes.ts`](../Aplicativo/front/src/modules/app/state/socialApplicationTypes.ts), [`socialApplicationState.ts`](../Aplicativo/front/src/modules/app/state/socialApplicationState.ts). Reducers e ações estão distribuídos por domínio, mas a API global ainda cruza essas fronteiras. |
-| Alta | Parte da camada de apresentação da API ainda contém acesso direto ao banco | Corrigido em Auth; Feed agora também mantém SQL somente em infraestrutura. Permanecem rotas de Profiles e Social; a composição de perfil público também está na apresentação. Esses pontos seguem acoplando HTTP à persistência/composição de domínio. |
+| Observação arquitetural | O contexto de estado do front agrega Feed/Social, Seek, Mensagens e Notificações | [`SocialApplicationContext.tsx`](../Aplicativo/front/src/modules/app/state/SocialApplicationContext.tsx), [`socialApplicationTypes.ts`](../Aplicativo/front/src/modules/app/state/socialApplicationTypes.ts), [`socialApplicationState.ts`](../Aplicativo/front/src/modules/app/state/socialApplicationState.ts). É a composição global de estado; regras, reducers e ações permanecem nos domínios. Foi mantido sem divisão cosmética, conforme evidência disponível. |
+| Resolvido na reconciliação | Fronteiras de persistência da apresentação e arquivos agregadores de Segurança | A verificação atual não encontra imports de DB/Drizzle em `application`/`presentation`, nem ciclos ou arquivos apenas de reexport. As rotas de Profiles e Social recebem suas operações por composição; os agregadores `request-origin.ts` e `session.ts` foram removidos. |
 | Alta | O modelo Drizzle e o banco de desenvolvimento divergem | A comparação de metadados confirmou que a única diferença estrutural conhecida é `feed.posts`: 13 tabelas no modelo e 12 no `heliumdb`. Não há tabela de histórico de migrations identificada pelos metadados consultados. |
 | Média | Documentação de integração e prontidão contém contagens e caminhos antigos | `frontend-integration.md` e `frontend-readiness-audit.md` usam estrutura/contagens anteriores; não devem servir sozinhos como contrato de implementação atual. |
 | Média | Documentação de recuperação de senha e de Feed está parcialmente desatualizada | Há rotas/serviços de redefinição no código; parte da documentação declara a recuperação não implementada. O código tem rotas de posts/artigos, enquanto contratos/documentos de backend tratam itens de Feed como proposta ou dependem da migração ainda pendente. |
@@ -103,11 +114,9 @@ O teste de banco isolado exige a confirmação explícita do nome esperado além
 - Não declara que as migrações estão aplicadas ao banco.
 - Não declara que todas as telas usam API real. O front contém adaptadores e dados de demonstração explicitamente locais, além de módulos ainda sem backend.
 - Não declara que cada fluxo foi testado por navegação automatizada ou por uma conta real; os testes executados são os listados acima.
-- Não atualiza nem apaga documentos antigos. As divergências foram mantidas e apontadas, pois a tarefa pediu auditoria, não limpeza ou reescrita histórica.
+- A auditoria inicial preservou documentos históricos e registrou suas divergências. As conclusões e o plano receberam atualizações datadas após as etapas estruturais; documentos antigos fora da pasta de auditoria não foram apagados nesta tarefa.
 
 ## Próximas ações técnicas recomendadas
 
-1. Concluir a organização do código já existente no frontend, um módulo por vez, começando pelo módulo `auth`, que continua em revisão; preservar comportamento e validar cada pasta antes de avançar.
-2. Conferir a estrutura já revisada do backend contra o Gate 0A e corrigir somente lacunas estruturais confirmadas, sem acrescentar capacidades novas.
-3. Apresentar o encerramento do Gate 0A ao usuário para revisão. Até essa revisão, não executar migrations, escritas no banco nem trabalho de expansão de segurança, mensageria, filas ou algoritmo.
-4. Depois da revisão do Gate 0A, retomar as etapas posteriores do plano na sequência que for aprovada. A diferença `feed.posts` permanece documentada para esse momento futuro; não está autorizada para aplicação agora.
+1. Apresentar a reconciliação final do Gate 0A ao usuário e aguardar sua revisão; não iniciar expansão funcional nem novo módulo antes dessa revisão.
+2. Depois da revisão, retomar as etapas posteriores do plano na sequência aprovada. A diferença `feed.posts` e as validações SQL de Feed/Profiles permanecem para gates futuros; não foram aplicadas nesta reconciliação.

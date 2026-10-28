@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import argon2 from "argon2";
 import test from "node:test";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { hashToken } from "../src/security/session.ts";
+import { hashToken } from "../src/security/tokenHashing.ts";
 import { createAuthenticateLogin } from "../src/modules/auth/application/login/authenticateLogin.ts";
 import { createStartDeviceVerification } from "../src/modules/auth/application/login/startDeviceVerification.ts";
 

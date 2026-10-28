@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
 import type { ReadArticle } from "../application/readArticle";
 import { isFeedResourceId, optionalViewerId, sendFeedError } from "./feedHttp";
 

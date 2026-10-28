@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { privacyWriteSchema } from "@workspace/api-zod";
 import { sendApiValidationError } from "../../../common/apiErrors";
-import { requireCsrf } from "../../../security/session";
+import { requireCsrf } from "../../../security/csrf";
 import type { PrivacySettingsService } from "../application/privacySettings";
 import { activeAccountId, sendError } from "./routeSupport";
 

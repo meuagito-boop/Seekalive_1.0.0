@@ -2,7 +2,7 @@ import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
 import {
   constantTimeEquals,
   hashPasswordUpdateCode,
-} from "../../../../security/session";
+} from "../../../../security/tokenHashing";
 import { MAX_PASSWORD_UPDATE_ATTEMPTS } from "../challenges/passwordUpdate";
 import type { PasswordUpdateConfirmationRepository } from "./confirmationPorts";
 

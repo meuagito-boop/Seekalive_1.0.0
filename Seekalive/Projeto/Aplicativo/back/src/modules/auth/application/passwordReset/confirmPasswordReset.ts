@@ -2,7 +2,7 @@ import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
 import {
   constantTimeEquals,
   hashPasswordResetCode,
-} from "../../../../security/session";
+} from "../../../../security/tokenHashing";
 import type {
   PasswordResetConfirmationRepository,
   PasswordResetPasswordSecurity,

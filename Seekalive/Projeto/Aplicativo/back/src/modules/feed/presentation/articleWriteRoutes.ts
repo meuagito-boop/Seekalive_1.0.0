@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { createArticleSchema } from "@workspace/api-zod";
-import { createAuthRateLimit } from "../../../security/request-origin";
-import { requireCsrf } from "../../../security/session";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import type { CreatePost } from "../application/createPost";
 import { toPostView } from "../application/postView";
 import { requiredActorId, sendFeedError } from "./feedHttp";

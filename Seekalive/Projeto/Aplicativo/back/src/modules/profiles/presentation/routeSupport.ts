@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
 import { sendApiError } from "../../../common/apiErrors";
-import { loadActiveSession } from "../../../security/session";
+import { loadActiveSession } from "../../../security/activeSession";
 
 export function sendError(
   response: Response,
@@ -13,10 +13,18 @@ export function sendError(
   sendApiError(response, status, key, message, additional);
 }
 
-export async function activeAccountId(request: Request, response: Response): Promise<string | null> {
+export async function activeAccountId(
+  request: Request,
+  response: Response,
+): Promise<string | null> {
   const session = await loadActiveSession(request);
   if (!session) {
-    sendError(response, 401, "UNAUTHENTICATED", "Entre com uma conta verificada para continuar.");
+    sendError(
+      response,
+      401,
+      "UNAUTHENTICATED",
+      "Entre com uma conta verificada para continuar.",
+    );
     return null;
   }
   return session.accountId;

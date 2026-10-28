@@ -15,7 +15,7 @@ const [
 ] = await Promise.all([
   import("../src/modules/auth/application/passwordReset/requestPasswordReset.ts"),
   import("../src/modules/auth/application/passwordReset/confirmPasswordReset.ts"),
-  import("../src/security/session.ts"),
+  import("../src/security/tokenHashing.ts"),
 ]);
 
 const account = {

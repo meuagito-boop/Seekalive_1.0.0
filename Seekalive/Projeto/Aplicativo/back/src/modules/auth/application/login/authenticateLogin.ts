@@ -3,7 +3,7 @@ import {
   PASSWORD_POLICY_VERSION,
   passwordPolicySchema,
 } from "@workspace/api-zod";
-import { hashToken } from "../../../../security/session";
+import { hashToken } from "../../../../security/tokenHashing";
 import { fallbackPasswordHashPromise } from "../passwordHashing";
 import { createSessionMaterial } from "../sessionMaterial";
 import type { LoginAccount, LoginRepository } from "./ports";

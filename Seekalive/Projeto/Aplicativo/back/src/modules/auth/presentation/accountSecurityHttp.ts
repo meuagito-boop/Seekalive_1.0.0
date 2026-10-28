@@ -1,8 +1,11 @@
 import type { Request, Response } from "express";
-import { loadActiveSession } from "../../../security/session";
+import { loadActiveSession } from "../../../security/activeSession";
 import { sendError } from "./responses";
 
-export function sendThrottleError(response: Response, retryAfterSeconds: number): void {
+export function sendThrottleError(
+  response: Response,
+  retryAfterSeconds: number,
+): void {
   response.setHeader("Retry-After", String(retryAfterSeconds));
   sendError(
     response,

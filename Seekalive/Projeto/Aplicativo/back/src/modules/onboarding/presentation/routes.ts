@@ -4,7 +4,8 @@ import {
   sendApiError,
   sendApiValidationError,
 } from "../../../common/apiErrors";
-import { loadActiveSession, requireCsrf } from "../../../security/session";
+import { loadActiveSession } from "../../../security/activeSession";
+import { requireCsrf } from "../../../security/csrf";
 import type { CompleteOnboarding } from "../application/completeOnboarding";
 
 export function createOnboardingRouter(

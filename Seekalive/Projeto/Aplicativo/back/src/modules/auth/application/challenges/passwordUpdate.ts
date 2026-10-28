@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { hashPasswordUpdateCode } from "../../../../security/session";
+import { hashPasswordUpdateCode } from "../../../../security/tokenHashing";
 import { maskEmail } from "../emailMasking";
 import type { PasswordUpdateChallengeWriter } from "./ports";
 

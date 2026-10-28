@@ -16,7 +16,10 @@ test("Express resolves the patched proxy-addr version at runtime", () => {
   const expressRequire = createRequire(expressPath);
   const proxyAddrPath = expressRequire.resolve("proxy-addr");
   const packageJson = JSON.parse(
-    readFileSync(path.resolve(path.dirname(proxyAddrPath), "package.json"), "utf8"),
+    readFileSync(
+      path.resolve(path.dirname(proxyAddrPath), "package.json"),
+      "utf8",
+    ),
   );
 
   assert.equal(packageJson.version, "2.0.8");
@@ -29,9 +32,8 @@ test("Express keeps proxy trust disabled by default", () => {
 });
 
 test("the frontend selects the rightmost valid IP in the forwarded chain", async () => {
-  const { extractForwardedClientIp } = await import(
-    "../../Aplicativo/front/src/server/forwarded-client-ip.ts"
-  );
+  const { extractForwardedClientIp } =
+    await import("../../Aplicativo/front/src/server/forwarded-client-ip.ts");
   assert.equal(
     extractForwardedClientIp("198.51.100.10, 203.0.113.42"),
     "203.0.113.42",
@@ -44,9 +46,8 @@ test("the frontend selects the rightmost valid IP in the forwarded chain", async
 });
 
 test("the backend accepts the internal client IP only from the loopback Vite proxy", async () => {
-  const { getTrustedClientIp, isLoopbackProxyAddress } = await import(
-    "../../Aplicativo/back/src/security/request-origin.ts"
-  );
+  const { getTrustedClientIp, isLoopbackProxyAddress } =
+    await import("../../Aplicativo/back/src/security/trustedClientIp.ts");
   const makeRequest = (remoteAddress, forwardedClientIp) => ({
     socket: { remoteAddress },
     get(name) {
@@ -87,9 +88,8 @@ test("database write guards use Replit's published-runtime marker", () => {
 });
 
 test("spoofed X-Forwarded-For cannot bypass the login IP rate limit", async () => {
-  const { createAuthRateLimit } = await import(
-    "../../Aplicativo/back/src/security/request-origin.ts"
-  );
+  const { createAuthRateLimit } =
+    await import("../../Aplicativo/back/src/security/rateLimit.ts");
   const express = backendRequire("express");
   const app = express();
   assert.equal(app.get("trust proxy"), false);
@@ -115,10 +115,9 @@ test("spoofed X-Forwarded-For cannot bypass the login IP rate limit", async () =
       assert.notEqual(payload.ip, forwardedIp);
     }
 
-    const overLimit = await fetch(
-      `http://127.0.0.1:${address.port}/login`,
-      { headers: { "x-forwarded-for": "198.51.100.12" } },
-    );
+    const overLimit = await fetch(`http://127.0.0.1:${address.port}/login`, {
+      headers: { "x-forwarded-for": "198.51.100.12" },
+    });
     assert.equal(overLimit.status, 429);
     assert.ok(Number(overLimit.headers.get("retry-after")) > 0);
   } finally {
@@ -134,7 +133,7 @@ test("OpenAPI local JSON Pointer references are allowed", () => {
       paths: {
         "/health": {
           responses: {
-            "200": { schema: { $ref: "#/components/schemas/HealthStatus" } },
+            200: { schema: { $ref: "#/components/schemas/HealthStatus" } },
           },
         },
       },

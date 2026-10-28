@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { logger } from "../../../../common/logger";
-import { hashToken } from "../../../../security/session";
+import { hashToken } from "../../../../security/tokenHashing";
 import type { StartDeviceVerificationDependencies } from "./ports";
 
 export type DeviceVerificationStartResult =

@@ -1,13 +1,15 @@
 import { Router, type IRouter } from "express";
 import { loginRequestSchema, SUPPORT_EMAIL } from "@workspace/api-zod";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import {
   DEVICE_COOKIE,
   PRE_AUTH_COOKIE,
-  requireCsrf,
+} from "../../../security/sessionConfig";
+import {
   setDeviceCookie,
   setSessionCookie,
-} from "../../../security/session";
+} from "../../../security/sessionCookies";
 import { loginOperations } from "../composition/login";
 import { authResult } from "./authResult";
 import {

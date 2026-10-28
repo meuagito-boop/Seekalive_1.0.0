@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { loadActiveSession } from "../../../security/session";
+import { loadActiveSession } from "../../../security/activeSession";
 import type {
   PublicAccountByIdQuery,
   PublicProfileByUsernameQuery,

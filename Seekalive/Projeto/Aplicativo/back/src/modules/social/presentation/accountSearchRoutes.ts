@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
 import { searchAccountViews } from "../composition/relationshipListServices";
 import { activeAccountId, parsePage, sendError } from "./routeSupport";
 
@@ -12,16 +12,27 @@ router.get(
     const viewerId = await activeAccountId(request, response);
     if (!viewerId) return;
 
-    const rawQuery = typeof request.query.q === "string" ? request.query.q.trim() : "";
+    const rawQuery =
+      typeof request.query.q === "string" ? request.query.q.trim() : "";
     const query = rawQuery.replace(/^@/, "");
     if (query.length < 2 || query.length > 80) {
-      sendError(response, 400, "VALIDATION_ERROR", "Busque por pelo menos 2 caracteres.");
+      sendError(
+        response,
+        400,
+        "VALIDATION_ERROR",
+        "Busque por pelo menos 2 caracteres.",
+      );
       return;
     }
 
     const page = parsePage(request);
     if (!page) {
-      sendError(response, 400, "VALIDATION_ERROR", "O limite ou cursor da página é inválido.");
+      sendError(
+        response,
+        400,
+        "VALIDATION_ERROR",
+        "O limite ou cursor da página é inválido.",
+      );
       return;
     }
 

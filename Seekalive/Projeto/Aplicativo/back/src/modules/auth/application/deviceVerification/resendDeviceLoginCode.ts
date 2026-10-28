@@ -4,7 +4,7 @@ import {
   constantTimeEquals,
   hashDeviceLoginCode,
   hashToken,
-} from "../../../../security/session";
+} from "../../../../security/tokenHashing";
 import {
   DEVICE_FINAL_RESEND_COOLDOWN_MS,
   DEVICE_LOGIN_TTL_MS,

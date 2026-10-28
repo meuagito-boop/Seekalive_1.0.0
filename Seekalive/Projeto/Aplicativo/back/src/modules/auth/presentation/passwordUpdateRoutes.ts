@@ -4,12 +4,12 @@ import {
   passwordPolicyUpdateSchema,
   SUPPORT_EMAIL,
 } from "@workspace/api-zod";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import {
   clearDeviceCookie,
   clearSessionCookie,
-  requireCsrf,
-} from "../../../security/session";
+} from "../../../security/sessionCookies";
 import { passwordUpdateOperations } from "../composition/passwordUpdate";
 import {
   sendError,

@@ -1,13 +1,13 @@
 import { Router, type IRouter } from "express";
 import { trustedDeviceIdParamSchema } from "@workspace/api-zod";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { loadActiveSession } from "../../../security/activeSession";
+import { requireCsrf } from "../../../security/csrf";
+import { PRE_AUTH_COOKIE } from "../../../security/sessionConfig";
 import {
   clearDeviceCookie,
   clearSessionCookie,
-  loadActiveSession,
-  PRE_AUTH_COOKIE,
-  requireCsrf,
-} from "../../../security/session";
+} from "../../../security/sessionCookies";
 import { trustedDeviceOperations } from "../composition/trustedDevices";
 import { sendError, sendValidationError } from "./responses";
 

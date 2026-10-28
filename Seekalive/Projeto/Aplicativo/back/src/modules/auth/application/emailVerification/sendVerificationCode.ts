@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { hashVerificationCode } from "../../../../security/session";
+import { hashVerificationCode } from "../../../../security/tokenHashing";
 import { VerificationDeliveryUnavailableError } from "./errors";
 import { EMAIL_VERIFICATION_TTL_MS } from "./policy";
 import type {

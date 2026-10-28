@@ -8,7 +8,7 @@ import {
 } from "../accountSecurity/policy";
 import type { AccountSecurityOperations } from "../accountSecurity/ports";
 import { maskEmail } from "../emailMasking";
-import { hashAccountEmailChangeCode } from "../../../../security/session";
+import { hashAccountEmailChangeCode } from "../../../../security/tokenHashing";
 import { logger } from "../../../../common/logger";
 import type { EmailChangeDelivery, EmailChangeRepository } from "./ports";
 

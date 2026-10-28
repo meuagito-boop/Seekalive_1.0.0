@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { hashPasswordUpdateCode } from "../src/security/session.ts";
+import { hashPasswordUpdateCode } from "../src/security/tokenHashing.ts";
 import { MAX_PASSWORD_UPDATE_ATTEMPTS } from "../src/modules/auth/application/challenges/passwordUpdate.ts";
 import { createConfirmPasswordUpdate } from "../src/modules/auth/application/passwordUpdate/confirmPasswordUpdate.ts";
 import { createRequestPasswordUpdate } from "../src/modules/auth/application/passwordUpdate/requestPasswordUpdate.ts";

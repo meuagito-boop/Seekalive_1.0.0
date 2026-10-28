@@ -170,3 +170,14 @@ Na validação da unidade Onboarding, `pnpm test` passou em 100 casos, o typeche
 Em 28/10/2026, a suíte foi executada com `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1` e o nome de destino previamente confirmado `heliumdb`. Resultado: 5/5; criou um schema `seekalive_test_<UUID>`, executou a API real contra tabelas temporárias, capturou os e-mails em memória, removeu o schema no `after` e preservou o fingerprint do schema `public`. Uma consulta posterior confirmou zero schemas temporários e os mesmos 12 objetos de tabela nos quatro schemas de aplicação. `RESEND_API_KEY` foi removida no processo do teste; nenhuma mensagem real foi enviada.
 
 O arquivo `Aplicativo/back/test/api-isolated-db.test.mjs` tem 2.640 linhas e cinco cenários grandes que cruzam Auth, Accounts, Onboarding e Social. A execução prova os fluxos API+DB incluídos, não a integração do frontend; a suíte não faz parte de `pnpm test` e requer o comando explícito `test:api-isolated-db`. O tamanho e a concentração de cenários continuam como oportunidade de modularização: devem ser avaliados sem quebrar a fixture compartilhada nem alterar o comportamento dos testes.
+
+## Reconciliação arquitetural final — 28/10/2026
+
+- A análise AST cobriu 213 arquivos TypeScript em `Aplicativo/back/src`: zero ciclos de importação e zero arquivos contendo somente reexports.
+- `src/security/request-origin.ts` e `src/security/session.ts` foram removidos porque não tinham responsabilidade própria além de reexportar símbolos de outros módulos. A taxa de limite, IP confiável, CSRF, sessão ativa, configuração/cookies e hashing continuam em seus módulos proprietários; os consumidores importam diretamente deles.
+- A mudança alcançou os fluxos de Auth, Feed, Onboarding, Profiles e Social, bem como testes de Auth e de fronteiras. Os testes não encontraram imports restantes desses agregadores.
+- A busca nas camadas `application` e `presentation` não encontrou imports de `@workspace/db` ou `drizzle-orm`. Os adaptadores e consultas continuam nas camadas de infraestrutura/composição já existentes.
+- Nenhum endpoint, schema, migration, regra de negócio, política de segurança ou dado persistido foi alterado. A suíte completa (`pnpm test`), o build completo (`pnpm build`), Prettier e `git diff --check` passaram após a mudança.
+- Após reiniciar o workflow da API, o servidor escutou na porta 8080; `/api/healthz` e `/api/readyz` retornaram 200. A raiz `/` retorna 404 com o contrato `NOT_FOUND`, pois a API não hospeda o frontend nessa rota; isso não impediu a inicialização nem os endpoints de saúde.
+
+Esta reconciliação comprova os critérios estáticos e de build descritos acima; não substitui os testes SQL específicos ainda registrados para Feed e Profiles nem afirma que os módulos funcionais não iniciados estão prontos.

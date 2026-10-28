@@ -4,7 +4,7 @@ import { maskEmail } from "../emailMasking";
 import {
   constantTimeEquals,
   hashAccountEmailChangeCode,
-} from "../../../../security/session";
+} from "../../../../security/tokenHashing";
 import { logger } from "../../../../common/logger";
 import type { EmailChangeDelivery, EmailChangeRepository } from "./ports";
 

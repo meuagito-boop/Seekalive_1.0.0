@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
 import { registerRequestSchema } from "@workspace/api-zod";
 import { logger } from "../../../common/logger";
-import { createAuthRateLimit } from "../../../security/request-origin";
-import { requireCsrf } from "../../../security/session";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import { hashPassword } from "../application/passwordHashing";
 import {
   createRegistrationAccountService,

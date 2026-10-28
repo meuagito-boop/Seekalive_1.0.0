@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
 import { accountPatchSchema } from "@workspace/api-zod";
 import { sendApiValidationError } from "../../../common/apiErrors";
-import { createAuthRateLimit } from "../../../security/request-origin";
-import { requireCsrf } from "../../../security/session";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import type { OwnerProfileLoader } from "../application/ownerProfile";
 import type { OwnerProfileUpdater } from "../application/updateOwnerProfile";
 import { activeAccountId, sendError } from "./routeSupport";

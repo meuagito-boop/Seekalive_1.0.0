@@ -3,11 +3,11 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { csrfHash } from "../src/security/csrf.ts";
 import {
-  csrfHash,
   hashDeviceLoginCode,
   hashToken,
-} from "../src/security/session.ts";
+} from "../src/security/tokenHashing.ts";
 import { createResendDeviceLoginCode } from "../src/modules/auth/application/deviceVerification/resendDeviceLoginCode.ts";
 import { createRotateSessionCsrfToken } from "../src/modules/auth/application/sessions/csrfSession.ts";
 import { createSessionManagement } from "../src/modules/auth/application/sessions/sessionManagement.ts";

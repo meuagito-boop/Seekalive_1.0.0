@@ -4,7 +4,7 @@ import {
   constantTimeEquals,
   hashToken,
   hashVerificationCode,
-} from "../../../../security/session";
+} from "../../../../security/tokenHashing";
 import { createSessionMaterial } from "../sessionMaterial";
 import { VerificationAlreadyConsumedError } from "./errors";
 import { MAX_EMAIL_VERIFICATION_ATTEMPTS } from "./policy";

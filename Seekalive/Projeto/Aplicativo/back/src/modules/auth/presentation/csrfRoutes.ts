@@ -1,9 +1,7 @@
 import { Router, type IRouter } from "express";
-import {
-  issuePreAuthCsrf,
-  loadActiveSession,
-  PRE_AUTH_COOKIE,
-} from "../../../security/session";
+import { loadActiveSession } from "../../../security/activeSession";
+import { issuePreAuthCsrf } from "../../../security/csrf";
+import { PRE_AUTH_COOKIE } from "../../../security/sessionConfig";
 import { csrfSessionOperations } from "../composition/sessions";
 
 const router: IRouter = Router();

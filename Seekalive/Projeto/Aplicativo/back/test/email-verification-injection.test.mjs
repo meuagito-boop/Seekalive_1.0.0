@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { hashVerificationCode } from "../src/security/session.ts";
+import { hashVerificationCode } from "../src/security/tokenHashing.ts";
 import { createConfirmEmailVerification } from "../src/modules/auth/application/emailVerification/confirmEmailVerification.ts";
 import { VerificationDeliveryUnavailableError } from "../src/modules/auth/application/emailVerification/errors.ts";
 import { createRequestEmailVerification } from "../src/modules/auth/application/emailVerification/requestEmailVerification.ts";

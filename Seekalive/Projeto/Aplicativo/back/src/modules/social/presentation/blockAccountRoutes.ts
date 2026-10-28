@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { createAuthRateLimit } from "../../../security/request-origin";
-import { requireCsrf } from "../../../security/session";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import { blockAccount } from "../composition/publicApi";
 import { activeAccountId, isAccountId, sendError } from "./routeSupport";
 
@@ -13,13 +13,26 @@ router.put(
   async (request, response) => {
     const actorId = await activeAccountId(request, response);
     if (!actorId) return;
-    const targetId = typeof request.params.accountId === "string" ? request.params.accountId : "";
+    const targetId =
+      typeof request.params.accountId === "string"
+        ? request.params.accountId
+        : "";
     if (!isAccountId(targetId) || actorId === targetId) {
-      sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
+      sendError(
+        response,
+        404,
+        "ACCOUNT_NOT_FOUND",
+        "Esta conta não está disponível.",
+      );
       return;
     }
-    if (!await blockAccount(actorId, targetId)) {
-      sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
+    if (!(await blockAccount(actorId, targetId))) {
+      sendError(
+        response,
+        404,
+        "ACCOUNT_NOT_FOUND",
+        "Esta conta não está disponível.",
+      );
       return;
     }
     response.status(204).end();

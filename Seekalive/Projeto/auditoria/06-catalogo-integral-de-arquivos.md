@@ -1250,3 +1250,29 @@ Foram adicionados sete caminhos de fonte/teste, sem remoções. Os componentes e
 **Arquivos existentes alterados:** `profile/screens/Profile.tsx` passou a compor `PersonalProfileHeader` e `PersonalProfileTabs`; `commercial-profile/components/CommercialProfilePage.tsx` compõe os quatro painéis comerciais extraídos e controla a aba de mídia; `social/application/relationshipActions.ts` recebe uma porta para gravação da conta demonstrativa; `app/state/SocialApplicationContext.tsx` injeta o adaptador existente; `scripts/test-social.mjs` registra a suíte de teste. Nenhum arquivo foi removido; APIs, rotas, contratos, backend e banco não foram alterados.
 
 **Validação registrada:** typecheck frontend aprovado; `pnpm run test:social` aprovado (84/84); `pnpm test` e `pnpm build` aprovados em todos os workspaces; Prettier aprovado nos seis componentes novos e no teste novo; `git diff --check` aprovado para os arquivos desta etapa. O workflow `Start application` foi reiniciado e subiu sem erro. O navegador de verificação não tinha sessão autenticada e exibiu a apresentação/login ao acessar o perfil; portanto, o perfil autenticado não foi visualmente verificado.
+
+### Delta de reconciliação estrutural — Social e Segurança — 28/10/2026
+
+#### Frontend Social
+
+Foram adicionados nove arquivos com responsabilidades de lista de conexões: `modules/social/hooks/useConnectionList.ts` (estado, consultas, filtro e paginação), `components/connections/ConnectionListView.tsx` (apresentação), `screens/ConnectionListPage.tsx` (composição da página), `types/connectionList.ts` (tipos do fluxo), `application/followActions.ts`, `application/blockActions.ts` e `application/followRequestActions.ts` (fluxos de relacionamento), `application/relationshipActionDependencies.ts` (contratos das dependências) e `application/relationshipActionSupport.ts` (suporte compartilhado). Foi removido `modules/profile/components/ConnectionList.tsx`, cuja responsabilidade pertencia a Social.
+
+`Followers.tsx` e `Following.tsx` continuam como entradas de tela; `relationshipActions.ts` permanece como composição real usada pelo contexto da aplicação. A suíte de conteúdo foi atualizada para verificar a propriedade em `blockActions.ts`. Nenhum endpoint, comportamento, regra de relacionamento ou esquema de dados foi alterado. A UI autenticada não foi verificada visualmente por navegador nesta reconciliação.
+
+#### Backend — propriedade dos imports de Segurança
+
+Foram removidos `Aplicativo/back/src/security/request-origin.ts` e `Aplicativo/back/src/security/session.ts`: eram arquivos sem lógica própria, usados exclusivamente como agregadores de exports. Nenhum arquivo proprietário foi criado para substituí-los.
+
+| Grupo consumidor existente | Arquivos cujos imports passaram a apontar aos módulos proprietários |
+|---|---|
+| Auth — application | `modules/auth/application/challenges/{deviceLogin,passwordReset,passwordUpdate}.ts`; `deviceVerification/{confirmDeviceLogin,resendDeviceLoginCode}.ts`; `emailChange/{confirmCurrentEmailChange,confirmNewEmailChange,startEmailChange}.ts`; `emailVerification/{confirmEmailVerification,sendVerificationCode}.ts`; `login/{authenticateLogin,startDeviceVerification}.ts`; `passwordChange/{confirmPasswordChange,requestPasswordChange}.ts`; `passwordReset/confirmPasswordReset.ts`; `passwordUpdate/confirmPasswordUpdate.ts`; `sessionMaterial.ts`; `sessions/csrfSession.ts` |
+| Auth — presentation | `modules/auth/presentation/{accountEmailChangeRoutes,accountPasswordChangeRoutes,accountSecurityHttp,csrfRoutes,deviceVerificationRoutes,emailVerificationRoutes,loginRoutes,passwordResetRoutes,passwordUpdateRoutes,registrationRoutes,sessionRoutes,trustedDeviceRoutes}.ts` |
+| Feed — presentation | `modules/feed/presentation/{articleReadRoutes,articleWriteRoutes,feedHttp,postCreateRoutes,postDeleteRoutes,postReadRoutes,profileContentRoutes}.ts` |
+| Onboarding — presentation | `modules/onboarding/presentation/routes.ts` |
+| Profiles — presentation | `modules/profiles/presentation/{accountAvailabilityRoutes,ownerProfileRoutes,privacyRoutes,publicProfileRoutes,routeSupport}.ts` |
+| Social — presentation | `modules/social/presentation/{acceptFollowRequestRoutes,accountSearchRoutes,blockAccountRoutes,declineFollowRequestRoutes,followAccountRoutes,relationshipListSupport,routeSupport,unblockAccountRoutes,unfollowAccountRoutes}.ts` |
+| Testes da API e das fronteiras | `Aplicativo/back/test/{auth-login-injection,auth-password-change-injection,auth-password-reset-injection,auth-password-update-injection,auth-session-device-injection,device-verification-injection,email-change-injection,email-verification-injection}.test.mjs`; `scripts/src/security-boundaries.test.mjs` |
+
+Os nomes compostos entre chaves representam um arquivo existente para cada item separado por vírgula, no diretório indicado. `createAuthRateLimit` agora é importado de `security/rateLimit`; funções de IP confiável, de `security/trustedClientIp`; sessão ativa, de `security/activeSession`; CSRF, de `security/csrf`; constantes e prazo, de `security/sessionConfig`; cookies, de `security/sessionCookies`; e hashing/comparação constante, de `security/tokenHashing`.
+
+**Validação:** AST do frontend (275 arquivos) e backend (213) encontrou zero ciclos e zero arquivos somente de reexport. `pnpm test` passou; `pnpm build` passou e incluiu typechecks; Prettier e `git diff --check` passaram. A contagem atual do projeto é 1.300 arquivos excluindo `node_modules`.

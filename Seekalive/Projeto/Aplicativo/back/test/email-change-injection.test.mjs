@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { hashAccountEmailChangeCode } from "../src/security/session.ts";
+import { hashAccountEmailChangeCode } from "../src/security/tokenHashing.ts";
 import { EmailAddressConflictError } from "../src/modules/auth/application/emailChange/errors.ts";
 import { createConfirmCurrentEmailChange } from "../src/modules/auth/application/emailChange/confirmCurrentEmailChange.ts";
 import { createConfirmNewEmailChange } from "../src/modules/auth/application/emailChange/confirmNewEmailChange.ts";

@@ -4,7 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { hashDeviceLoginCode, hashToken } from "../src/security/session.ts";
+import {
+  hashDeviceLoginCode,
+  hashToken,
+} from "../src/security/tokenHashing.ts";
 import { createConfirmDeviceLogin } from "../src/modules/auth/application/deviceVerification/confirmDeviceLogin.ts";
 import { createResendDeviceLoginCode } from "../src/modules/auth/application/deviceVerification/resendDeviceLoginCode.ts";
 

@@ -3,12 +3,12 @@ import {
   accountPasswordChangeRequestSchema,
   challengeConfirmSchema,
 } from "@workspace/api-zod";
-import { createAuthRateLimit } from "../../../security/request-origin";
+import { createAuthRateLimit } from "../../../security/rateLimit";
+import { requireCsrf } from "../../../security/csrf";
 import {
   clearDeviceCookie,
   clearSessionCookie,
-  requireCsrf,
-} from "../../../security/session";
+} from "../../../security/sessionCookies";
 import { passwordChangeOperations } from "../composition/passwordChange";
 import {
   authenticatedAccountId,

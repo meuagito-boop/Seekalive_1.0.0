@@ -6,7 +6,7 @@ import {
 import {
   constantTimeEquals,
   hashAccountPasswordChangeCode,
-} from "../../../../security/session";
+} from "../../../../security/tokenHashing";
 import type { PasswordChangeConfirmationRepository } from "./confirmationPorts";
 
 export type ConfirmPasswordChangeResult =

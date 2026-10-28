@@ -9,7 +9,7 @@ import {
 } from "../accountSecurity/policy";
 import { maskEmail } from "../emailMasking";
 import { hashPassword } from "../passwordHashing";
-import { hashAccountPasswordChangeCode } from "../../../../security/session";
+import { hashAccountPasswordChangeCode } from "../../../../security/tokenHashing";
 import { logger } from "../../../../common/logger";
 import type { PasswordChangeRequestDependencies } from "./requestPorts";
 

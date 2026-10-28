@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import argon2 from "argon2";
 import test from "node:test";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
-import { hashAccountPasswordChangeCode } from "../src/security/session.ts";
+import { hashAccountPasswordChangeCode } from "../src/security/tokenHashing.ts";
 import { createConfirmPasswordChange } from "../src/modules/auth/application/passwordChange/confirmPasswordChange.ts";
 import { createRequestPasswordChange } from "../src/modules/auth/application/passwordChange/requestPasswordChange.ts";
 import { MAX_ACCOUNT_CHANGE_CODE_ATTEMPTS } from "../src/modules/auth/application/accountSecurity/policy.ts";
