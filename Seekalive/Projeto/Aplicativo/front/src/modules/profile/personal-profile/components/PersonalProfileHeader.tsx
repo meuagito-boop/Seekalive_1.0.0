@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "wouter";
-import {
-  ArrowLeft,
-  Calendar,
-  Check,
-  Globe,
-  MapPin,
-  MoreHorizontal,
-} from "lucide-react";
+import { ArrowLeft, Check, MoreHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatCount } from "@/lib/formatters";
@@ -221,33 +214,6 @@ export function PersonalProfileHeader({
                 {profile.bio}
               </p>
             )}
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              {profile.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {profile.location}
-                </span>
-              )}
-              {profile.website && (
-                <a
-                  href={profile.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-w-0 items-center gap-1 break-all text-primary hover:underline"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  {profile.website.replace(/^https?:\/\//, "")}
-                </a>
-              )}
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                Entrou em{" "}
-                {new Date(profile.joinedAt).toLocaleDateString("pt-BR", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
           </div>
 
           <div className="mb-1">
