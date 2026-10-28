@@ -2,54 +2,21 @@ import { useEffect, useState, type FormEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle, Loader2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import type { User } from "@/modules/profile/types/user";
 import { useToast } from "@/hooks/use-toast";
 import { myAccountToUser, socialGraphApi, SocialGraphApiError } from "@/modules/social/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
+import { accountDraftFromUser } from "@/modules/settings/application/accountDraft";
 import { AccountEmailChange } from "@/modules/settings/components/account/AccountEmailChange";
+import { AccountProfileForm } from "@/modules/settings/components/account/AccountProfileForm";
 import { AccountPasswordChange } from "@/modules/settings/components/account/AccountPasswordChange";
-import { SettingsSubheader, SectionTitle, UnavailableNotice } from "./SettingsSubheader";
+import { AccountUsernameForm } from "@/modules/settings/components/account/AccountUsernameForm";
+import { SectionTitle, SettingsSubheader, UnavailableNotice } from "@/modules/settings/components/SettingsSubheader";
+import type { AccountDraft } from "@/modules/settings/types/accountSettings";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
-
-type AccountDraft = {
-  firstName: string;
-  lastName: string;
-  businessName: string;
-  address: string;
-  postalCode: string;
-  cityName: string;
-  stateName: string;
-  countryName: string;
-};
-
-const emptyDraft: AccountDraft = {
-  firstName: "",
-  lastName: "",
-  businessName: "",
-  address: "",
-  postalCode: "",
-  cityName: "",
-  stateName: "",
-  countryName: "",
-};
-
-function draftFromUser(user: User | null): AccountDraft {
-  if (!user) return emptyDraft;
-  return {
-    firstName: user.firstName ?? "",
-    lastName: user.lastName ?? "",
-    businessName: user.displayName,
-    address: user.address ?? "",
-    postalCode: user.postalCode ?? "",
-    cityName: user.city ?? "",
-    stateName: user.state ?? "",
-    countryName: user.country ?? "",
-  };
-}
 
 function requestErrorMessage(error: unknown): string {
   if (error instanceof SocialGraphApiError && error.key === "VERSION_CONFLICT") {
@@ -70,7 +37,7 @@ export default function SettingsAccount() {
   const { toast } = useToast();
 
   const [remoteProfile, setRemoteProfile] = useState<MyAccountResponse | null>(null);
-  const [draft, setDraft] = useState<AccountDraft>(() => draftFromUser(currentUser));
+  const [draft, setDraft] = useState<AccountDraft>(() => accountDraftFromUser(currentUser));
   const [username, setUsername] = useState(currentUser?.username ?? "");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -83,7 +50,7 @@ export default function SettingsAccount() {
   useEffect(() => {
     if (!isRemoteSocialSession) {
       setRemoteProfile(null);
-      setDraft(draftFromUser(currentUser));
+      setDraft(accountDraftFromUser(currentUser));
       setUsername(currentUser?.username ?? "");
       setLoadError(null);
       setIsLoading(false);
@@ -99,7 +66,7 @@ export default function SettingsAccount() {
         if (!active) return;
         const user = myAccountToUser(profile);
         setRemoteProfile(profile);
-        setDraft(draftFromUser(user));
+        setDraft(accountDraftFromUser(user));
         setUsername(profile.account.username);
       })
       .catch((error: unknown) => {
@@ -131,7 +98,7 @@ export default function SettingsAccount() {
     updateAccount(user);
     updateUser(user);
     if (isRemoteSocialSession) upsertRemoteUser(user);
-    setDraft(draftFromUser(user));
+    setDraft(accountDraftFromUser(user));
     setUsername(user.username);
   }
 
@@ -329,160 +296,31 @@ export default function SettingsAccount() {
 
         {accountType && !isLoading && !loadError && (
           <>
-            <SectionTitle>{isCommercial ? "Dados comerciais" : "Dados pessoais"}</SectionTitle>
-            <form onSubmit={(event) => void submitProfile(event)} className="px-4 pt-2">
-              <fieldset disabled={disabled} className="min-w-0 space-y-3">
-              {isCommercial ? (
-                <>
-                  <Input
-                    value={draft.businessName}
-                    onChange={(event) => changeDraft("businessName", event.target.value)}
-                    aria-label="Nome da empresa ou prestador de serviço"
-                    autoComplete="organization"
-                    maxLength={100}
-                    required
-                    placeholder="Nome da empresa ou prestador de serviço"
-                    className={disabledField}
-                  />
-                  <Input
-                    value={draft.address}
-                    onChange={(event) => changeDraft("address", event.target.value)}
-                    aria-label="Endereço comercial"
-                    autoComplete="street-address"
-                    maxLength={250}
-                    required
-                    placeholder="Endereço"
-                    className={disabledField}
-                  />
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Input
-                      value={draft.postalCode}
-                      onChange={(event) => changeDraft("postalCode", event.target.value)}
-                      aria-label="CEP"
-                      autoComplete="postal-code"
-                      minLength={5}
-                      maxLength={20}
-                      required
-                      placeholder="CEP"
-                      className={disabledField}
-                    />
-                    <Input
-                      value={draft.cityName}
-                      onChange={(event) => changeDraft("cityName", event.target.value)}
-                      aria-label="Cidade"
-                      autoComplete="address-level2"
-                      maxLength={120}
-                      required
-                      placeholder="Cidade"
-                      className={disabledField}
-                    />
-                    <Input
-                      value={draft.stateName}
-                      onChange={(event) => changeDraft("stateName", event.target.value)}
-                      aria-label="Estado"
-                      autoComplete="address-level1"
-                      maxLength={100}
-                      required
-                      placeholder="Estado"
-                      className={disabledField}
-                    />
-                    <Input
-                      value={draft.countryName}
-                      onChange={(event) => changeDraft("countryName", event.target.value)}
-                      aria-label="País"
-                      autoComplete="country-name"
-                      maxLength={100}
-                      required
-                      placeholder="País"
-                      className={disabledField}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Input
-                    value={draft.firstName}
-                    onChange={(event) => changeDraft("firstName", event.target.value)}
-                    aria-label="Nome"
-                    autoComplete="given-name"
-                    maxLength={80}
-                    required
-                    placeholder="Nome"
-                    className={disabledField}
-                  />
-                  <Input
-                    value={draft.lastName}
-                    onChange={(event) => changeDraft("lastName", event.target.value)}
-                    aria-label="Sobrenome"
-                    autoComplete="family-name"
-                    maxLength={80}
-                    required
-                    placeholder="Sobrenome"
-                    className={disabledField}
-                  />
-                </>
-              )}
+            <AccountProfileForm
+              isCommercial={isCommercial}
+              draft={draft}
+              email={email}
+              disabled={disabled}
+              disabledField={disabledField}
+              profileError={profileError}
+              isSaving={isSavingProfile}
+              onDraftChange={changeDraft}
+              onSubmit={(event) => void submitProfile(event)}
+            />
 
-              <Input
-                value={email}
-                readOnly
-                type="email"
-                aria-label="E-mail verificado da conta"
-                autoComplete="email"
-                placeholder="E-mail verificado"
-                className={`${disabledField} opacity-70`}
-              />
-              <p className="text-xs text-muted-foreground">Para alterar o e-mail, use o fluxo de confirmação abaixo.</p>
-              {profileError && <p role="alert" className="text-sm text-destructive">{profileError}</p>}
-              <Button
-                type="submit"
-                className="min-h-11 rounded-xl px-6"
-                disabled={disabled}
-                data-testid="button-save-profile"
-              >
-                {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-                Salvar dados da conta
-              </Button>
-              </fieldset>
-            </form>
-
-            <SectionTitle>Nome de usuário</SectionTitle>
-            <form onSubmit={(event) => void submitUsername(event)} className="px-4 pt-2" noValidate>
-              <fieldset disabled={disabled} className="min-w-0 space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Atual: <span className="font-semibold text-foreground">@{currentUsername}</span>. O nome é único na plataforma.
-              </p>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" aria-hidden>@</span>
-                <Input
-                  value={username}
-                  onChange={(event) => {
-                    setUsername(event.target.value);
-                    setUsernameError(null);
-                  }}
-                  placeholder="novo_usuario"
-                  aria-label="Novo nome de usuário"
-                  aria-invalid={Boolean(usernameError)}
-                  aria-describedby={usernameError ? "username-error" : undefined}
-                  autoCapitalize="none"
-                  autoComplete="username"
-                  maxLength={20}
-                  data-testid="input-new-username"
-                  className={`${disabledField} pl-8`}
-                />
-              </div>
-              {usernameError && <p id="username-error" role="alert" className="text-sm text-destructive">{usernameError}</p>}
-              <Button
-                type="submit"
-                className="min-h-11 rounded-xl px-6"
-                disabled={disabled || !username.trim()}
-                data-testid="button-update-username"
-              >
-                {isSavingUsername && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-                Atualizar nome de usuário
-              </Button>
-              </fieldset>
-            </form>
+            <AccountUsernameForm
+              currentUsername={currentUsername}
+              username={username}
+              disabled={disabled}
+              disabledField={disabledField}
+              usernameError={usernameError}
+              isSaving={isSavingUsername}
+              onUsernameChange={(value) => {
+                setUsername(value);
+                setUsernameError(null);
+              }}
+              onSubmit={(event) => void submitUsername(event)}
+            />
 
             <SectionTitle>E-mail e senha</SectionTitle>
             {!isRemoteSocialSession ? (

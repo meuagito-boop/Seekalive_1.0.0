@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Ban } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
-import { SettingsSubheader } from "./SettingsSubheader";
+import { SettingsSubheader } from "@/modules/settings/components/SettingsSubheader";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsBlocked() {

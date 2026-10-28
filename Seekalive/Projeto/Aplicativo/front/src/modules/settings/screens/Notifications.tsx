@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { SettingsSubheader } from "./SettingsSubheader";
+import { SettingsSubheader } from "@/modules/settings/components/SettingsSubheader";
 import { Switch } from "@/components/ui/switch";
 import { getNotificationPreferences, saveNotificationPreferences } from "@/modules/settings/data/notificationPreferences";
 import { useAppContext } from "@/modules/app/state/AppContext";

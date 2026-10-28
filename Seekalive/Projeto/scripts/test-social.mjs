@@ -12,6 +12,7 @@ const directory = await mkdtemp(join(tmpdir(), "seekalive-tests-"));
 try {
   const testEntries = [
     "Aplicativo/front/tests/content.test.ts",
+    "Aplicativo/front/tests/accountSettings.test.ts",
     "Aplicativo/front/tests/messages.test.ts",
     "Aplicativo/front/tests/notifications.test.ts",
     "Aplicativo/front/tests/onboarding.test.ts",

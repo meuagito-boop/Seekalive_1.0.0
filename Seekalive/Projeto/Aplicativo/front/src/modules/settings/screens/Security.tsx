@@ -3,7 +3,9 @@ import { motion, useReducedMotion } from "framer-motion";
 import { History, Loader2, MonitorSmartphone, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { SettingsSubheader, SectionTitle } from "./SettingsSubheader";
+import { ActiveSessionsSection } from "@/modules/settings/components/security/ActiveSessionsSection";
+import { TrustedDevicesSection } from "@/modules/settings/components/security/TrustedDevicesSection";
+import { SettingsSubheader, SectionTitle } from "@/modules/settings/components/SettingsSubheader";
 import {
   getAuthSessions,
   getTrustedDevices,
@@ -188,150 +190,28 @@ export default function SettingsSecurity() {
           </p>
         )}
 
-        <SectionTitle>Instalações confiáveis</SectionTitle>
-        <p className="px-4 pb-3 text-sm leading-6 text-muted-foreground">
-          Cada instalação do navegador ou aplicativo recebe um token revogável. O Seekalive não usa IP nem impressão digital para reconhecer o dispositivo. Se os dados do navegador forem apagados, será necessário confirmar o e-mail novamente.
-        </p>
-        {isLoadingDevices && devices.length === 0 ? (
-          <p role="status" className="px-4 py-6 text-sm text-muted-foreground">Carregando instalações…</p>
-        ) : devices.length === 0 ? (
-          <p className="mx-4 rounded-xl border border-border bg-card px-4 py-5 text-sm text-muted-foreground">
-            {error ? "Entre com uma conta autenticada para consultar as instalações." : "Nenhuma instalação confiável encontrada."}
-          </p>
-        ) : (
-          <>
-            <ul aria-label="Instalações confiáveis da conta" className="space-y-3 px-4">
-              {devices.map((device) => (
-                <li key={device.id} className="rounded-2xl border border-border bg-card p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-semibold text-sm">
-                      {device.isCurrent ? "Esta instalação" : "Instalação do navegador ou aplicativo"}
-                    </h3>
-                    {device.isCurrent && (
-                      <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-                        Instalação atual
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Reconhecida em <time dateTime={device.firstSeenAt}>{formatDate(device.firstSeenAt)}</time>
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Último acesso <time dateTime={device.lastSeenAt}>{formatDate(device.lastSeenAt)}</time>
-                  </p>
-                  <Button
-                    type="button"
-                    variant={device.isCurrent ? "destructive" : "outline"}
-                    className="mt-4 min-h-11"
-                    disabled={pendingAction !== null}
-                    onClick={() => void handleRevokeDevice(device)}
-                    aria-label={`Remover instalação reconhecida em ${formatDate(device.firstSeenAt)}`}
-                  >
-                    {pendingAction === device.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-                    {device.isCurrent ? "Remover esta instalação" : "Remover instalação"}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-            {devicesHaveMore && (
-              <p className="px-4 pt-3 text-xs text-muted-foreground">
-                A lista mostra as 100 instalações mais recentes. Use a opção abaixo para revogar todas as outras, inclusive as mais antigas.
-              </p>
-            )}
-            {devices.some((device) => !device.isCurrent) && (
-              <div className="px-4 pt-4">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full min-h-11"
-                  disabled={pendingAction !== null}
-                  onClick={() => void handleRevokeOtherDevices()}
-                >
-                  {pendingAction === "other-devices" && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-                  Revogar todas as outras instalações
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        <TrustedDevicesSection
+          devices={devices}
+          devicesHaveMore={devicesHaveMore}
+          isLoading={isLoadingDevices}
+          pendingAction={pendingAction}
+          error={error}
+          onRevokeDevice={(device) => void handleRevokeDevice(device)}
+          onRevokeOtherDevices={() => void handleRevokeOtherDevices()}
+          formatDate={formatDate}
+        />
 
-        <SectionTitle>Sessões ativas</SectionTitle>
-        <p className="px-4 pb-3 text-sm text-muted-foreground">
-          Cada entrada corresponde a um login ativo. Encerrar uma sessão não remove a instalação confiável; remova-a acima se também quiser exigir confirmação de e-mail no próximo acesso.
-        </p>
-        {isLoading && sessions.length === 0 ? (
-          <p role="status" className="px-4 py-6 text-sm text-muted-foreground">Carregando sessões…</p>
-        ) : sessions.length === 0 ? (
-          <p className="mx-4 rounded-xl border border-border bg-card px-4 py-5 text-sm text-muted-foreground">
-            {error ? "Entre com uma conta autenticada para consultar suas sessões." : "Nenhuma sessão ativa encontrada."}
-          </p>
-        ) : (
-          <>
-            <ul aria-label="Sessões ativas da conta" className="space-y-3 px-4">
-              {sessions.map((session) => (
-                <li key={session.id} className="rounded-2xl border border-border bg-card p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-semibold text-sm">
-                      {session.isCurrent ? "Esta sessão" : "Outra sessão"}
-                    </h3>
-                    {session.isCurrent && (
-                      <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-                        Sessão atual
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Iniciada em <time dateTime={session.createdAt}>{formatDate(session.createdAt)}</time>
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Expira em <time dateTime={session.expiresAt}>{formatDate(session.expiresAt)}</time>
-                  </p>
-                  {!session.isCurrent && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="mt-4 min-h-11"
-                      disabled={pendingAction !== null}
-                      onClick={() => void handleRevokeSession(session)}
-                      aria-label={`Encerrar sessão iniciada em ${formatDate(session.createdAt)}`}
-                    >
-                      {pendingAction === session.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-                      Encerrar sessão
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {sessions.some((session) => !session.isCurrent) && (
-              <div className="px-4 pt-4">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full min-h-11"
-                  disabled={pendingAction !== null}
-                  onClick={() => void handleRevokeOtherSessions()}
-                >
-                  {pendingAction === "others" && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-                  Encerrar todas as outras sessões
-                </Button>
-              </div>
-            )}
-            {nextCursor && (
-              <div className="px-4 py-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full min-h-11"
-                  disabled={isLoading}
-                  onClick={() => void loadSessions(nextCursor, true)}
-                >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-                  Carregar mais sessões
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        <ActiveSessionsSection
+          sessions={sessions}
+          nextCursor={nextCursor}
+          isLoading={isLoading}
+          pendingAction={pendingAction}
+          error={error}
+          onRevokeSession={(session) => void handleRevokeSession(session)}
+          onRevokeOtherSessions={() => void handleRevokeOtherSessions()}
+          onLoadMore={(cursor) => void loadSessions(cursor, true)}
+          formatDate={formatDate}
+        />
 
         <SectionTitle>Autenticação em duas etapas</SectionTitle>
         <UnavailableRow

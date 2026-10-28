@@ -520,6 +520,29 @@ Foram inspecionados os 14 arquivos do módulo (2.112 linhas), telas/rotas, servi
 
 **Resultado da etapa:** dados de conta, privacidade e segurança têm caminhos de API e a tela separa honestamente várias funções indisponíveis. Há lacunas concretas de implementação para exclusão e notificações, divergências de modo no preview, mensagens de erro/validação do armazenamento e itens de acessibilidade. A idade continua oculta. Nenhum código, contrato ou dado foi alterado.
 
+## Atualização estrutural do módulo `settings` — 28/10/2026
+
+Esta rodada corrigiu a organização do código existente em Settings. Preservou regras, chamadas, contratos, permissões, conteúdo textual e comportamento visual; não adicionou fluxos de conta, segurança ou privacidade, nem alterou API, backend ou banco. O módulo agora contém 21 arquivos e 2.508 linhas. Não foi encontrado arquivo cuja única responsabilidade seja reexportar outro módulo.
+
+### Responsabilidades reorganizadas
+
+- `components/SettingsSubheader.tsx` é o proprietário dos elementos visuais compartilhados entre as telas. O arquivo saiu de `screens/` e suas importações foram atualizadas nas seis telas consumidoras.
+- `types/accountSettings.ts` contém o contrato do rascunho de edição. `application/accountDraft.ts` cria esse rascunho a partir dos dados de uma conta ou do estado vazio.
+- `components/account/AccountProfileForm.tsx` apresenta os campos pessoais ou comerciais e o e-mail somente leitura; `AccountUsernameForm.tsx` apresenta o fluxo de edição do @. `screens/Account.tsx` mantém a carga remota/local, validação, atualização, sincronização entre projeções e composição dos fluxos já existentes. O arquivo passou de 535 para 373 linhas. Os formulários de e-mail e senha continuam em seus próprios componentes.
+- `components/privacy/PrivacyPreferencesControls.tsx` apresenta os controles de privacidade e mensagens. `screens/Privacy.tsx` mantém carregamento, gravação remota ou local e a coordenação das solicitações de seguimento do Social.
+- `components/security/TrustedDevicesSection.tsx` e `ActiveSessionsSection.tsx` apresentam suas respectivas listas e estados vazios/carregando. `screens/Security.tsx` mantém as consultas de sessão/dispositivo, confirmações, revogações, paginação e estado de operação.
+- As demais telas e as preferências em `data/` mantêm seus limites existentes; não houve divisão de controles triviais em novos módulos.
+
+### Verificação e limites
+
+- Foram acrescentados três testes para o mapeamento do rascunho de conta pessoal, comercial e vazia, incluídos no runner Social.
+- `pnpm --filter @workspace/social typecheck`, `pnpm run test:social` (86/86), `pnpm test`, `pnpm build`, Prettier nos novos arquivos e `git diff --check` passaram. O build verificou os workspaces e 97 chunks do frontend.
+- A verificação Prettier do diretório inteiro ainda identifica diferenças de formatação em arquivos antigos do módulo que não foram reformatados nesta mudança; a verificação dos novos arquivos e do teste passou. Nenhuma formatação ampla foi aplicada para evitar alterações cosméticas fora da separação solicitada.
+- A UI autenticada não foi inspecionada visualmente no navegador nem houve teste E2E de interações. Os workflows estão ativos e não surgiram erros novos no console do navegador.
+- As lacunas funcionais documentadas na auditoria inicial permanecem abertas; a reorganização não as apresenta como resolvidas. O seletor customizado de mensagens continua com a limitação de acessibilidade já registrada. Nenhuma regra existente foi alterada para contornar esses pontos.
+
+**Resultado desta atualização:** a separação estrutural de `settings` foi concluída e validada no escopo de código, tipos, testes e build. A revisão visual autenticada e os itens funcionais já registrados permanecem distintos deste fechamento estrutural.
+
 ## Auditoria estrutural do módulo `shop` — 27/10/2026
 
 Foram inspecionados os cinco arquivos do módulo (416 linhas), rotas e moldura de busca, dados de demonstração, referências compartilhadas, testes, nomes de rotas documentados, módulos do backend e namespaces do banco. Nenhum código funcional foi alterado.
