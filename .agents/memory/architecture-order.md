@@ -20,3 +20,11 @@ Preservar contratos, APIs, regras, permissões e comportamento visual. Criar pas
 **Why:** A separação por domínio exige propriedade real das regras, mas o app ainda precisa compor sessão, navegação e estado compartilhado entre módulos.
 
 **How to apply:** Ao revisar cada domínio, mantenha suas regras no módulo correspondente. Só mova providers/contratos globais quando houver violação concreta de propriedade ou evidência de desempenho, preservando testes e comportamento.
+
+## Dependências entre domínios no frontend
+
+Casos de uso de um domínio não devem importar diretamente armazenamento local ou regras internas de outro domínio para compor uma operação. O ponto de composição do app fornece essas políticas por dependências explícitas; a regra continua pertencendo ao domínio que a define.
+
+**Why:** O envio de mensagens precisava consultar a preferência de Settings e a regra de seguimento mútuo de Social. A composição explícita reduz acoplamento sem copiar regras nem mudar o comportamento demonstrativo.
+
+**How to apply:** Ao integrar domínios, injetar leituras/decisões necessárias no caso de uso pelo provider/compositor; não tratar essa composição local como autoridade para sessões remotas nem como substituta de validação no backend.

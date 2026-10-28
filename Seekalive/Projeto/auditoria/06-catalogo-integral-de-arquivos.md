@@ -1189,3 +1189,18 @@ Foram acrescentados dois caminhos — um adapter de persistência e um teste de 
 **Arquivo existente alterado:** `onboarding/application/completeOnboarding.ts` conserva a regra `skipped → []` e delega a gravação ao repositório. `package.json` raiz inclui o teste de fronteira. `onboarding/presentation/routes.ts` não precisou de alteração: sessão, CSRF, schema e resposta já estavam em sua camada correta.
 
 **Conferência cumulativa:** 1.005 caminhos na linha de base − 2 removidos em Accounts + 7 adicionados em Accounts + 14 adicionados em Auth + 7 adicionados em Feed − 1 removido em Feed + 2 adicionados em Health + 2 adicionados em Onboarding = **1.034 arquivos** observados. O próximo domínio backend em ordem alfabética é `profiles`. A rota `POST /v1/onboarding/interests` segue sem entrada no OpenAPI; Profiles, Social e frontend ainda não foram reorganizados.
+
+### Delta estrutural do módulo frontend `messages` — 28/10/2026
+
+No domínio `messages`, quatro arquivos de fonte/teste foram adicionados e dois arquivos anteriores removidos (saldo líquido de +2 caminhos de fonte/teste). Esta atualização registra o delta do módulo; não recalcula o total histórico do catálogo, que inclui artefatos de build mutáveis.
+
+| Arquivo adicionado | O que é / para que serve |
+|---|---|
+| [Aplicativo/front/src/modules/messages/application/createDemoMessage.ts](../Aplicativo/front/src/modules/messages/application/createDemoMessage.ts) | Valida os dados locais e constrói uma mensagem demonstrativa. |
+| [Aplicativo/front/src/modules/messages/application/markConversationRead.ts](../Aplicativo/front/src/modules/messages/application/markConversationRead.ts) | Executa a ação de marcar uma conversa visível como lida na atividade local da conta. |
+| [Aplicativo/front/src/modules/messages/application/sendMessage.ts](../Aplicativo/front/src/modules/messages/application/sendMessage.ts) | Verifica disponibilidade e políticas fornecidas pelo ponto de composição e despacha o envio no estado local. |
+| [Aplicativo/front/tests/messages.test.ts](../Aplicativo/front/tests/messages.test.ts) | Testa criação, validação, reducer, política de destinatário, Círculo mútuo, bloqueio local e leitura visível. |
+
+**Arquivos removidos:** `Aplicativo/front/src/modules/messages/application/messageActions.ts` (separado em envio e leitura) e `Aplicativo/front/src/modules/messages/application/messageValidation.ts` (renomeado para refletir criação/validação demonstrativa).
+
+**Arquivos existentes alterados:** `SocialApplicationContext.tsx` compõe as duas ações e injeta a leitura de Preferências e a regra de seguimento; `Messages.tsx` desabilita/identifica a ação de nova conversa indisponível e nomeia a busca; `MessageDetail.tsx` remove comentário que descrevia comportamento inexistente; `tests/content.test.ts` deixa de conter o teste de mensagens; `scripts/test-social.mjs` inclui a suíte específica do módulo. APIs, rotas, contratos remotos e banco não foram modificados.

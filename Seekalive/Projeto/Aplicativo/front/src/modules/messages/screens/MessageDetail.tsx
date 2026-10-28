@@ -31,7 +31,6 @@ export default function MessageDetail() {
     if (canAccess) markConversationRead(convId);
   }, [convId, canAccess]);
 
-  // Simulate other user "typing" after we send a message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);

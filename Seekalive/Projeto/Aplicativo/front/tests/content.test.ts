@@ -11,7 +11,6 @@ import {
   canReadPost,
   assertCommentParent,
 } from "../src/modules/social/application/contentValidation";
-import { makeDemoMessage } from "../src/modules/messages/application/messageValidation";
 import { apiRequest } from "../src/modules/social/services/socialHttp";
 import { restContentAdapter } from "../src/modules/social/services/restContentService";
 import { resolveReference } from "../src/modules/app/content/referenceResolver";
@@ -786,29 +785,6 @@ test("Seek busca sem acentos e combina categoria, nota, status, distância e ord
     ["bar", "cafe", "sem"],
   );
   assert.equal(businesses[0].username, "cafe"); // Does not mutate the shared account list.
-});
-test("mensagens respeitam a conta participante e preservam remetente e conversa", () => {
-  const conversation = {
-    id: "conversa-local",
-    participantIds: ["conta-criada", "u1"],
-    unreadCount: 1,
-    createdAt: new Date().toISOString(),
-  };
-  const message = makeDemoMessage(conversation, "conta-criada", "  Olá!  ");
-  assert.equal(message.senderId, "conta-criada");
-  assert.equal(message.content, "Olá!");
-  const initial = { ...state(), conversations: [conversation] };
-  const sent = socialReducer(initial, { type: "SEND_MESSAGE", message });
-  assert.equal(sent.messages[0].senderId, "conta-criada");
-  assert.equal(sent.conversations[0].lastMessage?.id, message.id);
-  assert.equal(
-    socialReducer(sent, { type: "SEND_MESSAGE", message }).messages.length,
-    1,
-  );
-  for (const author of [undefined, "outra-conta"])
-    assert.throws(() => makeDemoMessage(conversation, author, "Olá"));
-  assert.throws(() => makeDemoMessage(undefined, "conta-criada", "Olá"));
-  assert.throws(() => makeDemoMessage(conversation, "conta-criada", " "));
 });
 test("notificações contêm apenas recursos mantidos no aplicativo", () => {
   const allowed = new Set([

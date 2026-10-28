@@ -37,7 +37,11 @@ export default function Messages() {
             )}
           </h1>
           <button
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+            type="button"
+            disabled
+            aria-label="Nova conversa indisponível nesta versão"
+            title="Criar conversa ainda não está disponível"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground/50 opacity-50 cursor-not-allowed"
             data-testid="button-new-message"
           >
             <Edit className="w-5 h-5" />
@@ -51,6 +55,7 @@ export default function Messages() {
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Buscar conversas"
+              aria-label="Buscar conversas"
               data-testid="input-search-messages"
               className="w-full h-9 pl-9 pr-4 bg-muted/50 rounded-full text-sm text-foreground placeholder:text-muted-foreground border border-transparent focus:border-primary focus:outline-none transition-colors"
             />

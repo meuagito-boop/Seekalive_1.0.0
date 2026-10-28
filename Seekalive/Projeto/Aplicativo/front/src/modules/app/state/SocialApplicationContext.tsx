@@ -32,8 +32,11 @@ import { createSocialRelationshipActions } from "@/modules/social/application/re
 import { createSocialPostActions } from "@/modules/social/application/postActions";
 import { createPostAccessPolicy } from "@/modules/social/application/postAccessPolicy";
 import { createSocialReviewActions } from "@/modules/seek/application/reviewActions";
-import { createMessageActions } from "@/modules/messages/application/messageActions";
+import { createMarkConversationReadAction } from "@/modules/messages/application/markConversationRead";
+import { createSendMessageAction } from "@/modules/messages/application/sendMessage";
 import { createNotificationActions } from "@/modules/notifications/application/notificationActions";
+import { getPrivacyPreferences } from "@/modules/settings/data/privacyPreferences";
+import { areMutualFollowers } from "@/modules/social/domain/followRelationships";
 import { useRemoteSocialGraph } from "@/modules/social/hooks/useRemoteSocialGraph";
 import { selectSocialView } from "@/modules/social/application/selectSocialView";
 import { selectVisibleMessages } from "@/modules/messages/application/selectVisibleMessages";
@@ -249,14 +252,21 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     currentUser,
     dispatch,
   });
-  const messageActions = createMessageActions({
+  const markConversationRead = createMarkConversationReadAction({
     state,
-    currentUser,
-    users,
     actorId,
     visibleConversationIds,
     updateCurrentActivity,
+  });
+  const sendMessage = createSendMessageAction({
+    state,
+    currentUser,
+    users,
     dispatch,
+    getRecipientMessagePolicy: (recipientAccountId) =>
+      getPrivacyPreferences(recipientAccountId).messages,
+    isMutualFollower: (recipient) =>
+      areMutualFollowers(currentUser ?? undefined, recipient),
   });
   const notificationActions = createNotificationActions({
     visibleNotifications,
@@ -319,7 +329,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "UPDATE_USER", user });
     },
     ...reviewActions,
-    ...messageActions,
+    markConversationRead,
+    sendMessage,
     ...notificationActions,
   };
 
