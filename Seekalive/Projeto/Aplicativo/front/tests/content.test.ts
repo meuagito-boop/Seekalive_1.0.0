@@ -26,10 +26,7 @@ import {
   followRequestIdsBetween,
   removeFollowEdgesForBlock,
 } from "../src/modules/social/domain/followRelationships";
-import {
-  mockUsers,
-  currentUser,
-} from "../src/data/mockData";
+import { mockUsers, currentUser } from "../src/data/mockData";
 import { formatCount, formatTimeAgo } from "../src/lib/formatters";
 import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/modules/social/services/mediaService";
@@ -553,10 +550,10 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     ),
     "utf8",
   );
-  const relationshipSource = readFileSync(
+  const blockActionsSource = readFileSync(
     join(
       process.cwd(),
-      "Aplicativo/front/src/modules/social/application/relationshipActions.ts",
+      "Aplicativo/front/src/modules/social/application/blockActions.ts",
     ),
     "utf8",
   );
@@ -584,12 +581,12 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     /isBlocked:\s*blockedUserIds\.has\(user\.id\)/,
   );
   assert.match(
-    relationshipSource,
+    blockActionsSource,
     /removeFollowEdgesForBlock\(viewer, target\)/,
   );
   assert.match(
-    relationshipSource,
-    /followRequestIdsBetween\(state\.followRequests, viewer\.id, userId\)/,
+    blockActionsSource,
+    /followRequestIdsBetween\(\s*state\.followRequests,\s*viewer\.id,\s*userId,\s*\)/,
   );
   assert.match(
     messageSource,

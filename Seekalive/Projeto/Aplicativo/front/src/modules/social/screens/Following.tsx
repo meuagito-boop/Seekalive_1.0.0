@@ -1,5 +1,5 @@
-import { ConnectionList } from "@/modules/profile/components/ConnectionList";
+import { ConnectionListPage } from "@/modules/social/screens/ConnectionListPage";
 
 export default function Following() {
-  return <ConnectionList kind="following" />;
+  return <ConnectionListPage kind="following" />;
 }
