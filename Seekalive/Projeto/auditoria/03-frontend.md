@@ -580,6 +580,16 @@ Foram inspecionados os cinco arquivos do módulo (416 linhas), rotas e moldura d
 
 **Resultado da etapa:** o Shop é uma prévia de catálogo, não um comércio operacional. O namespace lógico `shop` já está reservado, mas banco, API, identidade do vendedor, estoque, carrinho, pagamento e entrega ainda não existem; o OpenAPI derivado está adiantado em relação ao código. Nenhum código, contrato ou dado foi alterado.
 
+## Revalidação estrutural do módulo `shop` — 28/10/2026
+
+Foi reavaliada a estrutura atual dos cinco arquivos do módulo e dos consumidores no App e na rota de referências. **Nenhuma alteração de código foi necessária neste gate.** O parecer anterior continua válido: `ProductCard` é usado apenas pela tela de catálogo, e os layouts desktop/mobile compartilham estado e filtragem; criar arquivos separados para o card ou para cada viewport não estabeleceria uma responsabilidade independente neste estágio e aumentaria a fragmentação. `ShopItemDetail.tsx` mantém um fluxo próprio de detalhe, compartilhamento e salvamento. `useSavedShopItems.ts` é um hook específico do domínio e `types/item.ts` é consumido pelas telas e pelos dados demonstrativos.
+
+`data/demoCatalog.ts` não é órfão: `data/demo/previewFixtures.ts` o importa e expõe os itens/lojas exclusivamente para a prévia. Os carregamentos das telas continuam explicitamente condicionados a `import.meta.env.DEV`. Não foram encontrados arquivos de reexportação no módulo. Não foi alterada busca visual do AppShell, catálogo, vendedor, persistência de favoritos, compartilhamento, checkout nem qualquer regra de comércio; Shop funcional continua fora desta fase.
+
+`pnpm --filter @workspace/social typecheck`, `pnpm run test:social` (86/86) e `git diff --check` passaram. A suíte completa `pnpm test` e o build integral já haviam passado após a alteração anterior de Settings; como esta revalidação não alterou código-fonte, não houve razão para repetir os mesmos processos. Busca/filtros, layout e interações do Shop não têm testes de interface/E2E e a tela não foi validada visualmente nesta etapa.
+
+**Resultado desta atualização:** a estrutura existente do Shop é proporcional à sua função atual de prévia. Não criar componentes de layout artificiais é a decisão de arquitetura; os gaps funcionais e de integração continuam documentados, sem serem tratados como resolvidos.
+
 ## Auditoria estrutural do módulo `social` — 27/10/2026
 
 Foram revisados os 38 arquivos do domínio (4.084 linhas), mais os pontos de integração no estado global, rotas, componentes compartilhados, API gerada e rotas reais de Social/Feed no backend. A análise abaixo diferencia o grafo social que já se comunica com a API das publicações/interações ainda locais. Nenhum código, contrato ou dado foi alterado.
