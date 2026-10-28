@@ -17,11 +17,7 @@ import {
   type SeekReviewAction,
   type SeekReviewState,
 } from "@/modules/seek/state/reviewReducer";
-import {
-  notificationReducer,
-  type NotificationAction,
-  type NotificationState,
-} from "@/modules/notifications/state/notificationReducer";
+import type { NotificationState } from "@/modules/notifications/types/notification";
 import {
   messageReducer,
   type MessageAction,
@@ -40,7 +36,6 @@ export type SocialAction =
   | SocialContentAction
   | SocialGraphAction
   | SeekReviewAction
-  | NotificationAction
   | MessageAction
   | { type: "HYDRATE_DEVELOPMENT_PREVIEW"; preview: SocialState };
 
@@ -101,9 +96,6 @@ export function socialReducer(
     case "UPSERT_SEEK_REVIEW":
     case "REPLY_TO_SEEK_REVIEW":
       return { ...state, ...seekReviewReducer(state, action) };
-    case "MARK_ALL_NOTIFICATIONS_READ":
-    case "MARK_NOTIFICATION_READ":
-      return { ...state, ...notificationReducer(state, action) };
     case "MARK_CONVERSATION_READ":
     case "SEND_MESSAGE":
       return { ...state, ...messageReducer(state, action) };

@@ -1204,3 +1204,15 @@ No domínio `messages`, quatro arquivos de fonte/teste foram adicionados e dois 
 **Arquivos removidos:** `Aplicativo/front/src/modules/messages/application/messageActions.ts` (separado em envio e leitura) e `Aplicativo/front/src/modules/messages/application/messageValidation.ts` (renomeado para refletir criação/validação demonstrativa).
 
 **Arquivos existentes alterados:** `SocialApplicationContext.tsx` compõe as duas ações e injeta a leitura de Preferências e a regra de seguimento; `Messages.tsx` desabilita/identifica a ação de nova conversa indisponível e nomeia a busca; `MessageDetail.tsx` remove comentário que descrevia comportamento inexistente; `tests/content.test.ts` deixa de conter o teste de mensagens; `scripts/test-social.mjs` inclui a suíte específica do módulo. APIs, rotas, contratos remotos e banco não foram modificados.
+
+### Delta estrutural do módulo frontend `notifications` — 28/10/2026
+
+Foi removido um reducer de leitura sem dispatch e criado um arquivo de testes do próprio domínio: saldo de caminhos igual a zero. O formato de estado foi consolidado com os tipos de notificações; a leitura continuou baseada nos IDs já mantidos em `AccountActivity`.
+
+| Arquivo adicionado | O que é / para que serve |
+|---|---|
+| [Aplicativo/front/tests/notifications.test.ts](../Aplicativo/front/tests/notifications.test.ts) | Testa seleção por destinatário/preview, projeção de leitura, filtros de bloqueio e idempotência das ações locais. |
+
+**Arquivo removido:** `Aplicativo/front/src/modules/notifications/state/notificationReducer.ts`; suas ações não tinham consumidores e duplicavam a fonte de leitura local.
+
+**Arquivos existentes alterados:** `notifications/types/notification.ts` também declara `NotificationState`; `app/state/socialApplicationState.ts` deixa de importar/compor ações do reducer inexistente; `tests/content.test.ts` remove inspeção estática e teste de fixture pertencentes ao domínio; `scripts/test-social.mjs` inclui a suíte específica. Nenhuma API, rota, contrato remoto, preferência, regra de leitura, backend ou banco foi alterado.

@@ -7,3 +7,7 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
 }
+
+export interface NotificationState {
+  notifications: Notification[];
+}

@@ -270,8 +270,8 @@ Foram inspecionados os cinco arquivos e as 239 linhas TypeScript/TSX do domínio
 | `screens/Notifications.tsx` (141 linhas) | Lista notificações, filtra por abas, marca uma ou todas como lidas e monta texto/ícone por tipo. |
 | `application/notificationActions.ts` (30 linhas) | Marca IDs visíveis como lidos na atividade local da conta. |
 | `application/selectVisibleNotifications.ts` (33 linhas) | Filtra por destinatário, bloqueio de ator/publicação e projeta leitura local/preview. |
-| `state/notificationReducer.ts` (26 linhas) | Reduz ações de leitura diretamente no estado de notificações. |
-| `types/notification.ts` | Define os tipos de evento e os campos de destinatário, ator, recurso, leitura e data. |
+| `state/notificationReducer.ts` (26 linhas; removido em 28/10/2026) | Na auditoria inicial reduzia leitura no estado das notificações, embora nenhuma ação o despachasse. |
+| `types/notification.ts` | Define o evento de notificação, seus campos e o formato do estado pertencente ao domínio. |
 
 ### Achados e limites verificados
 
@@ -281,14 +281,14 @@ Foram inspecionados os cinco arquivos e as 239 linhas TypeScript/TSX do domínio
 4. **A linha não abre o conteúdo relacionado.** O clique em uma notificação somente chama `markNotificationRead`; não há navegação para o perfil/publicação/recurso indicado por `entityId`. O elemento é um `motion.div` com `onClick`, sem semântica de botão/link nem suporte de teclado.
 5. **O modelo de evento é mais restrito que o domínio social.** `Notification["type"]` aceita apenas `follow`, `like`, `comment`, `repost` e `mention`. Não representa pedidos/aceites do Círculo, mesmo que sejam eventos distintos no domínio social. A auditoria não define novos tipos nem decide quais eventos devem gerar notificação; isso precisa ser especificado antes do contrato de entrega.
 6. **Filtros e texto não cobrem necessariamente o mesmo conjunto.** “Reações” inclui apenas curtidas e reposts; comentários aparecem somente em “Todas”. A intenção dessa classificação não está formalizada. O texto para ator (`actorName`) é passado a `notifText` mas não é usado dentro da função.
-7. **Leitura duplicada em estado e armazenamento.** As ações públicas atualizam somente os IDs no armazenamento de atividade. O reducer declara `MARK_ALL_NOTIFICATIONS_READ` e `MARK_NOTIFICATION_READ`, mas a busca de referências não encontrou despacho dessas ações. O caminho visível atual usa `selectVisibleNotifications` com os IDs locais; os ramos do reducer não participam desse fluxo.
+7. **Leitura duplicada em estado e armazenamento — corrigida estruturalmente em 28/10/2026.** As ações públicas atualizavam os IDs em `AccountActivity`, enquanto um reducer alternativo alterava `Notification.isRead` sem nenhum despacho. O reducer sem consumidor foi removido; o seletor continua projetando `isRead` a partir dos IDs locais.
 8. **Bloqueios remotos não são aplicados pelo seletor de notificações.** O seletor recebe `blockedAccountIds` da projeção local de armazenamento, enquanto a lista de bloqueados do usuário autenticado é mantida separadamente no estado remoto. Como não há entrega remota de notificações implementada, não foi demonstrada exposição de uma notificação real; antes da integração, o filtro deve consumir estado autoritativo do servidor e atender à regra aprovada de bloqueio.
 
 ### Cobertura de testes
 
-O teste existente verifica estaticamente que o seletor contém um filtro para ator bloqueado e confirma que fixtures usam tipos aceitos por uma lista permitida mais ampla. Não foram encontrados testes de componente/E2E para carregamento, abas, clique/teclado, marcação de leitura, timer, estado após recarga, bloqueio remoto, navegação ao recurso ou endpoints. Nenhuma validação de entrega de e-mail/push foi feita nesta etapa.
+Na auditoria inicial, o teste verificava estaticamente o filtro por ator bloqueado e aceitava tipos por uma lista manual mais ampla. Em 28/10/2026, essa verificação do seletor foi substituída por testes de comportamento para destinatário, preview, leitura local, bloqueio de ator/recurso e idempotência das ações. Continuam ausentes testes de componente/E2E para carregamento, abas, clique/teclado, timer, estado após recarga, bloqueio remoto, navegação ao recurso ou endpoints. Nenhuma validação de entrega de e-mail/push foi feita.
 
-**Resultado da etapa:** a separação por tela, aplicação, estado e tipo é legível, mas reducer e persistência local duplicam conceitos de leitura sem o reducer ser usado pelo fluxo atual. O produto ainda não tem serviço remoto de notificações; o timer automático, a interação sem semântica acessível e a ausência de navegação são comportamentos/incompletudes registrados para correção posterior. Não alterei código, contratos ou regra de notificação.
+**Resultado atualizado em 28/10/2026:** a separação por tela, aplicação, estado e tipo permanece proporcional; o caminho morto de reducer foi removido sem alterar o fluxo de leitura, que continua local e em memória persistente do navegador. O produto ainda não tem serviço remoto de notificações. O timer automático, a interação sem semântica acessível, a ausência de navegação, os bloqueios remotos e a divergência de contrato seguem como pendências funcionais; não foram corrigidos nesta etapa estrutural.
 
 ## Auditoria estrutural do módulo `onboarding` — 27/10/2026
 

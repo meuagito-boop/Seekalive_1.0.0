@@ -13,6 +13,7 @@ try {
   const testEntries = [
     "Aplicativo/front/tests/content.test.ts",
     "Aplicativo/front/tests/messages.test.ts",
+    "Aplicativo/front/tests/notifications.test.ts",
     "Aplicativo/front/tests/contracts.test.ts",
     "Aplicativo/front/tests/profilePresentation.test.ts",
     "Aplicativo/front/tests/profileEdit.test.ts",

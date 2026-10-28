@@ -28,7 +28,6 @@ import {
 } from "../src/modules/social/domain/followRelationships";
 import {
   mockUsers,
-  mockNotifications,
   currentUser,
 } from "../src/data/mockData";
 import { formatCount, formatTimeAgo } from "../src/lib/formatters";
@@ -544,13 +543,6 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
     ),
     "utf8",
   );
-  const notificationSource = readFileSync(
-    join(
-      process.cwd(),
-      "Aplicativo/front/src/modules/notifications/application/selectVisibleNotifications.ts",
-    ),
-    "utf8",
-  );
   const messageSource = readFileSync(
     join(
       process.cwd(),
@@ -602,10 +594,6 @@ test("perfis bloqueados usam o visitante ativo e oferecem desbloqueio", () => {
   assert.match(
     relationshipSource,
     /followRequestIdsBetween\(state\.followRequests, viewer\.id, userId\)/,
-  );
-  assert.match(
-    notificationSource,
-    /blockedAccountIds\.has\(notification\.actorId\)/,
   );
   assert.match(
     messageSource,
@@ -785,20 +773,6 @@ test("Seek busca sem acentos e combina categoria, nota, status, distância e ord
     ["bar", "cafe", "sem"],
   );
   assert.equal(businesses[0].username, "cafe"); // Does not mutate the shared account list.
-});
-test("notificações contêm apenas recursos mantidos no aplicativo", () => {
-  const allowed = new Set([
-    "follow",
-    "circle_request",
-    "circle_accepted",
-    "like",
-    "comment",
-    "repost",
-    "mention",
-  ]);
-  assert.ok(
-    mockNotifications.every((notification) => allowed.has(notification.type)),
-  );
 });
 test("marca Elo usa Seekalive e o mesmo símbolo no app e favicon", () => {
   const root = join(process.cwd(), "Aplicativo/front");

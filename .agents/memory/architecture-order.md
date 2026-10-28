@@ -28,3 +28,11 @@ Casos de uso de um domínio não devem importar diretamente armazenamento local 
 **Why:** O envio de mensagens precisava consultar a preferência de Settings e a regra de seguimento mútuo de Social. A composição explícita reduz acoplamento sem copiar regras nem mudar o comportamento demonstrativo.
 
 **How to apply:** Ao integrar domínios, injetar leituras/decisões necessárias no caso de uso pelo provider/compositor; não tratar essa composição local como autoridade para sessões remotas nem como substituta de validação no backend.
+
+## Fonte da leitura de notificações no frontend
+
+Enquanto notificações forem apenas locais/demonstrativas, os IDs lidos devem ter uma única fonte no estado de atividade da conta; não manter um reducer paralelo que altera `Notification.isRead` se o seletor já projeta a leitura desses IDs.
+
+**Why:** O reducer anterior não era despachado e criava uma segunda representação de leitura sem efeito visível.
+
+**How to apply:** Preservar a leitura local existente durante a organização do frontend. Na futura integração remota, substituir a projeção local por um contrato autoritativo e testes, em vez de reintroduzir dois estados concorrentes.
