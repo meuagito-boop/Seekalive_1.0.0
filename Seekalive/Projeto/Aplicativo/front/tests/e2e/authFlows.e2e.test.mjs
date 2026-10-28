@@ -100,7 +100,11 @@ test("personal registration confirms e-mail before opening onboarding", async (t
   );
 
   for (let index = 0; index < 6; index += 1) {
-    await page.getByTestId(`input-otp-${index}`).fill(String(index + 1));
+    await page
+      .getByLabel(`Dígito ${index + 1} do código de confirmação por e-mail`, {
+        exact: true,
+      })
+      .fill(String(index + 1));
   }
   await page.getByTestId("button-verify").click();
   await page.waitForURL((url) => url.pathname === "/onboarding/interests");

@@ -187,6 +187,7 @@ export default function VerifyEmail() {
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 maxLength={1}
+                aria-label={`Dígito ${i + 1} do código de confirmação por e-mail`}
                 data-testid={`input-otp-${i}`}
                 className="w-11 h-14 text-center text-xl font-bold bg-card border-2 border-border rounded-xl text-foreground focus:border-primary focus:outline-none transition-colors"
               />
