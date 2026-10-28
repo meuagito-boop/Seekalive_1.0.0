@@ -93,11 +93,11 @@ Esta seção consolida achados abertos dos relatórios `00` a `05` e das etapas 
 
 ### 1. Estado físico do banco e divergência de migrações
 
-- **Status:** parcialmente verificado em 28/10/2026; banco de desenvolvimento confirmado por consulta somente de metadados, sem alteração do schema principal.
-- **Achado:** `current_database()` retornou `heliumdb`. Existem 12 tabelas em `accounts` (4), `profiles` (3), `security` (4) e `seek` (1); o schema `feed` existe, mas `feed.posts` não. O modelo Drizzle e a migration `0005_mushy_centennial.sql` definem essa tabela como a 13ª. `0004` e os schemas reservados estão presentes fisicamente; a comparação completa de constraints/índices com os snapshots e o histórico de aplicação ainda não foi concluída.
-- **Por que permanece:** `drizzle-kit check` valida arquivos locais, não o banco. A consulta aos metadados não encontrou tabela com nome contendo `drizzle` ou `migration`, portanto não há evidência física suficiente para marcar a aplicação de cada migration por journal.
-- **Próxima ação:** concluir o diff read-only; apresentar a `0005` (tabela, constraints, FK e índices), o impacto de acrescentar `feed.posts` e o rollback — que apagaria quaisquer publicações gravadas — e obter aprovação explícita antes de sincronizar o schema principal de desenvolvimento.
-- **Critério de encerramento:** as 13 tabelas e seus detalhes relevantes estão comparados com Drizzle/migrations; o estado físico, os arquivos-fonte e o dicionário registram o mesmo resultado, com a migration aplicada somente após aprovação.
+- **Status:** comparação read-only concluída em 28/10/2026; banco de desenvolvimento confirmado; schema principal permanece inalterado.
+- **Achado:** `current_database()` retornou `heliumdb`. Existem 12 tabelas em `accounts` (4), `profiles` (3), `security` (4) e `seek` (1); o schema `feed` existe, mas `feed.posts` não. A exportação Drizzle foi comparada com as colunas, tipos/tamanhos, nulabilidade, defaults, constraints, FKs e índices físicos das 12 tabelas; não foi encontrada outra divergência. A ordem física das colunas de `accounts.accounts` difere por alterações aditivas anteriores, sem diferença de atributos. `0005_mushy_centennial.sql` cria a tabela ausente, com constraints, FK e índices.
+- **Por que permanece:** `drizzle-kit check` valida os arquivos locais, não o banco. Não foi identificada tabela de histórico de migrations por nome nos metadados consultados. `drizzle-kit push` não tem `--dry-run`, portanto a alteração não será executada como método de inspeção.
+- **Próxima ação:** obter aprovação explícita para adicionar `feed.posts` somente no banco de desenvolvimento. Impacto: cria uma tabela vazia e não modifica as 12 existentes. Rollback: remover `feed.posts`; após publicações serem gravadas, esse rollback apagaria todo o conteúdo da tabela.
+- **Critério de encerramento:** a tabela é criada somente após aprovação; a estrutura física é consultada novamente, o teste de integração isolado continua passando e o relatório registra o resultado sem inferir um histórico de migrations inexistente.
 
 ### 2. Testes de integração com persistência isolada
 

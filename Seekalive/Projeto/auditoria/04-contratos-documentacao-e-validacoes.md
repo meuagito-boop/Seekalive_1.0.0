@@ -84,7 +84,7 @@ Na fonte examinada, os 55 erros de aplicação têm 55 números distintos e os 1
 - As tabelas do código Drizzle totalizam 13, se incluída `feed.posts`.
 - Sem Feed, as quatro áreas atuais de tabelas totalizam 12.
 - O dicionário de dados diz 12 tabelas mas lista 11 e omite `account_username_reservations`.
-- Consulta read-only em `development` confirmou o banco `heliumdb` com 12 tabelas físicas em quatro schemas; `feed` existe, mas `feed.posts` não. As 12 tabelas existentes correspondem aos nomes até `0004`; a tabela acrescentada por `0005` está ausente. A comparação de constraints/índices e a aplicação histórica ainda não foram encerradas.
+- Consulta read-only em `development` confirmou o banco `heliumdb` com 12 tabelas físicas em quatro schemas; `feed` existe, mas `feed.posts` não. DDL exportado e metadados físicos das 12 tabelas existentes correspondem em colunas, constraints, FKs e índices. A ordem física das colunas de `accounts.accounts` é diferente, sem divergência de atributos. A tabela acrescentada por `0005` é a única diferença física identificada; não há tabela de histórico de migrations identificada no catálogo consultado.
 
 ### 5. Inventários do front
 
@@ -117,6 +117,8 @@ Os comandos acima testam o estado compilável e os testes já definidos. Não su
 - `executeSql` no ambiente `development` confirmou `current_database() = heliumdb`; não foram lidos registros de conta, e-mail ou publicação.
 - Os schemas `accounts`, `profiles`, `security` e `seek` têm 12 tabelas físicas; `feed` está criado, porém `feed.posts` não existe. Os demais schemas reservados também aparecem no catálogo, sem tabela de aplicação nesta leitura.
 - A consulta a `information_schema.columns` não encontrou tabela cujo nome contenha `drizzle` ou `migration`; isso não permite declarar o histórico de aplicação de cada arquivo. A ausência física de `feed.posts` é evidência direta de que a tabela de `0005` não está aplicada.
+- A exportação `drizzle-kit export` (sem conexão ou escrita) foi comparada com o catálogo de `heliumdb`: nas 12 tabelas existentes, colunas, tipos/tamanhos, defaults, nulabilidade, chaves, checks e índices correspondem. A única diferença de objeto modelado é a tabela `feed.posts`.
+- O CLI `drizzle-kit push --help` não oferece opção `--dry-run`; por isso, nenhum `push` no schema principal foi usado apenas para inspecionar diferenças. Qualquer sincronização continuará condicionada à aprovação da mudança exata.
 - `pnpm --filter @workspace/db run check` passou, validando consistência local do journal/arquivos, não o banco físico.
 - `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db` passou 5/5. A suíte confirmou o nome do banco, escreveu apenas no schema temporário, verificou que `public` manteve o mesmo fingerprint e apagou o schema ao final. O e-mail foi capturado por adaptador em memória.
 - O teste é de API+DB e não de frontend: as jornadas Playwright do navegador continuam interceptando a API. O schema principal não foi alterado.
