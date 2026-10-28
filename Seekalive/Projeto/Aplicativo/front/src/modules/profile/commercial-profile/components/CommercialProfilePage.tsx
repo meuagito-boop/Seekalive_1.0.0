@@ -27,6 +27,7 @@ import { CommercialProfileContent } from "@/modules/profile/commercial-profile/c
 import { CommercialProfileInformation } from "@/modules/profile/commercial-profile/components/CommercialProfileInformation";
 import { CommercialProfileMedia } from "@/modules/profile/commercial-profile/components/CommercialProfileMedia";
 import { CommercialProfileReviews } from "@/modules/profile/commercial-profile/components/CommercialProfileReviews";
+import { ProfileSocialStats } from "@/modules/profile/components/ProfileSocialStats";
 
 const savedBusinessStorageKey = "seekalive-saved-businesses";
 const profileTabs = ["Publicações", "Informações", "Avaliações", "Mídias", "Artigos"] as const;
@@ -50,9 +51,11 @@ function mapsUrl(address: string) {
 }
 
 export function CommercialProfilePage({
+  circleCount,
   user,
   isMe,
 }: {
+  circleCount: number;
   user: User;
   isMe: boolean;
 }) {
@@ -262,6 +265,18 @@ export function CommercialProfilePage({
             <span className="font-semibold">{commercial.category}</span>
             {commercial.priceLevel && <span className="text-muted-foreground">· {priceLabel(commercial.priceLevel)}</span>}
             <span className="min-w-0 break-words text-muted-foreground">· {commercial.address}</span>
+          </div>
+          {user.bio.trim() && (
+            <p className="mt-3 max-w-3xl whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
+              {user.bio}
+            </p>
+          )}
+          <div className="mt-3">
+            <ProfileSocialStats
+              circleCount={circleCount}
+              isMe={isMe}
+              profile={user}
+            />
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
             {commercial.isOpen !== undefined && (

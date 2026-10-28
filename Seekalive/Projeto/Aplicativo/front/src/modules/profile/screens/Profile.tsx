@@ -213,7 +213,13 @@ export default function Profile() {
   }
 
   if (user.accountType === "commercial" && user.commercialProfile) {
-    return <CommercialProfilePage user={user} isMe={isMe} />;
+    return (
+      <CommercialProfilePage
+        circleCount={circleCount}
+        user={user}
+        isMe={isMe}
+      />
+    );
   }
 
   return (
