@@ -50,13 +50,41 @@ Os schemas/tabelas Drizzle estão em `infra/database/src/schema/`:
 - `0004_noisy_gargoyle.sql` registra schemas futuros ainda sem tabelas.
 - `0005_mushy_centennial.sql` cria `feed.posts` (13ª tabela no modelo).
 
-O `drizzle-kit check` passou sobre a consistência do histórico local; isso não confirma aplicação física. Em consulta somente de metadados no ambiente `development`, `current_database()` retornou `heliumdb`. Os schemas de domínio `accounts`, `profiles`, `security` e `seek` contêm 12 tabelas no total; o schema `feed` existe, mas não contém tabela. A lista física contém os 12 nomes esperados até `0004`, e `feed.posts` está ausente. Não foi encontrada tabela de histórico com nome contendo `drizzle` ou `migration` nos metadados consultados; não é possível inferir um registro histórico de aplicação por esse caminho.
+O `drizzle-kit check` passou sobre a consistência do journal/arquivos locais; isso não confirma aplicação física. Em consulta somente de metadados no ambiente `development`, `current_database()` retornou `heliumdb`. Existem os 12 schemas lógicos de domínio e `public`; `public` não contém tabelas base. Os schemas de domínio `accounts`, `profiles`, `security` e `seek` contêm 12 tabelas no total; o schema `feed` existe, mas não contém tabela. A lista física contém os 12 nomes esperados até `0004`, e `feed.posts` está ausente. Não foi encontrada tabela de histórico com nome contendo `drizzle` ou `migration`; não é possível inferir um registro histórico de aplicação por esse caminho. O script de pós-merge usa `drizzle-kit push` no desenvolvimento; isso descreve o mecanismo configurado, não a origem histórica de cada objeto físico.
 
 **Reconciliação física concluída por metadados:** a exportação read-only do DDL Drizzle foi confrontada com as colunas (tipos, tamanhos, nulabilidade e defaults), constraints, chaves estrangeiras e índices do banco para as 12 tabelas existentes; não foi encontrada divergência nesses objetos. A ordem física das colunas em `accounts.accounts` difere da ordem do DDL atual por alterações aditivas anteriores, mas os atributos correspondem pelo nome e não exigem reordenação. A única diferença estrutural identificada é `feed.posts`, definido em `0005` e ausente no banco. A consulta não encontrou tabela de histórico com nome contendo `drizzle` ou `migration`, portanto o registro histórico de aplicação continua indisponível por esse caminho. Nenhuma migration foi aplicada ao schema principal nesta etapa.
 
+### Matriz de reconciliação — modelo, journal e estado físico
+
+O journal contém as seis entradas `0000`–`0005`. A coluna de migrations abaixo indica somente quais arquivos declaram/criam objetos do domínio; **não** afirma que tais arquivos foram aplicados. A consulta ao banco confirma presença física por nome de tabela e, para as 12 tabelas existentes, compara colunas, atributos, constraints, FKs e índices com o modelo Drizzle.
+
+| Schema de domínio | Tabelas no modelo Drizzle | Migrations que declaram os objetos | Tabelas físicas em `heliumdb` | Resultado read-only |
+|---|---:|---|---:|---|
+| `accounts` | 4 | `0000`–`0003` | 4 | Correspondência física das quatro tabelas. |
+| `security` | 4 | `0000`, `0002`–`0003` | 4 | Correspondência física das quatro tabelas. |
+| `profiles` | 3 | `0000`, `0003` | 3 | Correspondência física das três tabelas. |
+| `seek` | 1 | `0000`, `0003` | 1 | Correspondência física da tabela `business_profiles`. |
+| `feed` | 1 | `0004` cria o schema; `0005` cria `posts` | 0 | Divergência: `feed.posts` existe no modelo e migration, não no banco. |
+| `location` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
+| `media` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
+| `messages` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
+| `notifications` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
+| `search` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
+| `shop` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
+| `trust_safety` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
+
+`account_username_reservations` está entre as quatro tabelas físicas de `accounts`; `feed.posts` é a 13ª tabela modelada e a única diferença física identificada. A lista física foi consultada sem ler registros das tabelas. O ambiente de produção não foi consultado.
+
+### Validação isolada de `0005_mushy_centennial.sql`
+
+- A migration versionada foi carregada do arquivo e executada em uma transação no banco `development`, usando um schema temporário aleatório. Para manter o teste isolado, somente os qualificadores `feed` e a referência `accounts.accounts` foram redirecionados ao namespace temporário; os comandos e constraints da tabela foram preservados.
+- A fixture criou uma tabela `accounts` mínima no mesmo namespace, inseriu casos válidos de texto e artigo e comprovou rejeição de audiência inválida, formato inválido, texto vazio, artigo incompleto, versão não positiva e autor inexistente. A migration criou a PK e os dois índices esperados.
+- O script encerrou com `ROLLBACK`. A consulta posterior confirmou zero schemas de teste remanescentes, 12 tabelas principais, zero tabelas em `public` e ausência de `feed.posts`. Nenhuma linha de usuário foi consultada ou alterada.
+- **Limite:** isso valida o DDL de `0005` e seus invariantes em isolamento; não aplica migrations ao schema principal, não comprova aplicação histórica de `0000`–`0004` e não substitui a integração funcional do Feed.
+
 ### Divergência de dicionário
 
-`docs/api/backend/data-dictionary.md` apresenta a alegação de 12 tabelas, mas a relação nela exibida omite `account_username_reservations`. O documento não inclui `feed.posts` como tabela ativa, coerente com seu status descrito como migration pendente, mas não deve ser usado como lista integral do modelo fonte. Corrigir o dicionário exige distinguir:
+`docs/api/backend/data-dictionary.md` apresentava a alegação de 12 tabelas, mas a relação nela exibida omitia `account_username_reservations`. Também misturava o modelo Drizzle atual com entidades futuras de `schema-core.sql` e afirmava estados físicos sem separar o journal do banco. A atualização documental agora distingue:
 
 1. tabelas modeladas no código;
 2. tabelas criadas pelas migrations versionadas;

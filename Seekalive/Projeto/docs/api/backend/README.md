@@ -1,8 +1,8 @@
 # Seekalive — documentação do aplicativo e especificação do backend
 
-**Atualizado:** 25/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
+**Atualizado:** 28/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
 
-> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. O PostgreSQL gerenciado da Replit está ativo em desenvolvimento: os 12 schemas lógicos foram criados; 12 tabelas ocupam `accounts`, `security`, `profiles` e `seek`, e os outros oito schemas permanecem vazios. A migração preservou as tabelas existentes e criou as estruturas que faltavam; todos os registros continuam vazios. Produção não foi consultada, alterada ou publicada. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. Publicações, mídias, avaliações, mensagens e outros domínios ainda precisam de implementação.
+> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. Em consulta read-only de metadados, o PostgreSQL de desenvolvimento `heliumdb` apresentou 12 schemas lógicos de domínio e `public`; há 12 tabelas físicas em `accounts`, `security`, `profiles` e `seek`. O modelo Drizzle declara 13 tabelas, incluindo `feed.posts`, que está ausente fisicamente. O journal local contém seis migrations; não foi localizada tabela de histórico com nome contendo `drizzle` ou `migration`, portanto não se afirma quais migrations foram aplicadas. O pós-merge usa `drizzle-kit push` em desenvolvimento. Nenhuma linha de usuário foi consultada e produção não foi consultada, alterada ou publicada nesta verificação. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. O Feed tem operações iniciais de texto/artigo no código, mas sua tabela ainda não existe no banco; interações completas, mídias, avaliações, mensagens e outros domínios ainda precisam de implementação.
 
 ## Como utilizar este pacote
 
@@ -11,11 +11,11 @@
 3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
 4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
 5. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
-6. Revisar `data-dictionary.md`, as migrations em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o schema Drizzle aplicado no desenvolvimento, o histórico versionado e o modelo relacional futuro. **Não executar SQL sem revisar o alvo; não usar o migrador no banco atual de desenvolvimento, que é sincronizado pelo `push`.**
+6. Revisar `data-dictionary.md`, as migrations em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o modelo Drizzle, o journal local, a presença física no banco e o modelo futuro. O `drizzle-kit check` valida somente os arquivos locais; não prova aplicação. **Não executar `push`, `migrate` ou DDL no banco principal sem apresentar antes o diff, impacto, recuperação e obter aprovação explícita para a alteração específica.**
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, OpenAPI, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regere os contratos e o HTML depois de alterar as fontes e mantenha o ZIP sincronizado com as migrations atuais. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
+O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, o mapa de domínios de dados, OpenAPI, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere o HTML depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
 
 ## 1. Produto
 
@@ -43,7 +43,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Login | API própria com Argon2id, CSRF, e-mail confirmado e versão de política; contas legadas precisam validar ou atualizar a senha antes de receber sessão |
 | Regra de senha | 8–128 caracteres, ao menos uma maiúscula, uma minúscula, um número e um caractere especial; credenciais legadas são migradas no login sem tentar inferir o conteúdo do hash |
 | Cadastro | Rota de cadastro/verificação implementada; o teste direto de envio Resend foi recebido em desenvolvimento. O fluxo completo ainda requer validação E2E; nenhuma conta sem confirmação recebe sessão |
-| Recuperação/verificação | Confirmação de e-mail e atualização autenticada de senha têm rotas; recuperação de senha esquecida ainda não está implementada |
+| Recuperação/verificação | Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria |
 | Publicações/comentários | `contentService` seleciona `demoContentAdapter`; existe adaptador REST proposto, mas desativado |
 | Fotos/vídeos | `URL.createObjectURL`, memória e URLs `blob:`. Não são uploads e deixam de funcionar após recarga |
 | Contas/avaliações | Dados de exemplo e registros no `localStorage`; não são dados compartilhados entre dispositivos |
@@ -127,5 +127,5 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 - Links oficiais das integrações estão em `external-services-and-operations.md`.
 - URL pública definitiva do app/API: **não definida por esta auditoria**. Não inferir domínio de produção a partir do endereço de desenvolvimento.
 - Base proposta de mesma origem: `/api/v1`; liveness: `/api/healthz`; readiness do banco: `/api/readyz`.
-- O PostgreSQL gerenciado usa `drizzle-kit push` apenas no desenvolvimento pelo pós-merge; mudanças de produção seguem o fluxo oficial de publicação da Replit. Não usar `push-force` nem DDL no startup.
+- O PostgreSQL gerenciado usa `drizzle-kit push` apenas no desenvolvimento pelo pós-merge; mudanças de produção seguem o fluxo oficial de publicação da Replit. O journal `0000`–`0005` não comprova aplicação física e não foi encontrada tabela de histórico por nome contendo `drizzle` ou `migration`. Não usar `push-force` nem DDL no startup.
 - Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.

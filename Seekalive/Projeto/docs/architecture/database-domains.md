@@ -1,8 +1,8 @@
 # Domínios de dados do Seekalive
 
 **Status:** arquitetura aprovada para PostgreSQL gerenciado da Replit; separação lógica em schemas por domínio.
-**Atualizada:** 25/10/2026.
-**Ambiente observado:** desenvolvimento. A instância Replit contém os 12 schemas lógicos aprovados; quatro (`accounts`, `security`, `profiles` e `seek`) têm tabelas, totalizando 12. As tabelas estavam vazias antes da movimentação e continuam sem registros; os outros oito schemas estão preparados e vazios. Nenhum schema temporário de teste permanece. Produção não foi consultada nem alterada.
+**Atualizada:** 28/10/2026.
+**Ambiente observado:** desenvolvimento, consulta somente de metadados. A instância contém os 12 schemas lógicos de domínio e `public`; quatro (`accounts`, `security`, `profiles` e `seek`) têm 12 tabelas físicas. `feed` existe, mas está vazio; o código Drizzle e a migration `0005` declaram `feed.posts`, ausente no banco. Os outros sete schemas de domínio não relacionados a Feed também estão sem tabelas. `public` não contém tabelas base e nenhum schema temporário foi encontrado. Nenhuma linha de usuário foi consultada; produção não foi consultada nem alterada.
 
 ## Objetivo e limites
 
@@ -10,7 +10,7 @@ Este documento define a propriedade dos dados no PostgreSQL gerenciado da Replit
 
 A arquitetura reconhece doze domínios: Contas, Segurança, Perfis/Relações, Mídias, Feed, Mensagens, Notificações, Pesquisa, Seek, Localização, Shop e Confiança e Segurança de Conteúdo. Shop começa pelo catálogo; Confiança e Segurança começa por denúncias e ações de moderação. Cada domínio já tem seu schema PostgreSQL lógico; tabelas e operações serão acrescentadas quando a respectiva fatia do backend for implementada. Isso não inclui automaticamente pedidos, pagamentos, estoque ou logs gerais.
 
-O schema Drizzle é a fonte de verdade. Os 12 schemas estão declarados no código e criados no banco de desenvolvimento; `accounts`, `security`, `profiles` e `seek` já contêm as 12 tabelas atuais. Os outros oito estão vazios e reservados para as etapas seguintes. `docs/api/backend/schema-core.sql` continua uma proposta e não pode ser executada como está.
+O schema Drizzle é a fonte de verdade do modelo atual: declara 13 tabelas em cinco schemas com tabelas. Os 12 schemas de domínio foram confirmados no banco de desenvolvimento; `accounts`, `security`, `profiles` e `seek` contêm 12 tabelas físicas, enquanto `feed` está vazio apesar de `feed.posts` existir no modelo e na migration `0005`. Os sete outros schemas estão vazios e reservados para etapas futuras. O journal local contém seis migrations, mas não foi encontrada tabela de histórico com nome contendo `drizzle` ou `migration`; `drizzle-kit check` valida os arquivos locais, não sua aplicação física. `docs/api/backend/schema-core.sql` continua uma proposta e não pode ser executada como está.
 
 ## Regras de arquitetura propostas
 
@@ -101,6 +101,7 @@ flowchart LR
 |---|---|---|
 | `accounts` | `accounts` | Identidade, username, tipo/status, idade/termos privados e onboarding. A tabela ainda mantém alguns campos de perfil e preferências legados; não são duplicados. A separação desses campos será feita junto às APIs de Perfil e Mensagens, com migração compatível. `is_verified` não é selo público. |
 | `account_emails` | `accounts` | E-mail e confirmação privados; API valida o desafio de Segurança antes de atualizar. |
+| `account_username_reservations` | `accounts` | Reserva temporária do @ liberado, com prazo de expiração. |
 | `password_credentials` | `security` | Hash Argon2id e versão da política; nenhuma senha em claro ou cópia em Contas. |
 | `auth_challenges` | `security` | Desafios de uso único, finalidade, tentativas, expiração e consumo. |
 | `sessions` | `security` | Sessões/CSRF revogáveis; FK para Contas dentro da mesma instância PostgreSQL. |
@@ -167,6 +168,6 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL. A distribuição pre
 - Schemas separam ownership, mas ainda compartilham instância e credencial PostgreSQL. Separação física/roles independentes só deve ser considerada com necessidade operacional demonstrada e migração planejada.
 - Testar cada domínio em isolamento lógico: criação limpa, falha de conexão, autorização, operações parciais/idempotentes, exportação, backup/restauração e migração reversível. PostGIS requer testar SRID, validação, `geography(Point,4326)` ou alternativa justificada, GiST e plano de consulta.
 
-**Conclusão:** os 12 schemas de domínio foram preparados no PostgreSQL de desenvolvimento. Contas, Segurança, Perfis/Relações e Seek têm tabelas; os outros oito schemas permanecem vazios. Os dados existentes foram preservados e as tabelas estavam vazias antes da movimentação. Todas as áreas continuam na mesma instância gerenciada por ambiente, sem isolamento físico ou credenciais por domínio; produção não foi alterada nem publicada. Cada conta comercial mantém no máximo um endereço principal e o Seek não inclui áreas de atendimento.
+**Conclusão:** a consulta de metadados confirmou os 12 schemas de domínio no PostgreSQL de desenvolvimento: Contas, Segurança, Perfis/Relações e Seek têm 12 tabelas físicas; Feed e os outros sete domínios preparados não têm tabelas. `public` não contém tabelas base. A consulta atual não leu dados das tabelas, portanto não declara se há registros. Todas as áreas continuam na mesma instância gerenciada por ambiente, sem isolamento físico ou credenciais por domínio; produção não foi consultada nem alterada. Cada conta comercial mantém no máximo um endereço principal e o Seek não inclui áreas de atendimento.
 
-**Atualização Feed — 25/10/2026:** o schema Drizzle `feed.posts` e a migração `0005_mushy_centennial.sql` foram gerados, mas a migração não foi aplicada nem verificada no banco principal nesta etapa. A tabela Feed não deve ser considerada disponível no banco até que o destino de desenvolvimento seja confirmado e a migração executada.
+**Atualização Feed — 28/10/2026:** o schema Drizzle `feed.posts` e a migration `0005_mushy_centennial.sql` estão no código e no journal local. A consulta read-only ao banco principal de desenvolvimento confirmou que a tabela não está fisicamente presente. O `drizzle-kit check` local passou, mas não demonstra aplicação; não foi identificada tabela de histórico de migrations. Não foi executado `push`, `migrate` ou DDL nesta revisão. A eventual criação da tabela continua sujeita a diff, impacto, recuperação e aprovação específica.
