@@ -50,7 +50,9 @@ Os schemas/tabelas Drizzle estão em `infra/database/src/schema/`:
 - `0004_noisy_gargoyle.sql` registra schemas futuros ainda sem tabelas.
 - `0005_mushy_centennial.sql` cria `feed.posts` (13ª tabela no modelo).
 
-O `drizzle-kit check` passou sobre a consistência do histórico local. Isso valida os arquivos de migration entre si, não confirma quais migrations foram aplicadas no banco. A documentação afirma que a migration `0005` está pendente; o banco de desenvolvimento não foi consultado nesta execução, logo o estado físico permanece **não verificado**.
+O `drizzle-kit check` passou sobre a consistência do histórico local; isso não confirma aplicação física. Em consulta somente de metadados no ambiente `development`, `current_database()` retornou `heliumdb`. Os schemas de domínio `accounts`, `profiles`, `security` e `seek` contêm 12 tabelas no total; o schema `feed` existe, mas não contém tabela. A lista física contém os 12 nomes esperados até `0004`, e `feed.posts` está ausente. Não foi encontrada tabela de histórico com nome contendo `drizzle` ou `migration` nos metadados consultados; não é possível inferir um registro histórico de aplicação por esse caminho.
+
+**Comparação ainda parcial:** as colunas, restrições e índices das 12 tabelas foram consultados, mas não foi concluída uma comparação automatizada completa com cada snapshot Drizzle. A consulta confirma a falta de `feed.posts`, não prova que toda definição existente coincide em cada detalhe. Nenhuma migration foi aplicada ao schema principal nesta etapa.
 
 ### Divergência de dicionário
 
@@ -165,6 +167,6 @@ O pacote de banco tem schemas reservados para esses domínios, mas schema reserv
 
 Na validação da unidade Onboarding, `pnpm test` passou em 100 casos, o typecheck completo e o build da API passaram. Testes de fronteira protegem Auth, Feed e Onboarding contra acesso direto à persistência nas camadas que não a possuem; Health também mantém a consulta fora da apresentação. A suíte de runtime observou `/api/healthz` e `/api/readyz` responderem 200 neste ambiente; o teste isolado de Health também cobre a resposta 503 sem necessidade de banco.
 
-O teste que cria schema temporário exige `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1`, `SEEKALIVE_EXPECTED_DATABASE` e `DATABASE_URL`; na validação Auth ele parou antes da conexão porque as variáveis explícitas de destino estavam ausentes. Nenhuma tabela foi criada/modificada e nenhuma migração foi aplicada.
+Em 28/10/2026, a suíte foi executada com `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1` e o nome de destino previamente confirmado `heliumdb`. Resultado: 5/5; criou um schema `seekalive_test_<UUID>`, executou a API real contra tabelas temporárias, capturou os e-mails em memória, removeu o schema no `after` e preservou o fingerprint do schema `public`. Uma consulta posterior confirmou zero schemas temporários e os mesmos 12 objetos de tabela nos quatro schemas de aplicação. `RESEND_API_KEY` foi removida no processo do teste; nenhuma mensagem real foi enviada.
 
-O arquivo `Aplicativo/back/test/api-isolated-db.test.mjs` é muito maior do que os demais testes (1.933 linhas) e concentra testes isolados de várias partes; há oportunidade de dividir por contrato/domínio sem alterar o comportamento, mas não foi dividido nesta auditoria.
+O arquivo `Aplicativo/back/test/api-isolated-db.test.mjs` tem 2.640 linhas e cinco cenários grandes que cruzam Auth, Accounts, Onboarding e Social. A execução prova os fluxos API+DB incluídos, não a integração do frontend; a suíte não faz parte de `pnpm test` e requer o comando explícito `test:api-isolated-db`. O tamanho e a concentração de cenários continuam como oportunidade de modularização: devem ser avaliados sem quebrar a fixture compartilhada nem alterar o comportamento dos testes.

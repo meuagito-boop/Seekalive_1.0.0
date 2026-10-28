@@ -84,7 +84,7 @@ Na fonte examinada, os 55 erros de aplicação têm 55 números distintos e os 1
 - As tabelas do código Drizzle totalizam 13, se incluída `feed.posts`.
 - Sem Feed, as quatro áreas atuais de tabelas totalizam 12.
 - O dicionário de dados diz 12 tabelas mas lista 11 e omite `account_username_reservations`.
-- Documentos datados afirmam que o DB de desenvolvimento tem 12 tabelas; o estado físico não foi consultado nesta auditoria.
+- Consulta read-only em `development` confirmou o banco `heliumdb` com 12 tabelas físicas em quatro schemas; `feed` existe, mas `feed.posts` não. As 12 tabelas existentes correspondem aos nomes até `0004`; a tabela acrescentada por `0005` está ausente. A comparação de constraints/índices e a aplicação histórica ainda não foram encerradas.
 
 ### 5. Inventários do front
 
@@ -107,7 +107,16 @@ Na fonte examinada, os 55 erros de aplicação têm 55 números distintos e os 1
 | `pnpm run typecheck` | Passou nos pacotes do workspace. |
 | `pnpm --filter @workspace/db run check` | Passou na consistência do histórico de migrations Drizzle local. |
 | `pnpm run build` | Passou; build de API, front e mockup sandbox concluído. Build API: `dist/index.mjs` 273,6 KB e sourcemap 517,2 KB. Vite principal produziu o bundle e o script examinou 96 chunks JS. |
-| Teste de banco isolado | Não executado por falta de `SEEKALIVE_EXPECTED_DATABASE`; guardrail mantido. |
+| Teste de banco isolado | Em 28/10/2026, passou 5/5 no banco de desenvolvimento `heliumdb` com schema temporário aleatório; removido ao final. O teste usa API real, e-mail em memória e não chama Resend. |
 | Git status após build | Nenhuma modificação rastreada; artefatos foram ignorados pela configuração existente. |
 
 Os comandos acima testam o estado compilável e os testes já definidos. Não substituem E2E, exame visual de todas as telas, validação de migrations aplicadas, auditoria independente de segurança ou confirmação de produção.
+
+### Verificação somente de leitura e teste isolado — 28/10/2026
+
+- `executeSql` no ambiente `development` confirmou `current_database() = heliumdb`; não foram lidos registros de conta, e-mail ou publicação.
+- Os schemas `accounts`, `profiles`, `security` e `seek` têm 12 tabelas físicas; `feed` está criado, porém `feed.posts` não existe. Os demais schemas reservados também aparecem no catálogo, sem tabela de aplicação nesta leitura.
+- A consulta a `information_schema.columns` não encontrou tabela cujo nome contenha `drizzle` ou `migration`; isso não permite declarar o histórico de aplicação de cada arquivo. A ausência física de `feed.posts` é evidência direta de que a tabela de `0005` não está aplicada.
+- `pnpm --filter @workspace/db run check` passou, validando consistência local do journal/arquivos, não o banco físico.
+- `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db` passou 5/5. A suíte confirmou o nome do banco, escreveu apenas no schema temporário, verificou que `public` manteve o mesmo fingerprint e apagou o schema ao final. O e-mail foi capturado por adaptador em memória.
+- O teste é de API+DB e não de frontend: as jornadas Playwright do navegador continuam interceptando a API. O schema principal não foi alterado.

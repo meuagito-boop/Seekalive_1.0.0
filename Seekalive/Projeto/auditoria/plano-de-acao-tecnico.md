@@ -93,19 +93,19 @@ Esta seção consolida achados abertos dos relatórios `00` a `05` e das etapas 
 
 ### 1. Estado físico do banco e divergência de migrações
 
-- **Status:** aberto e não verificado no banco de desenvolvimento.
-- **Achado:** o schema Drizzle e as migrations descrevem 13 tabelas, incluindo `feed.posts`; documentos anteriores afirmam 12, o dicionário lista 11 e omite `account_username_reservations`, e a aplicação da migration `0005` não foi confirmada.
-- **Por que permanece:** `drizzle-kit check` valida consistência dos arquivos locais, não o estado físico do banco. Nenhuma leitura do banco foi feita nesta auditoria.
-- **Próxima ação:** obter evidência explícita do destino de desenvolvimento, consultar estado de migrations/tabelas em modo somente leitura e reconciliar schema fonte, journal, estado físico e dicionário. Apresentar diff, impacto e recuperação antes de qualquer migration no banco principal.
-- **Critério de encerramento:** estado de cada migration e tabela registrado separadamente como modelado, migrado e aplicado; dicionário corrigido e compatível com as evidências.
+- **Status:** parcialmente verificado em 28/10/2026; banco de desenvolvimento confirmado por consulta somente de metadados, sem alteração do schema principal.
+- **Achado:** `current_database()` retornou `heliumdb`. Existem 12 tabelas em `accounts` (4), `profiles` (3), `security` (4) e `seek` (1); o schema `feed` existe, mas `feed.posts` não. O modelo Drizzle e a migration `0005_mushy_centennial.sql` definem essa tabela como a 13ª. `0004` e os schemas reservados estão presentes fisicamente; a comparação completa de constraints/índices com os snapshots e o histórico de aplicação ainda não foi concluída.
+- **Por que permanece:** `drizzle-kit check` valida arquivos locais, não o banco. A consulta aos metadados não encontrou tabela com nome contendo `drizzle` ou `migration`, portanto não há evidência física suficiente para marcar a aplicação de cada migration por journal.
+- **Próxima ação:** concluir o diff read-only; apresentar a `0005` (tabela, constraints, FK e índices), o impacto de acrescentar `feed.posts` e o rollback — que apagaria quaisquer publicações gravadas — e obter aprovação explícita antes de sincronizar o schema principal de desenvolvimento.
+- **Critério de encerramento:** as 13 tabelas e seus detalhes relevantes estão comparados com Drizzle/migrations; o estado físico, os arquivos-fonte e o dicionário registram o mesmo resultado, com a migration aplicada somente após aprovação.
 
 ### 2. Testes de integração com persistência isolada
 
-- **Status:** a execução anterior do teste isolado cobriu Auth, cadastro/conta e Onboarding; Feed e Profiles continuam sem verificação SQL própria. A repetição após a refatoração Onboarding não ocorreu nesta etapa.
-- **Achado:** `api-isolated-db.test.mjs` contém cinco cenários e um deles persiste onboarding, privacidade, Círculo e bloqueio em schema temporário. A execução anterior passou em 5/5, removeu o schema de teste e confirmou `public` inalterado. Nesta etapa, após habilitar a autorização temporária, o teste parou no guard antes da conexão porque `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE` não estão configuradas.
-- **Por que permanece:** a persistência Onboarding precisa ser revalidada após a alteração de composição; Accounts é coberto apenas nos fluxos incluídos no teste existente, e Feed/Profiles não têm validação SQL específica. A última tentativa não conectou nem alterou o banco.
-- **Próxima ação:** quando as variáveis de confirmação estiverem configuradas, repetir a suíte isolada para Onboarding; ampliar testes SQL isolados para Feed e Profiles e registrar claramente a cobertura parcial de Accounts.
-- **Critério de encerramento:** os cenários pertinentes de persistência de cada domínio passam no schema temporário; o destino é confirmado como desenvolvimento; o schema é removido e nenhuma tabela/dado fora dele é alterado.
+- **Status:** Auth/API+DB revalidado em 28/10/2026; integração do navegador e entrega real de e-mail continuam sem comprovação.
+- **Achado:** a execução `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db` passou em 5/5 no banco de desenvolvimento confirmado. O harness exige `NODE_ENV` não publicado, fixa um schema aleatório para todas as tabelas, valida o nome do banco, compara o fingerprint de `public`, substitui Resend por coleta em memória e remove o schema no `after`. Uma consulta posterior encontrou zero schemas temporários. O teste exercita API real e persistência isolada para os fluxos incluídos, mas não usa o frontend; Feed permanece limitado pela ausência física de `feed.posts`, e Feed/Profiles ainda precisam de validação própria de persistência.
+- **Por que permanece:** as jornadas Playwright atuais interceptam a API; o teste de banco não prova o fluxo de interface nem a entrega real do provedor. `api-isolated-db.test.mjs` tem 2.640 linhas e cinco cenários grandes que cruzam vários domínios, exigindo revisão de modularidade sem alterar as fixtures compartilhadas.
+- **Próxima ação:** após reconciliar/aprovar o schema do Feed, ligar uma jornada de navegador à API local e ao banco temporário com e-mail coletado; avaliar a divisão do arquivo de integração por domínio sem duplicar o ciclo de criação/limpeza do schema.
+- **Critério de encerramento:** cadastro pessoal e comercial percorrem a interface, API e banco temporário; confirmação usa e-mail controlado; falhas de entrega não liberam conta; todos os dados ficam no schema isolado e sua remoção é comprovada.
 
 ### 3. Fronteiras arquiteturais restantes no backend
 
@@ -192,7 +192,7 @@ Esta seção consolida achados abertos dos relatórios `00` a `05` e das etapas 
 
 - `.npmrc` desativa instalação automática de peers e validação estrita; a auditoria não encontrou incompatibilidade concreta. Não alterar por precaução sem demonstrar um conflito; revisar quando dependências forem modificadas.
 - Zod direto `4.6.7` e Orval `8.44.0` não apresentaram conflito de versões diretas nos pacotes inspecionados. Não há upgrade pendente comprovado.
-- `api-isolated-db.test.mjs` tem 1.933 linhas e concentra casos de mais de um fluxo. Isso é uma oportunidade de revisão, não prova isolada de erro; dividir somente se a análise confirmar responsabilidades coesas que justifiquem a divisão.
+- `api-isolated-db.test.mjs` tem 2.640 linhas e cinco cenários grandes entre Auth, Accounts, Onboarding e Social. A concentração foi confirmada nesta execução; revisar uma divisão por domínio mantendo uma fixture de schema/servidor compartilhada antes de alterar a suite.
 - Arquivos de tela extensos no frontend são candidatos a revisão de coesão, mas tamanho sozinho não justifica fragmentação.
 
 2. **Gate 1 — reconciliar o modelo de dados** — Comparar schemas/tabelas Drizzle, migrations, journal, documentação e estado físico confirmado, incluindo `account_username_reservations` e `feed.posts`; atualizar o dicionário e a matriz de estado sem declarar migration aplicada antes da evidência. Validar migrations em schema temporário isolado; apresentar qualquer alteração necessária e seu plano de rollback para aprovação antes de aplicá-la ao schema principal de desenvolvimento.
