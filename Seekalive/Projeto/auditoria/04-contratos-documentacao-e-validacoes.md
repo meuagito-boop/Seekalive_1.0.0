@@ -16,10 +16,10 @@ Há dois documentos OpenAPI distintos:
 
 | Arquivo | Tamanho observado | Função |
 |---|---:|---|
-| `shared/api-spec/openapi.yaml` | 30 operações HTTP no contador estático de verbos | Fonte do contrato integrado ao cliente gerado. |
+| `shared/api-spec/openapi.yaml` | 49 operações HTTP no contador estático de verbos (24 de Auth) | Fonte do contrato integrado ao cliente gerado. |
 | `docs/api/backend/openapi.json` | 138 operações candidatas | Saída do gerador de documentação `docs/api/backend/generate-contracts.mjs`, com operações futuras/ativas classificadas no catálogo. |
 
-Essa diferença não é, por si só, bug de geração: o README do backend diz que o OpenAPI de documentação é separado da especificação pública integrada. Porém, são superfícies fáceis de confundir e não há evidência de sincronização automática entre ambas nem extração automática das rotas Express. O gerador de documentação mantém sua própria lista de operações e estados. Uma pessoa que trate os 138 endpoints como APIs ativas pode criar cliente/telas para handlers inexistentes; uma que use somente os 30 do contrato integrado deixa de enxergar proposta futura.
+Essa diferença não é, por si só, bug de geração: o README do backend diz que o OpenAPI de documentação é separado da especificação pública integrada. Porém, são superfícies fáceis de confundir e não há evidência de sincronização automática entre ambas nem extração automática das rotas Express. O gerador de documentação mantém sua própria lista de operações e estados. Uma pessoa que trate os 138 endpoints como APIs ativas pode criar cliente/telas para handlers inexistentes; uma que use somente as 49 operações integradas ainda precisa verificar as lacunas de domínios como onboarding e health.
 
 **Regra de leitura:** `shared/api-spec/openapi.yaml` + código das rotas são a referência para operações ligadas ao cliente atual. `docs/api/backend/openapi.json` é catálogo de cobertura planejada, e sua coluna “ATIVA” precisa ser conferida contra o handler, migration e integração da UI.
 
@@ -32,6 +32,16 @@ Essa diferença não é, por si só, bug de geração: o README do backend diz q
 - `.replit` declara `nodejs-20`, divergente do engine e do Node efetivamente observado. Build/test passaram no Node 22 desta sessão; não foi validado no Node 20.
 - O lockfile pode conter outras versões transitivas de Zod trazidas por dependências. Isso não comprova mistura incompatível entre contratos de runtime. O relatório não recomenda upgrade nem patch de Zod/Orval.
 - `.npmrc` define `auto-install-peers=false` e `strict-peer-dependencies=false`. Isso muda a sinalização de peers, mas nenhum conflito concreto de peer foi demonstrado nesta auditoria.
+
+## Contrato Auth e validação runtime — 27/10/2026
+
+- A especificação compartilhada passou de 30 para 49 operações HTTP; o recorte Auth tem 24 operações, alinhadas às rotas implementadas. O incremento cobriu 19 operações Auth antes ausentes: CSRF/sessão, cadastro/login, verificação de instalação e e-mail, política/recuperação/troca de senha, sessões, dispositivos confiáveis e logout.
+- OpenAPI foi atualizado como fonte; os clientes e schemas foram regenerados pelo Orval. O cliente React tipa o login como união das respostas `200` e `202`.
+- Limite real do gerador: o schema Zod gerado para login inclui a resposta `200`, mas não materializa a resposta adicional `202`. O contrato Zod `deviceVerificationRequiredResponseSchema` é definido uma vez em `shared/contracts/src/authResponses.ts` e reexportado pelo normalizador para preservar esse caso; não se editou saída gerada manualmente.
+- O transporte comum agora aceita contratos por status. Todos os serviços de Auth validam as respostas de sucesso contra schemas compartilhados; o desafio de login `202` usa o schema manual citado, e respostas `204` exigem corpo vazio. Status de sucesso inesperado, JSON inválido/ausente ou payload incompatível falham explicitamente, sem mostrar o corpo bruto ao usuário. A leitura e o tratamento das respostas de erro existentes foram preservados.
+- A especificação também registra metadados de erro usados por Auth, incluindo tentativas restantes, instante de reenvio e endereço de suporte.
+- `pnpm --filter @workspace/api-spec run codegen`, `pnpm -w run typecheck:libs`, `pnpm test`, `pnpm --filter @workspace/social run test:e2e:auth` (5/5) e `pnpm build` passaram. A primeira execução E2E revelou somente IDs de fixtures fora do formato UUID; os fixtures foram corrigidos, sem afrouxar os schemas, e a repetição passou.
+- Os testes de navegador usam API interceptada em loopback; não provam integração com banco, API real ou Resend, nem entrega de e-mail.
 
 ## Códigos de erro
 

@@ -58,7 +58,7 @@ export async function verifyLocalAppIsRunning() {
 export function createAuthResult({ onboardingCompleted = true } = {}) {
   return {
     account: {
-      id: "auth-e2e-account",
+      id: "11111111-1111-4111-8111-111111111111",
       username: "auth_e2e",
       displayName: "Conta E2E",
       accountType: "personal",
@@ -66,7 +66,7 @@ export function createAuthResult({ onboardingCompleted = true } = {}) {
       onboardingCompleted,
     },
     session: {
-      id: "auth-e2e-session",
+      id: "22222222-2222-4222-8222-222222222222",
       createdAt: "2026-10-27T00:00:00.000Z",
       expiresAt: "2026-10-28T00:00:00.000Z",
     },
@@ -79,7 +79,7 @@ export function createDeviceChallenge() {
   const now = Date.now();
   return {
     status: "device_verification_required",
-    challengeId: "device-e2e-challenge",
+    challengeId: "33333333-3333-4333-8333-333333333333",
     emailMasked: "a***@example.com",
     expiresAt: new Date(now + 10 * 60_000).toISOString(),
     resendAvailableAt: new Date(now + 30_000).toISOString(),
@@ -90,7 +90,7 @@ export function createDeviceChallenge() {
 export function createPasswordUpdateChallenge() {
   return {
     status: "password_update_verification_required",
-    challengeId: "password-e2e-challenge",
+    challengeId: "44444444-4444-4444-8444-444444444444",
     emailMasked: "a***@example.com",
     expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
     message: "Confirme a alteração de senha.",

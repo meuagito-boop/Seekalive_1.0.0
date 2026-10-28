@@ -28,10 +28,344 @@ export type ApiErrorError = {
   details?: ApiErrorErrorDetailsItem[];
   /** @minimum 1 */
   retryAfterSeconds?: number;
+  /** @minimum 0 */
+  attemptsRemaining?: number;
+  resendAvailableAt?: string;
+  supportEmail?: string;
 };
 
 export interface ApiError {
   error: ApiErrorError;
+}
+
+export interface CsrfToken {
+  /** @minLength 1 */
+  csrfToken: string;
+}
+
+export type AuthAccountAccountType = typeof AuthAccountAccountType[keyof typeof AuthAccountAccountType];
+
+
+export const AuthAccountAccountType = {
+  personal: 'personal',
+  commercial: 'commercial',
+} as const;
+
+export interface AuthAccount {
+  id: string;
+  /**
+     * Lowercase social identifier after server normalization.
+     * @minLength 3
+     * @maxLength 20
+     */
+  username: string;
+  displayName: string;
+  accountType: AuthAccountAccountType;
+  joinedAt: string;
+  onboardingCompleted: boolean;
+}
+
+export interface AuthSession {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface AuthResult {
+  account: AuthAccount;
+  session: AuthSession;
+  /** @minLength 1 */
+  csrfToken: string;
+  emailVerified: true;
+}
+
+export interface AuthenticatedCurrentSession {
+  authenticated: true;
+  account: AuthAccount;
+  session: AuthSession;
+}
+
+export interface UnauthenticatedCurrentSession {
+  authenticated: false;
+  /** @nullable */
+  account: null;
+  /** @nullable */
+  session: null;
+}
+
+export type CurrentSession = AuthenticatedCurrentSession | UnauthenticatedCurrentSession;
+
+export interface DeviceVerificationRequired {
+  status: 'device_verification_required';
+  challengeId: string;
+  emailMasked: string;
+  expiresAt: string;
+  resendAvailableAt: string;
+  message: string;
+}
+
+export interface DeviceVerificationResent {
+  status: 'verification_code_resent';
+  expiresAt: string;
+  resendAvailableAt: string;
+}
+
+export interface PasswordUpdateChallenge {
+  status: 'password_update_verification_required';
+  challengeId: string;
+  emailMasked: string;
+  expiresAt: string;
+  message: string;
+}
+
+export interface VerificationRequired {
+  status: 'verification_required';
+  message: string;
+}
+
+export interface LegacyPasswordUpdateRequired {
+  emailVerified: true;
+  passwordUpdateRequired: true;
+  message: string;
+}
+
+export type EmailVerificationConfirmation = AuthResult | LegacyPasswordUpdateRequired;
+
+export interface PasswordResetRequested {
+  status: 'reset_requested';
+  message: string;
+}
+
+export const PasswordResetCompleteValue = {
+  status: 'password_reset',
+} as const;
+export type PasswordResetComplete = typeof PasswordResetCompleteValue;
+
+export const PasswordUpdatedValue = {
+  status: 'password_updated',
+} as const;
+export type PasswordUpdated = typeof PasswordUpdatedValue;
+
+export interface AuthSessionListItem {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+}
+
+export interface AuthSessionPage {
+  items: AuthSessionListItem[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface TrustedDevice {
+  id: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  isCurrent: boolean;
+}
+
+export interface TrustedDevicePage {
+  items: TrustedDevice[];
+  hasMore: boolean;
+}
+
+export interface OtherSessionsRevoked {
+  status: 'other_sessions_revoked';
+  /** @minimum 0 */
+  revokedCount: number;
+}
+
+export interface OtherDevicesRevoked {
+  status: 'other_devices_revoked';
+  /** @minimum 0 */
+  revokedCount: number;
+}
+
+export interface RegistrationCommon {
+  /**
+     * Trimmed and normalized to lowercase before the final username rule is applied.
+     * @minLength 3
+     * @maxLength 20
+     */
+  username: string;
+  /**
+     * Trimmed and normalized to lowercase by the server.
+     * @maxLength 254
+     */
+  email: string;
+  /**
+     * Must include an uppercase letter, lowercase letter, number, and special character.
+     * @minLength 8
+     * @maxLength 128
+     */
+  password: string;
+  /**
+     * Must match password.
+     * @minLength 8
+     * @maxLength 128
+     */
+  passwordConfirmation: string;
+  acceptedTermsVersion: 'v1';
+  /**
+     * Private eligibility data; it is not returned in public account responses.
+     * @minimum 18
+     * @maximum 120
+     */
+  age: number;
+}
+
+export type PersonalRegistration = RegistrationCommon & {
+  accountType: 'personal';
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  firstName: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  lastName: string;
+};
+
+export type CommercialRegistrationCategoryKey = typeof CommercialRegistrationCategoryKey[keyof typeof CommercialRegistrationCategoryKey];
+
+
+export const CommercialRegistrationCategoryKey = {
+  restaurantes: 'restaurantes',
+  bares: 'bares',
+  cafes: 'cafes',
+  servicos: 'servicos',
+  compras: 'compras',
+  saude: 'saude',
+  lazer: 'lazer',
+} as const;
+
+export type CommercialRegistrationDiscoveryKind = typeof CommercialRegistrationDiscoveryKind[keyof typeof CommercialRegistrationDiscoveryKind];
+
+
+export const CommercialRegistrationDiscoveryKind = {
+  place: 'place',
+  provider: 'provider',
+} as const;
+
+export type CommercialRegistration = RegistrationCommon & {
+  accountType: 'commercial';
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  businessName: string;
+  categoryKey: CommercialRegistrationCategoryKey;
+  discoveryKind: CommercialRegistrationDiscoveryKind;
+  /**
+     * @minLength 3
+     * @maxLength 250
+     */
+  address: string;
+  /**
+     * @minLength 5
+     * @maxLength 20
+     */
+  postalCode: string;
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  city: string;
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  state: string;
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  country: string;
+};
+
+export type RegisterRequest = PersonalRegistration | CommercialRegistration;
+
+export interface LoginRequest {
+  /**
+     * Username or e-mail; surrounding whitespace is trimmed by the server.
+     * @minLength 3
+     * @maxLength 254
+     */
+  identifier: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface ChallengeResendInput {
+  challengeId: string;
+}
+
+export interface PasswordPolicyUpdateRequest {
+  /**
+     * @minLength 3
+     * @maxLength 254
+     */
+  identifier: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  currentPassword: string;
+  /**
+     * Must differ from the current password and include uppercase, lowercase, numeric, and special characters.
+     * @minLength 8
+     * @maxLength 128
+     */
+  newPassword: string;
+  /**
+     * Must match newPassword.
+     * @minLength 8
+     * @maxLength 128
+     */
+  passwordConfirmation: string;
+}
+
+export interface EmailVerificationRequest {
+  /** @maxLength 254 */
+  email: string;
+}
+
+export interface EmailVerificationConfirm {
+  /** @maxLength 254 */
+  email: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+}
+
+export interface PasswordResetRequest {
+  /** @maxLength 254 */
+  email: string;
+}
+
+export interface PasswordResetConfirm {
+  /** @maxLength 254 */
+  email: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+  /**
+     * Must include uppercase, lowercase, numeric, and special characters.
+     * @minLength 8
+     * @maxLength 128
+     */
+  newPassword: string;
+  /**
+     * Must match newPassword.
+     * @minLength 8
+     * @maxLength 128
+     */
+  passwordConfirmation: string;
 }
 
 export interface AccountEmailChangeRequest {
@@ -584,6 +918,13 @@ export type InternalErrorResponse = ApiError;
 export type PageLimitParameter = number;
 
 export type PageCursorParameter = string;
+
+export type ListAuthSessionsParams = {
+/**
+ * @maxLength 16
+ */
+cursor?: string;
+};
 
 export type SearchAccountsParams = {
 /**

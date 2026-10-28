@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { deviceVerificationRequiredResponseSchema } from "@workspace/api-zod";
 import {
+  ApiResponseContractError,
   ApiRequestError,
   deleteJson,
   getJson,
@@ -137,6 +139,111 @@ test("non-success responses retain the shared API error contract", async () => {
         assert.equal(error.resendAvailableAt, "2026-10-27T20:00:00.000Z");
         return true;
       });
+    },
+  );
+});
+
+test("validated responses enforce status and shape without changing wire values", async () => {
+  const challenge = {
+    status: "device_verification_required",
+    challengeId: "7f3cde86-6efb-45a1-9440-67e93c0e5bf4",
+    emailMasked: "a***@example.test",
+    expiresAt: "2026-10-27T18:00:00.000Z",
+    resendAvailableAt: "2026-10-27T17:30:00.000Z",
+    message: "Confirme esta instalação.",
+  };
+
+  await withMockedFetch(
+    async (input) =>
+      String(input) === "/api/v1/auth/csrf"
+        ? jsonResponse({ csrfToken: "csrf-value" })
+        : jsonResponse(challenge, 202),
+    async () => {
+      const result = await postJson<typeof challenge>(
+        "/auth/login",
+        { identifier: "user", password: "Password1!" },
+        { 202: deviceVerificationRequiredResponseSchema },
+      );
+
+      assert.deepEqual(result, challenge);
+      assert.equal(typeof result.expiresAt, "string");
+    },
+  );
+});
+
+test("validated responses reject unexpected success statuses and malformed bodies", async () => {
+  const contract = { 202: deviceVerificationRequiredResponseSchema };
+  const invalidResponses: Array<{
+    response: () => Response;
+    expectedStatus: number;
+  }> = [
+    {
+      response: () => jsonResponse({ status: "verification_required" }, 200),
+      expectedStatus: 200,
+    },
+    {
+      response: () =>
+        jsonResponse(
+          {
+            status: "device_verification_required",
+            challengeId: "not-a-uuid",
+            emailMasked: "a***@example.test",
+            expiresAt: "not-a-date",
+            resendAvailableAt: "not-a-date",
+            message: "Confirme esta instalação.",
+          },
+          202,
+        ),
+      expectedStatus: 202,
+    },
+    {
+      response: () =>
+        new Response("{", {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        }),
+      expectedStatus: 202,
+    },
+  ];
+
+  for (const invalid of invalidResponses) {
+    await withMockedFetch(
+      async (input) =>
+        String(input) === "/api/v1/auth/csrf"
+          ? jsonResponse({ csrfToken: "csrf-value" })
+          : invalid.response(),
+      async () => {
+        await assert.rejects(
+          postJson("/auth/login", { identifier: "user", password: "secret" }, contract),
+          (error: unknown) => {
+            assert.ok(error instanceof ApiResponseContractError);
+            assert.equal(error.status, invalid.expectedStatus);
+            assert.equal(
+              error.message,
+              "A resposta recebida do servidor está incompatível. Tente novamente.",
+            );
+            return true;
+          },
+        );
+      },
+    );
+  }
+});
+
+test("validated no-content responses require HTTP 204", async () => {
+  await withMockedFetch(
+    async (input, init) => {
+      if (String(input) === "/api/v1/auth/csrf") {
+        return jsonResponse({ csrfToken: "csrf-value" });
+      }
+      assert.equal(init?.method, "DELETE");
+      return new Response(null, { status: 204 });
+    },
+    async () => {
+      const result = await deleteJson<void>("/auth/sessions/other", {
+        204: "empty",
+      });
+      assert.equal(result, undefined);
     },
   );
 });

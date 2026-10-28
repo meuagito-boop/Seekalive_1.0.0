@@ -21,4 +21,8 @@ export type ApiErrorError = {
   details?: ApiErrorErrorDetailsItem[];
   /** @minimum 1 */
   retryAfterSeconds?: number;
+  /** @minimum 0 */
+  attemptsRemaining?: number;
+  resendAvailableAt?: Date;
+  supportEmail?: string;
 };

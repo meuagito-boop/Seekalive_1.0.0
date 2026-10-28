@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Account registration, verification, login, and session security
   - name: profiles
     description: Public profile views and account settings
   - name: social-graph
@@ -32,6 +34,499 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /v1/auth/csrf:
+    get:
+      operationId: getAuthCsrfToken
+      tags: [auth]
+      summary: Obtain a CSRF token for the current browser context
+      description: Rotates the active session token or creates a pre-authentication token.
+      responses:
+        "200":
+          description: CSRF token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsrfToken"
+  /v1/auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [auth]
+      summary: Read the current authentication state
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Authenticated or signed-out state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentSession"
+  /v1/auth/register:
+    post:
+      operationId: registerAccount
+      tags: [auth]
+      summary: Create a personal or commercial account
+      description: Creates an unverified account and requests e-mail verification; it does not create an authenticated session.
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "202":
+          description: Verification is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationRequired"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/login:
+    post:
+      operationId: loginAccount
+      tags: [auth]
+      summary: Authenticate with username or e-mail and password
+      description: An unrecognized installation receives a verification challenge instead of a session.
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+        "202":
+          description: E-mail code required for an unrecognized installation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceVerificationRequired"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/device-verification/confirm:
+    post:
+      operationId: confirmAuthDeviceVerification
+      tags: [auth]
+      summary: Confirm a new installation with its e-mail code
+      security:
+        - preAuthCookie: []
+          deviceCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeConfirmInput"
+      responses:
+        "200":
+          description: Installation recognized and authenticated session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/device-verification/resend:
+    post:
+      operationId: resendAuthDeviceVerification
+      tags: [auth]
+      summary: Resend the code for an unrecognized installation
+      security:
+        - preAuthCookie: []
+          deviceCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeResendInput"
+      responses:
+        "200":
+          description: A new verification code was sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceVerificationResent"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/password/update:
+    post:
+      operationId: requestAuthPasswordPolicyUpdate
+      tags: [auth]
+      summary: Request a password-policy update
+      description: Requires the current password and sends a code to the verified e-mail.
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordPolicyUpdateRequest"
+      responses:
+        "202":
+          description: E-mail confirmation is required before the password update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordUpdateChallenge"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/password/update/confirm:
+    post:
+      operationId: confirmAuthPasswordPolicyUpdate
+      tags: [auth]
+      summary: Confirm a password-policy update with its e-mail code
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeConfirmInput"
+      responses:
+        "200":
+          description: Password updated; previous sessions and trusted installation are revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordUpdated"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/verification:
+    post:
+      operationId: requestAuthEmailVerification
+      tags: [auth]
+      summary: Request a new e-mail verification code
+      description: Uses a generic response so account existence is not disclosed.
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationRequest"
+      responses:
+        "202":
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationRequired"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/verification/confirm:
+    post:
+      operationId: confirmAuthEmailVerification
+      tags: [auth]
+      summary: Confirm an account e-mail address
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationConfirm"
+      responses:
+        "200":
+          description: E-mail verified; authentication or a mandatory password update may follow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailVerificationConfirmation"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/password/reset/request:
+    post:
+      operationId: requestAuthPasswordReset
+      tags: [auth]
+      summary: Request a password-reset code
+      description: Uses a generic response so account existence is not disclosed.
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "202":
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetRequested"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/password/reset/confirm:
+    post:
+      operationId: confirmAuthPasswordReset
+      tags: [auth]
+      summary: Complete a password reset with its e-mail code
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetConfirm"
+      responses:
+        "200":
+          description: Password reset; active sessions and trusted installation are revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetComplete"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "423":
+          $ref: "#/components/responses/AccountUnavailable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/sessions:
+    get:
+      operationId: listAuthSessions
+      tags: [auth]
+      summary: List active sessions for the authenticated account
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 16
+      responses:
+        "200":
+          description: Current page of active sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/sessions/others:
+    delete:
+      operationId: revokeOtherAuthSessions
+      tags: [auth]
+      summary: Revoke every active session except the current one
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Other sessions revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtherSessionsRevoked"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/sessions/{sessionId}:
+    delete:
+      operationId: revokeAuthSession
+      tags: [auth]
+      summary: Revoke another active session
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Session revoked
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/logout:
+    post:
+      operationId: logoutAuthSession
+      tags: [auth]
+      summary: End the current authentication session
+      security:
+        - sessionCookie: []
+          csrfToken: []
+        - preAuthCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Session and pre-authentication cookies cleared
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /v1/auth/devices:
+    get:
+      operationId: listAuthTrustedDevices
+      tags: [auth]
+      summary: List trusted browser or app installations
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Trusted installations for the authenticated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrustedDevicePage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/devices/others:
+    delete:
+      operationId: revokeOtherAuthTrustedDevices
+      tags: [auth]
+      summary: Revoke trusted installations except the current one
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Other trusted installations revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtherDevicesRevoked"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/devices/{deviceId}:
+    delete:
+      operationId: revokeAuthTrustedDevice
+      tags: [auth]
+      summary: Revoke a trusted browser or app installation
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Trusted installation revoked
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/auth/account/email/change/request:
     post:
       operationId: requestAccountEmailChange
@@ -754,6 +1249,14 @@ components:
       type: apiKey
       in: cookie
       name: __Host-seekalive_session
+    preAuthCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-seekalive_pre_auth
+    deviceCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-seekalive_device
     csrfToken:
       type: apiKey
       in: header
@@ -897,8 +1400,453 @@ components:
             retryAfterSeconds:
               type: integer
               minimum: 1
+            attemptsRemaining:
+              type: integer
+              minimum: 0
+            resendAvailableAt:
+              type: string
+              format: date-time
+            supportEmail:
+              type: string
+              format: email
           required: [code, key, message, requestId]
       required: [error]
+    CsrfToken:
+      type: object
+      properties:
+        csrfToken:
+          type: string
+          minLength: 1
+      required: [csrfToken]
+    AuthAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          description: Lowercase social identifier after server normalization.
+        displayName:
+          type: string
+        accountType:
+          type: string
+          enum: [personal, commercial]
+        joinedAt:
+          type: string
+          format: date-time
+        onboardingCompleted:
+          type: boolean
+      required: [id, username, displayName, accountType, joinedAt, onboardingCompleted]
+    AuthSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+      required: [id, createdAt, expiresAt]
+    AuthResult:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/AuthAccount"
+        session:
+          $ref: "#/components/schemas/AuthSession"
+        csrfToken:
+          type: string
+          minLength: 1
+        emailVerified:
+          type: boolean
+          const: true
+      required: [account, session, csrfToken, emailVerified]
+    AuthenticatedCurrentSession:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+          const: true
+        account:
+          $ref: "#/components/schemas/AuthAccount"
+        session:
+          $ref: "#/components/schemas/AuthSession"
+      required: [authenticated, account, session]
+    UnauthenticatedCurrentSession:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+          const: false
+        account:
+          type: "null"
+        session:
+          type: "null"
+      required: [authenticated, account, session]
+    CurrentSession:
+      oneOf:
+        - $ref: "#/components/schemas/AuthenticatedCurrentSession"
+        - $ref: "#/components/schemas/UnauthenticatedCurrentSession"
+      discriminator:
+        propertyName: authenticated
+    DeviceVerificationRequired:
+      type: object
+      properties:
+        status:
+          type: string
+          const: device_verification_required
+        challengeId:
+          type: string
+          format: uuid
+        emailMasked:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        resendAvailableAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+      required: [status, challengeId, emailMasked, expiresAt, resendAvailableAt, message]
+    DeviceVerificationResent:
+      type: object
+      properties:
+        status:
+          type: string
+          const: verification_code_resent
+        expiresAt:
+          type: string
+          format: date-time
+        resendAvailableAt:
+          type: string
+          format: date-time
+      required: [status, expiresAt, resendAvailableAt]
+    PasswordUpdateChallenge:
+      type: object
+      properties:
+        status:
+          type: string
+          const: password_update_verification_required
+        challengeId:
+          type: string
+          format: uuid
+        emailMasked:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+      required: [status, challengeId, emailMasked, expiresAt, message]
+    VerificationRequired:
+      type: object
+      properties:
+        status:
+          type: string
+          const: verification_required
+        message:
+          type: string
+      required: [status, message]
+    EmailVerificationConfirmation:
+      oneOf:
+        - $ref: "#/components/schemas/AuthResult"
+        - $ref: "#/components/schemas/LegacyPasswordUpdateRequired"
+    LegacyPasswordUpdateRequired:
+      type: object
+      properties:
+        emailVerified:
+          type: boolean
+          const: true
+        passwordUpdateRequired:
+          type: boolean
+          const: true
+        message:
+          type: string
+      required: [emailVerified, passwordUpdateRequired, message]
+    PasswordResetRequested:
+      type: object
+      properties:
+        status:
+          type: string
+          const: reset_requested
+        message:
+          type: string
+      required: [status, message]
+    PasswordResetComplete:
+      type: object
+      properties:
+        status:
+          type: string
+          const: password_reset
+      required: [status]
+    PasswordUpdated:
+      type: object
+      properties:
+        status:
+          type: string
+          const: password_updated
+      required: [status]
+    AuthSessionListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        isCurrent:
+          type: boolean
+      required: [id, createdAt, expiresAt, isCurrent]
+    AuthSessionPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuthSessionListItem"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
+    TrustedDevice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstSeenAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        isCurrent:
+          type: boolean
+      required: [id, firstSeenAt, lastSeenAt, isCurrent]
+    TrustedDevicePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrustedDevice"
+        hasMore:
+          type: boolean
+      required: [items, hasMore]
+    OtherSessionsRevoked:
+      type: object
+      properties:
+        status:
+          type: string
+          const: other_sessions_revoked
+        revokedCount:
+          type: integer
+          minimum: 0
+      required: [status, revokedCount]
+    OtherDevicesRevoked:
+      type: object
+      properties:
+        status:
+          type: string
+          const: other_devices_revoked
+        revokedCount:
+          type: integer
+          minimum: 0
+      required: [status, revokedCount]
+    RegisterRequest:
+      oneOf:
+        - $ref: "#/components/schemas/PersonalRegistration"
+        - $ref: "#/components/schemas/CommercialRegistration"
+      discriminator:
+        propertyName: accountType
+    RegistrationCommon:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          description: Trimmed and normalized to lowercase before the final username rule is applied.
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Trimmed and normalized to lowercase by the server.
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must include an uppercase letter, lowercase letter, number, and special character.
+        passwordConfirmation:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must match password.
+        acceptedTermsVersion:
+          type: string
+          const: v1
+        age:
+          type: integer
+          minimum: 18
+          maximum: 120
+          description: Private eligibility data; it is not returned in public account responses.
+      required: [username, email, password, passwordConfirmation, acceptedTermsVersion, age]
+    PersonalRegistration:
+      allOf:
+        - $ref: "#/components/schemas/RegistrationCommon"
+        - type: object
+          properties:
+            accountType:
+              type: string
+              const: personal
+            firstName:
+              type: string
+              minLength: 2
+              maxLength: 80
+            lastName:
+              type: string
+              minLength: 2
+              maxLength: 80
+          required: [accountType, firstName, lastName]
+    CommercialRegistration:
+      allOf:
+        - $ref: "#/components/schemas/RegistrationCommon"
+        - type: object
+          properties:
+            accountType:
+              type: string
+              const: commercial
+            businessName:
+              type: string
+              minLength: 2
+              maxLength: 100
+            categoryKey:
+              type: string
+              enum: [restaurantes, bares, cafes, servicos, compras, saude, lazer]
+            discoveryKind:
+              type: string
+              enum: [place, provider]
+            address:
+              type: string
+              minLength: 3
+              maxLength: 250
+            postalCode:
+              type: string
+              minLength: 5
+              maxLength: 20
+            city:
+              type: string
+              minLength: 2
+              maxLength: 120
+            state:
+              type: string
+              minLength: 2
+              maxLength: 100
+            country:
+              type: string
+              minLength: 2
+              maxLength: 100
+          required: [accountType, businessName, categoryKey, discoveryKind, address, postalCode, city, state, country]
+    LoginRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          minLength: 3
+          maxLength: 254
+          description: Username or e-mail; surrounding whitespace is trimmed by the server.
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required: [identifier, password]
+    ChallengeResendInput:
+      type: object
+      properties:
+        challengeId:
+          type: string
+          format: uuid
+      required: [challengeId]
+    PasswordPolicyUpdateRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          minLength: 3
+          maxLength: 254
+        currentPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must differ from the current password and include uppercase, lowercase, numeric, and special characters.
+        passwordConfirmation:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must match newPassword.
+      required: [identifier, currentPassword, newPassword, passwordConfirmation]
+    EmailVerificationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+      required: [email]
+    EmailVerificationConfirm:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+      required: [email, code]
+    PasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+      required: [email]
+    PasswordResetConfirm:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must include uppercase, lowercase, numeric, and special characters.
+        passwordConfirmation:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must match newPassword.
+      required: [email, code, newPassword, passwordConfirmation]
     AccountEmailChangeRequest:
       type: object
       properties:

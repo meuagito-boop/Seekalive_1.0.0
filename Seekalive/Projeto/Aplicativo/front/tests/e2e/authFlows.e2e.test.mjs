@@ -263,7 +263,7 @@ test("unknown-device login requires a code before reaching the feed", async (t) 
     "/api/v1/auth/device-verification/confirm",
   );
   assert.ok(
-    confirmation.body?.challengeId === "device-e2e-challenge" &&
+    confirmation.body?.challengeId === "33333333-3333-4333-8333-333333333333" &&
       confirmation.body.code === "123456",
     "Device confirmation must submit the challenge and entered code.",
   );
@@ -347,7 +347,7 @@ test("password-policy update reauthenticates on an unrecognized installation", a
     "Password update must submit the old credential and matching new password.",
   );
   assert.ok(
-    updateConfirmation.body?.challengeId === "password-e2e-challenge" &&
+    updateConfirmation.body?.challengeId === "44444444-4444-4444-8444-444444444444" &&
       updateConfirmation.body.code === "654321",
     "Password update confirmation must submit the issued challenge and code.",
   );

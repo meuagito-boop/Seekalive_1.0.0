@@ -1,3 +1,11 @@
+import {
+  ConfirmAuthDeviceVerificationResponse,
+  ConfirmAuthPasswordPolicyUpdateResponse,
+  LoginAccountResponse,
+  RequestAuthPasswordPolicyUpdateResponse,
+  ResendAuthDeviceVerificationResponse,
+  deviceVerificationRequiredResponseSchema,
+} from "@workspace/api-zod";
 import { postJson } from "@/modules/app/api/httpClient";
 import type {
   AuthResult,
@@ -9,14 +17,19 @@ export function loginAccount(payload: {
   identifier: string;
   password: string;
 }) {
-  return postJson<LoginResult>("/auth/login", payload);
+  return postJson<LoginResult>("/auth/login", payload, {
+    200: LoginAccountResponse,
+    202: deviceVerificationRequiredResponseSchema,
+  });
 }
 
 export function confirmDeviceLogin(payload: {
   challengeId: string;
   code: string;
 }) {
-  return postJson<AuthResult>("/auth/device-verification/confirm", payload);
+  return postJson<AuthResult>("/auth/device-verification/confirm", payload, {
+    200: ConfirmAuthDeviceVerificationResponse,
+  });
 }
 
 export function resendDeviceLoginCode(payload: { challengeId: string }) {
@@ -24,7 +37,9 @@ export function resendDeviceLoginCode(payload: { challengeId: string }) {
     status: "verification_code_resent";
     expiresAt: string;
     resendAvailableAt: string;
-  }>("/auth/device-verification/resend", payload);
+  }>("/auth/device-verification/resend", payload, {
+    200: ResendAuthDeviceVerificationResponse,
+  });
 }
 
 export function updatePasswordPolicy(payload: {
@@ -36,6 +51,7 @@ export function updatePasswordPolicy(payload: {
   return postJson<PasswordUpdateVerificationRequired>(
     "/auth/password/update",
     payload,
+    { 202: RequestAuthPasswordPolicyUpdateResponse },
   );
 }
 
@@ -46,5 +62,6 @@ export function confirmPasswordPolicyUpdate(payload: {
   return postJson<{ status: "password_updated" }>(
     "/auth/password/update/confirm",
     payload,
+    { 200: ConfirmAuthPasswordPolicyUpdateResponse },
   );
 }

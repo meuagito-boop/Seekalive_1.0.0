@@ -35,12 +35,22 @@ import type {
   AccountUnavailableResponse,
   AccountView,
   ArticleCreate,
+  AuthResult,
+  AuthSessionPage,
   ChallengeConfirmInput,
+  ChallengeResendInput,
   CirclePage,
   ConflictResponse,
+  CsrfToken,
+  CurrentSession,
+  DeviceVerificationRequired,
+  DeviceVerificationResent,
   EmailChangeCurrentCodeResponse,
   EmailChangeNewCodeResponse,
   EmailDeliveryUnavailableResponse,
+  EmailVerificationConfirm,
+  EmailVerificationConfirmation,
+  EmailVerificationRequest,
   FollowRequestPage,
   FollowState,
   ForbiddenResponse,
@@ -51,19 +61,33 @@ import type {
   GetSocialAccountPostsParams,
   HealthStatus,
   InternalErrorResponse,
+  ListAuthSessionsParams,
+  LoginRequest,
   MyAccountResponse,
   NotFoundResponse,
+  OtherDevicesRevoked,
+  OtherSessionsRevoked,
   PasswordChangeCodeResponse,
+  PasswordPolicyUpdateRequest,
+  PasswordResetComplete,
+  PasswordResetConfirm,
+  PasswordResetRequest,
+  PasswordResetRequested,
+  PasswordUpdateChallenge,
+  PasswordUpdated,
   Post,
   PostCreate,
   PostPage,
   PrivacySettings,
   PrivacySettingsWrite,
   ProfileResponse,
+  RegisterRequest,
   SearchAccountsParams,
   TooManyRequestsResponse,
+  TrustedDevicePage,
   UnauthorizedResponse,
-  ValidationErrorResponse
+  ValidationErrorResponse,
+  VerificationRequired
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -194,6 +218,1673 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGetAuthCsrfTokenUrl = () => {
+
+
+
+
+  return `/api/v1/auth/csrf`
+}
+
+/**
+ * Rotates the active session token or creates a pre-authentication token.
+ * @summary Obtain a CSRF token for the current browser context
+ */
+export const getAuthCsrfToken = async ( options?: Parameters<typeof customFetch>[1]): Promise<CsrfToken> => {
+
+  return customFetch<CsrfToken>(getGetAuthCsrfTokenUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAuthCsrfTokenQueryKey = () => {
+    return [
+    `/api/v1/auth/csrf`
+    ] as const;
+    }
+
+
+export const getGetAuthCsrfTokenQueryOptions = <TData = Awaited<ReturnType<typeof getAuthCsrfToken>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthCsrfToken>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAuthCsrfTokenQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuthCsrfToken>>> = ({ signal }) => getAuthCsrfToken({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthCsrfToken>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAuthCsrfTokenQueryResult = NonNullable<Awaited<ReturnType<typeof getAuthCsrfToken>>>
+export type GetAuthCsrfTokenQueryError = ErrorType<unknown>
+
+
+export function useGetAuthCsrfToken<TData = Awaited<ReturnType<typeof getAuthCsrfToken>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthCsrfToken>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthCsrfToken>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthCsrfToken>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthCsrfToken<TData = Awaited<ReturnType<typeof getAuthCsrfToken>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthCsrfToken>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthCsrfToken>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthCsrfToken>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthCsrfToken<TData = Awaited<ReturnType<typeof getAuthCsrfToken>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthCsrfToken>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Obtain a CSRF token for the current browser context
+ */
+
+export function useGetAuthCsrfToken<TData = Awaited<ReturnType<typeof getAuthCsrfToken>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthCsrfToken>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAuthCsrfTokenQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAuthSessionUrl = () => {
+
+
+
+
+  return `/api/v1/auth/session`
+}
+
+/**
+ * @summary Read the current authentication state
+ */
+export const getAuthSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<CurrentSession> => {
+
+  return customFetch<CurrentSession>(getGetAuthSessionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAuthSessionQueryKey = () => {
+    return [
+    `/api/v1/auth/session`
+    ] as const;
+    }
+
+
+export const getGetAuthSessionQueryOptions = <TData = Awaited<ReturnType<typeof getAuthSession>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAuthSessionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuthSession>>> = ({ signal }) => getAuthSession({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAuthSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getAuthSession>>>
+export type GetAuthSessionQueryError = ErrorType<unknown>
+
+
+export function useGetAuthSession<TData = Awaited<ReturnType<typeof getAuthSession>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthSession>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthSession<TData = Awaited<ReturnType<typeof getAuthSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAuthSession>>,
+          TError,
+          Awaited<ReturnType<typeof getAuthSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAuthSession<TData = Awaited<ReturnType<typeof getAuthSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read the current authentication state
+ */
+
+export function useGetAuthSession<TData = Awaited<ReturnType<typeof getAuthSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAuthSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRegisterAccountUrl = () => {
+
+
+
+
+  return `/api/v1/auth/register`
+}
+
+/**
+ * Creates an unverified account and requests e-mail verification; it does not create an authenticated session.
+ * @summary Create a personal or commercial account
+ */
+export const registerAccount = async (registerRequest: RegisterRequest, options?: Parameters<typeof customFetch>[1]): Promise<VerificationRequired> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<VerificationRequired>(getRegisterAccountUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(registerRequest)
+  }
+);}
+
+
+
+
+
+export const getRegisterAccountMutationKey = () => ['registerAccount'] as const;
+
+export const getRegisterAccountMutationOptions = <TError = ErrorType<ValidationErrorResponse | ConflictResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerAccount>>, TError,RegisterAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerAccount>>, TError,RegisterAccountMutationVariables, TContext> => {
+
+const mutationKey = getRegisterAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerAccount>>, RegisterAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterAccountMutationResult = NonNullable<Awaited<ReturnType<typeof registerAccount>>>
+    export type RegisterAccountMutationBody = BodyType<RegisterRequest>
+    export type RegisterAccountMutationError = ErrorType<ValidationErrorResponse | ConflictResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type RegisterAccountMutationVariables = {data: BodyType<RegisterRequest>}
+
+    /**
+ * @summary Create a personal or commercial account
+ */
+export const useRegisterAccount = <TError = ErrorType<ValidationErrorResponse | ConflictResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerAccount>>, TError,RegisterAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof registerAccount>>,
+        TError,
+        RegisterAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRegisterAccountMutationOptions(options), queryClient);
+    }
+
+export const getLoginAccountUrl = () => {
+
+
+
+
+  return `/api/v1/auth/login`
+}
+
+/**
+ * An unrecognized installation receives a verification challenge instead of a session.
+ * @summary Authenticate with username or e-mail and password
+ */
+export const loginAccount = async (loginRequest: LoginRequest, options?: Parameters<typeof customFetch>[1]): Promise<AuthResult | DeviceVerificationRequired> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AuthResult | DeviceVerificationRequired>(getLoginAccountUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(loginRequest)
+  }
+);}
+
+
+
+
+
+export const getLoginAccountMutationKey = () => ['loginAccount'] as const;
+
+export const getLoginAccountMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginAccount>>, TError,LoginAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof loginAccount>>, TError,LoginAccountMutationVariables, TContext> => {
+
+const mutationKey = getLoginAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof loginAccount>>, LoginAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  loginAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LoginAccountMutationResult = NonNullable<Awaited<ReturnType<typeof loginAccount>>>
+    export type LoginAccountMutationBody = BodyType<LoginRequest>
+    export type LoginAccountMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type LoginAccountMutationVariables = {data: BodyType<LoginRequest>}
+
+    /**
+ * @summary Authenticate with username or e-mail and password
+ */
+export const useLoginAccount = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginAccount>>, TError,LoginAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof loginAccount>>,
+        TError,
+        LoginAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLoginAccountMutationOptions(options), queryClient);
+    }
+
+export const getConfirmAuthDeviceVerificationUrl = () => {
+
+
+
+
+  return `/api/v1/auth/device-verification/confirm`
+}
+
+/**
+ * @summary Confirm a new installation with its e-mail code
+ */
+export const confirmAuthDeviceVerification = async (challengeConfirmInput: ChallengeConfirmInput, options?: Parameters<typeof customFetch>[1]): Promise<AuthResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AuthResult>(getConfirmAuthDeviceVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(challengeConfirmInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmAuthDeviceVerificationMutationKey = () => ['confirmAuthDeviceVerification'] as const;
+
+export const getConfirmAuthDeviceVerificationMutationOptions = <TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthDeviceVerification>>, TError,ConfirmAuthDeviceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAuthDeviceVerification>>, TError,ConfirmAuthDeviceVerificationMutationVariables, TContext> => {
+
+const mutationKey = getConfirmAuthDeviceVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAuthDeviceVerification>>, ConfirmAuthDeviceVerificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAuthDeviceVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAuthDeviceVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAuthDeviceVerification>>>
+    export type ConfirmAuthDeviceVerificationMutationBody = BodyType<ChallengeConfirmInput>
+    export type ConfirmAuthDeviceVerificationMutationError = ErrorType<ValidationErrorResponse | ForbiddenResponse | AccountUnavailableResponse | TooManyRequestsResponse>
+    export type ConfirmAuthDeviceVerificationMutationVariables = {data: BodyType<ChallengeConfirmInput>}
+
+    /**
+ * @summary Confirm a new installation with its e-mail code
+ */
+export const useConfirmAuthDeviceVerification = <TError = ErrorType<ValidationErrorResponse | ForbiddenResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthDeviceVerification>>, TError,ConfirmAuthDeviceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAuthDeviceVerification>>,
+        TError,
+        ConfirmAuthDeviceVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmAuthDeviceVerificationMutationOptions(options), queryClient);
+    }
+
+export const getResendAuthDeviceVerificationUrl = () => {
+
+
+
+
+  return `/api/v1/auth/device-verification/resend`
+}
+
+/**
+ * @summary Resend the code for an unrecognized installation
+ */
+export const resendAuthDeviceVerification = async (challengeResendInput: ChallengeResendInput, options?: Parameters<typeof customFetch>[1]): Promise<DeviceVerificationResent> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DeviceVerificationResent>(getResendAuthDeviceVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(challengeResendInput)
+  }
+);}
+
+
+
+
+
+export const getResendAuthDeviceVerificationMutationKey = () => ['resendAuthDeviceVerification'] as const;
+
+export const getResendAuthDeviceVerificationMutationOptions = <TError = ErrorType<ValidationErrorResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendAuthDeviceVerification>>, TError,ResendAuthDeviceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendAuthDeviceVerification>>, TError,ResendAuthDeviceVerificationMutationVariables, TContext> => {
+
+const mutationKey = getResendAuthDeviceVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendAuthDeviceVerification>>, ResendAuthDeviceVerificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  resendAuthDeviceVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendAuthDeviceVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof resendAuthDeviceVerification>>>
+    export type ResendAuthDeviceVerificationMutationBody = BodyType<ChallengeResendInput>
+    export type ResendAuthDeviceVerificationMutationError = ErrorType<ValidationErrorResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type ResendAuthDeviceVerificationMutationVariables = {data: BodyType<ChallengeResendInput>}
+
+    /**
+ * @summary Resend the code for an unrecognized installation
+ */
+export const useResendAuthDeviceVerification = <TError = ErrorType<ValidationErrorResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendAuthDeviceVerification>>, TError,ResendAuthDeviceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof resendAuthDeviceVerification>>,
+        TError,
+        ResendAuthDeviceVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResendAuthDeviceVerificationMutationOptions(options), queryClient);
+    }
+
+export const getRequestAuthPasswordPolicyUpdateUrl = () => {
+
+
+
+
+  return `/api/v1/auth/password/update`
+}
+
+/**
+ * Requires the current password and sends a code to the verified e-mail.
+ * @summary Request a password-policy update
+ */
+export const requestAuthPasswordPolicyUpdate = async (passwordPolicyUpdateRequest: PasswordPolicyUpdateRequest, options?: Parameters<typeof customFetch>[1]): Promise<PasswordUpdateChallenge> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PasswordUpdateChallenge>(getRequestAuthPasswordPolicyUpdateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(passwordPolicyUpdateRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestAuthPasswordPolicyUpdateMutationKey = () => ['requestAuthPasswordPolicyUpdate'] as const;
+
+export const getRequestAuthPasswordPolicyUpdateMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAuthPasswordPolicyUpdate>>, TError,RequestAuthPasswordPolicyUpdateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAuthPasswordPolicyUpdate>>, TError,RequestAuthPasswordPolicyUpdateMutationVariables, TContext> => {
+
+const mutationKey = getRequestAuthPasswordPolicyUpdateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAuthPasswordPolicyUpdate>>, RequestAuthPasswordPolicyUpdateMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAuthPasswordPolicyUpdate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAuthPasswordPolicyUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof requestAuthPasswordPolicyUpdate>>>
+    export type RequestAuthPasswordPolicyUpdateMutationBody = BodyType<PasswordPolicyUpdateRequest>
+    export type RequestAuthPasswordPolicyUpdateMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type RequestAuthPasswordPolicyUpdateMutationVariables = {data: BodyType<PasswordPolicyUpdateRequest>}
+
+    /**
+ * @summary Request a password-policy update
+ */
+export const useRequestAuthPasswordPolicyUpdate = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAuthPasswordPolicyUpdate>>, TError,RequestAuthPasswordPolicyUpdateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAuthPasswordPolicyUpdate>>,
+        TError,
+        RequestAuthPasswordPolicyUpdateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAuthPasswordPolicyUpdateMutationOptions(options), queryClient);
+    }
+
+export const getConfirmAuthPasswordPolicyUpdateUrl = () => {
+
+
+
+
+  return `/api/v1/auth/password/update/confirm`
+}
+
+/**
+ * @summary Confirm a password-policy update with its e-mail code
+ */
+export const confirmAuthPasswordPolicyUpdate = async (challengeConfirmInput: ChallengeConfirmInput, options?: Parameters<typeof customFetch>[1]): Promise<PasswordUpdated> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PasswordUpdated>(getConfirmAuthPasswordPolicyUpdateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(challengeConfirmInput)
+  }
+);}
+
+
+
+
+
+export const getConfirmAuthPasswordPolicyUpdateMutationKey = () => ['confirmAuthPasswordPolicyUpdate'] as const;
+
+export const getConfirmAuthPasswordPolicyUpdateMutationOptions = <TError = ErrorType<ValidationErrorResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthPasswordPolicyUpdate>>, TError,ConfirmAuthPasswordPolicyUpdateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAuthPasswordPolicyUpdate>>, TError,ConfirmAuthPasswordPolicyUpdateMutationVariables, TContext> => {
+
+const mutationKey = getConfirmAuthPasswordPolicyUpdateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAuthPasswordPolicyUpdate>>, ConfirmAuthPasswordPolicyUpdateMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAuthPasswordPolicyUpdate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAuthPasswordPolicyUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAuthPasswordPolicyUpdate>>>
+    export type ConfirmAuthPasswordPolicyUpdateMutationBody = BodyType<ChallengeConfirmInput>
+    export type ConfirmAuthPasswordPolicyUpdateMutationError = ErrorType<ValidationErrorResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>
+    export type ConfirmAuthPasswordPolicyUpdateMutationVariables = {data: BodyType<ChallengeConfirmInput>}
+
+    /**
+ * @summary Confirm a password-policy update with its e-mail code
+ */
+export const useConfirmAuthPasswordPolicyUpdate = <TError = ErrorType<ValidationErrorResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthPasswordPolicyUpdate>>, TError,ConfirmAuthPasswordPolicyUpdateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAuthPasswordPolicyUpdate>>,
+        TError,
+        ConfirmAuthPasswordPolicyUpdateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmAuthPasswordPolicyUpdateMutationOptions(options), queryClient);
+    }
+
+export const getRequestAuthEmailVerificationUrl = () => {
+
+
+
+
+  return `/api/v1/auth/verification`
+}
+
+/**
+ * Uses a generic response so account existence is not disclosed.
+ * @summary Request a new e-mail verification code
+ */
+export const requestAuthEmailVerification = async (emailVerificationRequest: EmailVerificationRequest, options?: Parameters<typeof customFetch>[1]): Promise<VerificationRequired> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<VerificationRequired>(getRequestAuthEmailVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(emailVerificationRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestAuthEmailVerificationMutationKey = () => ['requestAuthEmailVerification'] as const;
+
+export const getRequestAuthEmailVerificationMutationOptions = <TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAuthEmailVerification>>, TError,RequestAuthEmailVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAuthEmailVerification>>, TError,RequestAuthEmailVerificationMutationVariables, TContext> => {
+
+const mutationKey = getRequestAuthEmailVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAuthEmailVerification>>, RequestAuthEmailVerificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAuthEmailVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAuthEmailVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof requestAuthEmailVerification>>>
+    export type RequestAuthEmailVerificationMutationBody = BodyType<EmailVerificationRequest>
+    export type RequestAuthEmailVerificationMutationError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type RequestAuthEmailVerificationMutationVariables = {data: BodyType<EmailVerificationRequest>}
+
+    /**
+ * @summary Request a new e-mail verification code
+ */
+export const useRequestAuthEmailVerification = <TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAuthEmailVerification>>, TError,RequestAuthEmailVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAuthEmailVerification>>,
+        TError,
+        RequestAuthEmailVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAuthEmailVerificationMutationOptions(options), queryClient);
+    }
+
+export const getConfirmAuthEmailVerificationUrl = () => {
+
+
+
+
+  return `/api/v1/auth/verification/confirm`
+}
+
+/**
+ * @summary Confirm an account e-mail address
+ */
+export const confirmAuthEmailVerification = async (emailVerificationConfirm: EmailVerificationConfirm, options?: Parameters<typeof customFetch>[1]): Promise<EmailVerificationConfirmation> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EmailVerificationConfirmation>(getConfirmAuthEmailVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(emailVerificationConfirm)
+  }
+);}
+
+
+
+
+
+export const getConfirmAuthEmailVerificationMutationKey = () => ['confirmAuthEmailVerification'] as const;
+
+export const getConfirmAuthEmailVerificationMutationOptions = <TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthEmailVerification>>, TError,ConfirmAuthEmailVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAuthEmailVerification>>, TError,ConfirmAuthEmailVerificationMutationVariables, TContext> => {
+
+const mutationKey = getConfirmAuthEmailVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAuthEmailVerification>>, ConfirmAuthEmailVerificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAuthEmailVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAuthEmailVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAuthEmailVerification>>>
+    export type ConfirmAuthEmailVerificationMutationBody = BodyType<EmailVerificationConfirm>
+    export type ConfirmAuthEmailVerificationMutationError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>
+    export type ConfirmAuthEmailVerificationMutationVariables = {data: BodyType<EmailVerificationConfirm>}
+
+    /**
+ * @summary Confirm an account e-mail address
+ */
+export const useConfirmAuthEmailVerification = <TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthEmailVerification>>, TError,ConfirmAuthEmailVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAuthEmailVerification>>,
+        TError,
+        ConfirmAuthEmailVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmAuthEmailVerificationMutationOptions(options), queryClient);
+    }
+
+export const getRequestAuthPasswordResetUrl = () => {
+
+
+
+
+  return `/api/v1/auth/password/reset/request`
+}
+
+/**
+ * Uses a generic response so account existence is not disclosed.
+ * @summary Request a password-reset code
+ */
+export const requestAuthPasswordReset = async (passwordResetRequest: PasswordResetRequest, options?: Parameters<typeof customFetch>[1]): Promise<PasswordResetRequested> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PasswordResetRequested>(getRequestAuthPasswordResetUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(passwordResetRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestAuthPasswordResetMutationKey = () => ['requestAuthPasswordReset'] as const;
+
+export const getRequestAuthPasswordResetMutationOptions = <TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAuthPasswordReset>>, TError,RequestAuthPasswordResetMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAuthPasswordReset>>, TError,RequestAuthPasswordResetMutationVariables, TContext> => {
+
+const mutationKey = getRequestAuthPasswordResetMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAuthPasswordReset>>, RequestAuthPasswordResetMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAuthPasswordReset(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAuthPasswordResetMutationResult = NonNullable<Awaited<ReturnType<typeof requestAuthPasswordReset>>>
+    export type RequestAuthPasswordResetMutationBody = BodyType<PasswordResetRequest>
+    export type RequestAuthPasswordResetMutationError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>
+    export type RequestAuthPasswordResetMutationVariables = {data: BodyType<PasswordResetRequest>}
+
+    /**
+ * @summary Request a password-reset code
+ */
+export const useRequestAuthPasswordReset = <TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAuthPasswordReset>>, TError,RequestAuthPasswordResetMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAuthPasswordReset>>,
+        TError,
+        RequestAuthPasswordResetMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAuthPasswordResetMutationOptions(options), queryClient);
+    }
+
+export const getConfirmAuthPasswordResetUrl = () => {
+
+
+
+
+  return `/api/v1/auth/password/reset/confirm`
+}
+
+/**
+ * @summary Complete a password reset with its e-mail code
+ */
+export const confirmAuthPasswordReset = async (passwordResetConfirm: PasswordResetConfirm, options?: Parameters<typeof customFetch>[1]): Promise<PasswordResetComplete> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PasswordResetComplete>(getConfirmAuthPasswordResetUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(passwordResetConfirm)
+  }
+);}
+
+
+
+
+
+export const getConfirmAuthPasswordResetMutationKey = () => ['confirmAuthPasswordReset'] as const;
+
+export const getConfirmAuthPasswordResetMutationOptions = <TError = ErrorType<ValidationErrorResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthPasswordReset>>, TError,ConfirmAuthPasswordResetMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAuthPasswordReset>>, TError,ConfirmAuthPasswordResetMutationVariables, TContext> => {
+
+const mutationKey = getConfirmAuthPasswordResetMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAuthPasswordReset>>, ConfirmAuthPasswordResetMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAuthPasswordReset(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAuthPasswordResetMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAuthPasswordReset>>>
+    export type ConfirmAuthPasswordResetMutationBody = BodyType<PasswordResetConfirm>
+    export type ConfirmAuthPasswordResetMutationError = ErrorType<ValidationErrorResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>
+    export type ConfirmAuthPasswordResetMutationVariables = {data: BodyType<PasswordResetConfirm>}
+
+    /**
+ * @summary Complete a password reset with its e-mail code
+ */
+export const useConfirmAuthPasswordReset = <TError = ErrorType<ValidationErrorResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAuthPasswordReset>>, TError,ConfirmAuthPasswordResetMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAuthPasswordReset>>,
+        TError,
+        ConfirmAuthPasswordResetMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmAuthPasswordResetMutationOptions(options), queryClient);
+    }
+
+export const getListAuthSessionsUrl = (params?: ListAuthSessionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/auth/sessions?${stringifiedParams}` : `/api/v1/auth/sessions`
+}
+
+/**
+ * @summary List active sessions for the authenticated account
+ */
+export const listAuthSessions = async (params?: ListAuthSessionsParams, options?: Parameters<typeof customFetch>[1]): Promise<AuthSessionPage> => {
+
+  return customFetch<AuthSessionPage>(getListAuthSessionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAuthSessionsQueryKey = (params?: ListAuthSessionsParams,) => {
+    return [
+    `/api/v1/auth/sessions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAuthSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listAuthSessions>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(params?: ListAuthSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAuthSessionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAuthSessions>>> = ({ signal }) => listAuthSessions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAuthSessions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAuthSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listAuthSessions>>>
+export type ListAuthSessionsQueryError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>
+
+
+export function useListAuthSessions<TData = Awaited<ReturnType<typeof listAuthSessions>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params: undefined |  ListAuthSessionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthSessions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAuthSessions>>,
+          TError,
+          Awaited<ReturnType<typeof listAuthSessions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAuthSessions<TData = Awaited<ReturnType<typeof listAuthSessions>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params?: ListAuthSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthSessions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAuthSessions>>,
+          TError,
+          Awaited<ReturnType<typeof listAuthSessions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAuthSessions<TData = Awaited<ReturnType<typeof listAuthSessions>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params?: ListAuthSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List active sessions for the authenticated account
+ */
+
+export function useListAuthSessions<TData = Awaited<ReturnType<typeof listAuthSessions>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params?: ListAuthSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAuthSessionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRevokeOtherAuthSessionsUrl = () => {
+
+
+
+
+  return `/api/v1/auth/sessions/others`
+}
+
+/**
+ * @summary Revoke every active session except the current one
+ */
+export const revokeOtherAuthSessions = async ( options?: Parameters<typeof customFetch>[1]): Promise<OtherSessionsRevoked> => {
+
+  return customFetch<OtherSessionsRevoked>(getRevokeOtherAuthSessionsUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeOtherAuthSessionsMutationKey = () => ['revokeOtherAuthSessions'] as const;
+
+export const getRevokeOtherAuthSessionsMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOtherAuthSessions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeOtherAuthSessions>>, TError,void, TContext> => {
+
+const mutationKey = getRevokeOtherAuthSessionsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOtherAuthSessions>>, void> = () => {
+
+
+          return  revokeOtherAuthSessions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeOtherAuthSessionsMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOtherAuthSessions>>>
+
+    export type RevokeOtherAuthSessionsMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse>
+
+
+    /**
+ * @summary Revoke every active session except the current one
+ */
+export const useRevokeOtherAuthSessions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOtherAuthSessions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeOtherAuthSessions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRevokeOtherAuthSessionsMutationOptions(options), queryClient);
+    }
+
+export const getRevokeAuthSessionUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/v1/auth/sessions/${sessionId}`
+}
+
+/**
+ * @summary Revoke another active session
+ */
+export const revokeAuthSession = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRevokeAuthSessionUrl(sessionId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeAuthSessionMutationKey = () => ['revokeAuthSession'] as const;
+
+export const getRevokeAuthSessionMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAuthSession>>, TError,RevokeAuthSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeAuthSession>>, TError,RevokeAuthSessionMutationVariables, TContext> => {
+
+const mutationKey = getRevokeAuthSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeAuthSession>>, RevokeAuthSessionMutationVariables> = (props) => {
+          const {sessionId} = props ?? {};
+
+          return  revokeAuthSession(sessionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeAuthSessionMutationResult = NonNullable<Awaited<ReturnType<typeof revokeAuthSession>>>
+
+    export type RevokeAuthSessionMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | TooManyRequestsResponse>
+    export type RevokeAuthSessionMutationVariables = {sessionId: string}
+
+    /**
+ * @summary Revoke another active session
+ */
+export const useRevokeAuthSession = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAuthSession>>, TError,RevokeAuthSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeAuthSession>>,
+        TError,
+        RevokeAuthSessionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeAuthSessionMutationOptions(options), queryClient);
+    }
+
+export const getLogoutAuthSessionUrl = () => {
+
+
+
+
+  return `/api/v1/auth/logout`
+}
+
+/**
+ * @summary End the current authentication session
+ */
+export const logoutAuthSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getLogoutAuthSessionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLogoutAuthSessionMutationKey = () => ['logoutAuthSession'] as const;
+
+export const getLogoutAuthSessionMutationOptions = <TError = ErrorType<ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutAuthSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logoutAuthSession>>, TError,void, TContext> => {
+
+const mutationKey = getLogoutAuthSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logoutAuthSession>>, void> = () => {
+
+
+          return  logoutAuthSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogoutAuthSessionMutationResult = NonNullable<Awaited<ReturnType<typeof logoutAuthSession>>>
+
+    export type LogoutAuthSessionMutationError = ErrorType<ForbiddenResponse>
+
+
+    /**
+ * @summary End the current authentication session
+ */
+export const useLogoutAuthSession = <TError = ErrorType<ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutAuthSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof logoutAuthSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLogoutAuthSessionMutationOptions(options), queryClient);
+    }
+
+export const getListAuthTrustedDevicesUrl = () => {
+
+
+
+
+  return `/api/v1/auth/devices`
+}
+
+/**
+ * @summary List trusted browser or app installations
+ */
+export const listAuthTrustedDevices = async ( options?: Parameters<typeof customFetch>[1]): Promise<TrustedDevicePage> => {
+
+  return customFetch<TrustedDevicePage>(getListAuthTrustedDevicesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAuthTrustedDevicesQueryKey = () => {
+    return [
+    `/api/v1/auth/devices`
+    ] as const;
+    }
+
+
+export const getListAuthTrustedDevicesQueryOptions = <TData = Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError = ErrorType<UnauthorizedResponse | TooManyRequestsResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAuthTrustedDevicesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAuthTrustedDevices>>> = ({ signal }) => listAuthTrustedDevices({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAuthTrustedDevicesQueryResult = NonNullable<Awaited<ReturnType<typeof listAuthTrustedDevices>>>
+export type ListAuthTrustedDevicesQueryError = ErrorType<UnauthorizedResponse | TooManyRequestsResponse>
+
+
+export function useListAuthTrustedDevices<TData = Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError = ErrorType<UnauthorizedResponse | TooManyRequestsResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAuthTrustedDevices>>,
+          TError,
+          Awaited<ReturnType<typeof listAuthTrustedDevices>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAuthTrustedDevices<TData = Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError = ErrorType<UnauthorizedResponse | TooManyRequestsResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAuthTrustedDevices>>,
+          TError,
+          Awaited<ReturnType<typeof listAuthTrustedDevices>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAuthTrustedDevices<TData = Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError = ErrorType<UnauthorizedResponse | TooManyRequestsResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List trusted browser or app installations
+ */
+
+export function useListAuthTrustedDevices<TData = Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError = ErrorType<UnauthorizedResponse | TooManyRequestsResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAuthTrustedDevices>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAuthTrustedDevicesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRevokeOtherAuthTrustedDevicesUrl = () => {
+
+
+
+
+  return `/api/v1/auth/devices/others`
+}
+
+/**
+ * @summary Revoke trusted installations except the current one
+ */
+export const revokeOtherAuthTrustedDevices = async ( options?: Parameters<typeof customFetch>[1]): Promise<OtherDevicesRevoked> => {
+
+  return customFetch<OtherDevicesRevoked>(getRevokeOtherAuthTrustedDevicesUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeOtherAuthTrustedDevicesMutationKey = () => ['revokeOtherAuthTrustedDevices'] as const;
+
+export const getRevokeOtherAuthTrustedDevicesMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOtherAuthTrustedDevices>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeOtherAuthTrustedDevices>>, TError,void, TContext> => {
+
+const mutationKey = getRevokeOtherAuthTrustedDevicesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOtherAuthTrustedDevices>>, void> = () => {
+
+
+          return  revokeOtherAuthTrustedDevices(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeOtherAuthTrustedDevicesMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOtherAuthTrustedDevices>>>
+
+    export type RevokeOtherAuthTrustedDevicesMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse>
+
+
+    /**
+ * @summary Revoke trusted installations except the current one
+ */
+export const useRevokeOtherAuthTrustedDevices = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOtherAuthTrustedDevices>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeOtherAuthTrustedDevices>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRevokeOtherAuthTrustedDevicesMutationOptions(options), queryClient);
+    }
+
+export const getRevokeAuthTrustedDeviceUrl = (deviceId: string,) => {
+
+
+
+
+  return `/api/v1/auth/devices/${deviceId}`
+}
+
+/**
+ * @summary Revoke a trusted browser or app installation
+ */
+export const revokeAuthTrustedDevice = async (deviceId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRevokeAuthTrustedDeviceUrl(deviceId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeAuthTrustedDeviceMutationKey = () => ['revokeAuthTrustedDevice'] as const;
+
+export const getRevokeAuthTrustedDeviceMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAuthTrustedDevice>>, TError,RevokeAuthTrustedDeviceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeAuthTrustedDevice>>, TError,RevokeAuthTrustedDeviceMutationVariables, TContext> => {
+
+const mutationKey = getRevokeAuthTrustedDeviceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeAuthTrustedDevice>>, RevokeAuthTrustedDeviceMutationVariables> = (props) => {
+          const {deviceId} = props ?? {};
+
+          return  revokeAuthTrustedDevice(deviceId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeAuthTrustedDeviceMutationResult = NonNullable<Awaited<ReturnType<typeof revokeAuthTrustedDevice>>>
+
+    export type RevokeAuthTrustedDeviceMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type RevokeAuthTrustedDeviceMutationVariables = {deviceId: string}
+
+    /**
+ * @summary Revoke a trusted browser or app installation
+ */
+export const useRevokeAuthTrustedDevice = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAuthTrustedDevice>>, TError,RevokeAuthTrustedDeviceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeAuthTrustedDevice>>,
+        TError,
+        RevokeAuthTrustedDeviceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeAuthTrustedDeviceMutationOptions(options), queryClient);
+    }
 
 export const getRequestAccountEmailChangeUrl = () => {
 

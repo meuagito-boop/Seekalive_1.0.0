@@ -18,6 +18,476 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Rotates the active session token or creates a pre-authentication token.
+ * @summary Obtain a CSRF token for the current browser context
+ */
+
+
+
+export const GetAuthCsrfTokenResponse = zod.object({
+  "csrfToken": zod.string().min(1)
+})
+
+
+/**
+ * @summary Read the current authentication state
+ */
+export const getAuthSessionResponseOneAccountUsernameMin = 3;
+export const getAuthSessionResponseOneAccountUsernameMax = 20;
+
+
+
+export const GetAuthSessionResponse = zod.union([zod.object({
+  "authenticated": zod.literal(true),
+  "account": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string().min(getAuthSessionResponseOneAccountUsernameMin).max(getAuthSessionResponseOneAccountUsernameMax).describe('Lowercase social identifier after server normalization.'),
+  "displayName": zod.string(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "joinedAt": zod.coerce.date(),
+  "onboardingCompleted": zod.boolean()
+}),
+  "session": zod.object({
+  "id": zod.uuid(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+})
+}),zod.object({
+  "authenticated": zod.literal(false),
+  "account": zod.null(),
+  "session": zod.null()
+})])
+
+
+/**
+ * Creates an unverified account and requests e-mail verification; it does not create an authenticated session.
+ * @summary Create a personal or commercial account
+ */
+export const registerAccountBodyOneOneUsernameMin = 3;
+export const registerAccountBodyOneOneUsernameMax = 20;
+
+export const registerAccountBodyOneOneEmailMax = 254;
+
+export const registerAccountBodyOneOnePasswordMin = 8;
+export const registerAccountBodyOneOnePasswordMax = 128;
+
+export const registerAccountBodyOneOnePasswordConfirmationMin = 8;
+export const registerAccountBodyOneOnePasswordConfirmationMax = 128;
+
+export const registerAccountBodyOneOneAgeMin = 18;
+export const registerAccountBodyOneOneAgeMax = 120;
+
+export const registerAccountBodyOneTwoFirstNameMin = 2;
+export const registerAccountBodyOneTwoFirstNameMax = 80;
+
+export const registerAccountBodyOneTwoLastNameMin = 2;
+export const registerAccountBodyOneTwoLastNameMax = 80;
+
+export const registerAccountBodyTwoOneUsernameMin = 3;
+export const registerAccountBodyTwoOneUsernameMax = 20;
+
+export const registerAccountBodyTwoOneEmailMax = 254;
+
+export const registerAccountBodyTwoOnePasswordMin = 8;
+export const registerAccountBodyTwoOnePasswordMax = 128;
+
+export const registerAccountBodyTwoOnePasswordConfirmationMin = 8;
+export const registerAccountBodyTwoOnePasswordConfirmationMax = 128;
+
+export const registerAccountBodyTwoOneAgeMin = 18;
+export const registerAccountBodyTwoOneAgeMax = 120;
+
+export const registerAccountBodyTwoTwoBusinessNameMin = 2;
+export const registerAccountBodyTwoTwoBusinessNameMax = 100;
+
+export const registerAccountBodyTwoTwoAddressMin = 3;
+export const registerAccountBodyTwoTwoAddressMax = 250;
+
+export const registerAccountBodyTwoTwoPostalCodeMin = 5;
+export const registerAccountBodyTwoTwoPostalCodeMax = 20;
+
+export const registerAccountBodyTwoTwoCityMin = 2;
+export const registerAccountBodyTwoTwoCityMax = 120;
+
+export const registerAccountBodyTwoTwoStateMin = 2;
+export const registerAccountBodyTwoTwoStateMax = 100;
+
+export const registerAccountBodyTwoTwoCountryMin = 2;
+export const registerAccountBodyTwoTwoCountryMax = 100;
+
+
+
+export const RegisterAccountBody = zod.union([zod.object({
+  "username": zod.string().min(registerAccountBodyOneOneUsernameMin).max(registerAccountBodyOneOneUsernameMax).describe('Trimmed and normalized to lowercase before the final username rule is applied.'),
+  "email": zod.email().max(registerAccountBodyOneOneEmailMax).describe('Trimmed and normalized to lowercase by the server.'),
+  "password": zod.string().min(registerAccountBodyOneOnePasswordMin).max(registerAccountBodyOneOnePasswordMax).describe('Must include an uppercase letter, lowercase letter, number, and special character.'),
+  "passwordConfirmation": zod.string().min(registerAccountBodyOneOnePasswordConfirmationMin).max(registerAccountBodyOneOnePasswordConfirmationMax).describe('Must match password.'),
+  "acceptedTermsVersion": zod.literal("v1"),
+  "age": zod.int().min(registerAccountBodyOneOneAgeMin).max(registerAccountBodyOneOneAgeMax).describe('Private eligibility data; it is not returned in public account responses.')
+}).and(zod.object({
+  "accountType": zod.literal("personal"),
+  "firstName": zod.string().min(registerAccountBodyOneTwoFirstNameMin).max(registerAccountBodyOneTwoFirstNameMax),
+  "lastName": zod.string().min(registerAccountBodyOneTwoLastNameMin).max(registerAccountBodyOneTwoLastNameMax)
+})),zod.object({
+  "username": zod.string().min(registerAccountBodyTwoOneUsernameMin).max(registerAccountBodyTwoOneUsernameMax).describe('Trimmed and normalized to lowercase before the final username rule is applied.'),
+  "email": zod.email().max(registerAccountBodyTwoOneEmailMax).describe('Trimmed and normalized to lowercase by the server.'),
+  "password": zod.string().min(registerAccountBodyTwoOnePasswordMin).max(registerAccountBodyTwoOnePasswordMax).describe('Must include an uppercase letter, lowercase letter, number, and special character.'),
+  "passwordConfirmation": zod.string().min(registerAccountBodyTwoOnePasswordConfirmationMin).max(registerAccountBodyTwoOnePasswordConfirmationMax).describe('Must match password.'),
+  "acceptedTermsVersion": zod.literal("v1"),
+  "age": zod.int().min(registerAccountBodyTwoOneAgeMin).max(registerAccountBodyTwoOneAgeMax).describe('Private eligibility data; it is not returned in public account responses.')
+}).and(zod.object({
+  "accountType": zod.literal("commercial"),
+  "businessName": zod.string().min(registerAccountBodyTwoTwoBusinessNameMin).max(registerAccountBodyTwoTwoBusinessNameMax),
+  "categoryKey": zod.enum(['restaurantes', 'bares', 'cafes', 'servicos', 'compras', 'saude', 'lazer']),
+  "discoveryKind": zod.enum(['place', 'provider']),
+  "address": zod.string().min(registerAccountBodyTwoTwoAddressMin).max(registerAccountBodyTwoTwoAddressMax),
+  "postalCode": zod.string().min(registerAccountBodyTwoTwoPostalCodeMin).max(registerAccountBodyTwoTwoPostalCodeMax),
+  "city": zod.string().min(registerAccountBodyTwoTwoCityMin).max(registerAccountBodyTwoTwoCityMax),
+  "state": zod.string().min(registerAccountBodyTwoTwoStateMin).max(registerAccountBodyTwoTwoStateMax),
+  "country": zod.string().min(registerAccountBodyTwoTwoCountryMin).max(registerAccountBodyTwoTwoCountryMax)
+}))])
+
+export const RegisterAccountResponse = zod.object({
+  "status": zod.literal("verification_required"),
+  "message": zod.string()
+})
+
+
+/**
+ * An unrecognized installation receives a verification challenge instead of a session.
+ * @summary Authenticate with username or e-mail and password
+ */
+export const loginAccountBodyIdentifierMin = 3;
+export const loginAccountBodyIdentifierMax = 254;
+
+export const loginAccountBodyPasswordMin = 8;
+export const loginAccountBodyPasswordMax = 128;
+
+
+
+export const LoginAccountBody = zod.object({
+  "identifier": zod.string().min(loginAccountBodyIdentifierMin).max(loginAccountBodyIdentifierMax).describe('Username or e-mail; surrounding whitespace is trimmed by the server.'),
+  "password": zod.string().min(loginAccountBodyPasswordMin).max(loginAccountBodyPasswordMax)
+})
+
+export const loginAccountResponseAccountUsernameMin = 3;
+export const loginAccountResponseAccountUsernameMax = 20;
+
+
+
+
+export const LoginAccountResponse = zod.object({
+  "account": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string().min(loginAccountResponseAccountUsernameMin).max(loginAccountResponseAccountUsernameMax).describe('Lowercase social identifier after server normalization.'),
+  "displayName": zod.string(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "joinedAt": zod.coerce.date(),
+  "onboardingCompleted": zod.boolean()
+}),
+  "session": zod.object({
+  "id": zod.uuid(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+}),
+  "csrfToken": zod.string().min(1),
+  "emailVerified": zod.literal(true)
+})
+
+
+/**
+ * @summary Confirm a new installation with its e-mail code
+ */
+export const confirmAuthDeviceVerificationBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmAuthDeviceVerificationBody = zod.object({
+  "challengeId": zod.uuid(),
+  "code": zod.string().regex(confirmAuthDeviceVerificationBodyCodeRegExp)
+})
+
+export const confirmAuthDeviceVerificationResponseAccountUsernameMin = 3;
+export const confirmAuthDeviceVerificationResponseAccountUsernameMax = 20;
+
+
+
+
+export const ConfirmAuthDeviceVerificationResponse = zod.object({
+  "account": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string().min(confirmAuthDeviceVerificationResponseAccountUsernameMin).max(confirmAuthDeviceVerificationResponseAccountUsernameMax).describe('Lowercase social identifier after server normalization.'),
+  "displayName": zod.string(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "joinedAt": zod.coerce.date(),
+  "onboardingCompleted": zod.boolean()
+}),
+  "session": zod.object({
+  "id": zod.uuid(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+}),
+  "csrfToken": zod.string().min(1),
+  "emailVerified": zod.literal(true)
+})
+
+
+/**
+ * @summary Resend the code for an unrecognized installation
+ */
+export const ResendAuthDeviceVerificationBody = zod.object({
+  "challengeId": zod.uuid()
+})
+
+export const ResendAuthDeviceVerificationResponse = zod.object({
+  "status": zod.literal("verification_code_resent"),
+  "expiresAt": zod.coerce.date(),
+  "resendAvailableAt": zod.coerce.date()
+})
+
+
+/**
+ * Requires the current password and sends a code to the verified e-mail.
+ * @summary Request a password-policy update
+ */
+export const requestAuthPasswordPolicyUpdateBodyIdentifierMin = 3;
+export const requestAuthPasswordPolicyUpdateBodyIdentifierMax = 254;
+
+export const requestAuthPasswordPolicyUpdateBodyCurrentPasswordMin = 8;
+export const requestAuthPasswordPolicyUpdateBodyCurrentPasswordMax = 128;
+
+export const requestAuthPasswordPolicyUpdateBodyNewPasswordMin = 8;
+export const requestAuthPasswordPolicyUpdateBodyNewPasswordMax = 128;
+
+export const requestAuthPasswordPolicyUpdateBodyPasswordConfirmationMin = 8;
+export const requestAuthPasswordPolicyUpdateBodyPasswordConfirmationMax = 128;
+
+
+
+export const RequestAuthPasswordPolicyUpdateBody = zod.object({
+  "identifier": zod.string().min(requestAuthPasswordPolicyUpdateBodyIdentifierMin).max(requestAuthPasswordPolicyUpdateBodyIdentifierMax),
+  "currentPassword": zod.string().min(requestAuthPasswordPolicyUpdateBodyCurrentPasswordMin).max(requestAuthPasswordPolicyUpdateBodyCurrentPasswordMax),
+  "newPassword": zod.string().min(requestAuthPasswordPolicyUpdateBodyNewPasswordMin).max(requestAuthPasswordPolicyUpdateBodyNewPasswordMax).describe('Must differ from the current password and include uppercase, lowercase, numeric, and special characters.'),
+  "passwordConfirmation": zod.string().min(requestAuthPasswordPolicyUpdateBodyPasswordConfirmationMin).max(requestAuthPasswordPolicyUpdateBodyPasswordConfirmationMax).describe('Must match newPassword.')
+})
+
+export const RequestAuthPasswordPolicyUpdateResponse = zod.object({
+  "status": zod.literal("password_update_verification_required"),
+  "challengeId": zod.uuid(),
+  "emailMasked": zod.string(),
+  "expiresAt": zod.coerce.date(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Confirm a password-policy update with its e-mail code
+ */
+export const confirmAuthPasswordPolicyUpdateBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmAuthPasswordPolicyUpdateBody = zod.object({
+  "challengeId": zod.uuid(),
+  "code": zod.string().regex(confirmAuthPasswordPolicyUpdateBodyCodeRegExp)
+})
+
+export const ConfirmAuthPasswordPolicyUpdateResponse = zod.object({
+  "status": zod.literal("password_updated")
+})
+
+
+/**
+ * Uses a generic response so account existence is not disclosed.
+ * @summary Request a new e-mail verification code
+ */
+export const requestAuthEmailVerificationBodyEmailMax = 254;
+
+
+
+export const RequestAuthEmailVerificationBody = zod.object({
+  "email": zod.email().max(requestAuthEmailVerificationBodyEmailMax)
+})
+
+export const RequestAuthEmailVerificationResponse = zod.object({
+  "status": zod.literal("verification_required"),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Confirm an account e-mail address
+ */
+export const confirmAuthEmailVerificationBodyEmailMax = 254;
+
+export const confirmAuthEmailVerificationBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmAuthEmailVerificationBody = zod.object({
+  "email": zod.email().max(confirmAuthEmailVerificationBodyEmailMax),
+  "code": zod.string().regex(confirmAuthEmailVerificationBodyCodeRegExp)
+})
+
+export const confirmAuthEmailVerificationResponseOneAccountUsernameMin = 3;
+export const confirmAuthEmailVerificationResponseOneAccountUsernameMax = 20;
+
+
+
+
+export const ConfirmAuthEmailVerificationResponse = zod.union([zod.object({
+  "account": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string().min(confirmAuthEmailVerificationResponseOneAccountUsernameMin).max(confirmAuthEmailVerificationResponseOneAccountUsernameMax).describe('Lowercase social identifier after server normalization.'),
+  "displayName": zod.string(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "joinedAt": zod.coerce.date(),
+  "onboardingCompleted": zod.boolean()
+}),
+  "session": zod.object({
+  "id": zod.uuid(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+}),
+  "csrfToken": zod.string().min(1),
+  "emailVerified": zod.literal(true)
+}),zod.object({
+  "emailVerified": zod.literal(true),
+  "passwordUpdateRequired": zod.literal(true),
+  "message": zod.string()
+})])
+
+
+/**
+ * Uses a generic response so account existence is not disclosed.
+ * @summary Request a password-reset code
+ */
+export const requestAuthPasswordResetBodyEmailMax = 254;
+
+
+
+export const RequestAuthPasswordResetBody = zod.object({
+  "email": zod.email().max(requestAuthPasswordResetBodyEmailMax)
+})
+
+export const RequestAuthPasswordResetResponse = zod.object({
+  "status": zod.literal("reset_requested"),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Complete a password reset with its e-mail code
+ */
+export const confirmAuthPasswordResetBodyEmailMax = 254;
+
+export const confirmAuthPasswordResetBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+export const confirmAuthPasswordResetBodyNewPasswordMin = 8;
+export const confirmAuthPasswordResetBodyNewPasswordMax = 128;
+
+export const confirmAuthPasswordResetBodyPasswordConfirmationMin = 8;
+export const confirmAuthPasswordResetBodyPasswordConfirmationMax = 128;
+
+
+
+export const ConfirmAuthPasswordResetBody = zod.object({
+  "email": zod.email().max(confirmAuthPasswordResetBodyEmailMax),
+  "code": zod.string().regex(confirmAuthPasswordResetBodyCodeRegExp),
+  "newPassword": zod.string().min(confirmAuthPasswordResetBodyNewPasswordMin).max(confirmAuthPasswordResetBodyNewPasswordMax).describe('Must include uppercase, lowercase, numeric, and special characters.'),
+  "passwordConfirmation": zod.string().min(confirmAuthPasswordResetBodyPasswordConfirmationMin).max(confirmAuthPasswordResetBodyPasswordConfirmationMax).describe('Must match newPassword.')
+})
+
+export const ConfirmAuthPasswordResetResponse = zod.object({
+  "status": zod.literal("password_reset")
+})
+
+
+/**
+ * @summary List active sessions for the authenticated account
+ */
+export const listAuthSessionsQueryCursorMax = 16;
+
+
+
+export const ListAuthSessionsQueryParams = zod.object({
+  "cursor": zod.coerce.string().max(listAuthSessionsQueryCursorMax).optional()
+})
+
+export const ListAuthSessionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "isCurrent": zod.boolean()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Revoke every active session except the current one
+ */
+export const revokeOtherAuthSessionsResponseRevokedCountMin = 0;
+
+
+
+export const RevokeOtherAuthSessionsResponse = zod.object({
+  "status": zod.literal("other_sessions_revoked"),
+  "revokedCount": zod.int().min(revokeOtherAuthSessionsResponseRevokedCountMin)
+})
+
+
+/**
+ * @summary Revoke another active session
+ */
+export const RevokeAuthSessionParams = zod.object({
+  "sessionId": zod.uuid()
+})
+
+export const RevokeAuthSessionResponse = zod.void()
+
+
+/**
+ * @summary End the current authentication session
+ */
+export const LogoutAuthSessionResponse = zod.void()
+
+
+/**
+ * @summary List trusted browser or app installations
+ */
+export const ListAuthTrustedDevicesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "firstSeenAt": zod.coerce.date(),
+  "lastSeenAt": zod.coerce.date(),
+  "isCurrent": zod.boolean()
+})),
+  "hasMore": zod.boolean()
+})
+
+
+/**
+ * @summary Revoke trusted installations except the current one
+ */
+export const revokeOtherAuthTrustedDevicesResponseRevokedCountMin = 0;
+
+
+
+export const RevokeOtherAuthTrustedDevicesResponse = zod.object({
+  "status": zod.literal("other_devices_revoked"),
+  "revokedCount": zod.int().min(revokeOtherAuthTrustedDevicesResponseRevokedCountMin)
+})
+
+
+/**
+ * @summary Revoke a trusted browser or app installation
+ */
+export const RevokeAuthTrustedDeviceParams = zod.object({
+  "deviceId": zod.uuid()
+})
+
+export const RevokeAuthTrustedDeviceResponse = zod.void()
+
+
+/**
  * Requires the current password. Sends the first code to the currently verified e-mail; the current address remains active until the new address is confirmed.
  * @summary Start a verified e-mail change
  */

@@ -1,5 +1,13 @@
-import type { ApiErrorKey } from "@workspace/api-zod";
+import {
+  GetAuthCsrfTokenResponse,
+  type ApiErrorKey,
+} from "@workspace/api-zod";
 import { readApiError } from "@/modules/app/api/apiErrors";
+
+export type ApiResponseContract = Record<
+  number,
+  { safeParse(value: unknown): { success: boolean } } | "empty"
+>;
 
 export class ApiRequestError extends Error {
   constructor(
@@ -18,7 +26,17 @@ export class ApiRequestError extends Error {
   }
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
+export class ApiResponseContractError extends Error {
+  constructor(readonly status: number) {
+    super("A resposta recebida do servidor está incompatível. Tente novamente.");
+    this.name = "ApiResponseContractError";
+  }
+}
+
+async function parseResponse<T>(
+  response: Response,
+  contract?: ApiResponseContract,
+): Promise<T> {
   const payload =
     response.status === 204
       ? undefined
@@ -37,6 +55,21 @@ async function parseResponse<T>(response: Response): Promise<T> {
       error.resendAvailableAt,
     );
   }
+  if (contract) {
+    const responseValidator = contract[response.status];
+    if (responseValidator === undefined) {
+      throw new ApiResponseContractError(response.status);
+    }
+    if (responseValidator === "empty") {
+      if (payload !== undefined) {
+        throw new ApiResponseContractError(response.status);
+      }
+      return undefined as T;
+    }
+    if (!responseValidator.safeParse(payload).success) {
+      throw new ApiResponseContractError(response.status);
+    }
+  }
   return payload as T;
 }
 
@@ -47,11 +80,17 @@ export async function getCsrfToken(): Promise<string> {
     headers: { Accept: "application/json" },
     cache: "no-store",
   });
-  const payload = await parseResponse<{ csrfToken: string }>(response);
+  const payload = await parseResponse<{ csrfToken: string }>(response, {
+    200: GetAuthCsrfTokenResponse,
+  });
   return payload.csrfToken;
 }
 
-export async function postJson<T>(path: string, body?: unknown): Promise<T> {
+export async function postJson<T>(
+  path: string,
+  body?: unknown,
+  contract?: ApiResponseContract,
+): Promise<T> {
   const csrfToken = await getCsrfToken();
   const response = await fetch(`/api/v1${path}`, {
     method: "POST",
@@ -63,10 +102,13 @@ export async function postJson<T>(path: string, body?: unknown): Promise<T> {
     },
     body: body === undefined ? "{}" : JSON.stringify(body),
   });
-  return parseResponse<T>(response);
+  return parseResponse<T>(response, contract);
 }
 
-export async function deleteJson<T>(path: string): Promise<T> {
+export async function deleteJson<T>(
+  path: string,
+  contract?: ApiResponseContract,
+): Promise<T> {
   const csrfToken = await getCsrfToken();
   const response = await fetch(`/api/v1${path}`, {
     method: "DELETE",
@@ -76,15 +118,18 @@ export async function deleteJson<T>(path: string): Promise<T> {
       "X-CSRF-Token": csrfToken,
     },
   });
-  return parseResponse<T>(response);
+  return parseResponse<T>(response, contract);
 }
 
-export async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(
+  path: string,
+  contract?: ApiResponseContract,
+): Promise<T> {
   const response = await fetch(`/api/v1${path}`, {
     method: "GET",
     credentials: "include",
     headers: { Accept: "application/json" },
     cache: "no-store",
   });
-  return parseResponse<T>(response);
+  return parseResponse<T>(response, contract);
 }
