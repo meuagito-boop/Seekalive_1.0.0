@@ -238,6 +238,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     setRemoteBlockedUserIds,
     toggleBlockedUser,
     showRefreshWarning,
+    savePreviewAccount: saveSocialAccount,
   });
   const postActions = createSocialPostActions({
     state,

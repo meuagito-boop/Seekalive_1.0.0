@@ -1,35 +1,22 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Globe, Calendar, MoreHorizontal, Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { PostCard } from "@/modules/social/components/post/PostCard";
-import { formatCount } from "@/lib/formatters";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { CommercialProfilePage } from "@/modules/profile/commercial-profile/components/CommercialProfilePage";
 import { buildProfileTimeline } from "@/modules/profile/utils/profileTimeline";
+import { PersonalProfileHeader } from "@/modules/profile/personal-profile/components/PersonalProfileHeader";
+import { PersonalProfileTabs } from "@/modules/profile/personal-profile/components/PersonalProfileTabs";
 import { getProfileMedia } from "@/lib/postMedia";
 import { canReadPost } from "@/modules/social/application/contentValidation";
-import { postPath } from "@/lib/contentLinks";
 import { UnavailableState } from "@/components/content/StateBlocks";
 import { useToast } from "@/hooks/use-toast";
-import { handleTabKeyDown } from "@/lib/tabKeyboard";
-
-const tabs = [
-  { label: "Publicações", id: "Posts" },
-  { label: "Respostas", id: "Respostas" },
-  { label: "Mídias", id: "Mídias" },
-  { label: "Curtidas", id: "Curtidas" },
-  { label: "Artigos", id: "Artigos" },
-];
 
 export default function Profile() {
   const params = useParams<{ username: string }>();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(0);
-  const [showMenu, setShowMenu] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [profileRetry, setProfileRetry] = useState(0);
@@ -139,12 +126,12 @@ export default function Profile() {
     void toggleFollow(user.id);
   }
 
-  async function handleBlockToggle() {
+  async function handleBlockToggle(): Promise<boolean> {
     const wasBlockedByViewer = Boolean(user.isBlockedByViewer);
     const updated = wasBlockedByViewer
       ? await unblockUser(user.id)
       : await blockUser(user.id);
-    if (!updated) return;
+    if (!updated) return false;
     if (wasBlockedByViewer) {
       toast({
         title: "Seu bloqueio foi removido",
@@ -158,7 +145,15 @@ export default function Profile() {
         description: "Os seguimentos e solicitações entre vocês foram removidos.",
       });
     }
-    setShowMenu(false);
+    return true;
+  }
+
+  function handleCopyProfileLink() {
+    const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/profile/${user.username}`;
+    navigator.clipboard?.writeText(url).then(
+      () => toast({ title: "Link do perfil copiado" }),
+      () => toast({ title: "Não foi possível copiar o link", variant: "destructive" }),
+    );
   }
 
   if (!isMe && user.isBlocked) {
@@ -223,266 +218,37 @@ export default function Profile() {
 
   return (
     <div className="min-h-[100dvh] pb-16 md:pb-0">
-      {/* Sticky back + title bar */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg flex items-center gap-4 px-4 h-14 border-b border-border">
-        <button
-          type="button"
-          onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/feed"))}
-          aria-label="Voltar"
-          className="text-muted-foreground hover:text-foreground p-1"
-          data-testid="button-back"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="min-w-0">
-          <p className="truncate font-bold text-base leading-tight">{user.displayName}</p>
-          <p className="text-xs text-muted-foreground">{formatCount(timeline.length)} {timeline.length === 1 ? "publicação" : "publicações"}</p>
-        </div>
-      </div>
+      <PersonalProfileHeader
+        circleCount={circleCount}
+        following={following}
+        followRequested={followRequested}
+        inCircle={inCircle}
+        isMe={isMe}
+        onBack={() =>
+          window.history.length > 1
+            ? window.history.back()
+            : setLocation("/feed")
+        }
+        onBlockToggle={handleBlockToggle}
+        onCopyProfileLink={handleCopyProfileLink}
+        onFollow={handleFollow}
+        profile={user}
+        publicationCount={timeline.length}
+      />
 
-      {/* Cover */}
-      <div className="relative">
-        <div className="h-36 md:h-48 bg-gradient-to-br from-primary/20 via-accent/20 to-background overflow-hidden">
-          {user.coverUrl && (
-            <img src={user.coverUrl} alt={`Capa de ${user.displayName}`} className="w-full h-full object-cover" />
-          )}
-        </div>
-
-        <div className="px-4">
-          <div className="flex flex-wrap items-end justify-between gap-2 -mt-12 mb-3">
-            <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-primary/30">
-              <AvatarImage src={user.avatarUrl} alt={`Foto de ${user.displayName}`} />
-              <AvatarFallback className="text-2xl">{user.displayName[0]}</AvatarFallback>
-            </Avatar>
-
-            <div className="flex flex-wrap items-center justify-end gap-2 mt-2">
-              {isMe ? (
-                <Button asChild variant="outline" className="rounded-full h-9 px-5 text-sm font-semibold border-border" data-testid="button-edit-profile">
-                  <Link href="/profile/edit">Editar perfil</Link>
-                </Button>
-              ) : (
-                <>
-                  {inCircle && (
-                    <span className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-muted px-4 text-sm font-semibold text-muted-foreground" data-testid="badge-mutual-circle">
-                      <Check className="h-3 w-3" /> No Círculo
-                    </span>
-                  )}
-
-                  {/* Follow button */}
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <Button
-                      onClick={handleFollow}
-                      variant={following || followRequested ? "outline" : "default"}
-                      className="rounded-full h-9 px-5 text-sm font-semibold"
-                      data-testid="button-follow"
-                    >
-                      {following ? "Seguindo" : followRequested ? "Cancelar solicitação" : user.isPrivate ? "Solicitar para seguir" : "Seguir"}
-                    </Button>
-                  </motion.div>
-
-                  {/* More menu */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowMenu(v => !v)}
-                      aria-label="Mais opções do perfil"
-                      aria-expanded={showMenu}
-                      className="w-9 h-9 flex items-center justify-center rounded-full border border-border hover:bg-muted/50 transition-colors"
-                      data-testid="button-more"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                    <AnimatePresence>
-                      {showMenu && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                          className="absolute right-0 top-10 w-44 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50"
-                        >
-                          <button
-                            type="button"
-                            disabled
-                            aria-disabled="true"
-                            className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
-                            data-testid="action-silenciar"
-                          >
-                            Silenciar<span className="block text-[11px]">Indisponível nesta versão</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleBlockToggle}
-                            className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50"
-                            data-testid="action-bloquear"
-                          >
-                            {user.isBlockedByViewer ? "Desbloquear" : "Bloquear"}
-                          </button>
-                          <button
-                            type="button"
-                            disabled
-                            aria-disabled="true"
-                            className="w-full cursor-not-allowed text-left px-4 py-3 text-sm text-muted-foreground"
-                            data-testid="action-denunciar"
-                          >
-                            Denunciar<span className="block text-[11px]">Indisponível nesta versão</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                            onClick={() => {
-                              setShowMenu(false);
-                              const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/profile/${user.username}`;
-                              navigator.clipboard?.writeText(url).then(
-                                () => toast({ title: "Link do perfil copiado" }),
-                                () => toast({ title: "Não foi possível copiar o link", variant: "destructive" }),
-                              );
-                            }}
-                            data-testid="action-compartilhar-perfil"
-                          >
-                            Copiar link do perfil
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* User info */}
-          <div className="mb-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="min-w-0 break-words text-xl font-bold">{user.displayName}</h1>
-            </div>
-            <p className="text-muted-foreground text-sm break-all">@{user.username}</p>
-            {user.bio && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">{user.bio}</p>}
-            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-              {user.location && (
-                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{user.location}</span>
-              )}
-              {user.website && (
-                <a href={user.website} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 break-all text-primary hover:underline">
-                  <Globe className="w-3.5 h-3.5" />{user.website.replace(/^https?:\/\//, "")}
-                </a>
-              )}
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                Entrou em {new Date(user.joinedAt).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-              </span>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="flex flex-wrap gap-x-5 gap-y-1 mb-1 text-sm">
-            <Link href={`/profile/${user.username}/following`} className="hover:underline" data-testid="link-following">
-              <span className="font-bold">{formatCount(user.stats.following)}</span>
-              <span className="text-muted-foreground ml-1">Seguindo</span>
-            </Link>
-            <Link href={`/profile/${user.username}/followers`} className="hover:underline" data-testid="link-followers">
-              <span className="font-bold">{formatCount(user.stats.followers)}</span>
-              <span className="text-muted-foreground ml-1">Seguidores</span>
-            </Link>
-            {isMe ? (
-              <Link href={`/profile/${user.username}/circles`} className="hover:underline" data-testid="link-circles">
-                <span className="font-bold">{formatCount(circleCount)}</span>
-                <span className="text-muted-foreground ml-1">Círculo</span>
-              </Link>
-            ) : (
-              <span className="text-muted-foreground" data-testid="stat-circles">
-                <span className="font-bold text-foreground">{formatCount(circleCount)}</span>
-                <span className="ml-1">Círculo</span>
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div role="tablist" aria-label="Seções do perfil" className="flex overflow-x-auto border-b border-border sticky top-14 bg-background z-20 [scrollbar-width:none]">
-        {tabs.map((tab, i) => (
-          <button
-            key={tab.id}
-            id={`profile-tab-${i}`}
-            aria-controls={`profile-panel-${i}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === i}
-            tabIndex={activeTab === i ? 0 : -1}
-            onKeyDown={(event) => handleTabKeyDown(event, i, tabs.length, setActiveTab)}
-            onClick={() => setActiveTab(i)}
-            data-testid={`tab-profile-${tab.id}`}
-            className={`min-w-[96px] flex-1 shrink-0 whitespace-nowrap px-2 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === i ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div>
-        <div id="profile-panel-0" role="tabpanel" aria-labelledby="profile-tab-0" hidden={activeTab !== 0} tabIndex={0}>
-          {activeTab === 0 && (timeline.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground">
-              <p className="text-sm font-medium">Nenhuma publicação ainda.</p>
-            </div>
-          ) : timeline.map(item => <PostCard key={item.key} post={item.post} repostedById={item.repostedById} />))}
-        </div>
-        <div id="profile-panel-1" role="tabpanel" aria-labelledby="profile-tab-1" hidden={activeTab !== 1} tabIndex={0}>
-          {activeTab === 1 && (userComments.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">Nenhuma resposta ainda.</p></div>
-          ) : userComments.map(c => {
-            const target = posts.find(p => p.id === c.postId);
-            return (
-              <div key={c.id} className="border-b border-border px-4 py-3">
-                <p className="text-xs text-muted-foreground">
-                  {c.replyToCommentId ? "Respondeu a um comentário em " : "Comentou em "}
-                  {target && visibleToViewer(target)
-                    ? <Link href={postPath(target)} className="font-semibold text-primary hover:underline">{target.article?.title ?? (target.content.slice(0, 60) || "publicação")}</Link>
-                    : <span>publicação indisponível</span>}
-                </p>
-                <p className="mt-1 whitespace-pre-wrap text-sm">{c.content}</p>
-              </div>
-            );
-          }))}
-        </div>
-        <div id="profile-panel-2" role="tabpanel" aria-labelledby="profile-tab-2" hidden={activeTab !== 2} tabIndex={0}>
-          {activeTab === 2 && (userMedia.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground">
-              <p className="text-sm font-medium">Nenhuma mídia nesta conta ainda.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-1 p-1 sm:grid-cols-3">
-              {userMedia.map((media) => (
-                <div key={media.id} className="aspect-square overflow-hidden rounded-lg bg-muted">
-                  {media.type === "video" ? (
-                    <video src={media.url} controls playsInline className="h-full w-full object-cover" />
-                  ) : (
-                    <img src={media.url} alt={`Mídia de ${user.displayName}`} className="h-full w-full object-cover" />
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div id="profile-panel-3" role="tabpanel" aria-labelledby="profile-tab-3" hidden={activeTab !== 3} tabIndex={0}>
-          {activeTab === 3 && (!isMe ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">As curtidas de @{user.username} são privadas.</p></div>
-          ) : likedPosts.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground"><p className="text-sm">Você ainda não curtiu publicações.</p></div>
-          ) : likedPosts.map(post => <PostCard key={post.id} post={post} />))}
-        </div>
-        <div id="profile-panel-4" role="tabpanel" aria-labelledby="profile-tab-4" hidden={activeTab !== 4} tabIndex={0}>
-          {activeTab === 4 && (userArticles.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-              <p className="text-sm">Nenhum artigo ainda.</p>
-              {isMe && <Link href="/article/create" className="text-sm font-semibold text-primary hover:underline">Escrever artigo</Link>}
-            </div>
-          ) : userArticles.map(post => <PostCard key={post.id} post={post} />))}
-        </div>
-      </div>
+      <PersonalProfileTabs
+        activeTab={activeTab}
+        isMe={isMe}
+        likedPosts={likedPosts}
+        media={userMedia}
+        posts={posts}
+        profile={user}
+        isPostReadable={visibleToViewer}
+        setActiveTab={setActiveTab}
+        timeline={timeline}
+        userArticles={userArticles}
+        userComments={userComments}
+      />
     </div>
   );
 }

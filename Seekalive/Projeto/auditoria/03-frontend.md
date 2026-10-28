@@ -421,6 +421,30 @@ Foram inspecionados os 19 arquivos do módulo (1.950 linhas), seus consumidores 
 
 **Resultado da etapa:** a descoberta manual por cidade e seus limites de privacidade estão explicitados; a lista usa perfis comerciais existentes no estado Social, sem duplicar identidade. Distância/GPS, descoberta online, detalhes comerciais suficientes, avaliações remotas e ciclo de eventos não estão conectados. A documentação OpenAPI derivada anuncia operações não presentes no backend nem no contrato compartilhado. Nenhum código, contrato ou dado foi alterado.
 
+## Atualização estrutural do módulo `profile` — 28/10/2026
+
+Este delta complementa a auditoria inicial do módulo Profile, registrada acima com `screens/Profile.tsx` em 488 linhas e `CommercialProfilePage.tsx` em 711 linhas. A revisão anterior descrevia o estado antes da reorganização; os dois arquivos agora coordenam os respectivos fluxos em 254 e 434 linhas.
+
+### Responsabilidades separadas
+
+- `personal-profile/components/PersonalProfileHeader.tsx` apresenta capa, identidade, estatísticas e ações do cabeçalho. O menu contextual mantém a política de bloqueio/cópia do link fornecida pela tela.
+- `personal-profile/components/PersonalProfileTabs.tsx` apresenta as abas de publicações, respostas, mídias, curtidas e artigos; a tela mantém os dados derivados e fornece a regra existente de leitura dos posts.
+- `commercial-profile/components/CommercialProfileInformation.tsx` apresenta informações públicas do estabelecimento e apenas os serviços marcados como oferecidos, recebidos do perfil.
+- `commercial-profile/components/CommercialProfileMedia.tsx` apresenta abas de fotos/vídeos e seleção da foto; a tela coordenadora conserva o estado para que a ação “Ver fotos” continue selecionando a aba correta.
+- `commercial-profile/components/CommercialProfileReviews.tsx` apresenta avaliação agregada, composição da avaliação e avaliações existentes.
+- `commercial-profile/components/CommercialProfileContent.tsx` apresenta publicações e artigos da conta comercial.
+- `CommercialProfilePage.tsx` continua responsável por carregar/projetar dados da conta, manter estado de navegação e compor cabeçalho, abas, painéis e diálogos; `screens/Profile.tsx` resolve a conta/estado de acesso e seleciona apresentação pessoal ou comercial.
+
+### Fronteira Social → Profiles
+
+`social/application/relationshipActions.ts` não importa mais diretamente o armazenamento de contas de Profile. A operação de persistir a conta demonstrativa é fornecida pela composição do app (`SocialApplicationContext.tsx`), mantendo Social dependente de uma porta comportamental em vez de um arquivo de persistência pertencente a outro domínio. Um teste verifica que a ação continua delegando a gravação ao adaptador fornecido.
+
+### Preservação e limites
+
+Não foram alteradas rotas, contratos HTTP, validação de audiência, regras de bloqueio/seguimento/Círculo, regras comerciais, ordem das abas ou dados persistidos. Nenhum schema, migration, endpoint ou código backend foi alterado. As limitações funcionais descritas na auditoria inicial (por exemplo, projeção pública comercial remota e conteúdo ainda demonstrativo) permanecem achados de fases posteriores; esta etapa somente separou responsabilidades já existentes.
+
+**Verificações desta etapa:** `pnpm --filter @workspace/social typecheck` aprovado; `pnpm run test:social` aprovado (84/84); `pnpm test` aprovado para as suítes do frontend, backend e scripts; `pnpm build` aprovado para todos os workspaces; Prettier aprovado nos seis componentes novos e no teste novo; `git diff --check` aprovado para os arquivos da etapa. O workflow `Start application` foi reiniciado e ficou disponível; os logs não mostraram erro de inicialização. A captura do endereço `/profile/usuario_demo` abriu a apresentação/login, pois o navegador de verificação não tem sessão autenticada. Portanto, o perfil autenticado não foi visualmente inspecionado nesta etapa; a extração preservou o JSX e as classes da interface anterior, mas isso não substitui uma verificação visual autenticada.
+
 ## Auditoria estrutural do módulo `settings` — 27/10/2026
 
 Foram inspecionados os 14 arquivos do módulo (2.112 linhas), telas/rotas, serviços Auth/Social consumidos, preferências locais, efeitos em Messages e Notification, estado de sessão e testes encontrados. Nenhum código funcional foi alterado.

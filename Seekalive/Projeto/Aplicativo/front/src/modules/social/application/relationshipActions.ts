@@ -1,7 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { FollowRequest } from "@/modules/social/types/followRequest";
 import type { User } from "@/modules/profile/types/user";
-import { saveSocialAccount } from "@/modules/profile/data/accountStorage";
 import { toast } from "@/hooks/use-toast";
 import {
   accountViewToUser,
@@ -31,6 +30,7 @@ type RelationshipActionDependencies = {
   setRemoteBlockedUserIds: Dispatch<SetStateAction<string[]>>;
   toggleBlockedUser: (userId: string) => void;
   showRefreshWarning: () => void;
+  savePreviewAccount: (account: User) => void;
 };
 
 export function createSocialRelationshipActions(dependencies: RelationshipActionDependencies) {
@@ -48,6 +48,7 @@ export function createSocialRelationshipActions(dependencies: RelationshipAction
     setRemoteBlockedUserIds,
     toggleBlockedUser,
     showRefreshWarning,
+    savePreviewAccount,
   } = dependencies;
 
   function showRelationshipError(title: string, error: unknown) {
@@ -167,7 +168,7 @@ export function createSocialRelationshipActions(dependencies: RelationshipAction
 
     if (currentUser) updateAccount(updatedViewer);
     if (updatedTarget.source !== "server") {
-      saveSocialAccount(updatedTarget);
+      savePreviewAccount(updatedTarget);
     }
     dispatch({ type: "UPDATE_USER", user: updatedTarget });
     if (currentUser && state.users.some((user) => user.id === currentUser.id)) {
@@ -228,10 +229,10 @@ export function createSocialRelationshipActions(dependencies: RelationshipAction
     if (changed) {
       if (currentUser) updateAccount(updatedViewer);
       else if (updatedViewer.source !== "server") {
-        saveSocialAccount(updatedViewer);
+        savePreviewAccount(updatedViewer);
       }
       if (updatedTarget.source !== "server") {
-        saveSocialAccount(updatedTarget);
+        savePreviewAccount(updatedTarget);
       }
       dispatch({ type: "UPDATE_USER", user: updatedTarget });
       if (state.users.some((user) => user.id === viewer.id)) {
@@ -344,10 +345,10 @@ export function createSocialRelationshipActions(dependencies: RelationshipAction
     if (!requesterAlreadyFollows) {
       updateAccount(updatedViewer);
       if (updatedViewer.source !== "server") {
-        saveSocialAccount(updatedViewer);
+        savePreviewAccount(updatedViewer);
       }
       if (updatedRequester.source !== "server") {
-        saveSocialAccount(updatedRequester);
+        savePreviewAccount(updatedRequester);
       }
       dispatch({ type: "UPDATE_USER", user: updatedViewer });
       dispatch({ type: "UPDATE_USER", user: updatedRequester });

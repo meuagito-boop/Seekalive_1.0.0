@@ -1232,3 +1232,21 @@ Foram adicionados três caminhos e removido um caminho legado (`src/data/onboard
 **Arquivos existentes alterados:** `screens/Interests.tsx` delega a conclusão ao caso de uso e mantém apenas estado da tela/feedback/navegação; `services/onboardingApi.ts` nomeia a chamada HTTP `saveOnboardingInterests`; `app/state/AppContext.tsx` deixa de expor um método de conclusão sem consumidores; `scripts/test-social.mjs` inclui os testes do domínio. Endpoint, payload, ordem de efeitos, rotas, UI, banco e backend não foram modificados.
 
 **Validação registrada:** typecheck frontend passou, `pnpm run test:social` passou em 83/83 e o build frontend passou. O build mantém os dois avisos conhecidos de posição de comentários na dependência Zod; nenhuma dependência foi alterada.
+
+### Delta estrutural do módulo frontend `profile` — 28/10/2026
+
+Foram adicionados sete caminhos de fonte/teste, sem remoções. Os componentes extraídos ficam nos subdomínios de perfil pessoal e comercial; o teste fica no domínio Social.
+
+| Arquivo adicionado | O que é / para que serve |
+|---|---|
+| [Aplicativo/front/src/modules/profile/personal-profile/components/PersonalProfileHeader.tsx](../Aplicativo/front/src/modules/profile/personal-profile/components/PersonalProfileHeader.tsx) | Apresentação do cabeçalho pessoal, identidade, estatísticas e menu de ações. |
+| [Aplicativo/front/src/modules/profile/personal-profile/components/PersonalProfileTabs.tsx](../Aplicativo/front/src/modules/profile/personal-profile/components/PersonalProfileTabs.tsx) | Apresentação das abas de publicações, respostas, mídias, curtidas e artigos do perfil pessoal. |
+| [Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileInformation.tsx](../Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileInformation.tsx) | Apresentação das informações comerciais, incluindo serviços oferecidos. |
+| [Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileMedia.tsx](../Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileMedia.tsx) | Apresentação e seleção das galerias de fotos e vídeos comerciais. |
+| [Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileReviews.tsx](../Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileReviews.tsx) | Apresentação do resumo de avaliação e da lista de avaliações comerciais. |
+| [Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileContent.tsx](../Aplicativo/front/src/modules/profile/commercial-profile/components/CommercialProfileContent.tsx) | Apresentação das publicações e artigos da conta comercial. |
+| [Aplicativo/front/tests/relationshipActions.test.ts](../Aplicativo/front/tests/relationshipActions.test.ts) | Verifica a persistência local de conta Social por dependência injetada na composição do app. |
+
+**Arquivos existentes alterados:** `profile/screens/Profile.tsx` passou a compor `PersonalProfileHeader` e `PersonalProfileTabs`; `commercial-profile/components/CommercialProfilePage.tsx` compõe os quatro painéis comerciais extraídos e controla a aba de mídia; `social/application/relationshipActions.ts` recebe uma porta para gravação da conta demonstrativa; `app/state/SocialApplicationContext.tsx` injeta o adaptador existente; `scripts/test-social.mjs` registra a suíte de teste. Nenhum arquivo foi removido; APIs, rotas, contratos, backend e banco não foram alterados.
+
+**Validação registrada:** typecheck frontend aprovado; `pnpm run test:social` aprovado (84/84); `pnpm test` e `pnpm build` aprovados em todos os workspaces; Prettier aprovado nos seis componentes novos e no teste novo; `git diff --check` aprovado para os arquivos desta etapa. O workflow `Start application` foi reiniciado e subiu sem erro. O navegador de verificação não tinha sessão autenticada e exibiu a apresentação/login ao acessar o perfil; portanto, o perfil autenticado não foi visualmente verificado.
