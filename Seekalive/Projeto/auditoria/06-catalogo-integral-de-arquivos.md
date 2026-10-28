@@ -1216,3 +1216,19 @@ Foi removido um reducer de leitura sem dispatch e criado um arquivo de testes do
 **Arquivo removido:** `Aplicativo/front/src/modules/notifications/state/notificationReducer.ts`; suas ações não tinham consumidores e duplicavam a fonte de leitura local.
 
 **Arquivos existentes alterados:** `notifications/types/notification.ts` também declara `NotificationState`; `app/state/socialApplicationState.ts` deixa de importar/compor ações do reducer inexistente; `tests/content.test.ts` remove inspeção estática e teste de fixture pertencentes ao domínio; `scripts/test-social.mjs` inclui a suíte específica. Nenhuma API, rota, contrato remoto, preferência, regra de leitura, backend ou banco foi alterado.
+
+### Delta estrutural do módulo frontend `onboarding` — 28/10/2026
+
+Foram adicionados três caminhos e removido um caminho legado (`src/data/onboardingInterestSteps.ts`), saldo líquido de dois arquivos. O fluxo da tela foi extraído para a camada de aplicação, sem alterar endpoint ou regra observável.
+
+| Arquivo adicionado | O que é / para que serve |
+|---|---|
+| [Aplicativo/front/src/modules/onboarding/application/completeOnboarding.ts](../Aplicativo/front/src/modules/onboarding/application/completeOnboarding.ts) | Caso de uso que compõe envio remoto, atualização da conta e projeção Social, mantendo a persistência concluída antes de atualizar estado local. |
+| [Aplicativo/front/src/modules/onboarding/data/interestSteps.ts](../Aplicativo/front/src/modules/onboarding/data/interestSteps.ts) | Conteúdo das três etapas de interesses, agora pertencente ao domínio Onboarding. |
+| [Aplicativo/front/tests/onboarding.test.ts](../Aplicativo/front/tests/onboarding.test.ts) | Testa sucesso remoto, regra de pular, isolamento do preview e falha de persistência sem atualização local. |
+
+**Arquivo removido:** `Aplicativo/front/src/data/onboardingInterestSteps.ts`, movido para `modules/onboarding/data/interestSteps.ts`.
+
+**Arquivos existentes alterados:** `screens/Interests.tsx` delega a conclusão ao caso de uso e mantém apenas estado da tela/feedback/navegação; `services/onboardingApi.ts` nomeia a chamada HTTP `saveOnboardingInterests`; `app/state/AppContext.tsx` deixa de expor um método de conclusão sem consumidores; `scripts/test-social.mjs` inclui os testes do domínio. Endpoint, payload, ordem de efeitos, rotas, UI, banco e backend não foram modificados.
+
+**Validação registrada:** typecheck frontend passou, `pnpm run test:social` passou em 83/83 e o build frontend passou. O build mantém os dois avisos conhecidos de posição de comentários na dependência Zod; nenhuma dependência foi alterada.

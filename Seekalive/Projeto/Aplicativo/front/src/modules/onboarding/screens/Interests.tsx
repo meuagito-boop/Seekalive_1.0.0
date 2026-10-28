@@ -4,10 +4,11 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { onboardingInterestSteps } from "@/data/onboardingInterestSteps";
+import { onboardingInterestSteps } from "@/modules/onboarding/data/interestSteps";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
-import { completeOnboarding as saveOnboarding } from "@/modules/onboarding/services/onboardingApi";
+import { completeOnboarding } from "@/modules/onboarding/application/completeOnboarding";
+import { saveOnboardingInterests } from "@/modules/onboarding/services/onboardingApi";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OnboardingInterests() {
@@ -25,7 +26,7 @@ export default function OnboardingInterests() {
   }, [currentUser, setLocation]);
 
   function toggle(interest: string) {
-    setSelected(prev => {
+    setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(interest)) next.delete(interest);
       else next.add(interest);
@@ -40,20 +41,23 @@ export default function OnboardingInterests() {
       setLocation("/login");
       return;
     }
-    const selectedInterests = skipped ? [] : Array.from(selected);
     setIsSaving(true);
     try {
-      if (!isDevelopmentPreview) {
-        await saveOnboarding({ interests: selectedInterests, skipped });
-      }
-      const updatedUser = { ...currentUser, interests: selectedInterests, onboardingCompleted: true };
-      updateAccount(updatedUser);
-      if (!isDevelopmentPreview) updateUser(updatedUser);
+      await completeOnboarding({
+        account: currentUser,
+        interests: Array.from(selected),
+        skipped,
+        isDevelopmentPreview,
+        saveRemote: saveOnboardingInterests,
+        updateAccount,
+        updateSocialAccount: updateUser,
+      });
       setLocation(skipped ? "/feed" : "/onboarding/suggestions");
     } catch (error) {
       toast({
         title: "Não foi possível salvar suas escolhas",
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description:
+          error instanceof Error ? error.message : "Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -78,19 +82,30 @@ export default function OnboardingInterests() {
         </div>
 
         <div className="mb-2">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Passo {step + 1} de 3 · Seus interesses</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            Passo {step + 1} de 3 · Seus interesses
+          </p>
           <div className="flex gap-2 mb-6">
             {onboardingInterestSteps.map((item, index) => (
-              <div key={item.title} className={`h-1 flex-1 rounded-full ${index <= step ? "bg-primary" : "bg-border"}`} />
+              <div
+                key={item.title}
+                className={`h-1 flex-1 rounded-full ${index <= step ? "bg-primary" : "bg-border"}`}
+              />
             ))}
           </div>
         </div>
 
-        <h1 className="mb-2 text-3xl font-bold tracking-tight">{currentStep.title}</h1>
+        <h1 className="mb-2 text-3xl font-bold tracking-tight">
+          {currentStep.title}
+        </h1>
         <p className="mb-8 text-sm leading-6 text-muted-foreground">
-          {currentStep.description} Você pode avançar sem escolher ou pular esta etapa; isso não é obrigatório.
+          {currentStep.description} Você pode avançar sem escolher ou pular esta
+          etapa; isso não é obrigatório.
           {selected.size > 0 && (
-            <span aria-live="polite" className="font-medium text-primary"> {selected.size} selecionados</span>
+            <span aria-live="polite" className="font-medium text-primary">
+              {" "}
+              {selected.size} selecionados
+            </span>
           )}
         </p>
 
@@ -98,7 +113,7 @@ export default function OnboardingInterests() {
           {currentStep.options.map((interest, i) => {
             const isSelected = selected.has(interest);
             return (
-          <motion.button
+              <motion.button
                 key={interest}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -123,7 +138,12 @@ export default function OnboardingInterests() {
 
         <div className="flex gap-3">
           {step > 0 && (
-            <Button type="button" variant="outline" className="h-12 flex-1 rounded-xl" onClick={() => setStep(value => value - 1)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 flex-1 rounded-xl"
+              onClick={() => setStep((value) => value - 1)}
+            >
               Voltar
             </Button>
           )}
@@ -131,10 +151,18 @@ export default function OnboardingInterests() {
             type="button"
             className="h-12 flex-1 rounded-xl font-semibold"
             disabled={isSaving}
-            onClick={() => step < onboardingInterestSteps.length - 1 ? setStep(value => value + 1) : void saveAndContinue(false)}
+            onClick={() =>
+              step < onboardingInterestSteps.length - 1
+                ? setStep((value) => value + 1)
+                : void saveAndContinue(false)
+            }
             data-testid="button-next-onboarding"
           >
-            {isSaving ? "Salvando..." : step < onboardingInterestSteps.length - 1 ? "Próximo" : "Concluir"}
+            {isSaving
+              ? "Salvando..."
+              : step < onboardingInterestSteps.length - 1
+                ? "Próximo"
+                : "Concluir"}
           </Button>
         </div>
         <button

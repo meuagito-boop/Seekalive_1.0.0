@@ -1,6 +1,6 @@
 import { postJson } from "@/modules/app/api/httpClient";
 
-export function completeOnboarding(payload: {
+export function saveOnboardingInterests(payload: {
   interests: string[];
   skipped: boolean;
 }) {

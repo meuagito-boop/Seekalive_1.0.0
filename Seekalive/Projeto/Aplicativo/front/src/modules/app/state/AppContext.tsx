@@ -1,7 +1,16 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import type { User } from "@/modules/profile/types/user";
 import { setStoredActiveAccount } from "@/modules/profile/data/accountStorage";
-import { getCurrentSession, logoutAccount } from "@/modules/auth/services/sessionApi";
+import {
+  getCurrentSession,
+  logoutAccount,
+} from "@/modules/auth/services/sessionApi";
 import type { AuthAccount } from "@/modules/auth/types";
 import { resolveAuthSession } from "@/modules/auth/state/authSessionState";
 
@@ -21,7 +30,6 @@ interface AppContextType {
   updateAccount: (user: User) => void;
   logout: () => Promise<boolean>;
   clearLocalAuthentication: () => void;
-  completeOnboarding: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -49,7 +57,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isDevelopmentPreview, setIsDevelopmentPreview] = useState(false);
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +111,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const startDevelopmentPreview = async () => {
     if (!import.meta.env.DEV) return;
-    const { developmentPreviewUser: previewUser } = await import("@/data/demo/previewFixtures");
+    const { developmentPreviewUser: previewUser } =
+      await import("@/data/demo/previewFixtures");
     setIsDevelopmentPreview(true);
     setLogoutError(null);
     setPendingVerificationEmail(null);
@@ -112,7 +123,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateAccount = (user: User) => {
     // Social profile refreshes omit auth-only fields such as onboarding state;
     // merge their fields so they cannot erase state established by login.
-    setCurrentUser((current) => current?.id === user.id ? { ...current, ...user } : current);
+    setCurrentUser((current) =>
+      current?.id === user.id ? { ...current, ...user } : current,
+    );
   };
 
   const logout = async (): Promise<boolean> => {
@@ -126,13 +139,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearLocalAuthentication();
       return true;
     } catch {
-      setLogoutError("Não foi possível encerrar a sessão no servidor. Sua conta continua aberta; tente novamente.");
+      setLogoutError(
+        "Não foi possível encerrar a sessão no servidor. Sua conta continua aberta; tente novamente.",
+      );
       return false;
     }
-  };
-
-  const completeOnboarding = () => {
-    setCurrentUser((current) => current ? { ...current, onboardingCompleted: true } : current);
   };
 
   return (
@@ -153,7 +164,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateAccount,
         logout,
         clearLocalAuthentication,
-        completeOnboarding,
       }}
     >
       {children}

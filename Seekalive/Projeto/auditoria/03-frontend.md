@@ -292,14 +292,15 @@ Na auditoria inicial, o teste verificava estaticamente o filtro por ator bloquea
 
 ## Auditoria estrutural do módulo `onboarding` — 27/10/2026
 
-Foram inspecionados os três arquivos do domínio (261 linhas), os três passos de interesses, as rotas e redirecionamentos, a adaptação de conta, a API de persistência e os contratos/aplicação backend diretamente relacionados. Nenhum código funcional foi alterado.
+Foram revisados os arquivos do domínio, os três passos de interesses, as rotas e redirecionamentos, a adaptação de conta, a API de persistência, os testes e os contratos/aplicação backend diretamente relacionados. Na atualização estrutural de 28/10/2026, o conteúdo de interesses foi movido para o domínio e a orquestração de conclusão foi retirada da tela para uma ação de aplicação testável, sem alteração intencional do comportamento.
 
 | Arquivo | Responsabilidade observada |
 |---|---|
-| `screens/Interests.tsx` (152 linhas) | Wizard de três etapas, seleção de interesses, pular/concluir e envio para persistência remota. |
+| `screens/Interests.tsx` | Tela do wizard de três etapas, seleção, estado de carregamento, feedback e navegação. Delegava a persistência e atualização de estado diretamente à tela; essa orquestração foi movida para `application/completeOnboarding.ts` em 28/10/2026. |
 | `screens/Suggestions.tsx` (104 linhas) | Sugere até seis usuários do contexto e permite seguir/solicitar seguimento. |
-| `services/onboardingApi.ts` (5 linhas) | Envia interesses e opção de pular para `POST /onboarding/interests` usando o transporte genérico compartilhado de Auth. |
-| `src/data/onboardingInterestSteps.ts` | Fonte de conteúdo das três etapas e de suas 22 opções, fora da pasta do domínio. |
+| `application/completeOnboarding.ts` | Orquestra a submissão remota, atualização da conta e projeção Social, com o comportamento de preview injetado; não conhece React nem transporte HTTP. |
+| `services/onboardingApi.ts` | Envia interesses e opção de pular para `POST /onboarding/interests` usando o transporte compartilhado de `app/api`. |
+| `data/interestSteps.ts` | Fonte de conteúdo das três etapas e de suas 22 opções, agora dentro da pasta do domínio. |
 
 ### Achados e limites verificados
 
@@ -311,7 +312,7 @@ Foram inspecionados os três arquivos do domínio (261 linhas), os três passos 
 6. **A lista não distingue perfis remotos dos locais.** A tela filtra por conta atual e `isBlocked`, mas não exige `source === "server"`. Na sessão remota, `toggleFollow` recusa contas que não são do servidor e mostra aviso de perfil de demonstração. Se usuários locais de preview estiverem no contexto, podem aparecer como sugestões que a conta real não consegue seguir.
 7. **O contrato compartilhado do endpoint está incompleto.** `onboardingApi.ts` monta manualmente `/onboarding/interests` e usa tipos locais. O endpoint está implementado em `back/src/modules/onboarding`, mas não aparece em `shared/api-spec/openapi.yaml` nem no cliente gerado; o artefato `docs/api/backend/openapi.json` lista a operação. A rota documentada e a implementação existem; falta unificar a fonte de contrato usada pelo cliente.
 8. **Dependência transversal e tipagem de resposta.** `onboardingApi.ts` agora importa `postJson` de `modules/app/api/httpClient.ts`, alinhando o proprietário do transporte comum. A resposta continua tipada apenas em TypeScript, sem validação runtime, como registrado no achado transversal de HTTP em Auth.
-9. **Sugestões sem tratamento de lista vazia e testes de fluxo.** Se não houver usuários elegíveis, a tela mantém o espaço da lista sem mensagem específica. Não foram encontrados testes de componente/E2E para seleção nas três etapas, pular, persistir/recarregar interesses, redirecionamentos ou interação com sugestões.
+9. **Sugestões sem tratamento de lista vazia e cobertura de interface.** Se não houver usuários elegíveis, a tela mantém o espaço da lista sem mensagem específica. Continuam ausentes testes de componente/E2E para seleção nas três etapas, persistir/recarregar interesses, redirecionamentos e interação com sugestões. Os testes de aplicação adicionados em 28/10/2026 verificam somente ordenação de efeitos da conclusão, regra de pular, isolamento do preview e propagação de erro.
 
 ### Regras e controles observados
 
@@ -321,7 +322,9 @@ Foram inspecionados os três arquivos do domínio (261 linhas), os três passos 
 - O backend substitui interesses anteriores da conta e atualiza `onboardingCompletedAt` na mesma transação; quando pulado, não grava linhas de interesse.
 - Há um `follow`/solicitação pelo fluxo Social; a autorização final permanece no servidor. A lista de sugestões não é um mecanismo de autorização.
 
-**Resultado da etapa:** onboarding tem integração real de gravação no backend e a regra opcional de pular está implementada; não deve ser descrito como totalmente desconectado. Persistência de interesses existe, mas o cliente não os relê, o vocabulário não é canônico para algoritmo, o endpoint não está na especificação compartilhada e a tela de sugestões ainda é uma seleção simples do estado disponível. Nenhuma regra, tela ou contrato foi alterado. A suíte geral já executada passou em 60/60; não foi reexecutada durante esta inspeção.
+**Atualização estrutural de 28/10/2026:** o catálogo `interestSteps` passou a pertencer a `modules/onboarding/data`; a tela delega a conclusão a `modules/onboarding/application/completeOnboarding.ts`; o adaptador HTTP passou a expor o nome `saveOnboardingInterests`; e `tests/onboarding.test.ts` cobre quatro caminhos da aplicação. Também foi removido de `AppContext` um método sem consumidores que duplicava a alteração isolada do indicador de conclusão. Essa extração mantém o mesmo endpoint, payload, ordem de persistência/atualização, regra de pular, atualização Social remota e isolamento do preview. Não altera as telas, rotas, regras, contratos nem dados.
+
+**Resultado da etapa:** onboarding tem integração real de gravação no backend e a regra opcional de pular está implementada; não deve ser descrito como totalmente desconectado nem como funcionalmente completo. Persistência de interesses existe, mas o cliente não os relê, o vocabulário não é canônico para algoritmo, o endpoint não está na especificação compartilhada e a tela de sugestões ainda é uma seleção simples do estado disponível. Não foram alteradas essas capacidades funcionais nesta etapa estrutural. Typecheck e build frontend passaram; `pnpm run test:social` passou em 83/83. O build manteve os dois avisos conhecidos de posição de comentários na dependência Zod, sem modificação de dependência.
 
 ## Auditoria estrutural do módulo `profile` — 27/10/2026
 
