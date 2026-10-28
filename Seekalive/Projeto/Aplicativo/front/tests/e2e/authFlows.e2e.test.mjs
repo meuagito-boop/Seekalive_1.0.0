@@ -86,11 +86,12 @@ test("personal registration confirms e-mail before opening onboarding", async (t
   await page.getByTestId("input-email").fill("Ana.E2E@Example.com");
   await page.getByTestId("input-password").fill(testPassword);
   await page.getByTestId("input-confirm-password").fill(testPassword);
-  await page
-    .getByRole("checkbox", {
-      name: "Aceito os Termos de Serviço e a Política de Privacidade",
-    })
-    .click();
+  const termsCheckbox = page.getByRole("checkbox", {
+    name: "Aceito os Termos de Serviço e Política de Privacidade",
+  });
+  await termsCheckbox.focus();
+  await page.keyboard.press("Space");
+  assert.equal(await termsCheckbox.getAttribute("aria-checked"), "true");
   await page.getByTestId("button-register").click();
 
   await page.waitForURL((url) => url.pathname === "/verify-email");
@@ -179,7 +180,7 @@ test("commercial registration sends the commercial profile fields", async (t) =>
   await page.getByTestId("input-confirm-password").fill(testPassword);
   await page
     .getByRole("checkbox", {
-      name: "Aceito os Termos de Serviço e a Política de Privacidade",
+      name: "Aceito os Termos de Serviço e Política de Privacidade",
     })
     .click();
   await page.getByTestId("button-register").click();

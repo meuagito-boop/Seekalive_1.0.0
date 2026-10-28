@@ -1,8 +1,10 @@
-import { Check } from "lucide-react";
 import type { Control } from "react-hook-form";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   FormControl,
+  FormDescription,
   FormField,
+  FormLabel,
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
@@ -19,35 +21,32 @@ export function RegistrationTermsField({ control }: Props) {
       name="terms"
       render={({ field }) => (
         <FormItem>
-          <FormControl>
-            <label
-              className="flex items-center gap-3 cursor-pointer"
-              data-testid="checkbox-terms"
-            >
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={field.value}
-                aria-label="Aceito os Termos de Serviço e a Política de Privacidade"
-                className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${field.value ? "bg-primary border-primary" : "border-border"}`}
-                onClick={() => field.onChange(!field.value)}
-              >
-                {field.value && (
-                  <Check className="w-3 h-3 text-primary-foreground" />
-                )}
-              </button>
-              <span className="text-sm text-muted-foreground">
-                Aceito os{" "}
-                <span className="text-primary hover:underline cursor-pointer">
-                  Termos de Serviço
-                </span>{" "}
-                e{" "}
-                <span className="text-primary hover:underline cursor-pointer">
-                  Política de Privacidade
-                </span>
-              </span>
-            </label>
-          </FormControl>
+          <div
+            className="flex items-center gap-3"
+            data-testid="checkbox-terms"
+          >
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={(checked) =>
+                  field.onChange(checked === true)
+                }
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                className="h-5 w-5 rounded border-2 border-border shadow-none transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[state=checked]:border-primary"
+              />
+            </FormControl>
+            <FormLabel className="cursor-pointer text-sm leading-normal text-muted-foreground">
+              Aceito os{" "}
+              <span className="text-primary">Termos de Serviço</span>{" "}
+              e{" "}
+              <span className="text-primary">Política de Privacidade</span>
+            </FormLabel>
+          </div>
+          <FormDescription className="sr-only">
+            O aceite é obrigatório para concluir o cadastro.
+          </FormDescription>
           <FormMessage />
         </FormItem>
       )}
