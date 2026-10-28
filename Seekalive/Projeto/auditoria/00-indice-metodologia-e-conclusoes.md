@@ -107,9 +107,7 @@ O teste de banco isolado exige a confirmação explícita do nome esperado além
 
 ## Próximas ações técnicas recomendadas
 
-1. Apresentar e obter aprovação para a única diferença confirmada (`feed.posts` da `0005`), com impacto e rollback; se aprovada, sincronizar somente o banco de desenvolvimento e confirmar o resultado fisicamente.
-2. Atualizar os documentos de backend e front a partir do código e contratos atuais, identificando claramente documento-fonte, artefato gerado e histórico.
-3. Definir a fronteira do estado compartilhado do front: preservar a orquestração necessária, mas impedir que o contexto de `app` se torne API de negócio de todos os módulos.
-4. Mover operações persistentes das rotas de apresentação para casos de uso/repositorios e testar o comportamento HTTP por meio de contratos estáveis.
-5. Testar a compatibilidade com o runtime declarado pelo ambiente Replit e manter lockfile, catálogo de versões e manifests coerentes.
-6. Somente depois dessas reconciliações, continuar expansão de módulos ou declarar qualquer etapa concluída para produção.
+1. Concluir a organização do código já existente no frontend, um módulo por vez, começando pelo módulo `auth`, que continua em revisão; preservar comportamento e validar cada pasta antes de avançar.
+2. Conferir a estrutura já revisada do backend contra o Gate 0A e corrigir somente lacunas estruturais confirmadas, sem acrescentar capacidades novas.
+3. Apresentar o encerramento do Gate 0A ao usuário para revisão. Até essa revisão, não executar migrations, escritas no banco nem trabalho de expansão de segurança, mensageria, filas ou algoritmo.
+4. Depois da revisão do Gate 0A, retomar as etapas posteriores do plano na sequência que for aprovada. A diferença `feed.posts` permanece documentada para esse momento futuro; não está autorizada para aplicação agora.
