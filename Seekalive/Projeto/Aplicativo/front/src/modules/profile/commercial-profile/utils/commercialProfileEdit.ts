@@ -1,5 +1,5 @@
 import type { AccountPatch, MyAccountResponse } from "@workspace/api-client-react";
-import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation } from "@/modules/seek/types/discovery";
 import type { User } from "@/modules/profile/types/user";
 import type { WeeklyOpeningHours } from "@/modules/profile/commercial-profile/types/businessHours";
 import { buildCommonProfilePatch, normalizeProfileEditUsername } from "@/modules/profile/utils/commonProfileEdit";

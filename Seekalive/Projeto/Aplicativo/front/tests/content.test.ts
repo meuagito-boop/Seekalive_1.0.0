@@ -33,10 +33,6 @@ import {
 import { formatCount, formatTimeAgo } from "../src/lib/formatters";
 import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/modules/social/services/mediaService";
-import {
-  filterSeekBusinesses,
-  matchesSeekSearch,
-} from "../src/modules/seek/utils/seekFilters";
 import { saveStoredSeekReviews } from "../src/modules/seek/data/reviewStorage";
 import { myAccountToUser } from "../src/modules/social/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
@@ -691,88 +687,6 @@ test("alteração de nome de usuário sincroniza as fontes da conta e do Social"
     /syncUpdatedUser\(\{\s*\.\.\.currentUser,\s*username: nextUsername\s*\}\);/,
   );
   assert.match(syncHandler, /updateAccount\(user\);\s*updateUser\(user\);/);
-});
-test("Seek busca sem acentos e combina categoria, nota, status, distância e ordenação", () => {
-  assert.ok(matchesSeekSearch(["Café Central", "São Paulo"], " cafe  sao "));
-  assert.equal(matchesSeekSearch(["Café Central"], "bar"), false);
-  const businesses = [
-    {
-      name: "Café Central",
-      username: "cafe",
-      bio: "",
-      category: "Cafés",
-      categoryKey: "cafes",
-      address: "São Paulo",
-      tags: [],
-      open: true,
-      rating: 4.5,
-      distanceKm: 2,
-    },
-    {
-      name: "Bar",
-      username: "bar",
-      bio: "",
-      category: "Bares",
-      categoryKey: "bares",
-      address: "São Paulo",
-      tags: [],
-      open: false,
-      rating: 5,
-      distanceKm: 1,
-    },
-    {
-      name: "Sem distância",
-      username: "sem",
-      bio: "",
-      category: "Cafés",
-      categoryKey: "cafes",
-      address: "",
-      tags: [],
-      rating: 3,
-    },
-  ];
-  const filters = {
-    query: "",
-    category: null,
-    onlyOpen: false,
-    minimumRating: 0,
-    maxDistance: 0,
-    nearest: false,
-  };
-  assert.deepEqual(
-    filterSeekBusinesses(businesses, filters).map((b) => b.username),
-    ["bar", "cafe", "sem"],
-  );
-  assert.deepEqual(
-    filterSeekBusinesses(businesses, {
-      ...filters,
-      query: "cafe sao",
-      onlyOpen: true,
-      minimumRating: 4,
-      maxDistance: 5,
-      category: "cafes",
-    }).map((b) => b.username),
-    ["cafe"],
-  );
-  assert.equal(
-    filterSeekBusinesses(businesses, { ...filters, maxDistance: 1 }).length,
-    1,
-  );
-  assert.equal(
-    filterSeekBusinesses(businesses, {
-      ...filters,
-      minimumRating: 4.9,
-      onlyOpen: true,
-    }).length,
-    0,
-  );
-  assert.deepEqual(
-    filterSeekBusinesses(businesses, { ...filters, nearest: true }).map(
-      (b) => b.username,
-    ),
-    ["bar", "cafe", "sem"],
-  );
-  assert.equal(businesses[0].username, "cafe"); // Does not mutate the shared account list.
 });
 test("marca Elo usa Seekalive e o mesmo símbolo no app e favicon", () => {
   const root = join(process.cwd(), "Aplicativo/front");

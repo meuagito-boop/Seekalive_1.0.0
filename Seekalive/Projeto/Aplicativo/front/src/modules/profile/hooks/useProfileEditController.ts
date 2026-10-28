@@ -6,7 +6,7 @@ import type { AccountPatch, MyAccountResponse } from "@workspace/api-client-reac
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import { myAccountToUser, socialGraphApi } from "@/modules/social/services/socialGraphApi";
-import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation } from "@/modules/seek/types/discovery";
 import { formatWeeklyHours, hasInvalidOpenHours, makeWeeklyHours } from "@/modules/profile/commercial-profile/utils/businessHours";
 import type { BusinessDayHours, BusinessDayKey, WeeklyOpeningHours } from "@/modules/profile/commercial-profile/types/businessHours";
 import {

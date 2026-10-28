@@ -3,7 +3,7 @@ import { Check, Clock, LocateFixed, Loader2, MapPin, RotateCcw, Search } from "l
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { localActorId } from "@/modules/app/persistence/browserAccountStorage";
-import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation } from "@/modules/seek/types/discovery";
 import { locationErrorMessage, readRecentLocations, requestDeviceLocation, searchCities } from "@/modules/seek/services/seekLocationService";
 
 interface Props {

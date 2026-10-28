@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, Info, MapPin, Search, SlidersHorizontal, WifiOff, X } from "lucide-react";
 import { useSeekDiscovery } from "@/modules/seek/hooks/useSeekDiscovery";
-import type { DiscoveryFilters, SeekDiscoveryItem } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryFilters, SeekDiscoveryItem } from "@/modules/seek/types/discovery";
 import { BusinessReviewsDialog } from "@/modules/seek/components/BusinessReviewsDialog";
 import { DiscoveryCard } from "@/modules/seek/components/DiscoveryCard";
 import { DiscoveryCarousel, DiscoveryCarouselItem } from "@/modules/seek/components/DiscoveryCarousel";

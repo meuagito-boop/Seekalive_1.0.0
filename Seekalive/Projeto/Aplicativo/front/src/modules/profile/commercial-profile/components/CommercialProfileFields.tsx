@@ -1,7 +1,7 @@
 import { CommercialDiscoveryCity } from "@/modules/seek/components/CommercialDiscoveryCity";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation } from "@/modules/seek/types/discovery";
 import { emptyWeeklyHours } from "@/modules/profile/commercial-profile/utils/businessHours";
 import { businessDays, type BusinessDayHours, type BusinessDayKey, type WeeklyOpeningHours } from "@/modules/profile/commercial-profile/types/businessHours";
 import type { UseFormReturn } from "react-hook-form";

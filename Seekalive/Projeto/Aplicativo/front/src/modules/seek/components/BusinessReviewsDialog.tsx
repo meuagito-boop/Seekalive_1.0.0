@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "wouter";
 import { MessageSquareText, Star } from "lucide-react";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import type { User } from "@/modules/profile/types/user";
+import { BusinessReviewComposer } from "@/modules/seek/components/BusinessReviewComposer";
+import { BusinessReviewEntry } from "@/modules/seek/components/BusinessReviewEntry";
 import {
   Dialog,
   DialogContent,
@@ -12,20 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface BusinessReviewsDialogProps {
   business: User | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-function formatReviewDate(date: string) {
-  return new Date(date).toLocaleDateString("pt-BR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 export function BusinessReviewsDialog({
@@ -139,58 +131,15 @@ export function BusinessReviewsDialog({
         </div>
 
         {!isOwner && currentUser && (
-          <form onSubmit={submitReview} className="space-y-3 rounded-xl border border-border p-4">
-            <div>
-              <p className="text-sm font-semibold">
-                {myReview ? "Atualize sua avaliação" : "Conte como foi sua experiência"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Publicando como @{currentUser.username}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-1" aria-label={`Nota selecionada: ${rating} de 5`}>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`Dar nota ${value} de 5`}
-                  aria-pressed={rating === value}
-                  onClick={() => setRating(value as 1 | 2 | 3 | 4 | 5)}
-                  className="rounded p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  <Star
-                    className={`h-6 w-6 transition-colors ${
-                      value <= rating
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-muted-foreground/40"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-
-            <label className="sr-only" htmlFor="seek-review-comment">Sua avaliação</label>
-            <textarea
-              id="seek-review-comment"
-              value={comment}
-              onChange={(event) => setComment(event.target.value.slice(0, 500))}
-              minLength={10}
-              maxLength={500}
-              rows={3}
-              placeholder="O que outras pessoas deveriam saber?"
-              className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-            />
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-muted-foreground">{comment.length}/500</span>
-              <button
-                type="submit"
-                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                {myReview ? "Salvar alterações" : "Publicar avaliação"}
-              </button>
-            </div>
-          </form>
+          <BusinessReviewComposer
+            currentUser={currentUser}
+            myReview={myReview}
+            rating={rating}
+            comment={comment}
+            onRatingChange={setRating}
+            onCommentChange={setComment}
+            onSubmit={submitReview}
+          />
         )}
 
         {isOwner && (
@@ -219,82 +168,23 @@ export function BusinessReviewsDialog({
                 : getUserById(review.reviewerId);
 
               return (
-                <article key={review.id} className="rounded-xl border border-border p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={reviewer?.avatarUrl} alt="" />
-                      <AvatarFallback>{reviewer?.displayName?.[0] ?? "S"}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {reviewer ? (
-                            <Link
-                              href={`/profile/${reviewer.username}`}
-                              className="text-sm font-semibold text-foreground no-underline hover:text-primary"
-                            >
-                              {reviewer.displayName}
-                            </Link>
-                          ) : (
-                            <span className="text-sm font-semibold">Conta Social</span>
-                          )}
-                          <span className="text-xs text-muted-foreground">· {formatReviewDate(review.createdAt)}</span>
-                        </div>
-                        <div className="flex items-center gap-0.5" aria-label={`Nota ${review.rating} de 5`}>
-                          {Array.from({ length: review.rating }, (_, index) => (
-                            <Star key={index} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                        {review.comment}
-                      </p>
-
-                      {review.businessReply && (
-                        <div className="mt-3 rounded-lg bg-muted/50 p-3">
-                          <p className="text-xs font-semibold">
-                            Resposta de {business.displayName}
-                            <span className="ml-2 font-normal text-muted-foreground">
-                              · {formatReviewDate(review.businessReply.createdAt)}
-                            </span>
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
-                            {review.businessReply.content}
-                          </p>
-                        </div>
-                      )}
-
-                      {isOwner && (
-                        <form
-                          onSubmit={(event) => submitReply(event, review.id)}
-                          className="mt-3 flex flex-col gap-2 sm:flex-row"
-                        >
-                          <label className="sr-only" htmlFor={`reply-${review.id}`}>Resposta do comércio</label>
-                          <textarea
-                            id={`reply-${review.id}`}
-                            value={replyDrafts[review.id] ?? review.businessReply?.content ?? ""}
-                            onChange={(event) =>
-                              setReplyDrafts((drafts) => ({
-                                ...drafts,
-                                [review.id]: event.target.value.slice(0, 500),
-                              }))
-                            }
-                            maxLength={500}
-                            rows={2}
-                            placeholder="Responder como comércio..."
-                            className="min-h-10 flex-1 resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-                          />
-                          <button
-                            type="submit"
-                            className="self-end rounded-full border border-border px-3 py-2 text-xs font-semibold hover:border-primary/40 hover:text-primary"
-                          >
-                            {review.businessReply ? "Salvar resposta" : "Responder"}
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                <BusinessReviewEntry
+                  key={review.id}
+                  business={business}
+                  review={review}
+                  reviewer={reviewer}
+                  isOwner={isOwner}
+                  replyDraft={
+                    replyDrafts[review.id] ?? review.businessReply?.content ?? ""
+                  }
+                  onReplyDraftChange={(value) =>
+                    setReplyDrafts((drafts) => ({
+                      ...drafts,
+                      [review.id]: value,
+                    }))
+                  }
+                  onSubmitReply={(event) => submitReply(event, review.id)}
+                />
               );
             })
           )}

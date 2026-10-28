@@ -3,8 +3,10 @@ import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { accountStorageKey, localActorId } from "@/modules/app/persistence/browserAccountStorage";
 import { useAccountScopedIds } from "@/modules/app/hooks/useAccountScopedIds";
-import { buildSeekItems, defaultDiscoveryFilters, filterDiscovery, validateDiscoveryFilters } from "@/modules/seek/utils/seekDiscovery";
-import type { DiscoveryFilters, DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
+import { defaultDiscoveryFilters, validateDiscoveryFilters } from "@/modules/seek/application/discoveryFilterState";
+import { filterDiscovery } from "@/modules/seek/domain/discoveryRules";
+import { buildSeekItems } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryFilters, DiscoveryLocation } from "@/modules/seek/types/discovery";
 import { readRecentLocations, rememberManualLocation } from "@/modules/seek/services/seekLocationService";
 
 const FILTER_KEY = "seekalive-seek-filters";

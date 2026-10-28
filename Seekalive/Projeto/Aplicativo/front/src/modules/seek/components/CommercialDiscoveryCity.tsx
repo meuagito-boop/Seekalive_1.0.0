@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MapPin } from "lucide-react";
-import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation } from "@/modules/seek/types/discovery";
 import { DiscoveryLocationDialog } from "./DiscoveryLocationDialog";
 
 /** Reuses the real city catalogue without mistaking device position for business location. */

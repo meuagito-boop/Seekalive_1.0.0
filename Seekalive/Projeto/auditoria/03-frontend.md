@@ -445,6 +445,32 @@ Não foram alteradas rotas, contratos HTTP, validação de audiência, regras de
 
 **Verificações desta etapa:** `pnpm --filter @workspace/social typecheck` aprovado; `pnpm run test:social` aprovado (84/84); `pnpm test` aprovado para as suítes do frontend, backend e scripts; `pnpm build` aprovado para todos os workspaces; Prettier aprovado nos seis componentes novos e no teste novo; `git diff --check` aprovado para os arquivos da etapa. O workflow `Start application` foi reiniciado e ficou disponível; os logs não mostraram erro de inicialização. A captura do endereço `/profile/usuario_demo` abriu a apresentação/login, pois o navegador de verificação não tem sessão autenticada. Portanto, o perfil autenticado não foi visualmente inspecionado nesta etapa; a extração preservou o JSX e as classes da interface anterior, mas isso não substitui uma verificação visual autenticada.
 
+## Atualização estrutural do módulo `seek` — 28/10/2026
+
+Esta atualização complementa o inventário inicial do Seek. O trabalho ficou limitado à organização do código já existente: não alterou regras de descoberta, filtros, classificação, persistência, navegação, interface pública, contratos HTTP, APIs, backend ou banco de dados.
+
+### Responsabilidades separadas
+
+- `types/discovery.ts` passou a ser a fonte dos tipos `DiscoveryLocation`, `SeekDiscoveryItem` e `DiscoveryFilters`. Os componentes do Seek, o serviço de localização e os formulários comerciais de Profile agora importam os tipos diretamente do domínio proprietário, e não de um utilitário executável.
+- `application/discoveryFilterState.ts` concentra os padrões e a validação do estado de filtros lido do navegador.
+- `domain/discoveryRules.ts` concentra as regras puras existentes de correspondência de cidade, critérios de filtro e ordenação.
+- `utils/seekDiscovery.ts` permanece responsável pela projeção das contas comerciais Social e dos eventos para os itens locais do Seek, incluindo a validação das imagens. Não mantém mais modelos de filtro nem a implementação da filtragem.
+- `utils/seekFilters.ts` agora contém somente a normalização textual compartilhada por descoberta e localização.
+- `components/BusinessReviewsDialog.tsx` foi reduzido de 305 para 195 linhas e mantém a coordenação do diálogo, o estado do formulário, a média/contagem, a seleção das avaliações e a chamada das ações. `BusinessReviewComposer.tsx` apresenta o formulário de avaliação; `BusinessReviewEntry.tsx` apresenta uma avaliação e o formulário de resposta comercial. A função de ação da avaliação passou a se chamar `createSeekReviewActions`, refletindo o domínio proprietário, apesar de ser montada pelo provider global do aplicativo.
+- `useSeekDiscovery.ts` permanece como coordenador do estado de tela (filtros, cidade, salvos, prévia, offline e diálogo), e `screens/Seek.tsx` permanece o compositor visual da página. A divisão adicional não foi feita porque os estados e ações pertencem ao mesmo fluxo de tela e não surgiu uma fronteira independente que justificasse hooks artificiais.
+
+### Limpeza e preservação
+
+Os helpers `filterSeekBusinesses`, `matchesSeekSearch` e o tipo associado foram removidos depois de confirmar que não havia consumidores de produção. O teste em `content.test.ts` exercitava somente essa implementação antiga, inclusive critérios que não pertencem à descoberta ativa; ele foi removido. Os testes de `seekDiscovery.test.ts` continuam exercitando a implementação efetivamente usada pelo aplicativo, incluindo busca, cidade, filtros, ordenação, eventos e validação do estado restaurado.
+
+Não foram alterados os critérios nem os dados de `buildSeekItems`, a elegibilidade de contas comerciais do Social, a localização manual/GPS, o tratamento de perfis bloqueados/privados, filtros e ordenação existentes, a gravação local de avaliações, as respostas comerciais ou os textos/classes dos controles extraídos.
+
+### Verificações e limites
+
+`pnpm --filter @workspace/social typecheck`, `pnpm run test:social` (83/83), `pnpm test`, `pnpm build`, Prettier nos cinco arquivos novos e `git diff --check` passaram. A suíte completa percorreu os grupos configurados de frontend, scripts, fronteiras do backend e casos de aplicação. Nenhuma alteração de schema, migration ou dado foi feita. A interface autenticada e as interações visuais dos novos componentes não foram verificadas via navegador autenticado; não há testes de componente/E2E de Seek.
+
+Continuam válidos os limites funcionais registrados acima: Seek ainda não consulta uma API própria; avaliações e filtros usam estado local; GPS não encontra resultados sem coordenadas; eventos permanecem demonstrativos; a especificação derivada contém rotas ausentes dos handlers/contrato compartilhado; e o agregado de avaliações não aplica o mesmo filtro de bloqueio da lista. Esses pontos são explícitos e não foram tratados como resolvidos pela reorganização.
+
 ## Auditoria estrutural do módulo `settings` — 27/10/2026
 
 Foram inspecionados os 14 arquivos do módulo (2.112 linhas), telas/rotas, serviços Auth/Social consumidos, preferências locais, efeitos em Messages e Notification, estado de sessão e testes encontrados. Nenhum código funcional foi alterado.

@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildSeekItems, defaultDiscoveryFilters, discoveryImage, filterDiscovery, itemMatchesLocation, validateDiscoveryFilters } from "../src/modules/seek/utils/seekDiscovery";
-import type { DiscoveryLocation, SeekDiscoveryItem } from "../src/modules/seek/utils/seekDiscovery";
+import { defaultDiscoveryFilters, validateDiscoveryFilters } from "../src/modules/seek/application/discoveryFilterState";
+import { filterDiscovery, itemMatchesLocation } from "../src/modules/seek/domain/discoveryRules";
+import { buildSeekItems, discoveryImage } from "../src/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation, SeekDiscoveryItem } from "../src/modules/seek/types/discovery";
 import { LocationError, locationErrorMessage, parseIBGECities, readRecentLocations, rememberManualLocation, requestDeviceLocation, searchCities } from "../src/modules/seek/services/seekLocationService";
 import type { User } from "../src/data/mockData";
 import { mockUsers } from "../src/data/mockData";

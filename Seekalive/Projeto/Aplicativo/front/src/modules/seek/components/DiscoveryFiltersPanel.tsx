@@ -1,4 +1,4 @@
-import type { DiscoveryFilters } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryFilters } from "@/modules/seek/types/discovery";
 
 interface Props {
   state: DiscoveryFilters;

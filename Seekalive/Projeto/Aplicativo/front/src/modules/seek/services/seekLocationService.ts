@@ -1,6 +1,6 @@
 import { accountStorageKey } from "@/modules/app/persistence/browserAccountStorage";
 
-import type { DiscoveryLocation } from "@/modules/seek/utils/seekDiscovery";
+import type { DiscoveryLocation } from "@/modules/seek/types/discovery";
 import { normalizeSeekText } from "@/modules/seek/utils/seekFilters";
 
 /** Source of the bundled official catalogue; not contacted during user searches. */

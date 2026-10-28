@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { useState } from "react";
 import { Bookmark, Calendar, MapPin, Star, Wrench, Store, Ticket } from "lucide-react";
-import type { SeekDiscoveryItem } from "@/modules/seek/utils/seekDiscovery";
+import type { SeekDiscoveryItem } from "@/modules/seek/types/discovery";
 
 const KIND_ICON = { place: Store, provider: Wrench, event: Ticket } as const;
 const KIND_LABEL = { place: "Lugar", provider: "Serviço", event: "Evento" } as const;

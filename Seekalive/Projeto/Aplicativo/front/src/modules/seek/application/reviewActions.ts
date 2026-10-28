@@ -11,7 +11,7 @@ type ReviewActionDependencies = {
   dispatch: Dispatch<SeekReviewAction>;
 };
 
-export function createSocialReviewActions({ state, currentUser, dispatch }: ReviewActionDependencies) {
+export function createSeekReviewActions({ state, currentUser, dispatch }: ReviewActionDependencies) {
   return {
     upsertSeekReview: (review: SeekReview) => {
       const business = state.users.find(
