@@ -288,7 +288,13 @@ try {
         code: message.code,
       });
     },
-    async sendPasswordResetCode() {},
+    async sendPasswordResetCode(message) {
+      send({
+        type: "password-reset-email",
+        email: message.email.toLowerCase(),
+        code: message.code,
+      });
+    },
     async sendDeviceLoginCode(message) {
       send({
         type: "device-login-email",

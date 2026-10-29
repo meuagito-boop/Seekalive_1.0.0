@@ -171,6 +171,14 @@ export async function startIsolatedAuthRegistrationApi() {
         "the captured new-device login email",
       );
     },
+    waitForPasswordResetEmail(email) {
+      return waitForMessage(
+        (message) =>
+          message.type === "password-reset-email" &&
+          message.email === email.toLowerCase(),
+        "the captured password-reset email",
+      );
+    },
     async failVerificationDelivery(email) {
       const requestId = randomUUID();
       const armed = waitForMessage(

@@ -10,6 +10,13 @@ import {
   createAuthIntegrationPage,
   startIsolatedAuthRegistrationApi,
 } from "./authRegistrationIntegrationSupport.mjs";
+import {
+  assertNoUnexpectedResponses,
+  fillLogin,
+  inspectSecurityState,
+  loginResponseFor,
+  registerPersonalAccount,
+} from "./authAccountIntegrationJourney.mjs";
 
 const testPassword = "TesteSeguro!2026";
 let browser;
@@ -28,138 +35,6 @@ after(async () => {
     await browser?.close();
   }
 });
-
-function loginResponseFor(page) {
-  return page.waitForResponse((response) => {
-    const url = new URL(response.url());
-    return (
-      url.pathname === "/api/v1/auth/login" &&
-      response.request().method() === "POST"
-    );
-  });
-}
-
-function assertNoUnexpectedResponses(network, allowedFailureStatuses = []) {
-  const unexpected = network.apiResponses
-    .filter(
-      (response) =>
-        response.status === 404 ||
-        response.status === 501 ||
-        response.status === 429 ||
-        (response.status >= 500 &&
-          !allowedFailureStatuses.includes(response.status)),
-    )
-    .map(({ method, path, status }) => `${method} ${path} → ${status}`);
-  assert.deepEqual(
-    unexpected,
-    [],
-    "The login and session journey must not depend on missing or failed API endpoints.",
-  );
-
-  const unapprovedOrigins = network.blockedExternalRequests.filter(
-    (origin) => !network.allowedExternalOrigins.has(origin),
-  );
-  assert.deepEqual(
-    network.apiTransportFailures,
-    [],
-    "The browser must reach only the local isolated API.",
-  );
-  assert.deepEqual(
-    unapprovedOrigins,
-    [],
-    "The browser attempted an unapproved external request.",
-  );
-}
-
-async function fillLogin(page, email) {
-  await page.getByTestId("input-identifier").fill(email);
-  await page.getByTestId("input-password").fill(testPassword);
-  await page.getByTestId("button-login").click();
-}
-
-async function registerPersonalAccount({ network, email, username }) {
-  const page = network.page;
-  await page.goto(new URL("/register", authTestBaseUrl).toString(), {
-    waitUntil: "domcontentloaded",
-  });
-  await page.getByTestId("input-first-name").fill("Ana");
-  await page.getByTestId("input-last-name").fill("Teste");
-  await page.getByTestId("input-age").fill("29");
-  await page.getByTestId("input-username").fill(username);
-  await page.getByTestId("input-email").fill(email);
-  await page.getByTestId("input-password").fill(testPassword);
-  await page.getByTestId("input-confirm-password").fill(testPassword);
-  await page
-    .getByRole("checkbox", {
-      name: "Aceito os Termos de Serviço e Política de Privacidade",
-    })
-    .click();
-
-  const verificationEmail = isolatedApi.waitForVerificationEmail(email);
-  await page.getByTestId("button-register").click();
-  await page.waitForURL((url) => url.pathname === "/verify-email");
-  const capturedEmail = await verificationEmail;
-  assert.equal(
-    /^\d{6}$/.test(capturedEmail.code),
-    true,
-    "The verification sink must capture a six-digit code.",
-  );
-
-  for (let index = 0; index < capturedEmail.code.length; index += 1) {
-    await page
-      .getByLabel(`Dígito ${index + 1} do código de confirmação por e-mail`, {
-        exact: true,
-      })
-      .fill(capturedEmail.code[index]);
-  }
-  await page.getByTestId("button-verify").click();
-  await page.waitForURL((url) => url.pathname === "/onboarding/interests");
-  await page.getByTestId("button-skip-interests").click();
-  await page.waitForURL((url) => url.pathname === "/feed");
-
-  const registration = network.apiResponses.findLast(
-    (response) =>
-      response.method === "POST" && response.path === "/api/v1/auth/register",
-  );
-  const verification = network.apiResponses.findLast(
-    (response) =>
-      response.method === "POST" &&
-      response.path === "/api/v1/auth/verification/confirm",
-  );
-  const onboarding = network.apiResponses.findLast(
-    (response) =>
-      response.method === "POST" &&
-      response.path === "/api/v1/onboarding/interests",
-  );
-  assert.equal(registration?.status, 202);
-  assert.equal(verification?.status, 200);
-  assert.equal(onboarding?.status, 200);
-
-  const state = await isolatedApi.verifyRegistration({
-    accountType: "personal",
-    email,
-    username,
-    firstName: "Ana",
-    lastName: "Teste",
-  });
-  assert.equal(state.accountFound, true);
-  assert.equal(state.accountStatus, "active");
-  assert.equal(state.emailVerified, true);
-  assert.equal(state.sessionExists, true);
-  assert.equal(state.passwordIsArgon2id, true);
-
-  assertNoUnexpectedResponses(network);
-  return page;
-}
-
-async function inspectSecurityState(username, expected) {
-  const state = await isolatedApi.inspectAccountSecurity(username);
-  assert.equal(state.accountFound, true);
-  assert.equal(state.accountStatus, "active");
-  assert.equal(state.activeSessionCount, expected.sessions);
-  assert.equal(state.activeDeviceCount, expected.devices);
-  return state;
-}
 
 test("known and new device login, session revocation, and trusted-device revocation use real UI and isolated persistence", async (t) => {
   const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
@@ -180,8 +55,10 @@ test("known and new device login, session revocation, and trusted-device revocat
 
   const knownDevicePage = await registerPersonalAccount({
     network: registeredNetwork,
+    isolatedApi,
     email,
     username,
+    password: testPassword,
   });
   const deviceCookieBeforeLogout = (
     await knownDevicePage.context().cookies(authTestBaseUrl)
@@ -234,7 +111,7 @@ test("known and new device login, session revocation, and trusted-device revocat
     waitUntil: "domcontentloaded",
   });
   const knownLoginResponsePromise = loginResponseFor(knownDevicePage);
-  await fillLogin(knownDevicePage, email);
+  await fillLogin(knownDevicePage, email, testPassword);
   const knownLoginResponse = await knownLoginResponsePromise;
   assert.equal(knownLoginResponse.status(), 200);
   await knownDevicePage.waitForURL(
@@ -248,7 +125,10 @@ test("known and new device login, session revocation, and trusted-device revocat
     0,
     "A known installation must not receive a device challenge.",
   );
-  await inspectSecurityState(username, { sessions: 1, devices: 1 });
+  await inspectSecurityState(isolatedApi, username, {
+    sessions: 1,
+    devices: 1,
+  });
 
   newDeviceNetwork = await createAuthIntegrationPage(
     browser,
@@ -260,7 +140,7 @@ test("known and new device login, session revocation, and trusted-device revocat
   });
   const deviceEmailPromise = isolatedApi.waitForDeviceLoginEmail(email);
   const newDeviceLoginPromise = loginResponseFor(newDevicePage);
-  await fillLogin(newDevicePage, email);
+  await fillLogin(newDevicePage, email, testPassword);
   const newDeviceLogin = await newDeviceLoginPromise;
   assert.equal(newDeviceLogin.status(), 202);
   const deviceEmail = await deviceEmailPromise;
@@ -273,10 +153,11 @@ test("known and new device login, session revocation, and trusted-device revocat
     .getByRole("heading", { name: "Confirme esta instalação" })
     .waitFor();
 
-  const pendingSecurityState = await inspectSecurityState(username, {
-    sessions: 1,
-    devices: 1,
-  });
+  const pendingSecurityState = await inspectSecurityState(
+    isolatedApi,
+    username,
+    { sessions: 1, devices: 1 },
+  );
   assert.equal(
     pendingSecurityState.activeSessionCount,
     1,
@@ -302,7 +183,10 @@ test("known and new device login, session revocation, and trusted-device revocat
   await newDevicePage
     .getByRole("heading", { name: "Confirme esta instalação" })
     .waitFor();
-  await inspectSecurityState(username, { sessions: 1, devices: 1 });
+  await inspectSecurityState(isolatedApi, username, {
+    sessions: 1,
+    devices: 1,
+  });
 
   const validCodeResponsePromise = newDevicePage.waitForResponse((response) => {
     const url = new URL(response.url());
@@ -321,7 +205,10 @@ test("known and new device login, session revocation, and trusted-device revocat
     (url) =>
       url.pathname === "/onboarding/interests" || url.pathname === "/feed",
   );
-  await inspectSecurityState(username, { sessions: 2, devices: 2 });
+  await inspectSecurityState(isolatedApi, username, {
+    sessions: 2,
+    devices: 2,
+  });
 
   await newDevicePage.goto(
     new URL("/settings/security", authTestBaseUrl).toString(),
@@ -359,7 +246,10 @@ test("known and new device login, session revocation, and trusted-device revocat
   assert.equal(revokeSessionsResponse.status(), 200);
   assert.equal((await revokeSessionsResponse.json()).revokedCount, 1);
   await sessionList.getByRole("listitem").nth(1).waitFor({ state: "detached" });
-  await inspectSecurityState(username, { sessions: 1, devices: 2 });
+  await inspectSecurityState(isolatedApi, username, {
+    sessions: 1,
+    devices: 2,
+  });
 
   const revokedKnownSession = await knownDevicePage.evaluate(async () => {
     const response = await fetch("/api/v1/auth/session", {
@@ -388,7 +278,10 @@ test("known and new device login, session revocation, and trusted-device revocat
   assert.equal(revokeDevicesResponse.status(), 200);
   assert.equal((await revokeDevicesResponse.json()).revokedCount, 1);
   await deviceList.getByRole("listitem").nth(1).waitFor({ state: "detached" });
-  await inspectSecurityState(username, { sessions: 1, devices: 1 });
+  await inspectSecurityState(isolatedApi, username, {
+    sessions: 1,
+    devices: 1,
+  });
 
   await knownDevicePage.reload({ waitUntil: "domcontentloaded" });
   await knownDevicePage.goto(new URL("/login", authTestBaseUrl).toString(), {
@@ -397,7 +290,7 @@ test("known and new device login, session revocation, and trusted-device revocat
   await knownDevicePage.getByTestId("input-identifier").waitFor();
   const revokedDeviceEmailPromise = isolatedApi.waitForDeviceLoginEmail(email);
   const revokedDeviceLoginPromise = loginResponseFor(knownDevicePage);
-  await fillLogin(knownDevicePage, email);
+  await fillLogin(knownDevicePage, email, testPassword);
   const revokedDeviceLogin = await revokedDeviceLoginPromise;
   assert.equal(revokedDeviceLogin.status(), 202);
   const revokedDeviceEmail = await revokedDeviceEmailPromise;
@@ -409,7 +302,10 @@ test("known and new device login, session revocation, and trusted-device revocat
   await knownDevicePage
     .getByRole("heading", { name: "Confirme esta instalação" })
     .waitFor();
-  await inspectSecurityState(username, { sessions: 1, devices: 1 });
+  await inspectSecurityState(isolatedApi, username, {
+    sessions: 1,
+    devices: 1,
+  });
 
   assertNoUnexpectedResponses(knownDeviceNetwork);
   assertNoUnexpectedResponses(newDeviceNetwork);
