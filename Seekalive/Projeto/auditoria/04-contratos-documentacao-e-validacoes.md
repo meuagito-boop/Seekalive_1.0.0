@@ -84,7 +84,7 @@ Na fonte examinada, os 55 erros de aplicação têm 55 números distintos e os 1
 - As tabelas do código Drizzle totalizam 13, se incluída `feed.posts`.
 - Sem Feed, as quatro áreas atuais de tabelas totalizam 12.
 - O dicionário de dados diz 12 tabelas mas lista 11 e omite `account_username_reservations`.
-- Consulta read-only em `development` confirmou o banco `heliumdb` com 12 tabelas físicas em quatro schemas; `feed` existe, mas `feed.posts` não. DDL exportado e metadados físicos das 12 tabelas existentes correspondem em colunas, constraints, FKs e índices. A ordem física das colunas de `accounts.accounts` é diferente, sem divergência de atributos. A tabela acrescentada por `0005` é a única diferença física identificada; não há tabela de histórico de migrations identificada no catálogo consultado.
+- Consulta read-only refeita em 29/10/2026 confirmou o banco `heliumdb` com 12 tabelas físicas em quatro schemas; `feed` existe, mas `feed.posts` não. A comparação detalhada de colunas, constraints, FKs e índices das 12 tabelas foi feita em 28/10 e permanece identificada como evidência daquela data; hoje foram reconfirmados nomes e contagens de objetos, sem repetir comparação de cada definição de coluna. A tabela acrescentada por `0005` continua a única diferença física modelada; não há tabela de histórico de migrations identificada no catálogo consultado.
 
 ### 5. Inventários do front
 
@@ -107,17 +107,18 @@ Na fonte examinada, os 55 erros de aplicação têm 55 números distintos e os 1
 | `pnpm run typecheck` | Passou nos pacotes do workspace. |
 | `pnpm --filter @workspace/db run check` | Passou na consistência do histórico de migrations Drizzle local. |
 | `pnpm run build` | Passou; build de API, front e mockup sandbox concluído. Build API: `dist/index.mjs` 273,6 KB e sourcemap 517,2 KB. Vite principal produziu o bundle e o script examinou 96 chunks JS. |
-| Teste de banco isolado | Em 28/10/2026, passou 5/5 no banco de desenvolvimento `heliumdb` com schema temporário aleatório; removido ao final. O teste usa API real, e-mail em memória e não chama Resend. |
+| Teste de banco isolado | Refeito em 29/10/2026: suíte API passou 5/5 em schema temporário; SQL versionado `0005` passou com dois inserts válidos e seis rejeições esperadas. Os schemas temporários foram removidos e o fingerprint do catálogo permanente não mudou. |
 | Git status após build | Nenhuma modificação rastreada; artefatos foram ignorados pela configuração existente. |
 
 Os comandos acima testam o estado compilável e os testes já definidos. Não substituem E2E, exame visual de todas as telas, validação de migrations aplicadas, auditoria independente de segurança ou confirmação de produção.
 
-### Verificação somente de leitura e teste isolado — 28/10/2026
+### Verificação somente de leitura e teste isolado — atualização de 29/10/2026
 
 - `executeSql` no ambiente `development` confirmou `current_database() = heliumdb`; não foram lidos registros de conta, e-mail ou publicação.
 - Os schemas `accounts`, `profiles`, `security` e `seek` têm 12 tabelas físicas; `feed` está criado, porém `feed.posts` não existe. Os demais schemas reservados também aparecem no catálogo, sem tabela de aplicação nesta leitura.
 - A consulta a `information_schema.columns` não encontrou tabela cujo nome contenha `drizzle` ou `migration`; isso não permite declarar o histórico de aplicação de cada arquivo. A ausência física de `feed.posts` é evidência direta de que a tabela de `0005` não está aplicada.
-- A exportação `drizzle-kit export` (sem conexão ou escrita) foi comparada com o catálogo de `heliumdb`: nas 12 tabelas existentes, colunas, tipos/tamanhos, defaults, nulabilidade, chaves, checks e índices correspondem. A única diferença de objeto modelado é a tabela `feed.posts`.
+- A comparação `drizzle-kit export` versus catálogo realizada em 28/10/2026 encontrou correspondência de colunas, tipos/tamanhos, defaults, nulabilidade, chaves, checks e índices nas 12 tabelas daquele corte. Em 29/10, a conferência de metadados confirmou novamente os nomes/contagens das tabelas e objetos; não foi repetida a comparação completa de cada definição de coluna. A única diferença de objeto modelado permanece `feed.posts`.
+- O teste isolado da migration `0005` redirecionou somente os schemas para um namespace aleatório de desenvolvimento, confirmou constraints/FK/índices e rejeição de seis entradas inválidas; depois da remoção, o fingerprint das colunas, constraints, índices e views consultados ficou idêntico. A suíte de API isolada passou 5/5 e também removeu seu schema; a consulta posterior encontrou zero schemas temporários, 12 tabelas permanentes e `feed.posts` ausente.
 - O CLI `drizzle-kit push --help` não oferece opção `--dry-run`; por isso, nenhum `push` no schema principal foi usado apenas para inspecionar diferenças. Qualquer sincronização continuará condicionada à aprovação da mudança exata.
 - `pnpm --filter @workspace/db run check` passou, validando consistência local do journal/arquivos, não o banco físico.
 - `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db` passou 5/5. A suíte confirmou o nome do banco, escreveu apenas no schema temporário, verificou que `public` manteve o mesmo fingerprint e apagou o schema ao final. O e-mail foi capturado por adaptador em memória.
