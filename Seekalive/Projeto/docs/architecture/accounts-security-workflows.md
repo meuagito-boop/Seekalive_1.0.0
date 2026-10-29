@@ -71,12 +71,14 @@ Shop está fora do escopo atual. Nenhuma tabela, API ou fluxo de catálogo/compr
 - Após autorização explícita, o SQL de `0006_brief_raza.sql` foi aplicado em uma única transação ao banco de desenvolvimento `heliumdb`. A leitura anterior confirmou as colunas ausentes e zero contas; a verificação posterior confirmou as duas colunas, a restrição `accounts_deletion_schedule_consistent` e o índice `accounts_deletion_due_idx`. Nenhum dado de conta foi alterado e produção não foi acessada.
 - A API recebeu um smoke test sem sessão no endpoint de solicitação; respondeu `403 CSRF_REJECTED`, não `503 ACCOUNT_DELETION_SCHEMA_REQUIRED`. Isso confirma que a verificação de schema passou, mas não testa uma jornada autenticada.
 - `drizzle-kit check` passou e a suíte específica de exclusão passou 3/3 em schema temporário isolado. O E2E do frontend usa API simulada; nenhum e-mail real foi enviado.
-- **Risco aberto:** o banco não possui `__drizzle_migrations` e `feed.posts` da migration `0005` está ausente. `0006` foi aplicada diretamente e não consta em um ledger do Drizzle. Não executar `drizzle-kit migrate` até reconciliar a sequência física; não marcar migrations ainda ausentes como aplicadas nem incluir Shop/Feed fora da autorização.
+- **Reconciliação auditada, ainda bloqueada:** o estado físico corresponde às tabelas, colunas, constraints e índices de `0000`–`0004`; `feed.posts` de `0005` está ausente; os objetos de `0006` estão presentes. As tabelas de domínio consultadas estão vazias. O banco não possui `drizzle.__drizzle_migrations`.
+- **Por que não foi criado um ledger:** no Drizzle ORM 0.45.2 instalado, o migrador lê a maior `created_at` e executa somente migrations com `folderMillis` posterior. Registrar `0006` faria `0005` ser ignorada; registrar somente até `0004` faria o próximo `migrate` executar `0005` e depois repetir a DDL já aplicada de `0006`. Nenhuma dessas representações é fiel e segura.
+- **Bloqueio operacional:** não executar `drizzle-kit migrate`, não criar entradas de ledger manualmente e não marcar `0005` como aplicada. Resolver a sequência antes de novas migrations por uma estratégia de histórico compatível com os domínios e com a migration Feed ainda não autorizada. Shop permanece fora do escopo.
 
 ## Critérios para encerrar Accounts/Auth
 
 1. Concluir e testar cadastro pessoal e comercial, verificação obrigatória de e-mail, login, novo dispositivo, sessões e revogação.
-2. Reconciliar e documentar o histórico físico de migrations sem executar fora do escopo o schema vazio Shop ou `feed.posts`.
+2. Aprovar e implementar uma estratégia de histórico de migrations que represente o estado fora de ordem sem executar `feed.posts` ou mascarar `0005`; Shop continua fora do escopo.
 3. Testar a jornada de solicitação/restauração de exclusão com API e banco temporário isolado e entrega de código em memória.
 4. Confirmar que nenhum endpoint público expõe idade, e-mail, hashes ou tokens.
 5. Registrar lacunas de Mídias, Feed e Mensagens como não implementadas; não alegar que a exclusão já cobre dados que ainda não têm persistência.
