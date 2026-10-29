@@ -172,7 +172,9 @@ async function verifyRegistration(message) {
 async function inspectAccountSecurity(message) {
   if (
     typeof message.requestId !== "string" ||
-    typeof message.username !== "string"
+    typeof message.username !== "string" ||
+    (message.expectedEmail !== undefined &&
+      typeof message.expectedEmail !== "string")
   ) {
     send({
       type: "security-check",
@@ -199,7 +201,7 @@ async function inspectAccountSecurity(message) {
     return;
   }
 
-  const [activeSessions, activeDevices] = await Promise.all([
+  const [activeSessions, activeDevices, [verifiedEmail]] = await Promise.all([
     db
       .select({ id: tables.sessions.id })
       .from(tables.sessions)
@@ -218,6 +220,16 @@ async function inspectAccountSecurity(message) {
           isNull(tables.trustedDevices.revokedAt),
         ),
       ),
+    db
+      .select({ emailNormalized: tables.accountEmails.emailNormalized })
+      .from(tables.accountEmails)
+      .where(
+        and(
+          eq(tables.accountEmails.accountId, account.id),
+          isNotNull(tables.accountEmails.verifiedAt),
+        ),
+      )
+      .limit(1),
   ]);
 
   send({
@@ -227,6 +239,13 @@ async function inspectAccountSecurity(message) {
     accountStatus: account.status,
     activeSessionCount: activeSessions.length,
     activeDeviceCount: activeDevices.length,
+    ...(message.expectedEmail === undefined
+      ? {}
+      : {
+          emailMatches:
+            verifiedEmail?.emailNormalized ===
+            message.expectedEmail.toLowerCase(),
+        }),
   });
 }
 
@@ -255,7 +274,7 @@ async function shutdown() {
   return shutdownPromise;
 }
 
-const { and, eq, isNull } = await import("drizzle-orm");
+const { and, eq, isNotNull, isNull } = await import("drizzle-orm");
 const database = await import("@workspace/db");
 pool = database.pool;
 db = database.db;
@@ -295,6 +314,34 @@ try {
         code: message.code,
       });
     },
+    async sendAccountPasswordChangeCode(message) {
+      send({
+        type: "account-password-change-email",
+        email: message.email.toLowerCase(),
+        code: message.code,
+      });
+    },
+    async sendAccountEmailChangeCurrentCode(message) {
+      send({
+        type: "account-email-change-current-email",
+        email: message.email.toLowerCase(),
+        code: message.code,
+      });
+    },
+    async sendAccountEmailChangeNewCode(message) {
+      send({
+        type: "account-email-change-new-email",
+        email: message.email.toLowerCase(),
+        code: message.code,
+      });
+    },
+    async sendAccountEmailChangeSecurityNotice(message) {
+      send({
+        type: "account-email-change-security-notice",
+        email: message.email.toLowerCase(),
+        newEmailMasked: message.newEmailMasked,
+      });
+    },
     async sendDeviceLoginCode(message) {
       send({
         type: "device-login-email",
@@ -303,10 +350,6 @@ try {
       });
     },
     async sendPasswordUpdateCode() {},
-    async sendAccountPasswordChangeCode() {},
-    async sendAccountEmailChangeCurrentCode() {},
-    async sendAccountEmailChangeNewCode() {},
-    async sendAccountEmailChangeSecurityNotice() {},
   });
 
   setupStage = "api-server-start";

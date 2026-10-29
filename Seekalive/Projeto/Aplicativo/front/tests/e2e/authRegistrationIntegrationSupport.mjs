@@ -68,14 +68,15 @@ export async function startIsolatedAuthRegistrationApi() {
 
   function receive(message) {
     if (!message || typeof message !== "object") return;
-    messages.push(message);
     for (let index = waiters.length - 1; index >= 0; index -= 1) {
       const waiter = waiters[index];
       if (!waiter.predicate(message)) continue;
       waiters.splice(index, 1);
       clearTimeout(waiter.timer);
       waiter.resolve(message);
+      return;
     }
+    messages.push(message);
   }
 
   function waitForMessage(predicate, description, timeoutMs = 15_000) {
@@ -179,6 +180,38 @@ export async function startIsolatedAuthRegistrationApi() {
         "the captured password-reset email",
       );
     },
+    waitForAccountPasswordChangeEmail(email) {
+      return waitForMessage(
+        (message) =>
+          message.type === "account-password-change-email" &&
+          message.email === email.toLowerCase(),
+        "the captured account password-change email",
+      );
+    },
+    waitForAccountEmailChangeCurrentEmail(email) {
+      return waitForMessage(
+        (message) =>
+          message.type === "account-email-change-current-email" &&
+          message.email === email.toLowerCase(),
+        "the captured current-address email-change code",
+      );
+    },
+    waitForAccountEmailChangeNewEmail(email) {
+      return waitForMessage(
+        (message) =>
+          message.type === "account-email-change-new-email" &&
+          message.email === email.toLowerCase(),
+        "the captured new-address email-change code",
+      );
+    },
+    waitForAccountEmailChangeSecurityNotice(email) {
+      return waitForMessage(
+        (message) =>
+          message.type === "account-email-change-security-notice" &&
+          message.email === email.toLowerCase(),
+        "the captured old-address security notice",
+      );
+    },
     async failVerificationDelivery(email) {
       const requestId = randomUUID();
       const armed = waitForMessage(
@@ -215,7 +248,7 @@ export async function startIsolatedAuthRegistrationApi() {
       );
       return result;
     },
-    async inspectAccountSecurity(username) {
+    async inspectAccountSecurity(username, expectedEmail) {
       const requestId = randomUUID();
       const response = waitForMessage(
         (message) =>
@@ -226,6 +259,7 @@ export async function startIsolatedAuthRegistrationApi() {
         type: "inspect-account-security",
         requestId,
         username,
+        ...(expectedEmail ? { expectedEmail } : {}),
       });
       const result = await response;
       assert.equal(

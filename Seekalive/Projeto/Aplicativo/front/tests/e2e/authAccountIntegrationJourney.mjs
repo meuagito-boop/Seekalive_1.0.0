@@ -99,11 +99,17 @@ export async function registerPersonalAccount({
 }
 
 export async function inspectSecurityState(isolatedApi, username, expected) {
-  const state = await isolatedApi.inspectAccountSecurity(username);
+  const state = await isolatedApi.inspectAccountSecurity(
+    username,
+    expected.email,
+  );
   assert.equal(state.accountFound, true);
   assert.equal(state.accountStatus, "active");
   assert.equal(state.activeSessionCount, expected.sessions);
   assert.equal(state.activeDeviceCount, expected.devices);
+  if (expected.email) {
+    assert.equal(state.emailMatches, true);
+  }
   return state;
 }
 

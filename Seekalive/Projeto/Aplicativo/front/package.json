@@ -11,7 +11,8 @@
     "test:e2e:auth": "node --test tests/e2e/authFlows.e2e.test.mjs",
     "test:e2e:auth:integration": "node --test tests/e2e/authRegistration.integration.e2e.test.mjs",
     "test:e2e:auth:sessions:integration": "node --test tests/e2e/authLoginSessions.integration.e2e.test.mjs",
-    "test:e2e:auth:password-reset:integration": "node --test tests/e2e/authPasswordReset.integration.e2e.test.mjs"
+    "test:e2e:auth:password-reset:integration": "node --test tests/e2e/authPasswordReset.integration.e2e.test.mjs",
+    "test:e2e:auth:credential-changes:integration": "node --test tests/e2e/authCredentialChanges.integration.e2e.test.mjs"
   },
   "devDependencies": {
     "@hookform/resolvers": "^6.0.0",
