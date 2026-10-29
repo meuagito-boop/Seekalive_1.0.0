@@ -1,16 +1,16 @@
 ---
-name: Bancos de dados por domínio
-description: Regra de ownership físico dos bancos e limites para integrações entre domínios.
+name: Ownership lógico dos dados por domínio
+description: Regra vigente para schemas e propriedade dos dados no desenvolvimento.
 ---
 
 ## Regra
 
-Cada domínio terá seu próprio banco de dados físico. Schemas separados dentro de uma instância compartilhada não satisfazem essa arquitetura. Essa decisão não significa dividir o aplicativo modular em serviços independentes.
+Cada domínio possui schema lógico, modelos e responsabilidade próprios. Na fase atual, os schemas podem residir na mesma instância PostgreSQL de desenvolvimento; não provisionar bancos físicos independentes nem escolher provedor como parte da organização atual.
 
-Não criar FKs nem depender de transações SQL entre bancos de domínios diferentes. As integrações devem usar contratos explícitos e coordenação idempotente, com falhas parciais e reconciliação tratadas antes de assumir atomicidade entre domínios.
+Com o PostgreSQL compartilhado, FKs e transações entre schemas podem ser usadas quando preservam uma invariável existente. Ownership continua delimitado no código: cada domínio é o único responsável por alterar sua fonte oficial, e consumidores usam contratos/composição explícitos.
 
-O banco compartilhado existente é estado de desenvolvimento/transição, não a arquitetura-alvo. Uma migration deve ser direcionada ao banco do domínio proprietário, não aplicada ao banco compartilhado apenas porque o schema lógico existe ali.
+Confiança e Segurança de Conteúdo é um domínio lógico separado por atravessar recursos de Contas, Feed, Mensagens e Seek e por exigir acesso restrito a denúncias, evidências e decisões. O domínio de origem continua sendo dono do conteúdo e da execução de ações. Shop está fora do escopo atual; não criar seu modelo ativo.
 
-**Why:** Em 29/10/2026, o usuário definiu que cada banco será criado por domínio; a separação física é uma decisão explícita, não uma recomendação técnica a ser substituída silenciosamente por schemas.
+**Why:** O usuário esclareceu que a separação necessária agora é organização por domínio no modelo anexado; bancos físicos não fazem parte desta fase, pois o aplicativo não será hospedado no Replit. Shop também foi explicitamente retirado do escopo atual.
 
-**How to apply:** Ao planejar bancos, migrations ou fluxos multi-domínio, conferir se cada alteração atinge o banco proprietário correto e se a integração funciona sem transação compartilhada. Não provisionar, migrar nem alterar produção por inferência. Manter o monólito modular até que o usuário peça outra topologia.
+**How to apply:** Ao alterar schemas, migrations ou fluxos, manter ownership no código e schemas lógicos separados na instância de desenvolvimento. Não criar tabelas/rotas Shop, não implementar ainda Trust/Safety, e não inferir topologia física ou aplicar migrations sem aprovação explícita.

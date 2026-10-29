@@ -1,115 +1,84 @@
 # Fronteiras e fluxos entre Contas e Segurança
 
-**Status:** desenho-alvo para bancos físicos por domínio. A escrita de cadastro já está separada em adaptadores proprietários de Contas, Segurança e Profiles, coordenados pelo Auth; neste estágio, todos ainda usam a transação do banco compartilhado de desenvolvimento. A coordenação idempotente entre bancos físicos não está implementada.
-**Ambiente observado:** desenvolvimento. Nenhum banco foi criado, migrado ou alterado por este documento.
-**Escopo:** cadastro, verificação de e-mail, login, sessões/dispositivos, mudanças e recuperação de credenciais, exclusão/restauração e finalização. O aplicativo continua um monólito modular; cada domínio acessa somente o próprio banco.
+**Status:** arquitetura lógica para o ambiente de desenvolvimento. Contas, Segurança, Perfis/Relações, Feed e Seek são módulos separados no código e schemas separados no mesmo PostgreSQL compartilhado. Não há provisionamento de bancos físicos por domínio neste escopo.
+**Escopo:** cadastro, verificação de e-mail, login, sessões/dispositivos, credenciais, exclusão/restauração e relação com a inicialização do perfil comercial.
 
-## Decisões que orientam o desenho
+## Ownership por domínio
 
-1. **Contas é a autoridade da identidade e do ciclo de vida:** `account_id` UUID imutável, `@`, tipo, e-mails atual/verificado, estado da conta, idade/termos privados, interesses e prazos de exclusão.
-2. **Segurança é a autoridade das credenciais e acessos:** hashes Argon2id, desafios/códigos, sessões, CSRF, instalações confiáveis, tentativas, bloqueios de segurança e revogações.
-3. **Perfis é dono do perfil comercial** conforme a fronteira já aprovada; Seek descobre contas comerciais existentes, não cria uma identidade paralela. A inicialização não pode compartilhar transação com Contas.
-4. Cada domínio usa transações locais no próprio banco. Não há FKs, joins, locks ou transações SQL entre bancos. UUIDs externos são referências validadas por contrato.
-5. O fluxo público pode ser composto por casos de uso de Auth no mesmo processo. Essa composição chama serviços/portas dos domínios, não tabelas/repositórios internos de outros domínios.
-6. Comandos entre domínios são idempotentes por `operation_id`/`account_id`; eventos que precisam sobreviver a falhas são registrados em outbox local no banco de origem e deduplicados pelo domínio receptor. Não há exigência de introduzir um broker externo nesta etapa.
-7. Login e autorização falham fechados se o estado autoritativo de Contas ou Segurança não puder ser validado. A política de exclusão exige bloqueio imediato: até existir invalidação distribuída com garantia e limite de atraso aprovado, o middleware deve confirmar o estado de Contas antes de autorizar uma sessão.
+| Domínio | Responsabilidade de dados |
+|---|---|
+| Contas (`accounts`) | UUID canônico, `@`, tipo/status, idade e termos privados, e-mail, interesses e ciclo de vida da identidade. |
+| Segurança (`security`) | Hashes Argon2id, desafios/códigos, sessões, CSRF, instalações confiáveis, tentativas e revogações. |
+| Perfis/Relações (`profiles`) | Relações sociais, pedidos de seguimento e bloqueios. O perfil comercial público precisa manter uma fronteira própria, sem criar nova identidade. |
+| Seek (`seek`) | Dados da listagem comercial e descoberta: categoria, endereço principal e dados comerciais próprios do Seek. |
+| Auth | Coordena casos de uso e ordem das operações; não é proprietário das tabelas acima. |
 
-## Evidência do acoplamento atual
+As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módulos ainda devem acessar dados por operações/composição explícitas; compartilhar um PostgreSQL não autoriza qualquer módulo a gravar diretamente em qualquer tabela.
 
-Hoje os módulos usam o mesmo cliente `db` de `@workspace/db`; Contas, Segurança, Perfis/Relações, Feed e Seek convivem na mesma instância de desenvolvimento. No cadastro, o Auth coordena adaptadores separados: Contas grava identidade/e-mail/reserva do `@`, Segurança grava a credencial e Profiles inicializa o perfil comercial. A composição ainda envolve essas gravações em uma transação compartilhada, portanto a separação de responsabilidades no código não equivale a isolamento físico nem a transações locais por domínio. Não existe `schema/profiles.ts`: as tabelas de relações são declaradas em `schema/social.ts` usando `profilesTable`; já `business_profiles` está definido em `schema/seek.ts`. Portanto, o banco de desenvolvimento contém dados de perfil comercial no schema Seek, embora a fronteira aprovada atribua a inicialização do perfil a Profiles. Os seguintes fluxos ainda dependem de transações ou consultas cruzando domínios:
+## Estado observado no código
 
-| Fluxo observado                 | Dados/domínios envolvidos na implementação atual                                                                                                                                            | Fronteira exigida                                                                                                                                                                             |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cadastro pessoal/comercial      | `registrationAccountCoordinator` compõe o repositório de identidade de Contas, o gravador de credencial de Segurança e o inicializador de Profiles dentro da transação compartilhada atual. | Contas cria a identidade e a reserva; Segurança cria credencial/desafio; Perfis inicializa o perfil comercial numa operação própria, idempotente.                                             |
-| Verificação de e-mail           | `emailVerificationRepository` consome desafio, marca e-mail verificado, ativa a conta e cria instalação confiável/sessão em uma transação.                                                  | Segurança valida/consome o código; Contas verifica e ativa; Segurança emite sessão somente após confirmação de Conta ativa. Cada fase pode ser repetida sem duplicar efeitos.                 |
-| Login                           | `loginRepository` junta conta, e-mail e credencial; numa transação consulta/atualiza estado, dispositivo e sessão.                                                                          | Contas resolve identidade e estado; Segurança verifica senha, bloqueio, dispositivo e sessão. A criação da sessão exige estado ativo verificado.                                              |
-| Verificação de novo dispositivo | `deviceVerificationRepository` usa conta/e-mail/credencial, desafio, bloqueio, dispositivo e sessão dentro da mesma transação.                                                              | Desafio, tentativas, bloqueio de segurança, dispositivo e sessão pertencem a Segurança; o estado de Conta é consultado pelo contrato de Contas.                                               |
-| Troca de e-mail                 | `emailChangeRepository` lê/ativa e-mail e credencial e manipula desafios na mesma transação.                                                                                                | Contas guarda e-mail atual e mudança pendente; Segurança reautentica, consome códigos e coordena a prova de endereço atual e novo. O e-mail atual só muda após a confirmação do novo.         |
-| Troca/recuperação de senha      | Os repositórios consultam estado/e-mail de Contas e alteram credencial, desafios, sessões e dispositivos em transações no cliente compartilhado.                                            | Contas fornece apenas estado/e-mail verificado; Segurança executa a mudança de credencial, consome desafio e revoga acessos numa transação local.                                             |
-| Pedido/restauração de exclusão  | `accountDeletionRepository` altera conta, e-mail, desafio e sessões numa transação; o login consulta `deletionScheduledFor` na própria consulta de Conta.                                   | Contas controla status e prazos; Segurança controla o código e revoga sessões/dispositivos. A tela e o login leem o estado autoritativo de Contas.                                            |
-| Exclusão definitiva             | `accountDeletionFinalizerRepository` reserva o @ e remove a conta; a limpeza de outros schemas depende hoje de cascatas da mesma instância.                                                 | Contas coordena; cada banco proprietário limpa/anônimiza seus próprios dados e confirma por operação idempotente. Só então Contas encerra o tombstone, preservando a reserva do @ pelo prazo. |
+- `@workspace/db` cria um único pool PostgreSQL e uma instância Drizzle para o runtime.
+- A composição de cadastro coordena adaptadores de Contas, Segurança e Profiles dentro da mesma transação, preservando atomicidade neste banco compartilhado.
+- Os arquivos de schema estão organizados por domínio em `infra/database/src/schema/`; as tabelas de relação pertencem a `profiles/relationships.ts`. O registry central apenas compõe as tabelas para Drizzle.
+- `business_profiles` permanece no schema lógico `seek`, pois representa a listagem comercial usada pela descoberta. O inicializador de cadastro está em Profiles. Essa distinção entre o perfil Social e os dados de listagem do Seek deve ser preservada; não mover a tabela nem alterar FKs sem uma decisão funcional e migration de dados revisada.
+- Os campos legados de apresentação e preferências que ainda ficam em `accounts.accounts` estão registrados em `database-domains.md`. A extração ocorrerá junto à implementação das APIs proprietárias, evitando fontes duplicadas.
+- A configuração não cria nem conecta bancos físicos separados, não escolhe provedor externo e não executa migrations.
 
-### Chaves estrangeiras que impedem o isolamento direto
+## Fluxos e invariantes
 
-O schema atual declara FKs entre schemas e usa cascatas para parte da exclusão:
+### Cadastro
 
-- Segurança (`password_credentials`, `auth_challenges`, `trusted_devices`, `sessions`) referencia `accounts.accounts`.
-- Feed (`posts.author_id`) referencia `accounts.accounts`.
-- Perfis/Relações (`account_follows`, `account_follow_requests`, `account_blocks`, declaradas pelo módulo Social) referencia `accounts.accounts`.
-- Seek (`business_profiles.account_id`) referencia `accounts.accounts`.
+1. Auth valida o contrato e as políticas aprovadas.
+2. Contas cria a identidade pendente, e-mail e reserva do `@`.
+3. Segurança grava a credencial e o desafio de verificação.
+4. Para conta comercial, a composição chama o inicializador de perfil previsto no fluxo.
+5. As gravações são confirmadas ou revertidas na transação compartilhada. O código de verificação é enviado após persistir o desafio.
+6. A conta não pode autenticar até o e-mail estar confirmado.
 
-Ao separar os bancos, essas FKs e suas cascatas deixam de ser possíveis. Não é seguro simplesmente apagar as declarações: antes, cada fluxo precisa validar `account_id` pelo contrato do domínio proprietário e substituir cascatas por comandos idempotentes de limpeza e confirmação. `sessions.device_id → trusted_devices.id` é uma relação interna de Segurança e pode continuar com FK.
+### Verificação, login e dispositivo
 
-Há também uma divergência de propriedade: o inicializador está no módulo Profiles, mas a tabela `business_profiles` ainda está no schema Seek. A correção-alvo é mover a propriedade persistente para Profiles e deixar Seek consumir uma representação de descoberta. Isso exige migration que preserve tabela e dados; não deve ser feito por drop/recreate nem aplicado ao banco compartilhado sem aprovação.
+- Desafio, tentativas, cooldowns, consumo, dispositivos confiáveis e sessões pertencem a Segurança.
+- Contas é fonte oficial do estado cadastral e do e-mail verificado.
+- A sessão só é emitida para identidade ativa e e-mail confirmado; falha ao validar estado deve negar o acesso.
+- O dispositivo confiável é uma instalação identificada por token revogável, com somente o hash armazenado. IP não é identificador durável de dispositivo.
 
-`securityLockedAt` está hoje armazenado em `accounts`. Na arquitetura-alvo, bloqueio por risco/tentativas pertence a Segurança; suspensão ou encerramento da identidade continua sendo estado de Contas. Essa distinção deve ser migrada sem reduzir as proteções existentes.
+### Alteração e recuperação de credenciais
 
-## Sequência-alvo por fluxo
+- A senha é armazenada com Argon2id; nunca em claro ou em logs.
+- Troca de senha exige a senha atual e confirmação pelo e-mail atual, conforme regra aprovada; sessões e dispositivos confiáveis são revogados após a alteração.
+- Troca de e-mail mantém o endereço atual até confirmação do novo e requer senha e código no endereço atual; o endereço anterior recebe aviso de segurança após a mudança.
+- Recuperação sem acesso ao e-mail atual segue suporte manual; o procedimento de comprovação adicional permanece fora do escopo acordado.
 
-### 1. Cadastro
+### Exclusão e restauração
 
-1. Auth valida o contrato e aplica as regras comuns de senha, idade, e-mail, username e tipo de conta.
-2. Contas, em transação local, reivindica o `@` por constraint/lock local e cria uma identidade não ativa e um registro durável de operação de cadastro.
-3. Segurança, em transação local e idempotente, grava a credencial e cria o desafio de verificação referenciando o `account_id`.
-4. Para uma conta comercial, Perfis inicializa seu perfil por operação idempotente própria. O perfil fica indisponível publicamente até que a conta esteja ativa.
-5. O código só é enviado depois que o desafio estiver persistido. Uma falha de entrega não desfaz a identidade nem cria uma conta ativa; permite reenvio limitado.
-6. A resposta de sucesso (`verification_required`) só é emitida quando as etapas necessárias foram confirmadas. Falha parcial retorna erro recuperável e mantém a operação retomável; repetição não cria outro usuário, credencial, perfil ou código válido concorrente.
+- A solicitação exige confirmação conforme o fluxo atual; a conta fica imediatamente oculta/desativada por sete dias.
+- Durante o prazo, a tela de login permite restauração com senha e código de e-mail; a restauração não cria sessão automaticamente.
+- Ao vencer, a exclusão remove os dados existentes da conta e das relações cobertas pelas cascatas atuais; Mensagens, Mídias e demais domínios só podem completar suas próprias regras quando suas persistências existirem.
+- A reserva do `@` permanece pelo prazo aprovado. Dados de mensagens que venham a existir devem preservar o conteúdo do destinatário e anonimizar o remetente, conforme regra já definida.
 
-O registro durável da operação deve pertencer ao domínio que controla a criação da identidade; a deduplicação da credencial/desafio pertence a Segurança. Os nomes definitivos das tabelas/estados são decisão da migration de cada banco, não deste documento.
+## Confiança e Segurança de Conteúdo
 
-### 2. Verificação do e-mail
+Confiança e Segurança não deve ser absorvida por Contas, Segurança, Profiles, Feed, Mensagens ou Seek. Denúncias e decisões de moderação podem ter alvos em todos esses domínios; a fonte original do recurso continua pertencendo ao domínio de origem. Um domínio lógico separado (`trust_safety`) permite restringir evidências, decisões e histórico de moderação sem duplicar conteúdo.
 
-1. Segurança valida tentativas, expiração e uso único do código numa transação local; persiste que a prova foi aceita antes de comunicar o sucesso.
-2. Contas recebe a confirmação idempotente e marca o e-mail verificado e a conta ativa somente se ainda estiver em `pending_verification`.
-3. Segurança consulta/confirma o estado ativo em Contas e então cria a primeira instalação confiável e sessão na própria transação local.
-4. Se Contas ficar indisponível após a confirmação do código, não há sessão. A operação pode ser repetida/reconciliada; o código já consumido não permite ativar outra conta.
+No estado atual, não há tabela de denúncia nem ação de moderação no schema Drizzle, nem API de moderação. Antes de implementar, precisam ser aprovados tipos de denúncia, evidência mínima, papéis de moderador, estados de revisão, retenção, recurso e contrato para solicitar a aplicação de ações ao domínio dono. Uma denúncia é uma alegação, não prova de violação. A proposta de tabelas em `schema-core.sql` é apenas referência, não modelo ativo.
 
-### 3. Login e novo dispositivo
+## Shop
 
-1. Contas resolve e-mail ou `@` normalizado e retorna o mínimo necessário: `account_id`, estado da conta, e-mail verificado e dados mínimos de apresentação. Não retorna credenciais.
-2. Segurança aplica rate limit, compara Argon2id (inclusive verificação de hash fictício para identificador inexistente), aplica bloqueios, lê a instalação confiável e decide entre sessão ou desafio de código.
-3. Antes de criar sessão e ao autorizar requisições protegidas, o estado de Conta deve ser válido. A indisponibilidade de Contas/Segurança falha fechado.
-4. Código, tentativas, cooldowns de 30 s/90 s, bloqueio após a terceira falha, dispositivos confiáveis e sessões são gravados/revogados somente em Segurança. O bloqueio de segurança não altera o cadastro de identidade em Contas.
-5. A operação é protegida contra replay e corridas entre login, bloqueio, revogação e pedido de exclusão. A revogação em Segurança pode ser repetida; o status não ativo em Contas impede acesso imediatamente mesmo se a revogação estiver aguardando retry.
+Shop está fora do escopo atual. Nenhuma tabela, API ou fluxo de catálogo/compra será construído nesta etapa. A migration histórica `0004` contém a criação de um schema vazio `shop`; o código atual não o registra como domínio ativo. A migration histórica não será reescrita nem executada para remover o schema.
 
-### 4. Troca e recuperação de senha
+## Estado de migrations e validação
 
-- Contas fornece a verificação mínima de que a conta existe, está ativa e tem e-mail verificado.
-- Segurança verifica a senha atual, grava/consome os desafios, atualiza o hash e revoga todas as sessões e instalações confiáveis na mesma transação local.
-- E-mail de reset/change é enviado somente após o desafio persistir. A API não revela se um endereço pertence a uma conta.
-- Se a confirmação perder uma corrida ou a operação expirar, a senha não muda. Reenvio e confirmação são idempotentes e sujeitos aos limites existentes.
+- A migration `0006` de exclusão permanece no journal e ainda não foi aplicada ao banco principal de desenvolvimento; as rotas retornam o erro de schema requerido até a aplicação autorizada.
+- Nenhuma migration, DDL, leitura ou escrita do banco foi executada nesta etapa.
+- `drizzle-kit check` passou após a reorganização do modelo local. Isso verifica consistência dos arquivos/journal, não a aplicação de migrations no banco.
+- Testes isolados e de unidade verificam partes do cadastro e da exclusão; eles não comprovam uma conexão física por domínio nem são necessários para esta arquitetura compartilhada.
 
-### 5. Troca de e-mail
+## Critérios para encerrar Accounts/Auth
 
-1. Contas mantém o e-mail atual como endereço efetivo e registra o novo como pendente, com unicidade reservada no próprio banco.
-2. Segurança reautentica com a senha atual, cria e valida os desafios para o e-mail atual e depois para o novo.
-3. Só após os dois códigos corretos Segurança solicita a Contas a troca idempotente do endereço; Contas revalida a unicidade antes de efetivar.
-4. Segurança envia o aviso ao endereço antigo após a confirmação de commit em Contas. Em falha de envio, a mudança não é revertida; a notificação permanece recuperável.
+1. Concluir e testar cadastro pessoal e comercial, verificação obrigatória de e-mail, login, novo dispositivo, sessões e revogação.
+2. Resolver a migration `0006` no banco de desenvolvimento somente com diff, impacto, recuperação e aprovação explícita.
+3. Testar a jornada de solicitação/restauração de exclusão na interface autenticada e a execução do finalizador em ambiente isolado.
+4. Confirmar que nenhum endpoint público expõe idade, e-mail, hashes ou tokens.
+5. Registrar lacunas de Mídias, Feed e Mensagens como não implementadas; não alegar que a exclusão já cobre dados que ainda não têm persistência.
 
-### 6. Exclusão e restauração
-
-1. Segurança consome o código de confirmação; Contas marca a conta como `deletion_pending` e grava pedido e prazo de sete dias numa transação local.
-2. Contas registra um evento/outbox de mudança de estado. Segurança revoga sessões e instalações confiáveis localmente e de forma repetível. Enquanto a revogação não termina, a autorização consulta Contas e nega acesso à conta pendente.
-3. A restauração exige senha e código válidos. Segurança confirma/consome o desafio; Contas limpa o agendamento e reativa a identidade; nenhuma sessão é criada. O titular faz login novamente.
-4. Ao vencer o prazo, Contas emite comandos de exclusão a cada domínio dono. Cada domínio exclui seus próprios posts/mídias/interações, remove relações/salvos e, em Mensagens, anonimiza o remetente conforme as regras definidas. Cada resposta é persistida e deduplicada.
-5. Contas só encerra a identidade depois das confirmações requeridas e aplica a reserva do `@` por 30 dias desde a solicitação. Erros temporários mantêm a operação recuperável; não se declara exclusão concluída enquanto um domínio não confirmou.
-
-## Propriedades obrigatórias e recuperação
-
-- **Sem falsa atomicidade:** uma chamada concluída num banco não prova que o outro concluiu. O processo deve guardar etapa/resultado e retomar sem duplicar efeito.
-- **Estados explícitos:** cadastro incompleto, verificação aceita aguardando Conta, conta ativa, pedido de exclusão pendente, restauração e finalização precisam de transições condicionais e auditáveis.
-- **Concorrência:** constraints/updates condicionais dentro do domínio proprietário protegem username/e-mail, consumo de desafio, mudança de credencial e datas de exclusão. Não usar locks distribuídos improvisados.
-- **Outbox/inbox:** gravação de estado e intenção de evento ocorre na mesma transação local; consumidor deduplica por ID de evento/operação. Retries são limitados, observáveis e não enviam códigos ilimitados.
-- **Falha fechada:** estado desconhecido, assinatura inválida, resposta parcial ou timeout não cria sessão nem ativa uma conta. Timeout depois de commit é tratado como resultado incerto e resolvido consultando a operação pelo mesmo ID.
-- **Dados mínimos:** Segurança recebe `account_id` e atributos estritamente necessários; não recebe idade nem perfil completo. Contas nunca recebe hashes de senha nem tokens de sessão.
-- **Sem cascata cruzada:** nenhum banco apaga dados de outro domínio por FK. A exclusão é uma coordenação explícita com confirmação por proprietário.
-
-## Ordem para voltar à implementação
-
-1. Manter os adaptadores de escrita de Contas, Segurança e Profiles como proprietários de suas tabelas; a composição Auth não deve voltar a conter SQL de vários domínios. A transação compartilhada atual é apenas a composição de desenvolvimento e não deve ser descrita como isolamento físico.
-2. Provisionar, em desenvolvimento, os bancos físicos de Contas e Segurança (e o banco proprietário de Perfil para a inicialização comercial), com conexões e credenciais independentes. Não reutilizar o único `db` atual como se fosse isolamento.
-3. Projetar e revisar migrations separadas e a estratégia de transferência dos objetos/linhas atuais; fazer inventário read-only antes de qualquer cópia ou DDL.
-4. Refatorar primeiro o cadastro/verificação com operações idempotentes; depois login/dispositivos; depois credenciais/e-mail; por fim exclusão/restauração/finalização.
-5. Testar cada banco em isolamento e as combinações de sucesso/falha, timeout-após-commit, retry, duplicação, concorrência e indisponibilidade. Só então reavaliar fechamento de Accounts/Auth.
-
-**Estado atual:** os testes em schema temporário e de unidade validam somente a implementação no banco compartilhado atual e os limites de composição; não provam integração entre bancos físicos nem recuperação idempotente após falha parcial entre bancos. As FKs cruzadas e a localização atual de `business_profiles` são bloqueios técnicos para a separação e exigem substituição de validação/cascatas e uma migration de preservação. A migration `0006` permanece sem aprovação e não deve ser aplicada à instância compartilhada. Nenhum banco ou migration foi alterado por este plano.
+O critério não exige separar bancos físicos, escolher provedor de hospedagem ou criar filas. Esses temas não são pré-requisitos para o modelo lógico por domínio.

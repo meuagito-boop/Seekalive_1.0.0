@@ -6,7 +6,7 @@
 
 Reviewed frontend contracts in the account, profile, social, Seek, Shop, messaging and settings flows. The current commercial-review UI requires a 1–5 rating, a 10–500 character comment and a 3–500 character business reply. This document remains a proposal, not an implemented backend contract.
 
-- O mapa de ownership efetivamente aplicado no desenvolvimento está em `../../architecture/database-domains.md`. Ele define schemas lógicos dentro da instância Replit, não bancos físicos ou credenciais separados. `schema-core.sql` continua sendo uma proposta e não deve ser executado como migração.
+- O mapa de ownership vigente está em `../../architecture/database-domains.md`. Ele organiza schemas lógicos no PostgreSQL compartilhado do desenvolvimento; não cria bancos físicos, credenciais ou conexões independentes. Shop está fora do escopo atual. `schema-core.sql` continua sendo uma proposta histórica e não deve ser executado como migração.
 - One `accounts` identity is personal **or** commercial. A commercial profile extends that identity; it is not a separate login/account.
 - Círculo exists only when two accounts follow one another and both follow edges are effective/accepted. It is derived from `follows`, not an independent request, invitation, membership, or table. One-way following is not Círculo; removing either edge removes the derived membership.
 - Shuffle and Comunidades are out of product scope. There are no community/group entities, roles, memberships, invitations, or group posts.
