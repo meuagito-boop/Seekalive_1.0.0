@@ -11,7 +11,7 @@ description: Decisões de produto do usuário para cadastro, autenticação, pri
 - Conta comercial pode ficar privada; enquanto privada, não aparece no Seek.
 - `@`: de 3 a 20 caracteres; aceita letras sem acento, números, hífen e sublinhado. É normalizado para minúsculas; Seekalive e variações reconhecidas são reservadas para o sistema. Alteração: a cada 30 dias; identificador antigo fica indisponível por 30 dias.
 - Códigos de confirmação valem 10 minutos em todos os fluxos. Login de instalação nova conserva as regras específicas aprovadas: reenvio após 30 segundos, depois 90 segundos; três falhas bloqueiam a conta e direcionam ao suporte.
-- Sessão padrão de sete dias, sem expiração por inatividade; no máximo duas sessões simultâneas. Uma terceira sessão revoga a mais antiga. Instalação confiável continua reconhecida até revogação; mudança de senha revoga todas.
+- Sessão padrão de sete dias, sem expiração por inatividade; no máximo duas sessões ativas simultâneas. Ao criar outra, revogar a mais antiga na mesma transação. Todas as rotas que criam sessão devem passar pelo repositório compartilhado que bloqueia a linha da conta, evitando ultrapassar o limite em logins concorrentes. Instalação confiável continua reconhecida até revogação; mudança de senha revoga todas.
 - Contas públicas não podem reivindicar `seekalive` nem variações de formatação, separadores, repetição e substituições numéricas comuns; o validador compartilhado e a política estão documentados. O lookup continua permitindo localizar perfil oficial. A criação/provisionamento privilegiado de contas oficiais ainda não existe.
 
 ## IP e ciclo de retenção
@@ -23,4 +23,4 @@ description: Decisões de produto do usuário para cadastro, autenticação, pri
 
 **Why:** Estas regras foram fornecidas diretamente pelo usuário em 29/10/2026 e não são dedutíveis do código. A interpretação incorreta de retenção ou de confiança no IP pode mudar exclusão de dados e controles de segurança.
 
-**How to apply:** preservar a janela de restauração de sete dias, a retenção adicional de 90 dias contada do prazo final e a liberação do @ no 30º dia. Não declarar acesso jurídico operacional sem controles e fluxo próprios. O limite de duas sessões ainda precisa de implementação/testes. Não usar IP para reconhecer instalação.
+**How to apply:** preservar a janela de restauração de sete dias, a retenção adicional de 90 dias contada do prazo final, a liberação do @ no 30º dia e o limite transacional de duas sessões. Não declarar acesso jurídico operacional sem controles e fluxo próprios. Não usar IP para reconhecer instalação.

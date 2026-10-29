@@ -11,6 +11,10 @@ import {
 import { createResendDeviceLoginCode } from "../src/modules/auth/application/deviceVerification/resendDeviceLoginCode.ts";
 import { createRotateSessionCsrfToken } from "../src/modules/auth/application/sessions/csrfSession.ts";
 import { createSessionManagement } from "../src/modules/auth/application/sessions/sessionManagement.ts";
+import {
+  MAX_SIMULTANEOUS_SESSIONS,
+  selectOldestSessionIdsToRevoke,
+} from "../src/modules/auth/application/sessions/sessionPolicy.ts";
 import { createTrustedDeviceManagement } from "../src/modules/auth/application/trustedDevices/deviceManagement.ts";
 
 const authApplicationDirectory = path.resolve(
@@ -273,4 +277,45 @@ test("device verification resend reports provider failure and invalidates the ch
   assert.deepEqual(result, { kind: "delivery_failed" });
   assert.equal(invalidated.challengeId, "challenge-1");
   assert.ok(invalidated.now instanceof Date);
+});
+
+test("a third session revokes only the oldest active session", () => {
+  assert.equal(MAX_SIMULTANEOUS_SESSIONS, 2);
+  assert.deepEqual(
+    selectOldestSessionIdsToRevoke([{ id: "oldest" }, { id: "newest" }]),
+    ["oldest"],
+  );
+});
+
+test("session creation keeps the two newest sessions when legacy excess exists", () => {
+  assert.deepEqual(
+    selectOldestSessionIdsToRevoke([
+      { id: "oldest" },
+      { id: "older" },
+      { id: "newer" },
+    ]),
+    ["oldest", "older"],
+  );
+});
+
+test("all authentication paths use the shared limited-session repository", async () => {
+  const infrastructureDirectory = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../src/modules/auth/infrastructure",
+  );
+  const repositoryFiles = [
+    "loginRepository.ts",
+    "emailVerificationRepository.ts",
+    "deviceVerificationRepository.ts",
+  ];
+
+  for (const fileName of repositoryFiles) {
+    const source = await readFile(
+      path.join(infrastructureDirectory, fileName),
+      "utf8",
+    );
+
+    assert.match(source, /createSessionWithLimit\(tx, input\)/);
+    assert.doesNotMatch(source, /\.insert\(sessions\)/);
+  }
 });

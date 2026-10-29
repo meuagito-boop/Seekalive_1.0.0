@@ -4,10 +4,10 @@ import {
   accounts,
   db,
   passwordCredentials,
-  sessions,
   trustedDevices,
 } from "@workspace/db";
 import type { LoginRepository } from "../application/login/ports";
+import { createSessionWithLimit } from "./sessionCreationRepository";
 
 export const loginRepository: LoginRepository = {
   async findLoginAccount(input) {
@@ -115,23 +115,7 @@ export const loginRepository: LoginRepository = {
         },
 
         async createSession(input) {
-          const [session] = await tx
-            .insert(sessions)
-            .values({
-              accountId: input.accountId,
-              deviceId: input.deviceId,
-              tokenHash: input.material.tokenHash,
-              csrfTokenHash: input.material.csrfTokenHash,
-              passwordPolicyVersion: input.passwordPolicyVersion,
-              createdAt: input.material.createdAt,
-              expiresAt: input.material.expiresAt,
-            })
-            .returning({
-              id: sessions.id,
-              createdAt: sessions.createdAt,
-              expiresAt: sessions.expiresAt,
-            });
-          return session ?? null;
+          return createSessionWithLimit(tx, input);
         },
       }),
     );

@@ -5,13 +5,13 @@ import {
   authChallenges,
   db,
   passwordCredentials,
-  sessions,
   trustedDevices,
 } from "@workspace/db";
 import type {
   EmailVerificationRepository,
   EmailVerificationTransaction,
 } from "../application/emailVerification/ports";
+import { createSessionWithLimit } from "./sessionCreationRepository";
 
 export const emailVerificationRepository: EmailVerificationRepository = {
   async findResendAccountByEmail(email) {
@@ -178,29 +178,8 @@ export const emailVerificationRepository: EmailVerificationRepository = {
           return device?.id ?? null;
         },
 
-        async createSession({
-          accountId,
-          deviceId,
-          material,
-          passwordPolicyVersion,
-        }) {
-          const [session] = await tx
-            .insert(sessions)
-            .values({
-              accountId,
-              deviceId,
-              tokenHash: material.tokenHash,
-              csrfTokenHash: material.csrfTokenHash,
-              passwordPolicyVersion,
-              createdAt: material.createdAt,
-              expiresAt: material.expiresAt,
-            })
-            .returning({
-              id: sessions.id,
-              createdAt: sessions.createdAt,
-              expiresAt: sessions.expiresAt,
-            });
-          return session ?? null;
+        async createSession(input) {
+          return createSessionWithLimit(tx, input);
         },
       };
       return operation(transaction);

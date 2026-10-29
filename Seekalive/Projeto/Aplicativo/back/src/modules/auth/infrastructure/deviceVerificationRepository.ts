@@ -12,6 +12,7 @@ import type {
   DeviceVerificationRepository,
   DeviceVerificationTransaction,
 } from "../application/deviceVerification/ports";
+import { createSessionWithLimit } from "./sessionCreationRepository";
 
 export const deviceVerificationRepository: DeviceVerificationRepository = {
   async findAccountIdForChallenge(challengeId) {
@@ -209,23 +210,7 @@ export const deviceVerificationRepository: DeviceVerificationRepository = {
         },
 
         async createSession(input) {
-          const [session] = await tx
-            .insert(sessions)
-            .values({
-              accountId: input.accountId,
-              deviceId: input.deviceId,
-              tokenHash: input.material.tokenHash,
-              csrfTokenHash: input.material.csrfTokenHash,
-              passwordPolicyVersion: input.passwordPolicyVersion,
-              createdAt: input.material.createdAt,
-              expiresAt: input.material.expiresAt,
-            })
-            .returning({
-              id: sessions.id,
-              createdAt: sessions.createdAt,
-              expiresAt: sessions.expiresAt,
-            });
-          return session ?? null;
+          return createSessionWithLimit(tx, input);
         },
 
         async updateChallengeForResend(input) {
