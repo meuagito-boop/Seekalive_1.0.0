@@ -1,4 +1,8 @@
 import type { UsernameClaimLookup } from "./ports";
+import {
+  isSeekaliveReservedUsername,
+  usernameFormatSchema,
+} from "@workspace/api-zod";
 
 export type UsernameAvailabilityResult =
   | { kind: "invalid" }
@@ -10,13 +14,17 @@ export function createUsernameAvailabilityChecker(
   return async function checkUsernameAvailability(
     input: unknown,
   ): Promise<UsernameAvailabilityResult> {
-    const username =
-      typeof input === "string"
-        ? input.trim().replace(/^@/, "").toLowerCase()
-        : "";
+    const candidate =
+      typeof input === "string" ? input.trim().replace(/^@/, "") : "";
+    const parsedUsername = usernameFormatSchema.safeParse(candidate);
 
-    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    if (!parsedUsername.success) {
       return { kind: "invalid" };
+    }
+
+    const username = parsedUsername.data;
+    if (isSeekaliveReservedUsername(username)) {
+      return { kind: "unavailable", normalizedUsername: username };
     }
 
     const claimed = await isUsernameClaimed(username);

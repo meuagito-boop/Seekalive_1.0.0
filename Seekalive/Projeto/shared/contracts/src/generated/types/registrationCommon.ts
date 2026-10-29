@@ -8,9 +8,10 @@
 
 export interface RegistrationCommon {
   /**
-     * Trimmed and normalized to lowercase before the final username rule is applied.
+     * Trimmed and normalized to lowercase by the server. Allows unaccented ASCII letters, digits, hyphen, and underscore. Names representing Seekalive are reserved and cannot be claimed through public registration.
      * @minLength 3
      * @maxLength 20
+     * @pattern ^[A-Za-z0-9_-]{3,20}$
      */
   username: string;
   /**

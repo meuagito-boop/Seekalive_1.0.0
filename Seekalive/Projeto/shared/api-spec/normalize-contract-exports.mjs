@@ -20,6 +20,7 @@ const allowedPackageExports = new Set([
   'export * from "./social";',
   'export * from "./feed";',
   'export * from "./errorCodes";',
+  'export * from "./username";',
   'export * as GeneratedTypes from "./generated/types";',
 ]);
 const existingLines = (await readFile(indexPath, "utf8"))
@@ -27,7 +28,8 @@ const existingLines = (await readFile(indexPath, "utf8"))
   .map((line) => line.trim())
   .filter(Boolean);
 const unexpectedLines = existingLines.filter(
-  (line) => !allowedGeneratedExports.has(line) && !allowedPackageExports.has(line),
+  (line) =>
+    !allowedGeneratedExports.has(line) && !allowedPackageExports.has(line),
 );
 
 if (unexpectedLines.length > 0) {
@@ -53,6 +55,7 @@ const exports = [
   'export * from "./social";',
   'export * from "./feed";',
   'export * from "./errorCodes";',
+  'export * from "./username";',
   "",
 ].join("\n");
 

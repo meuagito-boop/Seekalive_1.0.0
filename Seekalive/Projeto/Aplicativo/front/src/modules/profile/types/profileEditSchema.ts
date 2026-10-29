@@ -1,15 +1,20 @@
 import { z } from "zod";
+import { usernameSchema } from "@workspace/api-zod";
 
 export const profileEditSchema = z.object({
   firstName: z.string().trim().max(80),
   lastName: z.string().trim().max(80),
   displayName: z.string().trim().max(100),
-  username: z.string().trim().min(3).max(20).regex(/^[a-z0-9_]+$/),
+  username: usernameSchema,
   bio: z.string().max(160),
   location: z.string().max(50).optional(),
-  website: z.string()
+  website: z
+    .string()
     .url("URL inválida")
-    .refine((value) => /^https?:\/\//i.test(value), "Use um endereço HTTP ou HTTPS.")
+    .refine(
+      (value) => /^https?:\/\//i.test(value),
+      "Use um endereço HTTP ou HTTPS.",
+    )
     .optional()
     .or(z.literal("")),
   businessAddress: z.string().max(120).optional(),

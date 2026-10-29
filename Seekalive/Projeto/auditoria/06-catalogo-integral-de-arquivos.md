@@ -1310,3 +1310,14 @@ Esta atualização acrescenta o trabalho feito depois do corte do inventário ac
 | [Aplicativo/back/test/account-deletion-api-isolated.test.mjs](../Aplicativo/back/test/account-deletion-api-isolated.test.mjs) | Exercita a API real de Accounts/Auth e Profiles com sessão, e-mail em memória e schema temporário; verifica autorização, ocultação/restauração do perfil público e ausência de sessão após restaurar. |
 | [Aplicativo/back/test/account-deletion-lifecycle.test.mjs](../Aplicativo/back/test/account-deletion-lifecycle.test.mjs) | Acrescenta a verificação de idempotência do finalizador: uma segunda execução não processa novamente a mesma conta. |
 | [package.json](../package.json) | Inclui o teste de integração isolada no comando explícito `test:account-deletion`. |
+
+### Delta da política de nomes de usuário reservados — 29/10/2026
+
+| Arquivo | O que é / para que serve |
+|---|---|
+| [docs/architecture/username-reservation-policy.md](../docs/architecture/username-reservation-policy.md) | Define o formato válido do `@`, a reserva algorítmica das variações Seekalive, a exceção de provisionamento oficial e a cobertura de testes. |
+| [shared/contracts/src/username.ts](../shared/contracts/src/username.ts) | Validador compartilhado do formato e da reserva, usado pelos contratos de cadastro, edição e consulta de disponibilidade. |
+| [shared/api-spec/openapi.yaml](../shared/api-spec/openapi.yaml) | Expõe formato permitido e documentação da reserva nos contratos públicos de cadastro, alteração e busca. |
+| [shared/api-spec/normalize-contract-exports.mjs](../shared/api-spec/normalize-contract-exports.mjs) | Preserva a exportação do validador de domínio compartilhado após a geração Orval. |
+
+**Validação registrada:** `pnpm --filter @workspace/api-spec run codegen`, `pnpm run test`, `pnpm run build` e `git diff --check` passaram. Os testes cobrem os contratos, a disponibilidade no backend, o formato com hífen, caracteres inválidos, variações reservadas e a busca de perfil oficial. Nenhuma migration foi criada ou executada.

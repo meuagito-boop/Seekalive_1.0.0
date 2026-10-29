@@ -66,6 +66,8 @@ export const GetAuthSessionResponse = zod.union([zod.object({
 export const registerAccountBodyOneOneUsernameMin = 3;
 export const registerAccountBodyOneOneUsernameMax = 20;
 
+
+export const registerAccountBodyOneOneUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
 export const registerAccountBodyOneOneEmailMax = 254;
 
 export const registerAccountBodyOneOnePasswordMin = 8;
@@ -86,6 +88,8 @@ export const registerAccountBodyOneTwoLastNameMax = 80;
 export const registerAccountBodyTwoOneUsernameMin = 3;
 export const registerAccountBodyTwoOneUsernameMax = 20;
 
+
+export const registerAccountBodyTwoOneUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
 export const registerAccountBodyTwoOneEmailMax = 254;
 
 export const registerAccountBodyTwoOnePasswordMin = 8;
@@ -118,7 +122,7 @@ export const registerAccountBodyTwoTwoCountryMax = 100;
 
 
 export const RegisterAccountBody = zod.union([zod.object({
-  "username": zod.string().min(registerAccountBodyOneOneUsernameMin).max(registerAccountBodyOneOneUsernameMax).describe('Trimmed and normalized to lowercase before the final username rule is applied.'),
+  "username": zod.string().min(registerAccountBodyOneOneUsernameMin).max(registerAccountBodyOneOneUsernameMax).regex(registerAccountBodyOneOneUsernameRegExp).describe('Trimmed and normalized to lowercase by the server. Allows unaccented ASCII letters, digits, hyphen, and underscore. Names representing Seekalive are reserved and cannot be claimed through public registration.\n'),
   "email": zod.email().max(registerAccountBodyOneOneEmailMax).describe('Trimmed and normalized to lowercase by the server.'),
   "password": zod.string().min(registerAccountBodyOneOnePasswordMin).max(registerAccountBodyOneOnePasswordMax).describe('Must include an uppercase letter, lowercase letter, number, and special character.'),
   "passwordConfirmation": zod.string().min(registerAccountBodyOneOnePasswordConfirmationMin).max(registerAccountBodyOneOnePasswordConfirmationMax).describe('Must match password.'),
@@ -129,7 +133,7 @@ export const RegisterAccountBody = zod.union([zod.object({
   "firstName": zod.string().min(registerAccountBodyOneTwoFirstNameMin).max(registerAccountBodyOneTwoFirstNameMax),
   "lastName": zod.string().min(registerAccountBodyOneTwoLastNameMin).max(registerAccountBodyOneTwoLastNameMax)
 })),zod.object({
-  "username": zod.string().min(registerAccountBodyTwoOneUsernameMin).max(registerAccountBodyTwoOneUsernameMax).describe('Trimmed and normalized to lowercase before the final username rule is applied.'),
+  "username": zod.string().min(registerAccountBodyTwoOneUsernameMin).max(registerAccountBodyTwoOneUsernameMax).regex(registerAccountBodyTwoOneUsernameRegExp).describe('Trimmed and normalized to lowercase by the server. Allows unaccented ASCII letters, digits, hyphen, and underscore. Names representing Seekalive are reserved and cannot be claimed through public registration.\n'),
   "email": zod.email().max(registerAccountBodyTwoOneEmailMax).describe('Trimmed and normalized to lowercase by the server.'),
   "password": zod.string().min(registerAccountBodyTwoOnePasswordMin).max(registerAccountBodyTwoOnePasswordMax).describe('Must include an uppercase letter, lowercase letter, number, and special character.'),
   "passwordConfirmation": zod.string().min(registerAccountBodyTwoOnePasswordConfirmationMin).max(registerAccountBodyTwoOnePasswordConfirmationMax).describe('Must match password.'),
@@ -768,6 +772,8 @@ export const GetMyAccountResponse = zod.object({
 export const updateMyAccountBodyUsernameMin = 3;
 export const updateMyAccountBodyUsernameMax = 20;
 
+
+export const updateMyAccountBodyUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
 export const updateMyAccountBodyDisplayNameMin = 2;
 export const updateMyAccountBodyDisplayNameMax = 100;
 
@@ -804,7 +810,7 @@ export const updateMyAccountBodyWebsiteRegExp = new RegExp('^https?:/');
 
 
 export const UpdateMyAccountBody = zod.object({
-  "username": zod.string().min(updateMyAccountBodyUsernameMin).max(updateMyAccountBodyUsernameMax).optional().describe('Username is trimmed and normalized to lowercase before validation. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.'),
+  "username": zod.string().min(updateMyAccountBodyUsernameMin).max(updateMyAccountBodyUsernameMax).regex(updateMyAccountBodyUsernameRegExp).optional().describe('Trimmed and normalized to lowercase before validation. Allows unaccented ASCII letters, digits, hyphen, and underscore. Seekalive brand variants are reserved and cannot be claimed by public accounts. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.\n'),
   "displayName": zod.string().min(updateMyAccountBodyDisplayNameMin).max(updateMyAccountBodyDisplayNameMax).optional().describe('For commercial accounts, the public business or service-provider name. A name change is allowed 30 days after registration or the previous name change.'),
   "firstName": zod.string().min(updateMyAccountBodyFirstNameMin).max(updateMyAccountBodyFirstNameMax).optional().describe('Personal account only; must be paired with lastName. The public name can be changed once every 30 days.'),
   "lastName": zod.string().min(updateMyAccountBodyLastNameMin).max(updateMyAccountBodyLastNameMax).optional().describe('Personal account only; must be paired with firstName. The public name can be changed once every 30 days.'),
@@ -944,9 +950,11 @@ export const getProfileByUsernamePathUsernameMin = 3;
 export const getProfileByUsernamePathUsernameMax = 20;
 
 
+export const getProfileByUsernamePathUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
+
 
 export const GetProfileByUsernameParams = zod.object({
-  "username": zod.coerce.string().min(getProfileByUsernamePathUsernameMin).max(getProfileByUsernamePathUsernameMax)
+  "username": zod.coerce.string().min(getProfileByUsernamePathUsernameMin).max(getProfileByUsernamePathUsernameMax).regex(getProfileByUsernamePathUsernameRegExp)
 })
 
 export const getProfileByUsernameResponseAccountDisplayNameMax = 100;

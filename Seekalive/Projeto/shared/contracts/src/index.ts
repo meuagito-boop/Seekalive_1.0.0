@@ -5,3 +5,4 @@ export * from "./authResponses";
 export * from "./social";
 export * from "./feed";
 export * from "./errorCodes";
+export * from "./username";

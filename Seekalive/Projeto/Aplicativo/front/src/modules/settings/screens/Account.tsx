@@ -12,6 +12,7 @@ import {
   SocialGraphApiError,
 } from "@/modules/social/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
+import { usernameSchema } from "@workspace/api-zod";
 import { accountDraftFromUser } from "@/modules/settings/application/accountDraft";
 import { AccountEmailChange } from "@/modules/settings/components/account/AccountEmailChange";
 import { AccountProfileForm } from "@/modules/settings/components/account/AccountProfileForm";
@@ -25,8 +26,6 @@ import {
 import { AccountDeletionControls } from "@/modules/settings/components/account/AccountDeletionControls";
 import type { AccountDraft } from "@/modules/settings/types/accountSettings";
 import { useLocation } from "wouter";
-
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 function requestErrorMessage(error: unknown): string {
   if (
@@ -255,9 +254,11 @@ export default function SettingsAccount() {
     event.preventDefault();
     if (!currentUser || !accountType) return;
     const nextUsername = username.trim().toLowerCase().replace(/^@/, "");
-    if (!USERNAME_RE.test(nextUsername)) {
+    const parsedUsername = usernameSchema.safeParse(nextUsername);
+    if (!parsedUsername.success) {
       setUsernameError(
-        "Use de 3 a 20 caracteres: letras minúsculas, números ou _.",
+        parsedUsername.error.issues[0]?.message ??
+          "Informe um nome de usuário válido.",
       );
       return;
     }

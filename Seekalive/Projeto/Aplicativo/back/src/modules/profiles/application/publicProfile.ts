@@ -4,6 +4,7 @@ import type { PublicAccountRow } from "../../accounts/domain/publicAccount";
 import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
 import type { ListProfilePosts } from "../../feed/application/listProfilePosts";
 import type { RelationshipView } from "../../social/domain/relationshipView";
+import { usernameFormatSchema } from "@workspace/api-zod";
 
 const emptyPage = { items: [], nextCursor: null };
 type AccountViewReader = ReturnType<typeof createAccountViews>["accountView"];
@@ -82,8 +83,9 @@ export async function getPublicProfileByUsername(
   viewerId: string | null,
   dependencies: PublicProfileDependencies,
 ): Promise<PublicProfileResult<PublicProfileData>> {
-  const username = usernameInput.toLowerCase();
-  if (!/^[a-z0-9_]{3,20}$/.test(username)) return { kind: "not_found" };
+  const parsedUsername = usernameFormatSchema.safeParse(usernameInput);
+  if (!parsedUsername.success) return { kind: "not_found" };
+  const username = parsedUsername.data;
 
   const row = await dependencies.findActiveAccountByUsername(username);
   if (!row) return { kind: "not_found" };

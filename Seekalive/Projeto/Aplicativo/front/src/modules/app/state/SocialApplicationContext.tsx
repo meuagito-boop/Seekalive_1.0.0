@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
+import { usernameFormatSchema } from "@workspace/api-zod";
 import type { User } from "@/modules/profile/types/user";
 import { saveSocialAccount } from "@/modules/profile/data/accountStorage";
 import { saveStoredFollowRequests } from "@/modules/social/data/followRequestStorage";
@@ -201,13 +202,13 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const loadRemoteProfile = useCallback(
     async (username: string): Promise<User | null> => {
       if (!isRemoteSocialSession) return null;
-      const normalizedUsername = username
-        .trim()
-        .replace(/^@/, "")
-        .toLowerCase();
-      if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) return null;
-      const profile =
-        await socialGraphApi.getProfileByUsername(normalizedUsername);
+      const parsedUsername = usernameFormatSchema.safeParse(
+        username.trim().replace(/^@/, "").toLowerCase(),
+      );
+      if (!parsedUsername.success) return null;
+      const profile = await socialGraphApi.getProfileByUsername(
+        parsedUsername.data,
+      );
       const user = accountViewToUser(profile.account);
       dispatch({ type: "ADD_USER", user });
       return user;

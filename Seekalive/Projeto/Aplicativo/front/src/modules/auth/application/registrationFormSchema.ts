@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { passwordPolicySchema } from "@workspace/api-zod";
+import { passwordPolicySchema, usernameSchema } from "@workspace/api-zod";
 
 export const registrationFormSchema = z
   .object({
@@ -22,12 +22,7 @@ export const registrationFormSchema = z
     city: z.string(),
     state: z.string(),
     country: z.string(),
-    username: z
-      .string()
-      .trim()
-      .min(3, "O nome de usuário deve ter ao menos 3 caracteres")
-      .max(20, "O nome de usuário deve ter no máximo 20 caracteres")
-      .regex(/^[a-z0-9_]+$/, "Use letras minúsculas, números e _"),
+    username: usernameSchema,
     email: z
       .string()
       .trim()

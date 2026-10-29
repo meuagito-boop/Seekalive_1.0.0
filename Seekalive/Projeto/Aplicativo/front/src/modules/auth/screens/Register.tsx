@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
+import { usernameSchema } from "@workspace/api-zod";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -78,10 +79,7 @@ export default function Register() {
 
   const username = form.watch("username").replace(/^@/, "").toLowerCase();
   const accountType = form.watch("accountType");
-  const isUsernameValidFormat =
-    username.length > 2 &&
-    username.length <= 20 &&
-    /^[a-z0-9_]+$/.test(username);
+  const isUsernameValidFormat = usernameSchema.safeParse(username).success;
 
   return (
     <div className="relative flex min-h-[100dvh] items-start justify-center overflow-hidden bg-background px-4 py-8 sm:items-center sm:py-12">

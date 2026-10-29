@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { usernameFormatSchema } from "@workspace/api-zod";
 import { loadActiveSession } from "../../../security/activeSession";
 import type {
   PublicAccountByIdQuery,
@@ -15,9 +16,10 @@ export function createPublicProfileRouter(
   router.get("/profiles/:username", async (request, response) => {
     const username =
       typeof request.params.username === "string"
-        ? request.params.username.toLowerCase()
+        ? request.params.username
         : "";
-    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    const parsedUsername = usernameFormatSchema.safeParse(username);
+    if (!parsedUsername.success) {
       sendError(
         response,
         404,
@@ -28,7 +30,7 @@ export function createPublicProfileRouter(
     }
     const session = await loadActiveSession(request);
     const profile = await getPublicProfileByUsername(
-      username,
+      parsedUsername.data,
       session?.accountId ?? null,
     );
     if (profile.kind === "not_found") {

@@ -12,9 +12,10 @@ import type { CommercialAccountPatch } from './commercialAccountPatch';
  */
 export interface AccountPatch {
   /**
-     * Username is trimmed and normalized to lowercase before validation. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.
+     * Trimmed and normalized to lowercase before validation. Allows unaccented ASCII letters, digits, hyphen, and underscore. Seekalive brand variants are reserved and cannot be claimed by public accounts. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.
      * @minLength 3
      * @maxLength 20
+     * @pattern ^[A-Za-z0-9_-]{3,20}$
      */
   username?: string;
   /**

@@ -1430,7 +1430,11 @@ components:
         type: string
         minLength: 3
         maxLength: 20
-        description: Username is normalized to lowercase before validation.
+        pattern: "^[A-Za-z0-9_-]{3,20}$"
+        description: >
+          ASCII username format for profile lookup. The server normalizes
+          uppercase letters to lowercase. Reserved platform usernames remain
+          addressable so official profiles can be looked up.
     PageLimit:
       name: limit
       in: query
@@ -1844,7 +1848,12 @@ components:
           type: string
           minLength: 3
           maxLength: 20
-          description: Trimmed and normalized to lowercase before the final username rule is applied.
+          pattern: "^[A-Za-z0-9_-]{3,20}$"
+          description: >
+            Trimmed and normalized to lowercase by the server. Allows
+            unaccented ASCII letters, digits, hyphen, and underscore. Names
+            representing Seekalive are reserved and cannot be claimed through
+            public registration.
         email:
           type: string
           format: email
@@ -2429,7 +2438,14 @@ components:
           type: string
           minLength: 3
           maxLength: 20
-          description: Username is trimmed and normalized to lowercase before validation. A change is allowed 30 days after registration or the previous change; the old username is reserved for all accounts for 30 days.
+          pattern: "^[A-Za-z0-9_-]{3,20}$"
+          description: >
+            Trimmed and normalized to lowercase before validation. Allows
+            unaccented ASCII letters, digits, hyphen, and underscore. Seekalive
+            brand variants are reserved and cannot be claimed by public
+            accounts. A change is allowed 30 days after registration or the
+            previous change; the old username is reserved for all accounts for
+            30 days.
         displayName:
           type: string
           minLength: 2

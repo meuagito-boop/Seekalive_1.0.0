@@ -38,6 +38,23 @@ test("personal signup validates minimum age, identity and matching passwords", (
   );
 });
 
+test("registration accepts hyphenated handles and rejects reserved brand variants", () => {
+  assert.equal(
+    registrationFormSchema.safeParse({
+      ...personalForm,
+      username: "ana-silva_18",
+    }).success,
+    true,
+  );
+  assert.equal(
+    registrationFormSchema.safeParse({
+      ...personalForm,
+      username: "seek-alive",
+    }).success,
+    false,
+  );
+});
+
 test("personal registration payload normalizes email and trims username", () => {
   const result = registrationFormSchema.safeParse({
     ...personalForm,

@@ -31,7 +31,19 @@ test("username availability normalizes valid input and skips persistence for inv
     normalizedUsername: "taken_name",
   });
   assert.deepEqual(await checkUsername("bad name"), { kind: "invalid" });
-  assert.deepEqual(checked, ["taken_name"]);
+  assert.deepEqual(await checkUsername("my_seek_alive_2026"), {
+    kind: "unavailable",
+    normalizedUsername: "my_seek_alive_2026",
+  });
+  assert.deepEqual(await checkUsername("s33k4l1v3"), {
+    kind: "unavailable",
+    normalizedUsername: "s33k4l1v3",
+  });
+  assert.deepEqual(await checkUsername("cafe-com-leite"), {
+    kind: "available",
+    normalizedUsername: "cafe-com-leite",
+  });
+  assert.deepEqual(checked, ["taken_name", "cafe-com-leite"]);
 });
 
 test("owner identity loader composes account view and verified owner details", async () => {

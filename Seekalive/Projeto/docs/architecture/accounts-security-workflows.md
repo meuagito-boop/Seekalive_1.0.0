@@ -35,12 +35,35 @@ As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módul
 5. As gravações são confirmadas ou revertidas na transação compartilhada. O código de verificação é enviado após persistir o desafio.
 6. A conta não pode autenticar até o e-mail estar confirmado.
 
+### Identidade e nome de usuário
+
+- Nome e sobrenome ou nome comercial são distintos do `@`. O `@` é o
+  identificador social único; contas pessoais e comerciais podem exibir o nome
+  correspondente seguido do identificador.
+- Nome público e `@` só podem ser alterados após o intervalo de 30 dias definido
+  para a identidade. Um `@` liberado permanece indisponível para qualquer conta
+  por 30 dias.
+- O `@` aceita de 3 a 20 caracteres ASCII: letras sem acento, números, hífen e
+  sublinhado. A entrada é normalizada para minúsculas. Espaços, acentos e demais
+  símbolos são rejeitados.
+- Variações do nome Seekalive são reservadas para contas oficiais e bloqueadas
+  nos fluxos públicos de cadastro e alteração. A política e seus exemplos
+  estão em [username-reservation-policy.md](username-reservation-policy.md).
+  Consultas de perfis ainda aceitam esse formato para localizar uma conta
+  oficial; somente um fluxo interno privilegiado poderá criar ou atribuir esse
+  identificador.
+
 ### Verificação, login e dispositivo
 
 - Desafio, tentativas, cooldowns, consumo, dispositivos confiáveis e sessões pertencem a Segurança.
 - Contas é fonte oficial do estado cadastral e do e-mail verificado.
 - A sessão só é emitida para identidade ativa e e-mail confirmado; falha ao validar estado deve negar o acesso.
 - O dispositivo confiável é uma instalação identificada por token revogável, com somente o hash armazenado. IP não é identificador durável de dispositivo.
+- IP é processado somente para rate limit nesta etapa; não é persistido como
+  histórico de sessão ou identificador do aparelho.
+- A regra aprovada limita a conta a duas sessões simultâneas, sem expiração por
+  inatividade. Ao iniciar uma terceira sessão, a mais antiga deve ser revogada.
+  A implementação e o teste desse limite continuam pendentes.
 
 ### Alteração e recuperação de credenciais
 
@@ -53,7 +76,16 @@ As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módul
 
 - A solicitação exige confirmação conforme o fluxo atual; a conta fica imediatamente oculta/desativada por sete dias.
 - Durante o prazo, a tela de login permite restauração com senha e código de e-mail; a restauração não cria sessão automaticamente.
-- Ao vencer, a exclusão remove os dados existentes da conta e das relações cobertas pelas cascatas atuais; Mensagens, Mídias e demais domínios só podem completar suas próprias regras quando suas persistências existirem.
+- Ao completar sete dias, a restauração deixa de ser permitida. Todos os registros
+  da conta devem permanecer retidos por mais 90 dias, com acesso restrito e uso
+  somente para atender pedido legal válido; após esse prazo, devem seguir a
+  eliminação definitiva aprovada.
+- **Divergência de implementação:** o finalizador atual apaga fisicamente a
+  conta ao vencer o prazo de sete dias. Ele não atende à retenção adicional de
+  90 dias e deve ser substituído antes do fechamento de Accounts/Auth. Não
+  afirmar que a retenção legal já está implementada.
+- Mensagens, Mídias e demais domínios ainda precisam aplicar a própria parte
+  dessa retenção quando suas persistências existirem.
 - A reserva do `@` permanece pelo prazo aprovado. Dados de mensagens que venham a existir devem preservar o conteúdo do destinatário e anonimizar o remetente, conforme regra já definida.
 
 ## Confiança e Segurança de Conteúdo
