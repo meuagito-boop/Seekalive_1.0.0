@@ -5,13 +5,13 @@
 
 ## Ownership por domínio
 
-| Domínio | Responsabilidade de dados |
-|---|---|
-| Contas (`accounts`) | UUID canônico, `@`, tipo/status, idade e termos privados, e-mail, interesses e ciclo de vida da identidade. |
-| Segurança (`security`) | Hashes Argon2id, desafios/códigos, sessões, CSRF, instalações confiáveis, tentativas e revogações. |
+| Domínio                      | Responsabilidade de dados                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Contas (`accounts`)          | UUID canônico, `@`, tipo/status, idade e termos privados, e-mail, interesses e ciclo de vida da identidade.                                      |
+| Segurança (`security`)       | Hashes Argon2id, desafios/códigos, sessões, CSRF, instalações confiáveis, tentativas e revogações.                                               |
 | Perfis/Relações (`profiles`) | Relações sociais, pedidos de seguimento e bloqueios. O perfil comercial público precisa manter uma fronteira própria, sem criar nova identidade. |
-| Seek (`seek`) | Dados da listagem comercial e descoberta: categoria, endereço principal e dados comerciais próprios do Seek. |
-| Auth | Coordena casos de uso e ordem das operações; não é proprietário das tabelas acima. |
+| Seek (`seek`)                | Dados da listagem comercial e descoberta: categoria, endereço principal e dados comerciais próprios do Seek.                                     |
+| Auth                         | Coordena casos de uso e ordem das operações; não é proprietário das tabelas acima.                                                               |
 
 As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módulos ainda devem acessar dados por operações/composição explícitas; compartilhar um PostgreSQL não autoriza qualquer módulo a gravar diretamente em qualquer tabela.
 
@@ -68,16 +68,16 @@ Shop está fora do escopo atual. Nenhuma tabela, API ou fluxo de catálogo/compr
 
 ## Estado de migrations e validação
 
-- A migration `0006` de exclusão permanece no journal e ainda não foi aplicada ao banco principal de desenvolvimento; as rotas retornam o erro de schema requerido até a aplicação autorizada.
-- Nenhuma migration, DDL, leitura ou escrita do banco foi executada nesta etapa.
-- `drizzle-kit check` passou após a reorganização do modelo local. Isso verifica consistência dos arquivos/journal, não a aplicação de migrations no banco.
-- Testes isolados e de unidade verificam partes do cadastro e da exclusão; eles não comprovam uma conexão física por domínio nem são necessários para esta arquitetura compartilhada.
+- Após autorização explícita, o SQL de `0006_brief_raza.sql` foi aplicado em uma única transação ao banco de desenvolvimento `heliumdb`. A leitura anterior confirmou as colunas ausentes e zero contas; a verificação posterior confirmou as duas colunas, a restrição `accounts_deletion_schedule_consistent` e o índice `accounts_deletion_due_idx`. Nenhum dado de conta foi alterado e produção não foi acessada.
+- A API recebeu um smoke test sem sessão no endpoint de solicitação; respondeu `403 CSRF_REJECTED`, não `503 ACCOUNT_DELETION_SCHEMA_REQUIRED`. Isso confirma que a verificação de schema passou, mas não testa uma jornada autenticada.
+- `drizzle-kit check` passou e a suíte específica de exclusão passou 3/3 em schema temporário isolado. O E2E do frontend usa API simulada; nenhum e-mail real foi enviado.
+- **Risco aberto:** o banco não possui `__drizzle_migrations` e `feed.posts` da migration `0005` está ausente. `0006` foi aplicada diretamente e não consta em um ledger do Drizzle. Não executar `drizzle-kit migrate` até reconciliar a sequência física; não marcar migrations ainda ausentes como aplicadas nem incluir Shop/Feed fora da autorização.
 
 ## Critérios para encerrar Accounts/Auth
 
 1. Concluir e testar cadastro pessoal e comercial, verificação obrigatória de e-mail, login, novo dispositivo, sessões e revogação.
-2. Resolver a migration `0006` no banco de desenvolvimento somente com diff, impacto, recuperação e aprovação explícita.
-3. Testar a jornada de solicitação/restauração de exclusão na interface autenticada e a execução do finalizador em ambiente isolado.
+2. Reconciliar e documentar o histórico físico de migrations sem executar fora do escopo o schema vazio Shop ou `feed.posts`.
+3. Testar a jornada de solicitação/restauração de exclusão com API e banco temporário isolado e entrega de código em memória.
 4. Confirmar que nenhum endpoint público expõe idade, e-mail, hashes ou tokens.
 5. Registrar lacunas de Mídias, Feed e Mensagens como não implementadas; não alegar que a exclusão já cobre dados que ainda não têm persistência.
 
