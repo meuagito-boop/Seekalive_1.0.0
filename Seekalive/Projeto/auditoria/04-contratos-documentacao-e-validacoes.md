@@ -103,14 +103,17 @@ Na fonte examinada, os 55 erros de aplicação têm 55 números distintos e os 1
 
 | Comando | Resultado e interpretação |
 |---|---|
-| `pnpm test` | 93 passaram, 0 falharam. Inclui os grupos Social (60), fronteiras de segurança (8), conexão DB (7), runtime API (6), regras de perfil/relação (7) e visibilidade Feed (5). |
-| `pnpm run typecheck` | Passou nos pacotes do workspace. |
+| `pnpm test` | Segunda revisão do Gate 0A em 29/10/2026: 256 passaram, 0 falharam (86 frontend, 21 scripts, 23 fronteiras/relações e 126 testes de aplicação). |
+| `pnpm run typecheck` | Passou nos pacotes do workspace dentro de `pnpm build`. |
 | `pnpm --filter @workspace/db run check` | Passou na consistência do histórico de migrations Drizzle local. |
-| `pnpm run build` | Passou; build de API, front e mockup sandbox concluído. Build API: `dist/index.mjs` 273,6 KB e sourcemap 517,2 KB. Vite principal produziu o bundle e o script examinou 96 chunks JS. |
+| `pnpm run build` | Passou em 29/10/2026; typecheck e builds da API, front e mockup sandbox concluídos. API: `dist/index.mjs` 354,6 KB; Vite validou 97 chunks JS sem marcadores de conteúdo demonstrativo conhecidos. |
 | Teste de banco isolado | Refeito em 29/10/2026: suíte API passou 5/5 em schema temporário; SQL versionado `0005` passou com dois inserts válidos e seis rejeições esperadas. Os schemas temporários foram removidos e o fingerprint do catálogo permanente não mudou. |
-| Git status após build | Nenhuma modificação rastreada; artefatos foram ignorados pela configuração existente. |
+| Varredura AST do Gate 0A | 275 arquivos frontend/873 arestas e 213 backend/535 arestas: zero ciclos e zero arquivos somente de reexport. |
+| Formatação e diff | Prettier passou no teste JavaScript alterado e no arquivo de memória. O check dos três Markdown também sinalizou tabelas que já estavam fora do padrão Prettier na versão-base; não reformatei conteúdo legado fora do escopo. `git diff --check` passou. |
 
 Os comandos acima testam o estado compilável e os testes já definidos. Não substituem E2E, exame visual de todas as telas, validação de migrations aplicadas, auditoria independente de segurança ou confirmação de produção.
+
+**Falha detectada e corrigida na segunda revisão:** a primeira execução da suíte encontrou 1 falha no teste de segurança que inspecionava o arquivo antigo para localizar `REPLIT_DEPLOYMENT`. O guard real já estava no helper extraído. O teste agora verifica o helper correto e executa o guard com runtime publicado simulado; o teste focado passou 8/8 e a suíte final passou sem falhas.
 
 ### Verificação somente de leitura e teste isolado — atualização de 29/10/2026
 

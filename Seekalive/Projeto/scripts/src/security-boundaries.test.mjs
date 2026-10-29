@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertLocalReferences } from "../../shared/api-spec/orval.config.ts";
+import { configureIsolatedDatabaseEnvironment } from "../../Aplicativo/back/test/support/isolatedDatabaseFixture.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const backendRequire = createRequire(
@@ -72,8 +73,11 @@ test("the backend accepts the internal client IP only from the loopback Vite pro
 });
 
 test("database write guards use Replit's published-runtime marker", () => {
-  const isolatedTest = readFileSync(
-    path.resolve(here, "../../Aplicativo/back/test/api-isolated-db.test.mjs"),
+  const isolatedFixture = readFileSync(
+    path.resolve(
+      here,
+      "../../Aplicativo/back/test/support/isolatedDatabaseFixture.mjs",
+    ),
     "utf8",
   );
   const postMergeScript = readFileSync(
@@ -81,10 +85,39 @@ test("database write guards use Replit's published-runtime marker", () => {
     "utf8",
   );
 
-  assert.match(isolatedTest, /REPLIT_DEPLOYMENT/);
+  assert.match(isolatedFixture, /REPLIT_DEPLOYMENT/);
   assert.match(postMergeScript, /REPLIT_DEPLOYMENT/);
-  assert.doesNotMatch(isolatedTest, /REPLIT_ENVIRONMENT/);
+  assert.doesNotMatch(isolatedFixture, /REPLIT_ENVIRONMENT/);
   assert.doesNotMatch(postMergeScript, /REPLIT_ENVIRONMENT/);
+
+  const environmentKeys = [
+    "NODE_ENV",
+    "REPLIT_DEPLOYMENT",
+    "SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS",
+  ];
+  const previousEnvironment = new Map(
+    environmentKeys.map((key) => [key, process.env[key]]),
+  );
+
+  try {
+    process.env.NODE_ENV = "test";
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS = "1";
+
+    assert.throws(
+      () =>
+        configureIsolatedDatabaseEnvironment({
+          schemaName: "seekalive_test_0123456789abcdef0123456789abcdef",
+          sessionSecret: "isolated-test-secret",
+        }),
+      /prohibited in production/,
+    );
+  } finally {
+    for (const [key, value] of previousEnvironment) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });
 
 test("spoofed X-Forwarded-For cannot bypass the login IP rate limit", async () => {
