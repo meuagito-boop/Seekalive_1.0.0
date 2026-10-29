@@ -169,6 +169,67 @@ async function verifyRegistration(message) {
   });
 }
 
+async function inspectAccountSecurity(message) {
+  if (
+    typeof message.requestId !== "string" ||
+    typeof message.username !== "string"
+  ) {
+    send({
+      type: "security-check",
+      requestId: message.requestId,
+      errorName: "InvalidTestRequest",
+    });
+    return;
+  }
+
+  const [account] = await db
+    .select({
+      id: tables.accounts.id,
+      status: tables.accounts.status,
+    })
+    .from(tables.accounts)
+    .where(eq(tables.accounts.username, message.username))
+    .limit(1);
+  if (!account) {
+    send({
+      type: "security-check",
+      requestId: message.requestId,
+      accountFound: false,
+    });
+    return;
+  }
+
+  const [activeSessions, activeDevices] = await Promise.all([
+    db
+      .select({ id: tables.sessions.id })
+      .from(tables.sessions)
+      .where(
+        and(
+          eq(tables.sessions.accountId, account.id),
+          isNull(tables.sessions.revokedAt),
+        ),
+      ),
+    db
+      .select({ id: tables.trustedDevices.id })
+      .from(tables.trustedDevices)
+      .where(
+        and(
+          eq(tables.trustedDevices.accountId, account.id),
+          isNull(tables.trustedDevices.revokedAt),
+        ),
+      ),
+  ]);
+
+  send({
+    type: "security-check",
+    requestId: message.requestId,
+    accountFound: true,
+    accountStatus: account.status,
+    activeSessionCount: activeSessions.length,
+    activeDeviceCount: activeDevices.length,
+  });
+}
+
 async function cleanupDatabase() {
   if (server?.listening) {
     await new Promise((resolveClose, rejectClose) => {
@@ -189,12 +250,12 @@ async function shutdown() {
       type: "stopped",
       ...cleanup,
     });
-    process.disconnect();
+    if (process.connected) process.disconnect();
   })();
   return shutdownPromise;
 }
 
-const { and, eq } = await import("drizzle-orm");
+const { and, eq, isNull } = await import("drizzle-orm");
 const database = await import("@workspace/db");
 pool = database.pool;
 db = database.db;
@@ -204,6 +265,7 @@ tables = {
   commercialProfiles: database.commercialProfiles,
   passwordCredentials: database.passwordCredentials,
   sessions: database.sessions,
+  trustedDevices: database.trustedDevices,
 };
 
 try {
@@ -227,7 +289,13 @@ try {
       });
     },
     async sendPasswordResetCode() {},
-    async sendDeviceLoginCode() {},
+    async sendDeviceLoginCode(message) {
+      send({
+        type: "device-login-email",
+        email: message.email.toLowerCase(),
+        code: message.code,
+      });
+    },
     async sendPasswordUpdateCode() {},
     async sendAccountPasswordChangeCode() {},
     async sendAccountEmailChangeCurrentCode() {},
@@ -251,11 +319,33 @@ try {
       return;
     }
     if (message?.type === "verify-registration") {
-      void verifyRegistration(message).catch(() => {
+      void verifyRegistration(message).catch((error) => {
         send({
           type: "registration-check",
           requestId: message.requestId,
-          accountFound: false,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          ...(error &&
+          typeof error === "object" &&
+          "code" in error &&
+          typeof error.code === "string"
+            ? { errorCode: error.code }
+            : {}),
+        });
+      });
+      return;
+    }
+    if (message?.type === "inspect-account-security") {
+      void inspectAccountSecurity(message).catch((error) => {
+        send({
+          type: "security-check",
+          requestId: message.requestId,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          ...(error &&
+          typeof error === "object" &&
+          "code" in error &&
+          typeof error.code === "string"
+            ? { errorCode: error.code }
+            : {}),
         });
       });
       return;
@@ -300,6 +390,6 @@ try {
   } catch {
     process.exitCode = 1;
   }
-  process.disconnect();
+  if (process.connected) process.disconnect();
   process.exitCode = 1;
 }

@@ -163,6 +163,14 @@ export async function startIsolatedAuthRegistrationApi() {
         "the captured verification email",
       );
     },
+    waitForDeviceLoginEmail(email) {
+      return waitForMessage(
+        (message) =>
+          message.type === "device-login-email" &&
+          message.email === email.toLowerCase(),
+        "the captured new-device login email",
+      );
+    },
     async failVerificationDelivery(email) {
       const requestId = randomUUID();
       const armed = waitForMessage(
@@ -191,7 +199,33 @@ export async function startIsolatedAuthRegistrationApi() {
         requestId,
         ...registration,
       });
-      return response;
+      const result = await response;
+      assert.equal(
+        result.errorName,
+        undefined,
+        `Registration persistence query failed (${result.errorCode ?? "unknown"}).`,
+      );
+      return result;
+    },
+    async inspectAccountSecurity(username) {
+      const requestId = randomUUID();
+      const response = waitForMessage(
+        (message) =>
+          message.type === "security-check" && message.requestId === requestId,
+        "the isolated account security check",
+      );
+      await sendMessage({
+        type: "inspect-account-security",
+        requestId,
+        username,
+      });
+      const result = await response;
+      assert.equal(
+        result.errorName,
+        undefined,
+        `Account security query failed (${result.errorCode ?? "unknown"}).`,
+      );
+      return result;
     },
     async stop() {
       if (child.exitCode !== null) {
