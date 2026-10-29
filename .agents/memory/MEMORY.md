@@ -3,3 +3,4 @@
 - [Ordem da reorganização](architecture-order.md) — revisar e validar uma pasta de domínio por vez no frontend e backend antes de avançar ao banco.
 - [Ownership de dados por domínio](database-domain-ownership.md) — schemas lógicos e ownership separados no desenvolvimento; bancos físicos não pertencem à etapa atual.
 - [Jornadas browser de Auth](auth-browser-tests.md) — testes visuais de conta ficam restritos a loopback e API simulada; integrações reais exigem ambiente isolado.
+- [Regras de Accounts/Auth](accounts-auth-rules.md) — decisões de cadastro, privacidade comercial, @, códigos e sessões; retenção de 90 dias ainda precisa de escopo.
