@@ -1,12 +1,8 @@
-import { commercialProfiles, db } from "@workspace/db";
+import { commercialProfiles, type DatabaseTransaction } from "@workspace/db";
 import type { CommercialProfileRegistrationData } from "../domain/commercialProfileRegistration";
 
-export type ProfileRegistrationTransaction = Parameters<
-  Parameters<typeof db.transaction>[0]
->[0];
-
 export async function initializeCommercialProfile(
-  transaction: ProfileRegistrationTransaction,
+  transaction: DatabaseTransaction,
   accountId: string,
   profile: CommercialProfileRegistrationData,
 ): Promise<void> {

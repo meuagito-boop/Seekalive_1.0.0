@@ -7,6 +7,7 @@ import { createPersonalAccount } from "../src/modules/auth/application/registrat
 import { createCommercialAccount } from "../src/modules/auth/application/registration/createCommercialAccount.ts";
 import { createRegistrationAccount } from "../src/modules/auth/application/registration/createRegistrationAccount.ts";
 import { createRegistrationAvailability } from "../src/modules/auth/application/registration/registrationAvailability.ts";
+import { createRegistrationAccountCoordinator } from "../src/modules/auth/infrastructure/registrationAccountCoordinator.ts";
 
 const applicationDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -130,6 +131,191 @@ test("registration selects the account-specific mapper and writes once", async (
   assert.equal(writes.length, 1);
   assert.equal(writes[0].accountType, "commercial");
   assert.equal(writes[0].commercialProfile.cityName, "Santos");
+});
+
+test("registration coordinator delegates each write to its owning module", async () => {
+  const calls = [];
+  const transaction = { transactionId: "shared-dev-transaction" };
+  const coordinator = createRegistrationAccountCoordinator({
+    async runInTransaction(work) {
+      calls.push(["transaction"]);
+      return work(transaction);
+    },
+    async createPendingAccountIdentity(receivedTransaction, input) {
+      calls.push(["accounts", receivedTransaction, input]);
+      return {
+        id: "created-account",
+        username: input.username,
+        displayName: input.displayName,
+      };
+    },
+    async createInitialPasswordCredential(
+      receivedTransaction,
+      accountId,
+      hash,
+    ) {
+      calls.push(["security", receivedTransaction, accountId, hash]);
+    },
+    async initializeCommercialProfile(receivedTransaction, accountId, profile) {
+      calls.push(["profiles", receivedTransaction, accountId, profile]);
+    },
+  });
+
+  const created = await coordinator.createPendingAccount({
+    accountType: "commercial",
+    username: identity.username,
+    email: identity.email,
+    passwordHash: identity.passwordHash,
+    acceptedTermsVersion: identity.acceptedTermsVersion,
+    age: 41,
+    displayName: "Mercado do Bairro",
+    firstName: null,
+    lastName: null,
+    commercialProfile: {
+      categoryKey: "market",
+      discoveryKind: "place",
+      address: "Rua A, 1",
+      postalCode: "00000-000",
+      cityName: "Santos",
+      stateName: "SP",
+      countryName: "Brasil",
+    },
+  });
+
+  assert.deepEqual(created, {
+    id: "created-account",
+    username: identity.username,
+    displayName: "Mercado do Bairro",
+  });
+  assert.deepEqual(
+    calls.map(([owner]) => owner),
+    ["transaction", "accounts", "security", "profiles"],
+  );
+  assert.deepEqual(calls[1][2], {
+    username: identity.username,
+    email: identity.email,
+    age: 41,
+    acceptedTermsVersion: identity.acceptedTermsVersion,
+    displayName: "Mercado do Bairro",
+    accountType: "commercial",
+    firstName: null,
+    lastName: null,
+  });
+  assert.equal(calls[2][1], transaction);
+  assert.equal(calls[3][1], transaction);
+});
+
+test("personal registration skips commercial profile persistence", async () => {
+  const calls = [];
+  const coordinator = createRegistrationAccountCoordinator({
+    async runInTransaction(work) {
+      return work({});
+    },
+    async createPendingAccountIdentity(_transaction, input) {
+      calls.push(["accounts", input]);
+      return {
+        id: "personal-account",
+        username: input.username,
+        displayName: input.displayName,
+      };
+    },
+    async createInitialPasswordCredential(_transaction, accountId) {
+      calls.push(["security", accountId]);
+    },
+    async initializeCommercialProfile() {
+      calls.push(["profiles"]);
+    },
+  });
+
+  await coordinator.createPendingAccount({
+    accountType: "personal",
+    username: identity.username,
+    email: identity.email,
+    passwordHash: identity.passwordHash,
+    acceptedTermsVersion: identity.acceptedTermsVersion,
+    age: 32,
+    displayName: "Ana Silva",
+    firstName: "Ana",
+    lastName: "Silva",
+  });
+
+  assert.deepEqual(
+    calls.map(([owner]) => owner),
+    ["accounts", "security"],
+  );
+});
+
+test("registration coordinator does not create credentials when username is unavailable", async () => {
+  const calls = [];
+  const coordinator = createRegistrationAccountCoordinator({
+    async runInTransaction(work) {
+      return work({});
+    },
+    async createPendingAccountIdentity() {
+      calls.push("accounts");
+      return null;
+    },
+    async createInitialPasswordCredential() {
+      calls.push("security");
+    },
+    async initializeCommercialProfile() {
+      calls.push("profiles");
+    },
+  });
+
+  const result = await coordinator.createPendingAccount({
+    accountType: "personal",
+    username: identity.username,
+    email: identity.email,
+    passwordHash: identity.passwordHash,
+    acceptedTermsVersion: identity.acceptedTermsVersion,
+    age: 32,
+    displayName: "Ana Silva",
+    firstName: "Ana",
+    lastName: "Silva",
+  });
+
+  assert.equal(result, null);
+  assert.deepEqual(calls, ["accounts"]);
+});
+
+test("registration coordinator propagates domain writer failures to transaction runner", async () => {
+  const expectedError = new Error("credential persistence failed");
+  const coordinator = createRegistrationAccountCoordinator({
+    async runInTransaction(work) {
+      return work({});
+    },
+    async createPendingAccountIdentity(_transaction, input) {
+      return {
+        id: "created-account",
+        username: input.username,
+        displayName: input.displayName,
+      };
+    },
+    async createInitialPasswordCredential() {
+      throw expectedError;
+    },
+    async initializeCommercialProfile() {
+      assert.fail(
+        "Profile initialization must not run after credential failure.",
+      );
+    },
+  });
+
+  await assert.rejects(
+    coordinator.createPendingAccount({
+      accountType: "personal",
+      username: identity.username,
+      email: identity.email,
+      passwordHash: identity.passwordHash,
+      acceptedTermsVersion: identity.acceptedTermsVersion,
+      age: 32,
+      displayName: "Ana Silva",
+      firstName: "Ana",
+      lastName: "Silva",
+    }),
+    (error) => error === expectedError,
+  );
 });
 
 test("username availability checks accounts before active reservations", async () => {
