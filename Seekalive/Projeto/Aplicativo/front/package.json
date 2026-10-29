@@ -8,7 +8,8 @@
     "build": "vite build --config vite.config.ts && node ../../scripts/check-production-demo-content.mjs",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:e2e:auth": "node --test tests/e2e/authFlows.e2e.test.mjs"
+    "test:e2e:auth": "node --test tests/e2e/authFlows.e2e.test.mjs",
+    "test:e2e:auth:integration": "node --test tests/e2e/authRegistration.integration.e2e.test.mjs"
   },
   "devDependencies": {
     "@hookform/resolvers": "^6.0.0",

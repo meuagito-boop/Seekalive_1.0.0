@@ -1,43 +1,29 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
-import { spawnSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import {
+  configureIsolatedDatabaseEnvironment,
+  createIsolatedSchemaName,
+  publicSchemaFingerprint,
+  quoteIsolatedSchema as quoteGeneratedSchema,
+  setupIsolatedDatabaseFixture,
+} from "./support/isolatedDatabaseFixture.mjs";
 
-const schemaName = `seekalive_test_${randomUUID().replaceAll("-", "")}`;
+const schemaName = createIsolatedSchemaName();
 const projectRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../..",
 );
 const expectedDatabase = process.env.SEEKALIVE_EXPECTED_DATABASE?.trim();
-const isProductionRuntime =
-  process.env.NODE_ENV?.trim().toLowerCase() === "production" ||
-  Boolean(process.env.REPLIT_DEPLOYMENT?.trim());
-
-if (process.env.SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS !== "1") {
-  throw new Error(
-    "Set SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 to authorize this isolated write test.",
-  );
-}
-if (isProductionRuntime) {
-  throw new Error(
-    "Isolated database tests are not allowed in a production runtime.",
-  );
-}
-if (!process.env.DATABASE_URL || !expectedDatabase) {
-  throw new Error("DATABASE_URL and SEEKALIVE_EXPECTED_DATABASE are required.");
-}
-
-process.env.NODE_ENV = "test";
-process.env.SEEKALIVE_DB_SCHEMA = schemaName;
-process.env.SESSION_SECRET = "seekalive-isolated-test-session-secret-2026";
-process.env.RESEND_ENABLED = "false";
-delete process.env.RESEND_API_KEY;
-delete process.env.RESEND_FROM_EMAIL;
+configureIsolatedDatabaseEnvironment({
+  schemaName,
+  sessionSecret: "seekalive-isolated-test-session-secret-2026",
+});
 
 const database = await import("@workspace/db");
 const {
@@ -77,22 +63,6 @@ const modelTables = [
   accountUsernameReservations,
   feedPosts,
 ];
-const expectedTables = [
-  "account_blocks",
-  "account_emails",
-  "account_follow_requests",
-  "account_follows",
-  "account_interests",
-  "account_username_reservations",
-  "accounts",
-  "auth_challenges",
-  "business_profiles",
-  "password_credentials",
-  "posts",
-  "sessions",
-  "trusted_devices",
-];
-
 for (const table of modelTables) {
   assert.equal(
     getTableConfig(table).schema,
@@ -101,54 +71,10 @@ for (const table of modelTables) {
   );
 }
 
-function quoteGeneratedSchema(name) {
-  assert.match(name, /^seekalive_test_[0-9a-f]{32}$/i);
-  return `"${name}"`;
-}
-
-async function publicSchemaFingerprint() {
-  const [columns, constraints, indexes, views] = await Promise.all([
-    pool.query(`
-      SELECT table_name, column_name, ordinal_position, data_type, is_nullable, column_default
-      FROM information_schema.columns
-      WHERE table_schema = 'public'
-      ORDER BY table_name, ordinal_position
-    `),
-    pool.query(`
-      SELECT conrelid::regclass::text AS table_name, conname, pg_get_constraintdef(oid) AS definition
-      FROM pg_catalog.pg_constraint
-      WHERE connamespace = 'public'::regnamespace
-      ORDER BY conrelid::regclass::text, conname
-    `),
-    pool.query(`
-      SELECT tablename, indexname, indexdef
-      FROM pg_catalog.pg_indexes
-      WHERE schemaname = 'public'
-      ORDER BY tablename, indexname
-    `),
-    pool.query(`
-      SELECT table_name, view_definition
-      FROM information_schema.views
-      WHERE table_schema = 'public'
-      ORDER BY table_name
-    `),
-  ]);
-  return createHash("sha256")
-    .update(
-      JSON.stringify({
-        columns: columns.rows,
-        constraints: constraints.rows,
-        indexes: indexes.rows,
-        views: views.rows,
-      }),
-    )
-    .digest("hex");
-}
-
-let schemaCreated = false;
 let server;
 let baseUrl;
 let publicSchemaBefore;
+let isolatedDatabaseFixture;
 const emailMessages = [];
 const passwordResetMessages = [];
 const deviceLoginMessages = [];
@@ -159,53 +85,13 @@ const accountEmailChangeNewMessages = [];
 const accountEmailChangeSecurityNotices = [];
 
 before(async () => {
-  const { rows } = await pool.query(
-    "SELECT current_database() AS database_name",
-  );
-  assert.equal(
-    rows[0]?.database_name,
+  isolatedDatabaseFixture = await setupIsolatedDatabaseFixture({
+    schemaName,
     expectedDatabase,
-    "DATABASE_URL must point to the Replit development database identified by the read-only check.",
-  );
-  publicSchemaBefore = await publicSchemaFingerprint();
-
-  await pool.query(`CREATE SCHEMA ${quoteGeneratedSchema(schemaName)}`);
-  schemaCreated = true;
-
-  const push = spawnSync("pnpm", ["--filter", "@workspace/db", "run", "push"], {
-    cwd: projectRoot,
-    encoding: "utf8",
-    maxBuffer: 2 * 1024 * 1024,
-    env: {
-      ...process.env,
-      NODE_ENV: "test",
-      SEEKALIVE_DB_SCHEMA: schemaName,
-      SEEKALIVE_DB_MIGRATION_TARGET: "replit",
-    },
+    projectRoot,
+    pool,
   });
-  const pushOutput = `${push.stdout ?? ""}\n${push.stderr ?? ""}`.replaceAll(
-    process.env.DATABASE_URL,
-    "[DATABASE_URL REDACTED]",
-  );
-  if (push.error || push.status !== 0) {
-    throw new Error(
-      `Drizzle could not create the isolated schema (exit ${push.status ?? "unknown"}):\n${pushOutput}`,
-    );
-  }
-
-  const createdTables = await pool.query(
-    `SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' ORDER BY table_name`,
-    [schemaName],
-  );
-  assert.deepEqual(
-    createdTables.rows.map((row) => row.table_name),
-    expectedTables,
-  );
-  assert.equal(
-    await publicSchemaFingerprint(),
-    publicSchemaBefore,
-    "Schema push changed the public schema.",
-  );
+  publicSchemaBefore = isolatedDatabaseFixture.publicSchemaBefore;
 
   const { setAuthEmailDeliveryForTests } =
     await import("../src/modules/auth/infrastructure/emailDelivery.ts");
@@ -253,15 +139,12 @@ after(async () => {
     });
     await stopped;
   }
-  try {
-    if (schemaCreated) {
-      await pool.query(
-        `DROP SCHEMA ${quoteGeneratedSchema(schemaName)} CASCADE`,
-      );
-      schemaCreated = false;
-      console.log("Isolated test schema dropped.");
-    }
-  } finally {
+  if (isolatedDatabaseFixture) {
+    const cleanup = await isolatedDatabaseFixture.cleanup();
+    assert.equal(cleanup.schemaRemoved, true);
+    assert.equal(cleanup.publicSchemaUnchanged, true);
+    console.log("Isolated test schema dropped.");
+  } else {
     await pool.end();
   }
 });
@@ -2102,7 +1985,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     "Personal, commercial and reclaimed-username verifications must use the test sink.",
   );
   assert.equal(
-    await publicSchemaFingerprint(),
+    await publicSchemaFingerprint(pool),
     publicSchemaBefore,
     "API tests changed the public schema.",
   );
