@@ -24,6 +24,12 @@ O schema Drizzle é a fonte de verdade do modelo atualmente codificado: declara 
 6. **Sem promessa de atomicidade distribuída:** cadastro, bloqueio, mídia, notificações e exclusão precisam de ordem, idempotência, falhas parciais e reconciliação documentadas antes da migração.
 7. **Ambientes e provisionamento:** o estado observado em desenvolvimento é uma instância PostgreSQL compartilhada da Replit, com schemas por domínio. Isso é legado/transição, não cumprimento da decisão-alvo. A criação dos bancos por domínio ainda precisa ser planejada e provisionada; produção permanece separada e não foi consultada nem alterada.
 
+## Limite de provisionamento no Replit
+
+A documentação oficial consultada informa que cada projeto Replit recebe um único PostgreSQL gerenciado. Portanto, vários bancos físicos por domínio não podem ser provisionados como bancos gerenciados dentro deste mesmo projeto. Para manter um único aplicativo e a decisão de bancos separados, será necessário conectar bancos PostgreSQL externos por URLs independentes; a alternativa é separar os domínios em projetos Replit distintos, o que também divide a implantação e a operação. Nenhum provedor externo foi escolhido e nenhuma dessas conexões foi configurada.
+
+Referências oficiais: [SQL database](https://docs.replit.com/features/data-and-storage/sql-database), [Connection details](https://docs.replit.com/features/data-and-storage/connection-details) e [Development and production databases](https://docs.replit.com/features/data-and-storage/development-and-production).
+
 ## Matriz de domínio e propriedade
 
 | Domínio (schema atual; banco físico-alvo)                                  | Fonte oficial e dados que possui                                                                                                                                                      | Não deve possuir                                                                                                                                  |

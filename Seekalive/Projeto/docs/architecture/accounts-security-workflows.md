@@ -8,7 +8,7 @@
 
 1. **Contas é a autoridade da identidade e do ciclo de vida:** `account_id` UUID imutável, `@`, tipo, e-mails atual/verificado, estado da conta, idade/termos privados, interesses e prazos de exclusão.
 2. **Segurança é a autoridade das credenciais e acessos:** hashes Argon2id, desafios/códigos, sessões, CSRF, instalações confiáveis, tentativas, bloqueios de segurança e revogações.
-3. **Perfis é dono da inicialização de perfil comercial** conforme a fronteira já aprovada. A inicialização não pode compartilhar transação com Contas. O perfil não cria uma segunda identidade.
+3. **Perfis é dono do perfil comercial** conforme a fronteira já aprovada; Seek descobre contas comerciais existentes, não cria uma identidade paralela. A inicialização não pode compartilhar transação com Contas.
 4. Cada domínio usa transações locais no próprio banco. Não há FKs, joins, locks ou transações SQL entre bancos. UUIDs externos são referências validadas por contrato.
 5. O fluxo público pode ser composto por casos de uso de Auth no mesmo processo. Essa composição chama serviços/portas dos domínios, não tabelas/repositórios internos de outros domínios.
 6. Comandos entre domínios são idempotentes por `operation_id`/`account_id`; eventos que precisam sobreviver a falhas são registrados em outbox local no banco de origem e deduplicados pelo domínio receptor. Não há exigência de introduzir um broker externo nesta etapa.
@@ -16,7 +16,7 @@
 
 ## Evidência do acoplamento atual
 
-Hoje os módulos usam o mesmo cliente `db` de `@workspace/db` e os schemas Contas, Segurança e Perfis convivem na mesma instância de desenvolvimento. Os seguintes fluxos dependem de transações ou consultas cruzando domínios:
+Hoje os módulos usam o mesmo cliente `db` de `@workspace/db`; Contas, Segurança, Perfis/Relações, Feed e Seek convivem na mesma instância de desenvolvimento. Não existe `schema/profiles.ts`: as tabelas de relações são declaradas em `schema/social.ts` usando `profilesTable`; já `business_profiles` está definido em `schema/seek.ts`. Portanto, o banco de desenvolvimento contém dados de perfil comercial no schema Seek, embora a fronteira aprovada atribua a inicialização do perfil a Profiles. Os seguintes fluxos dependem de transações ou consultas cruzando domínios:
 
 | Fluxo observado                 | Dados/domínios envolvidos na implementação atual                                                                                                                                      | Fronteira exigida                                                                                                                                                                             |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,6 +28,19 @@ Hoje os módulos usam o mesmo cliente `db` de `@workspace/db` e os schemas Conta
 | Troca/recuperação de senha      | Os repositórios consultam estado/e-mail de Contas e alteram credencial, desafios, sessões e dispositivos em transações no cliente compartilhado.                                      | Contas fornece apenas estado/e-mail verificado; Segurança executa a mudança de credencial, consome desafio e revoga acessos numa transação local.                                             |
 | Pedido/restauração de exclusão  | `accountDeletionRepository` altera conta, e-mail, desafio e sessões numa transação; o login consulta `deletionScheduledFor` na própria consulta de Conta.                             | Contas controla status e prazos; Segurança controla o código e revoga sessões/dispositivos. A tela e o login leem o estado autoritativo de Contas.                                            |
 | Exclusão definitiva             | `accountDeletionFinalizerRepository` reserva o @ e remove a conta; a limpeza de outros schemas depende hoje de cascatas da mesma instância.                                           | Contas coordena; cada banco proprietário limpa/anônimiza seus próprios dados e confirma por operação idempotente. Só então Contas encerra o tombstone, preservando a reserva do @ pelo prazo. |
+
+### Chaves estrangeiras que impedem o isolamento direto
+
+O schema atual declara FKs entre schemas e usa cascatas para parte da exclusão:
+
+- Segurança (`password_credentials`, `auth_challenges`, `trusted_devices`, `sessions`) referencia `accounts.accounts`.
+- Feed (`posts.author_id`) referencia `accounts.accounts`.
+- Perfis/Relações (`account_follows`, `account_follow_requests`, `account_blocks`, declaradas pelo módulo Social) referencia `accounts.accounts`.
+- Seek (`business_profiles.account_id`) referencia `accounts.accounts`.
+
+Ao separar os bancos, essas FKs e suas cascatas deixam de ser possíveis. Não é seguro simplesmente apagar as declarações: antes, cada fluxo precisa validar `account_id` pelo contrato do domínio proprietário e substituir cascatas por comandos idempotentes de limpeza e confirmação. `sessions.device_id → trusted_devices.id` é uma relação interna de Segurança e pode continuar com FK.
+
+Há também uma divergência de propriedade: o inicializador está no módulo Profiles, mas a tabela `business_profiles` ainda está no schema Seek. A correção-alvo é mover a propriedade persistente para Profiles e deixar Seek consumir uma representação de descoberta. Isso exige migration que preserve tabela e dados; não deve ser feito por drop/recreate nem aplicado ao banco compartilhado sem aprovação.
 
 `securityLockedAt` está hoje armazenado em `accounts`. Na arquitetura-alvo, bloqueio por risco/tentativas pertence a Segurança; suspensão ou encerramento da identidade continua sendo estado de Contas. Essa distinção deve ser migrada sem reduzir as proteções existentes.
 
@@ -99,4 +112,4 @@ O registro durável da operação deve pertencer ao domínio que controla a cria
 4. Refatorar primeiro o cadastro/verificação com operações idempotentes; depois login/dispositivos; depois credenciais/e-mail; por fim exclusão/restauração/finalização.
 5. Testar cada banco em isolamento e as combinações de sucesso/falha, timeout-após-commit, retry, duplicação, concorrência e indisponibilidade. Só então reavaliar fechamento de Accounts/Auth.
 
-**Estado atual:** os testes anteriores em schema temporário validam a implementação no banco compartilhado atual; não provam integração entre bancos físicos. A migration `0006` permanece sem aprovação e não deve ser aplicada à instância compartilhada. Nenhum banco ou migration foi alterado por este plano.
+**Estado atual:** os testes anteriores em schema temporário validam a implementação no banco compartilhado atual; não provam integração entre bancos físicos. As FKs cruzadas e a localização atual de `business_profiles` são bloqueios técnicos para a separação e exigem substituição de validação/cascatas e uma migration de preservação. A migration `0006` permanece sem aprovação e não deve ser aplicada à instância compartilhada. Nenhum banco ou migration foi alterado por este plano.
