@@ -1,4 +1,5 @@
 - [Padrão de engenharia sênior](engineering-standard.md) — reler o prompt, orientar decisões relevantes, manter rigor técnico e registrar pendências com critérios de fechamento.
 - [Núcleo Social e Seek](social-seek-core.md) — Social é a origem das contas e perfis; Seek os descobre, e o perfil conta todas as publicações da conta.
 - [Ordem da reorganização](architecture-order.md) — revisar e validar uma pasta de domínio por vez no frontend e backend antes de avançar ao banco.
+- [Bancos por domínio](database-domain-ownership.md) — cada domínio precisa de um banco físico independente; schemas compartilhados são apenas estado transitório.
 - [Jornadas browser de Auth](auth-browser-tests.md) — testes visuais de conta ficam restritos a loopback e API simulada; integrações reais exigem ambiente isolado.
