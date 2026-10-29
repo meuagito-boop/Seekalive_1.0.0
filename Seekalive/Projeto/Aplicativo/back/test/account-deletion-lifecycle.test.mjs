@@ -240,6 +240,11 @@ test("account deletion request, restoration, and final purge follow the approved
 
   assert.equal(await deletionFinalizer.finalizeDueAccountDeletions(), 1);
   assert.equal(
+    await deletionFinalizer.finalizeDueAccountDeletions(),
+    0,
+    "Running the finalizer again must not delete or process the same account twice.",
+  );
+  assert.equal(
     (
       await db
         .select({ id: accounts.id })

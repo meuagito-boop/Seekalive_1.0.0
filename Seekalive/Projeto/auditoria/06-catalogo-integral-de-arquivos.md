@@ -1302,3 +1302,11 @@ Esta atualização acrescenta o trabalho feito depois do corte do inventário ac
 **Estado físico alterado:** no PostgreSQL `heliumdb` de desenvolvimento, foi criado o schema técnico `drizzle` com um ledger por domínio e uma linha/hash de baseline em cada. As 12 tabelas de negócio permaneceram sem linhas, os objetos de negócio não foram alterados e `feed.posts` continuou ausente. Nenhuma ação foi feita em produção.
 
 **Validação executada nesta atualização:** `pnpm --filter @workspace/db run check` passou nos quatro tracks; `pnpm run typecheck:libs` passou; `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db` passou em 5/5 e removeu o schema temporário; `migrate:accounts`, `migrate:security`, `migrate:profiles` e `migrate:seek` reconheceram seus baselines sem executar DDL de negócio; o teste de segurança bloqueou migração sem track e `push` fora de schema de teste. Produção não foi acessada.
+
+### Delta da validação autenticada de exclusão/restauração — 29/10/2026
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| [Aplicativo/back/test/account-deletion-api-isolated.test.mjs](../Aplicativo/back/test/account-deletion-api-isolated.test.mjs) | Exercita a API real de Accounts/Auth e Profiles com sessão, e-mail em memória e schema temporário; verifica autorização, ocultação/restauração do perfil público e ausência de sessão após restaurar. |
+| [Aplicativo/back/test/account-deletion-lifecycle.test.mjs](../Aplicativo/back/test/account-deletion-lifecycle.test.mjs) | Acrescenta a verificação de idempotência do finalizador: uma segunda execução não processa novamente a mesma conta. |
+| [package.json](../package.json) | Inclui o teste de integração isolada no comando explícito `test:account-deletion`. |

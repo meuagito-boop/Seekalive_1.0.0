@@ -69,8 +69,8 @@ Shop está fora do escopo atual. Nenhuma tabela, API ou fluxo de catálogo/compr
 ## Estado de migrations e validação
 
 - Após autorização explícita, o SQL de `0006_brief_raza.sql` foi aplicado em uma única transação ao banco de desenvolvimento `heliumdb`. A leitura anterior confirmou as colunas ausentes e zero contas; a verificação posterior confirmou as duas colunas, a restrição `accounts_deletion_schedule_consistent` e o índice `accounts_deletion_due_idx`. Nenhum dado de conta foi alterado e produção não foi acessada.
-- A API recebeu um smoke test sem sessão no endpoint de solicitação; respondeu `403 CSRF_REJECTED`, não `503 ACCOUNT_DELETION_SCHEMA_REQUIRED`. Isso confirma que a verificação de schema passou, mas não testa uma jornada autenticada.
-- `drizzle-kit check` passou e a suíte específica de exclusão passou 3/3 em schema temporário isolado. O E2E do frontend usa API simulada; nenhum e-mail real foi enviado.
+- Um smoke test isolado sem sessão no endpoint de solicitação respondeu `403 CSRF_REJECTED`, não `503 ACCOUNT_DELETION_SCHEMA_REQUIRED`; ele confirmou a disponibilidade do schema, mas não substituía a jornada autenticada testada depois.
+- `drizzle-kit check` passou e a suíte específica de exclusão passou 4/4 em schemas temporários isolados. `account-deletion-api-isolated.test.mjs` percorre cadastro, confirmação de e-mail, sessão, solicitação e confirmação de exclusão, login durante o prazo e restauração pela API real; verifica autorização, perfil público oculto/restaurado, código incorreto, estado persistido e ausência de sessão após restaurar. A entrega de códigos é capturada em memória. O E2E do frontend continua usando API simulada; nenhum e-mail real foi enviado.
 - **Reconciliação concluída no desenvolvimento:** foram criados tracks independentes e baselines para Accounts, Security, Profiles e Seek, com ledgers próprios em `drizzle`. A leitura do banco `heliumdb` confirmou 12 tabelas vazias, objetos correspondentes aos baselines, ausência de `feed.posts` e ausência de histórico anterior. Cada ledger recebeu uma entrada com hash e timestamp do respectivo baseline.
 - **Validação da reconciliação:** `drizzle-kit check` passou nos quatro tracks; os comandos `migrate:accounts`, `migrate:security`, `migrate:profiles` e `migrate:seek` reconheceram os baselines existentes. A leitura posterior confirmou exatamente uma entrada por ledger, nenhuma tabela global `drizzle.__drizzle_migrations`, zero linhas nas tabelas de negócio consultadas e `feed.posts` ainda ausente. Nenhuma DDL de negócio foi executada e produção não foi acessada.
 - **Bootstrap reproduzível:** os quatro baselines foram aplicados em schemas descartáveis numa transação, com contagens esperadas de tabelas, colunas, FKs, checks e índices; os schemas de teste foram removidos. A validação detectou e corrigiu expressões qualificadas inválidas em constraints e no índice parcial.
@@ -81,7 +81,7 @@ Shop está fora do escopo atual. Nenhuma tabela, API ou fluxo de catálogo/compr
 
 1. Concluir e testar cadastro pessoal e comercial, verificação obrigatória de e-mail, login, novo dispositivo, sessões e revogação.
 2. Manter a evolução pelos tracks independentes documentados em `docs/architecture/database-migration-tracks.md`; criar o track Feed somente quando essa etapa for autorizada e Shop permanece fora do escopo.
-3. Testar a jornada de solicitação/restauração de exclusão com API e banco temporário isolado e entrega de código em memória.
+3. **Concluído em 29/10/2026:** testar a jornada de solicitação/restauração com API real, sessão, banco temporário isolado e entrega de código em memória; confirmar ocultação do perfil durante o prazo, restauração sem sessão e limpeza do schema de teste.
 4. Confirmar que nenhum endpoint público expõe idade, e-mail, hashes ou tokens.
 5. Registrar lacunas de Mídias, Feed e Mensagens como não implementadas; não alegar que a exclusão já cobre dados que ainda não têm persistência.
 
