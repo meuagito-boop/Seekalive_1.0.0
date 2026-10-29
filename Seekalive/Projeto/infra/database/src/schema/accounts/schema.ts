@@ -68,23 +68,20 @@ export const accounts = accountsTable(
     uniqueIndex("accounts_username_unique").on(table.username),
     index("accounts_deletion_due_idx")
       .on(table.deletionScheduledFor, table.id)
-      .where(sql`${table.status} = 'deletion_pending'`),
-    check(
-      "accounts_age_adult_range",
-      sql`${table.age} >= 18 AND ${table.age} <= 120`,
-    ),
+      .where(sql.raw(`"status" = 'deletion_pending'`)),
+    check("accounts_age_adult_range", sql.raw(`"age" >= 18 AND "age" <= 120`)),
     check(
       "accounts_deletion_schedule_consistent",
-      sql`(
-        ${table.status} = 'deletion_pending'
-        AND ${table.deletionRequestedAt} IS NOT NULL
-        AND ${table.deletionScheduledFor} IS NOT NULL
-        AND ${table.deletionScheduledFor} > ${table.deletionRequestedAt}
+      sql.raw(`(
+        "status" = 'deletion_pending'
+        AND "deletion_requested_at" IS NOT NULL
+        AND "deletion_scheduled_for" IS NOT NULL
+        AND "deletion_scheduled_for" > "deletion_requested_at"
       ) OR (
-        ${table.status} <> 'deletion_pending'
-        AND ${table.deletionRequestedAt} IS NULL
-        AND ${table.deletionScheduledFor} IS NULL
-      )`,
+        "status" <> 'deletion_pending'
+        AND "deletion_requested_at" IS NULL
+        AND "deletion_scheduled_for" IS NULL
+      )`),
     ),
   ],
 );

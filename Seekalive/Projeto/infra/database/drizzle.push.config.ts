@@ -1,5 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 import path from "path";
+import { resolveDatabaseConnectionUrl } from "./src/connection";
 import { databaseSchemaFilter } from "./src/schema/config";
 
 export default defineConfig({
@@ -10,7 +11,9 @@ export default defineConfig({
     path.join(__dirname, "./src/schema/feed/*.ts"),
     path.join(__dirname, "./src/schema/seek/*.ts"),
   ],
-  out: "./migrations",
   dialect: "postgresql",
   schemaFilter: databaseSchemaFilter,
+  dbCredentials: {
+    url: resolveDatabaseConnectionUrl(process.env, "migration"),
+  },
 });

@@ -25,10 +25,7 @@ export const accountFollows = profilesTable(
   },
   (table) => [
     primaryKey({ columns: [table.followerId, table.followedId] }),
-    check(
-      "account_follows_no_self",
-      sql`${table.followerId} <> ${table.followedId}`,
-    ),
+    check("account_follows_no_self", sql.raw(`"follower_id" <> "followed_id"`)),
     index("account_follows_followed_created").on(
       table.followedId,
       table.createdAt,
@@ -57,7 +54,7 @@ export const accountFollowRequests = profilesTable(
     ),
     check(
       "account_follow_requests_no_self",
-      sql`${table.requesterId} <> ${table.targetId}`,
+      sql.raw(`"requester_id" <> "target_id"`),
     ),
     index("account_follow_requests_target_created").on(
       table.targetId,
@@ -81,10 +78,7 @@ export const accountBlocks = profilesTable(
   },
   (table) => [
     primaryKey({ columns: [table.blockerId, table.blockedId] }),
-    check(
-      "account_blocks_no_self",
-      sql`${table.blockerId} <> ${table.blockedId}`,
-    ),
+    check("account_blocks_no_self", sql.raw(`"blocker_id" <> "blocked_id"`)),
     index("account_blocks_blocked_created").on(
       table.blockedId,
       table.createdAt,

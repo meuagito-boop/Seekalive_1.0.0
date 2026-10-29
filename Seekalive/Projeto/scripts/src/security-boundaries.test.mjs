@@ -72,7 +72,7 @@ test("the backend accepts the internal client IP only from the loopback Vite pro
   assert.equal(getTrustedClientIp(makeRequest("127.0.0.1", "forged")), null);
 });
 
-test("database write guards use Replit's published-runtime marker", () => {
+test("isolated database tests refuse production and post-merge never pushes", () => {
   const isolatedFixture = readFileSync(
     path.resolve(
       here,
@@ -86,7 +86,11 @@ test("database write guards use Replit's published-runtime marker", () => {
   );
 
   assert.match(isolatedFixture, /REPLIT_DEPLOYMENT/);
-  assert.match(postMergeScript, /REPLIT_DEPLOYMENT/);
+  assert.match(postMergeScript, /@workspace\/db run check/);
+  assert.doesNotMatch(
+    postMergeScript,
+    /@workspace\/db run push|drizzle-kit push|push-force/,
+  );
   assert.doesNotMatch(isolatedFixture, /REPLIT_ENVIRONMENT/);
   assert.doesNotMatch(postMergeScript, /REPLIT_ENVIRONMENT/);
 

@@ -17,8 +17,16 @@ Confiança e Segurança de Conteúdo é um domínio lógico separado por atraves
 
 ## Reconciliação do histórico de migrations
 
-Antes de usar o migrador padrão, verificar tanto o schema físico quanto a tabela de histórico no banco; o journal local sozinho não prova quais migrations foram aplicadas. Se não existir ledger ou houver diferença entre o estado físico e a sequência versionada, não executar `migrate` nem registrar migrations ausentes como aplicadas. Primeiro reconciliar a base de forma reproduzível, respeitando os escopos de domínio aprovados.
+Cada domínio ativo mantém seu próprio track SQL, journal e ledger em `drizzle`: `accounts`, `security`, `profiles` e `seek`. O pacote exige um track explícito para gerar/aplicar migrations; a aplicação inicial em banco vazio segue Accounts antes dos domínios com FK para Accounts. A sequência histórica combinada `0000`–`0006` é somente registro e não é executável pelo fluxo do pacote. Feed não tem track ativo e Shop permanece fora do escopo atual.
 
-**Why:** O banco de desenvolvimento estava provisionado parcialmente sem `__drizzle_migrations`, com `feed.posts` ainda ausente. A migration de exclusão autorizada teve de ser aplicada diretamente e não deve mascarar lacunas anteriores nem fazer o migrador padrão reaplicar schemas já existentes.
+**Why:** O histórico combinado misturava objetos físicos de `0000`–`0004` e `0006` com a tabela `feed.posts` de `0005` ausente. Um único timestamp global faria o Drizzle pular uma lacuna ou tentar reaplicar DDL já existente. Os baselines isolados permitem representar o estado atual sem afirmar que Feed foi aplicado.
 
-**How to apply:** Antes de qualquer `drizzle-kit migrate`, consultar objetos e histórico do ambiente alvo, comparar com a sequência versionada e apresentar plano de baseline seguro se divergirem.
+**How to apply:** Antes de cada aplicação, confirmar ambiente e track, revisar SQL e dependências, validar o journal e consultar o ledger correspondente. Nunca usar o histórico combinado, executar `push` no banco principal ou inserir ledger para SQL não aplicado. Para bancos vazios, usar somente a sequência de tracks ativos documentada; produção continua fora da fase atual.
+
+## Expressões PostgreSQL em migrations
+
+Em `CHECK` constraints e predicados de índices parciais, usar expressões SQL estáticas com colunas não qualificadas; não interpolar objetos `table.column` do Drizzle nesses contextos.
+
+**Why:** O interpolador produziu referências com schema/tabela/coluna que passam pelo typecheck e pelo `drizzle-kit check`, mas o PostgreSQL rejeita ao executar DDL de bootstrap.
+
+**How to apply:** Reproduzir sempre os SQLs baseline em schemas descartáveis antes de registrá-los como bootstrap válido; se o SQL já foi registrado no ledger de desenvolvimento, manter hash/timestamp coerentes após ajustar apenas o texto do baseline e confirmar que não houve alteração de DDL de negócio.

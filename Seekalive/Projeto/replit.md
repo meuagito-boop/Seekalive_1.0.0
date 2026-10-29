@@ -8,10 +8,14 @@ Aplicativo social e de descoberta local com perfis pessoais e comerciais conecta
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run generate` — generate versioned SQL from the Drizzle schema without connecting to a database
-- Development uses the Replit-managed PostgreSQL database through `DATABASE_URL`. The post-merge script synchronizes only the development schema with Drizzle.
+- `pnpm --filter @workspace/db run generate:accounts` (or `generate:security`, `generate:profiles`, `generate:seek`) — generate versioned SQL for one domain track without connecting to a database
+- `SEEKALIVE_DB_MIGRATION_TRACK=<domain> pnpm --filter @workspace/db run migrate` — apply only the selected track after its baseline and migration review; never run the legacy combined timeline
+- `SEEKALIVE_DB_MIGRATION_TARGET=replit pnpm --filter @workspace/db run migrate:baseline` — initialize the active domain tracks sequentially in a new development database; review every generated baseline first
+- `pnpm --filter @workspace/db run check` — verify all active domain migration journals
+- Development uses the Replit-managed PostgreSQL database through `DATABASE_URL`. The post-merge script validates domain migration journals and does not apply schema changes.
 - PostgreSQL schemas separate domain ownership inside each environment: all 12 approved domain schemas are prepared in development; `accounts`, `security`, `profiles`, and `seek` currently contain tables, while the other eight remain empty until their backend slices are implemented.
-- Replit keeps development and production databases separate. Production schema changes must go through Replit Publish; never run development push or direct DDL against production.
+- Replit keeps development and production databases separate. Production schema changes must go through Replit Publish; never run development migrations or direct DDL against production.
+- Database `push` is restricted to isolated test schemas. The historical combined migration chain is retained for audit and is not an executable migration path.
 - Do not expose or replace `DATABASE_URL`. The connection code supports selecting an external PostgreSQL target explicitly, but development defaults to Replit-managed PostgreSQL and the external target is not selected by default. Do not enable it or configure an external URL without an explicit decision.
 
 ## Stack

@@ -34,24 +34,24 @@ export const feedPosts = feedTable(
   (table) => [
     check(
       "feed_posts_audience_valid",
-      sql`${table.audience} in ('public', 'circles', 'private')`,
+      sql.raw(`"audience" in ('public', 'circles', 'private')`),
     ),
     check(
       "feed_posts_format_valid",
-      sql`${table.format} in ('text', 'article')`,
+      sql.raw(`"format" in ('text', 'article')`),
     ),
     check(
       "feed_posts_content_valid",
-      sql`(
-        (${table.format} = 'text' and char_length(btrim(${table.content})) between 1 and 280
-          and ${table.articleTitle} is null and ${table.articleBody} is null)
+      sql.raw(`(
+        ("format" = 'text' and char_length(btrim("content")) between 1 and 280
+          and "article_title" is null and "article_body" is null)
         or
-        (${table.format} = 'article' and char_length(${table.content}) <= 280
-          and ${table.articleTitle} is not null and char_length(btrim(${table.articleTitle})) between 1 and 160
-          and ${table.articleBody} is not null and char_length(btrim(${table.articleBody})) between 1 and 50000)
-      )`,
+        ("format" = 'article' and char_length("content") <= 280
+          and "article_title" is not null and char_length(btrim("article_title")) between 1 and 160
+          and "article_body" is not null and char_length(btrim("article_body")) between 1 and 50000)
+      )`),
     ),
-    check("feed_posts_version_positive", sql`${table.version} > 0`),
+    check("feed_posts_version_positive", sql.raw(`"version" > 0`)),
     index("feed_posts_author_created_id").on(
       table.authorId,
       table.createdAt.desc(),

@@ -8,10 +8,20 @@
     "./schema": "./src/schema/registry.ts"
   },
   "scripts": {
-    "generate": "drizzle-kit generate --config ./drizzle.generate.config.ts",
-    "check": "drizzle-kit check --config ./drizzle.generate.config.ts",
-    "migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
-    "push": "drizzle-kit push --config ./drizzle.config.ts"
+    "generate": "drizzle-kit generate --config ./drizzle.track.generate.config.ts",
+    "generate:accounts": "SEEKALIVE_DB_MIGRATION_TRACK=accounts pnpm run generate",
+    "generate:security": "SEEKALIVE_DB_MIGRATION_TRACK=security pnpm run generate",
+    "generate:profiles": "SEEKALIVE_DB_MIGRATION_TRACK=profiles pnpm run generate",
+    "generate:seek": "SEEKALIVE_DB_MIGRATION_TRACK=seek pnpm run generate",
+    "check": "for track in accounts security profiles seek; do SEEKALIVE_DB_MIGRATION_TRACK=$track drizzle-kit check --config ./drizzle.track.generate.config.ts || exit $?; done",
+    "migrate": "drizzle-kit migrate --config ./drizzle.track.migrate.config.ts",
+    "migrate:accounts": "SEEKALIVE_DB_MIGRATION_TRACK=accounts pnpm run migrate",
+    "migrate:security": "SEEKALIVE_DB_MIGRATION_TRACK=security pnpm run migrate",
+    "migrate:profiles": "SEEKALIVE_DB_MIGRATION_TRACK=profiles pnpm run migrate",
+    "migrate:seek": "SEEKALIVE_DB_MIGRATION_TRACK=seek pnpm run migrate",
+    "migrate:baseline": "pnpm run migrate:accounts && pnpm run migrate:security && pnpm run migrate:profiles && pnpm run migrate:seek",
+    "test:baselines": "node ./scripts/test-migration-baselines.mjs",
+    "push": "node ./scripts/push-isolated.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

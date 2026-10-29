@@ -1276,3 +1276,29 @@ Foram removidos `Aplicativo/back/src/security/request-origin.ts` e `Aplicativo/b
 Os nomes compostos entre chaves representam um arquivo existente para cada item separado por vírgula, no diretório indicado. `createAuthRateLimit` agora é importado de `security/rateLimit`; funções de IP confiável, de `security/trustedClientIp`; sessão ativa, de `security/activeSession`; CSRF, de `security/csrf`; constantes e prazo, de `security/sessionConfig`; cookies, de `security/sessionCookies`; e hashing/comparação constante, de `security/tokenHashing`.
 
 **Validação:** AST do frontend (275 arquivos) e backend (213) encontrou zero ciclos e zero arquivos somente de reexport. `pnpm test` passou; `pnpm build` passou e incluiu typechecks; Prettier e `git diff --check` passaram. A contagem atual do projeto é 1.300 arquivos excluindo `node_modules`.
+
+### Delta de migrations por domínio — 29/10/2026
+
+Esta atualização acrescenta o trabalho feito depois do corte do inventário acima. A contagem total de arquivos do inventário anterior não foi recalculada; os caminhos abaixo são o delta confirmado.
+
+| Arquivo / grupo | O que é / para que serve |
+|---|---|
+| [infra/database/migrationTrackConfig.ts](../infra/database/migrationTrackConfig.ts) | Allowlist dos quatro tracks ativos e configuração compartilhada para apontar geração e aplicação ao domínio selecionado; rejeita track ausente ou desconhecido. |
+| [infra/database/drizzle.track.generate.config.ts](../infra/database/drizzle.track.generate.config.ts) | Configuração de geração SQL sem conexão ao banco, limitada ao schema do track selecionado. |
+| [infra/database/drizzle.track.migrate.config.ts](../infra/database/drizzle.track.migrate.config.ts) | Configuração de execução Drizzle para um único track e ledger próprio, com alvo explícito. |
+| [infra/database/drizzle.push.config.ts](../infra/database/drizzle.push.config.ts) | Configuração multischema utilizada apenas pelo fluxo automatizado de testes isolados. |
+| [infra/database/scripts/push-isolated.mjs](../infra/database/scripts/push-isolated.mjs) | Bloqueia `push` fora de `NODE_ENV=test` com schema temporário nomeado e alvo de desenvolvimento Replit. |
+| [infra/database/scripts/test-migration-baselines.mjs](../infra/database/scripts/test-migration-baselines.mjs) | Reproduz os quatro baselines em schemas descartáveis, valida metadados e remove os schemas antes de confirmar a transação. |
+| [infra/database/migrations/accounts/0000_baseline.sql](../infra/database/migrations/accounts/0000_baseline.sql), [security/0000_baseline.sql](../infra/database/migrations/security/0000_baseline.sql), [profiles/0000_baseline.sql](../infra/database/migrations/profiles/0000_baseline.sql) e [seek/0000_baseline.sql](../infra/database/migrations/seek/0000_baseline.sql) | Baselines independentes para os objetos atualmente existentes; cada um cria seu schema e contém tabelas somente de seu domínio. |
+| `infra/database/migrations/{accounts,security,profiles,seek}/meta/{0000_snapshot.json,_journal.json}` | Estado Drizzle e journal independentes por domínio; o hash/timestamp do SQL de cada baseline alimenta o ledger correspondente. |
+| [docs/architecture/database-migration-tracks.md](../docs/architecture/database-migration-tracks.md) | Decisão, dependências, status físico, comandos, limites e critérios para manter as migrations isoladas por domínio. |
+
+**Links diretos dos baselines:** [Accounts](../infra/database/migrations/accounts/0000_baseline.sql), [Security](../infra/database/migrations/security/0000_baseline.sql), [Profiles](../infra/database/migrations/profiles/0000_baseline.sql) e [Seek](../infra/database/migrations/seek/0000_baseline.sql).
+
+**Arquivos removidos:** `infra/database/drizzle.config.ts` e `infra/database/drizzle.generate.config.ts`, que combinavam configuração operacional/geração ao histórico global. O caminho de teste multischema ficou explícito em `drizzle.push.config.ts`; a geração e migração normal usam as configurações por track.
+
+**Arquivos alterados:** `infra/database/package.json` (scripts explícitos por track; `push` protegido; baseline sequencial Accounts → Security → Profiles → Seek), `scripts/post-merge.sh` (agora valida journals, sem aplicar `push`), `replit.md` e os documentos de arquitetura/plano de ação relacionados a Accounts/Auth e migrations.
+
+**Estado físico alterado:** no PostgreSQL `heliumdb` de desenvolvimento, foi criado o schema técnico `drizzle` com um ledger por domínio e uma linha/hash de baseline em cada. As 12 tabelas de negócio permaneceram sem linhas, os objetos de negócio não foram alterados e `feed.posts` continuou ausente. Nenhuma ação foi feita em produção.
+
+**Validação executada nesta atualização:** `pnpm --filter @workspace/db run check` passou nos quatro tracks; `pnpm run typecheck:libs` passou; `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db` passou em 5/5 e removeu o schema temporário; `migrate:accounts`, `migrate:security`, `migrate:profiles` e `migrate:seek` reconheceram seus baselines sem executar DDL de negócio; o teste de segurança bloqueou migração sem track e `push` fora de schema de teste. Produção não foi acessada.
