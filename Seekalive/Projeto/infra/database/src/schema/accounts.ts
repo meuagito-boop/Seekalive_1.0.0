@@ -30,6 +30,8 @@ export const accounts = accountsTable(
     websiteUrl: varchar("website_url", { length: 2048 }),
     accountType: varchar("account_type", { length: 16 }).notNull(),
     status: varchar("status", { length: 32 }).default("pending_verification").notNull(),
+    deletionRequestedAt: timestamp("deletion_requested_at", { withTimezone: true }),
+    deletionScheduledFor: timestamp("deletion_scheduled_for", { withTimezone: true }),
     securityLockedAt: timestamp("security_locked_at", { withTimezone: true }),
     publicNameChangedAt: timestamp("public_name_changed_at", { withTimezone: true }),
     usernameChangedAt: timestamp("username_changed_at", { withTimezone: true }),
@@ -44,7 +46,23 @@ export const accounts = accountsTable(
   },
   (table) => [
     uniqueIndex("accounts_username_unique").on(table.username),
+    index("accounts_deletion_due_idx")
+      .on(table.deletionScheduledFor, table.id)
+      .where(sql`${table.status} = 'deletion_pending'`),
     check("accounts_age_adult_range", sql`${table.age} >= 18 AND ${table.age} <= 120`),
+    check(
+      "accounts_deletion_schedule_consistent",
+      sql`(
+        ${table.status} = 'deletion_pending'
+        AND ${table.deletionRequestedAt} IS NOT NULL
+        AND ${table.deletionScheduledFor} IS NOT NULL
+        AND ${table.deletionScheduledFor} > ${table.deletionRequestedAt}
+      ) OR (
+        ${table.status} <> 'deletion_pending'
+        AND ${table.deletionRequestedAt} IS NULL
+        AND ${table.deletionScheduledFor} IS NULL
+      )`,
+    ),
   ],
 );
 

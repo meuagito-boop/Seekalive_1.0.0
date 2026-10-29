@@ -9,6 +9,8 @@
     "test:api-runtime": "tsx --test ./src/api-runtime.test.mjs",
     "test:db-connection": "tsx --test ./src/database-connection.test.mjs",
     "test:api-isolated-db": "tsx --test ../Aplicativo/back/test/api-isolated-db.test.mjs",
+    "test:accounts-deletion-schema": "tsx --test ../Aplicativo/back/test/account-deletion-schema.test.mjs",
+    "test:accounts-deletion-policy": "tsx --test ../Aplicativo/back/test/account-deletion-policy.test.mjs",
     "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:api-runtime",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

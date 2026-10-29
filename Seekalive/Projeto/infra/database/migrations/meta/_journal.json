@@ -43,6 +43,13 @@
       "when": 1792969717436,
       "tag": "0005_mushy_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793267223976,
+      "tag": "0006_brief_raza",
+      "breakpoints": true
     }
   ]
 }
