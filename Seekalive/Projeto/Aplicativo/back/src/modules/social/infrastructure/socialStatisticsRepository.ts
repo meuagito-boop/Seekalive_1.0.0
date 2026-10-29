@@ -1,29 +1,66 @@
 import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   accountBlocks,
   accountFollows,
   accountFollowRequests,
+  accounts,
   db,
 } from "@workspace/db";
 
 export async function readAccountSocialStats(accountId: string) {
+  const activeFollower = alias(accounts, "active_follower");
+  const activeFollowed = alias(accounts, "active_followed");
   const [followers, following, circles] = await Promise.all([
-    db.select({ total: count() })
+    db
+      .select({ total: count() })
       .from(accountFollows)
-      .where(eq(accountFollows.followedId, accountId)),
-    db.select({ total: count() })
+      .innerJoin(
+        activeFollower,
+        eq(activeFollower.id, accountFollows.followerId),
+      )
+      .where(
+        and(
+          eq(accountFollows.followedId, accountId),
+          eq(activeFollower.status, "active"),
+        ),
+      ),
+    db
+      .select({ total: count() })
       .from(accountFollows)
-      .where(eq(accountFollows.followerId, accountId)),
-    db.select({ total: sql<number>`count(*)::int` })
+      .innerJoin(
+        activeFollowed,
+        eq(activeFollowed.id, accountFollows.followedId),
+      )
+      .where(
+        and(
+          eq(accountFollows.followerId, accountId),
+          eq(activeFollowed.status, "active"),
+        ),
+      ),
+    db
+      .select({ total: sql<number>`count(*)::int` })
       .from(accountFollows)
-      .where(and(
-        eq(accountFollows.followerId, accountId),
-        sql`exists (
+      .innerJoin(
+        activeFollower,
+        eq(activeFollower.id, accountFollows.followerId),
+      )
+      .innerJoin(
+        activeFollowed,
+        eq(activeFollowed.id, accountFollows.followedId),
+      )
+      .where(
+        and(
+          eq(accountFollows.followerId, accountId),
+          eq(activeFollower.status, "active"),
+          eq(activeFollowed.status, "active"),
+          sql`exists (
           select 1 from ${accountFollows} reciprocal
           where reciprocal.follower_id = ${accountFollows.followedId}
             and reciprocal.followed_id = ${accountId}
         )`,
-      )),
+        ),
+      ),
   ]);
 
   return {
@@ -33,7 +70,10 @@ export async function readAccountSocialStats(accountId: string) {
   };
 }
 
-export async function readSocialSummaryRows(accountIds: string[], viewerId: string | null) {
+export async function readSocialSummaryRows(
+  accountIds: string[],
+  viewerId: string | null,
+) {
   const ids = [...new Set(accountIds)];
   if (ids.length === 0) {
     return {
@@ -48,25 +88,70 @@ export async function readSocialSummaryRows(accountIds: string[], viewerId: stri
     };
   }
 
+  const activeFollower = alias(accounts, "active_follower");
+  const activeFollowed = alias(accounts, "active_followed");
   const [followerCounts, followingCounts, circleCounts] = await Promise.all([
-    db.select({ id: accountFollows.followedId, total: count() })
+    db
+      .select({ id: accountFollows.followedId, total: count() })
       .from(accountFollows)
-      .where(inArray(accountFollows.followedId, ids))
+      .innerJoin(
+        activeFollower,
+        eq(activeFollower.id, accountFollows.followerId),
+      )
+      .innerJoin(
+        activeFollowed,
+        eq(activeFollowed.id, accountFollows.followedId),
+      )
+      .where(
+        and(
+          inArray(accountFollows.followedId, ids),
+          eq(activeFollower.status, "active"),
+          eq(activeFollowed.status, "active"),
+        ),
+      )
       .groupBy(accountFollows.followedId),
-    db.select({ id: accountFollows.followerId, total: count() })
+    db
+      .select({ id: accountFollows.followerId, total: count() })
       .from(accountFollows)
-      .where(inArray(accountFollows.followerId, ids))
+      .innerJoin(
+        activeFollower,
+        eq(activeFollower.id, accountFollows.followerId),
+      )
+      .innerJoin(
+        activeFollowed,
+        eq(activeFollowed.id, accountFollows.followedId),
+      )
+      .where(
+        and(
+          inArray(accountFollows.followerId, ids),
+          eq(activeFollower.status, "active"),
+          eq(activeFollowed.status, "active"),
+        ),
+      )
       .groupBy(accountFollows.followerId),
-    db.select({ id: accountFollows.followerId, total: count() })
+    db
+      .select({ id: accountFollows.followerId, total: count() })
       .from(accountFollows)
-      .where(and(
-        inArray(accountFollows.followerId, ids),
-        sql`exists (
+      .innerJoin(
+        activeFollower,
+        eq(activeFollower.id, accountFollows.followerId),
+      )
+      .innerJoin(
+        activeFollowed,
+        eq(activeFollowed.id, accountFollows.followedId),
+      )
+      .where(
+        and(
+          inArray(accountFollows.followerId, ids),
+          eq(activeFollower.status, "active"),
+          eq(activeFollowed.status, "active"),
+          sql`exists (
           select 1 from ${accountFollows} reciprocal
           where reciprocal.follower_id = ${accountFollows.followedId}
             and reciprocal.followed_id = ${accountFollows.followerId}
         )`,
-      ))
+        ),
+      )
       .groupBy(accountFollows.followerId),
   ]);
 
@@ -76,38 +161,54 @@ export async function readSocialSummaryRows(accountIds: string[], viewerId: stri
   let blockedByMe: { id: string }[] = [];
   let blockedByThem: { id: string }[] = [];
   if (viewerId) {
-    [outgoing, pending, incoming, blockedByMe, blockedByThem] = await Promise.all([
-      db.select({ id: accountFollows.followedId })
-        .from(accountFollows)
-        .where(and(
-          eq(accountFollows.followerId, viewerId),
-          inArray(accountFollows.followedId, ids),
-        )),
-      db.select({ id: accountFollowRequests.targetId })
-        .from(accountFollowRequests)
-        .where(and(
-          eq(accountFollowRequests.requesterId, viewerId),
-          inArray(accountFollowRequests.targetId, ids),
-        )),
-      db.select({ id: accountFollows.followerId })
-        .from(accountFollows)
-        .where(and(
-          inArray(accountFollows.followerId, ids),
-          eq(accountFollows.followedId, viewerId),
-        )),
-      db.select({ id: accountBlocks.blockedId })
-        .from(accountBlocks)
-        .where(and(
-          eq(accountBlocks.blockerId, viewerId),
-          inArray(accountBlocks.blockedId, ids),
-        )),
-      db.select({ id: accountBlocks.blockerId })
-        .from(accountBlocks)
-        .where(and(
-          inArray(accountBlocks.blockerId, ids),
-          eq(accountBlocks.blockedId, viewerId),
-        )),
-    ]);
+    [outgoing, pending, incoming, blockedByMe, blockedByThem] =
+      await Promise.all([
+        db
+          .select({ id: accountFollows.followedId })
+          .from(accountFollows)
+          .where(
+            and(
+              eq(accountFollows.followerId, viewerId),
+              inArray(accountFollows.followedId, ids),
+            ),
+          ),
+        db
+          .select({ id: accountFollowRequests.targetId })
+          .from(accountFollowRequests)
+          .where(
+            and(
+              eq(accountFollowRequests.requesterId, viewerId),
+              inArray(accountFollowRequests.targetId, ids),
+            ),
+          ),
+        db
+          .select({ id: accountFollows.followerId })
+          .from(accountFollows)
+          .where(
+            and(
+              inArray(accountFollows.followerId, ids),
+              eq(accountFollows.followedId, viewerId),
+            ),
+          ),
+        db
+          .select({ id: accountBlocks.blockedId })
+          .from(accountBlocks)
+          .where(
+            and(
+              eq(accountBlocks.blockerId, viewerId),
+              inArray(accountBlocks.blockedId, ids),
+            ),
+          ),
+        db
+          .select({ id: accountBlocks.blockerId })
+          .from(accountBlocks)
+          .where(
+            and(
+              inArray(accountBlocks.blockerId, ids),
+              eq(accountBlocks.blockedId, viewerId),
+            ),
+          ),
+      ]);
   }
 
   return {

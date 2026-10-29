@@ -1,4 +1,4 @@
-import { and, eq, gt, lte } from "drizzle-orm";
+import { and, eq, gt, lte, ne } from "drizzle-orm";
 import {
   accountEmails,
   accountUsernameReservations,
@@ -30,7 +30,12 @@ export async function createPendingAccountIdentity(
   const [existingUsername] = await transaction
     .select({ id: accounts.id })
     .from(accounts)
-    .where(eq(accounts.username, input.username))
+    .where(
+      and(
+        eq(accounts.username, input.username),
+        ne(accounts.status, "deletion_retained"),
+      ),
+    )
     .limit(1);
   const [activeReservation] = await transaction
     .select({ username: accountUsernameReservations.username })

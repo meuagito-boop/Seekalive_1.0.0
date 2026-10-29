@@ -1,4 +1,4 @@
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, ne } from "drizzle-orm";
 import {
   accountEmails,
   accountUsernameReservations,
@@ -13,7 +13,12 @@ export const registrationAvailabilityRepository: RegistrationAvailabilityReposit
       const [account] = await db
         .select({ id: accounts.id })
         .from(accounts)
-        .where(eq(accounts.username, username))
+        .where(
+          and(
+            eq(accounts.username, username),
+            ne(accounts.status, "deletion_retained"),
+          ),
+        )
         .limit(1);
       return Boolean(account);
     },

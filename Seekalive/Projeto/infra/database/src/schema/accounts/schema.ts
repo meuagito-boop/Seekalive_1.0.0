@@ -42,6 +42,9 @@ export const accounts = accountsTable(
     deletionScheduledFor: timestamp("deletion_scheduled_for", {
       withTimezone: true,
     }),
+    deletionRetentionUntil: timestamp("deletion_retention_until", {
+      withTimezone: true,
+    }),
     securityLockedAt: timestamp("security_locked_at", { withTimezone: true }),
     publicNameChangedAt: timestamp("public_name_changed_at", {
       withTimezone: true,
@@ -65,10 +68,15 @@ export const accounts = accountsTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("accounts_username_unique").on(table.username),
+    uniqueIndex("accounts_username_unique")
+      .on(table.username)
+      .where(sql.raw(`"status" <> 'deletion_retained'`)),
     index("accounts_deletion_due_idx")
       .on(table.deletionScheduledFor, table.id)
       .where(sql.raw(`"status" = 'deletion_pending'`)),
+    index("accounts_retention_due_idx")
+      .on(table.deletionRetentionUntil, table.id)
+      .where(sql.raw(`"status" = 'deletion_retained'`)),
     check("accounts_age_adult_range", sql.raw(`"age" >= 18 AND "age" <= 120`)),
     check(
       "accounts_deletion_schedule_consistent",
@@ -77,10 +85,18 @@ export const accounts = accountsTable(
         AND "deletion_requested_at" IS NOT NULL
         AND "deletion_scheduled_for" IS NOT NULL
         AND "deletion_scheduled_for" > "deletion_requested_at"
+        AND "deletion_retention_until" IS NULL
       ) OR (
-        "status" <> 'deletion_pending'
+        "status" = 'deletion_retained'
+        AND "deletion_requested_at" IS NOT NULL
+        AND "deletion_scheduled_for" IS NOT NULL
+        AND "deletion_scheduled_for" > "deletion_requested_at"
+        AND "deletion_retention_until" > "deletion_scheduled_for"
+      ) OR (
+        "status" NOT IN ('deletion_pending', 'deletion_retained')
         AND "deletion_requested_at" IS NULL
         AND "deletion_scheduled_for" IS NULL
+        AND "deletion_retention_until" IS NULL
       )`),
     ),
   ],

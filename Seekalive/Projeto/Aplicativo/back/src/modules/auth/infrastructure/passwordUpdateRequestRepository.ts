@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import {
   accountEmails,
   accounts,
@@ -13,7 +13,10 @@ export const passwordUpdateRequestRepository: PasswordUpdateRequestRepository =
       const condition =
         identifier.kind === "email"
           ? eq(accountEmails.emailNormalized, identifier.value)
-          : eq(accounts.username, identifier.value);
+          : and(
+              eq(accounts.username, identifier.value),
+              ne(accounts.status, "deletion_retained"),
+            );
       const [account] = await db
         .select({
           id: accounts.id,

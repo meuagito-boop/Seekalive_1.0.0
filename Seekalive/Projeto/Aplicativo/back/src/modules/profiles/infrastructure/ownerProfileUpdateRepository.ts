@@ -1,4 +1,4 @@
-import { and, eq, gt, lte, sql } from "drizzle-orm";
+import { and, eq, gt, lte, ne, sql } from "drizzle-orm";
 import type { AccountPatchInput } from "@workspace/api-zod";
 import {
   accountUsernameReservations,
@@ -54,7 +54,8 @@ export async function persistOwnerProfileUpdate(
       const decision = evaluate(owner, now);
       if (decision.kind === "reject") return decision.result;
       const profileChanges = decision.changes;
-      const usernameChanged = patch.username !== undefined && patch.username !== owner.username;
+      const usernameChanged =
+        patch.username !== undefined && patch.username !== owner.username;
 
       if (owner.accountType === "commercial" && patch.commercialProfile) {
         const [commercialProfile] = await tx
@@ -69,24 +70,34 @@ export async function persistOwnerProfileUpdate(
         await lockUsernameClaims(tx, [owner.username, patch.username]);
         await tx
           .delete(accountUsernameReservations)
-          .where(and(
-            eq(accountUsernameReservations.username, patch.username),
-            lte(accountUsernameReservations.reservedUntil, now),
-          ));
+          .where(
+            and(
+              eq(accountUsernameReservations.username, patch.username),
+              lte(accountUsernameReservations.reservedUntil, now),
+            ),
+          );
         const [claimedAccount] = await tx
           .select({ id: accounts.id })
           .from(accounts)
-          .where(eq(accounts.username, patch.username))
+          .where(
+            and(
+              eq(accounts.username, patch.username),
+              ne(accounts.status, "deletion_retained"),
+            ),
+          )
           .limit(1);
         const [activeReservation] = await tx
           .select({ username: accountUsernameReservations.username })
           .from(accountUsernameReservations)
-          .where(and(
-            eq(accountUsernameReservations.username, patch.username),
-            gt(accountUsernameReservations.reservedUntil, now),
-          ))
+          .where(
+            and(
+              eq(accountUsernameReservations.username, patch.username),
+              gt(accountUsernameReservations.reservedUntil, now),
+            ),
+          )
           .limit(1);
-        if (claimedAccount || activeReservation) return { kind: "username_unavailable" };
+        if (claimedAccount || activeReservation)
+          return { kind: "username_unavailable" };
 
         await tx.insert(accountUsernameReservations).values({
           username: owner.username,
@@ -102,21 +113,29 @@ export async function persistOwnerProfileUpdate(
             ? { username: patch.username, usernameChangedAt: now }
             : {}),
           ...profileChanges.accountFields,
-          ...(profileChanges.publicNameChanged ? { publicNameChangedAt: now } : {}),
+          ...(profileChanges.publicNameChanged
+            ? { publicNameChangedAt: now }
+            : {}),
           ...(patch.bio === undefined ? {} : { bio: patch.bio }),
-          ...(patch.location === undefined ? {} : { locationLabel: patch.location }),
+          ...(patch.location === undefined
+            ? {}
+            : { locationLabel: patch.location }),
           ...(owner.accountType === "commercial" && patch.commercialProfile
-            ? { locationLabel: `${patch.commercialProfile.cityName}, ${patch.commercialProfile.stateName}` }
+            ? {
+                locationLabel: `${patch.commercialProfile.cityName}, ${patch.commercialProfile.stateName}`,
+              }
             : {}),
           updatedAt: now,
           version: sql`${accounts.version} + 1`,
         })
-        .where(and(
-          eq(accounts.id, accountId),
-          eq(accounts.version, patch.version),
-          eq(accounts.accountType, owner.accountType),
-          eq(accounts.status, "active"),
-        ))
+        .where(
+          and(
+            eq(accounts.id, accountId),
+            eq(accounts.version, patch.version),
+            eq(accounts.accountType, owner.accountType),
+            eq(accounts.status, "active"),
+          ),
+        )
         .returning({ id: accounts.id });
       if (!updated) return { kind: "version_conflict" };
 
@@ -129,14 +148,16 @@ export async function persistOwnerProfileUpdate(
       return { kind: "updated" };
     });
   } catch (error) {
-    const constraint = error && typeof error === "object"
-      ? (error as { constraint?: unknown }).constraint
-      : undefined;
+    const constraint =
+      error && typeof error === "object"
+        ? (error as { constraint?: unknown }).constraint
+        : undefined;
     if (
-      databaseErrorCode(error) === "23505"
-      && ["accounts_username_unique", "account_username_reservations_pkey"].includes(
-        typeof constraint === "string" ? constraint : "",
-      )
+      databaseErrorCode(error) === "23505" &&
+      [
+        "accounts_username_unique",
+        "account_username_reservations_pkey",
+      ].includes(typeof constraint === "string" ? constraint : "")
     ) {
       return { kind: "username_unavailable" };
     }

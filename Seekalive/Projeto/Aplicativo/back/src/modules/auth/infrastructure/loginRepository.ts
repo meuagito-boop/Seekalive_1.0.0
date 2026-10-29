@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import {
   accountEmails,
   accounts,
@@ -35,7 +35,10 @@ export const loginRepository: LoginRepository = {
       .where(
         input.kind === "email"
           ? eq(accountEmails.emailNormalized, input.identifier)
-          : eq(accounts.username, input.identifier),
+          : and(
+              eq(accounts.username, input.identifier),
+              ne(accounts.status, "deletion_retained"),
+            ),
       )
       .limit(1);
     return row ?? null;

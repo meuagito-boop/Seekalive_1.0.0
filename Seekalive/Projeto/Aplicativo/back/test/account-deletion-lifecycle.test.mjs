@@ -23,6 +23,7 @@ configureIsolatedDatabaseEnvironment({ schemaName, sessionSecret });
 const database = await import("@workspace/db");
 const {
   accountEmails,
+  accountFollows,
   accountUsernameReservations,
   accounts,
   authChallenges,
@@ -38,6 +39,12 @@ const deletionRepository =
   await import("../src/modules/auth/infrastructure/accountDeletionRepository.ts");
 const deletionFinalizer =
   await import("../src/modules/auth/infrastructure/accountDeletionFinalizerRepository.ts");
+const usernameAvailability =
+  await import("../src/modules/profiles/infrastructure/usernameAvailabilityRepository.ts");
+const loginRepository =
+  await import("../src/modules/auth/infrastructure/loginRepository.ts");
+const socialStatistics =
+  await import("../src/modules/social/infrastructure/socialStatisticsRepository.ts");
 const deletionUseCases =
   await import("../src/modules/auth/application/accountDeletion/confirmAccountDeletion.ts");
 const requestDeletionUseCase =
@@ -139,7 +146,7 @@ function requestRestorationCode() {
   });
 }
 
-test("account deletion request, restoration, and final purge follow the approved lifecycle", async () => {
+test("account deletion request, restoration, retention, and final purge follow policy", async () => {
   assert.equal(
     await (
       await import("../src/modules/auth/infrastructure/accountDeletionSchemaStatus.ts")
@@ -148,6 +155,11 @@ test("account deletion request, restoration, and final purge follow the approved
   );
 
   const account = await createAccount("restore");
+  const activeTarget = await createAccount("retained-follow-target");
+  await db.insert(accountFollows).values({
+    followerId: account.id,
+    followedId: activeTarget.id,
+  });
   const requestCode = requestDeletionCode();
   const codeSent = await requestCode(account.id);
   assert.equal(codeSent.kind, "code_sent");
@@ -228,13 +240,18 @@ test("account deletion request, restoration, and final purge follow the approved
   assert.ok(stillRevokedSession.revokedAt);
 
   const deletionRequestedAt = new Date(Date.now() - 24 * 24 * 60 * 60 * 1000);
+  const deletionScheduledFor =
+    deletionPolicy.calculateAccountDeletionDeadline(deletionRequestedAt);
+  const retentionUntil =
+    deletionPolicy.calculateAccountDeletionRetentionDeadline(
+      deletionScheduledFor,
+    );
   await db
     .update(accounts)
     .set({
       status: "deletion_pending",
       deletionRequestedAt,
-      deletionScheduledFor:
-        deletionPolicy.calculateAccountDeletionDeadline(deletionRequestedAt),
+      deletionScheduledFor,
     })
     .where(eq(accounts.id, account.id));
 
@@ -243,6 +260,73 @@ test("account deletion request, restoration, and final purge follow the approved
     await deletionFinalizer.finalizeDueAccountDeletions(),
     0,
     "Running the finalizer again must not delete or process the same account twice.",
+  );
+  const [retainedAccount] = await db
+    .select({
+      status: accounts.status,
+      deletionRetentionUntil: accounts.deletionRetentionUntil,
+    })
+    .from(accounts)
+    .where(eq(accounts.id, account.id));
+  assert.equal(retainedAccount.status, "deletion_retained");
+  assert.equal(
+    retainedAccount.deletionRetentionUntil.getTime(),
+    retentionUntil.getTime(),
+  );
+  assert.equal(
+    (await requestRestorationCode()(account.id)).kind,
+    "account_unavailable",
+    "An account cannot be restored after its seven-day grace period.",
+  );
+  const [reservation] = await db
+    .select({
+      accountId: accountUsernameReservations.accountId,
+      reservedUntil: accountUsernameReservations.reservedUntil,
+    })
+    .from(accountUsernameReservations)
+    .where(eq(accountUsernameReservations.username, account.username));
+  assert.equal(reservation.accountId, account.id);
+  assert.equal(
+    reservation.reservedUntil.getTime(),
+    deletionRequestedAt.getTime() + 30 * 24 * 60 * 60 * 1000,
+  );
+  const retainedSessions = await db
+    .select({ revokedAt: sessions.revokedAt })
+    .from(sessions)
+    .where(eq(sessions.accountId, account.id));
+  assert.ok(retainedSessions.length > 0);
+  assert.ok(
+    retainedSessions.every((session) => session.revokedAt),
+    "Session records remain only for retention and are already revoked.",
+  );
+  const retainedChallenges = await db
+    .select({ consumedAt: authChallenges.consumedAt })
+    .from(authChallenges)
+    .where(eq(authChallenges.accountId, account.id));
+  assert.ok(retainedChallenges.length > 0);
+  assert.ok(
+    retainedChallenges.every((challenge) => challenge.consumedAt),
+    "Authentication challenges remain consumed during retention.",
+  );
+  assert.equal(
+    (await socialStatistics.readAccountSocialStats(activeTarget.id)).followers,
+    0,
+    "Retained account relationships must not appear in active social counts.",
+  );
+  assert.deepEqual(
+    (await socialStatistics.readSocialSummaryRows([activeTarget.id], null))
+      .followerCounts,
+    [],
+  );
+
+  assert.equal(
+    await deletionFinalizer.finalizeDueAccountDeletions(retentionUntil),
+    1,
+  );
+  assert.equal(
+    await deletionFinalizer.finalizeDueAccountDeletions(retentionUntil),
+    0,
+    "Purging an expired retention record must be idempotent.",
   );
   assert.equal(
     (
@@ -253,16 +337,16 @@ test("account deletion request, restoration, and final purge follow the approved
     ).length,
     0,
   );
-  const [reservation] = await db
+  const [releasedReservation] = await db
     .select({
       accountId: accountUsernameReservations.accountId,
       reservedUntil: accountUsernameReservations.reservedUntil,
     })
     .from(accountUsernameReservations)
     .where(eq(accountUsernameReservations.username, account.username));
-  assert.equal(reservation.accountId, null);
+  assert.equal(releasedReservation.accountId, null);
   assert.equal(
-    reservation.reservedUntil.getTime(),
+    releasedReservation.reservedUntil.getTime(),
     deletionRequestedAt.getTime() + 30 * 24 * 60 * 60 * 1000,
   );
   assert.equal(
@@ -283,6 +367,58 @@ test("account deletion request, restoration, and final purge follow the approved
     ).length,
     0,
   );
+});
+
+test("a retained account releases its username after the 30-day hold", async () => {
+  const deletedAccount = await createAccount("username-reuse");
+  const now = new Date();
+  const deletionRequestedAt = new Date(
+    now.getTime() - 31 * 24 * 60 * 60 * 1000,
+  );
+  await db
+    .update(accounts)
+    .set({
+      status: "deletion_pending",
+      deletionRequestedAt,
+      deletionScheduledFor:
+        deletionPolicy.calculateAccountDeletionDeadline(deletionRequestedAt),
+    })
+    .where(eq(accounts.id, deletedAccount.id));
+
+  assert.equal(await deletionFinalizer.finalizeDueAccountDeletions(now), 1);
+  assert.equal(
+    await usernameAvailability.isUsernameClaimedOrReserved(
+      deletedAccount.username,
+    ),
+    false,
+  );
+
+  const newAccountId = randomUUID();
+  await db.insert(accounts).values({
+    id: newAccountId,
+    username: deletedAccount.username,
+    age: 30,
+    acceptedTermsVersion: "test",
+    displayName: "New owner of username",
+    accountType: "personal",
+    status: "active",
+  });
+  await db.insert(accountEmails).values({
+    accountId: newAccountId,
+    emailNormalized: `username-reuse-${randomUUID()}@example.test`,
+    verifiedAt: new Date(),
+  });
+  await db.insert(passwordCredentials).values({
+    accountId: newAccountId,
+    passwordHash: "test-password-hash",
+    passwordPolicyVersion: 1,
+  });
+
+  const loginAccount = await loginRepository.loginRepository.findLoginAccount({
+    kind: "username",
+    identifier: deletedAccount.username,
+  });
+  assert.equal(loginAccount?.id, newAccountId);
 });
 
 test("a wrong account-deletion code is limited to three attempts", async () => {

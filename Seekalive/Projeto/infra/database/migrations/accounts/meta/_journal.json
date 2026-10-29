@@ -8,6 +8,13 @@
       "when": 1793300333206,
       "tag": "0000_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793314142435,
+      "tag": "0001_account_deletion_retention",
+      "breakpoints": true
     }
   ]
 }

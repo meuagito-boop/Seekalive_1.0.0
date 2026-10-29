@@ -26,6 +26,13 @@ export async function isAccountDeletionSchemaReady(): Promise<boolean> {
         WHERE table_schema = ${schemaName}
           AND table_name = 'accounts'
           AND column_name = 'deletion_scheduled_for'
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = ${schemaName}
+          AND table_name = 'accounts'
+          AND column_name = 'deletion_retention_until'
       ) AS ready
   `);
   const ready = result.rows[0]?.["ready"] === true;

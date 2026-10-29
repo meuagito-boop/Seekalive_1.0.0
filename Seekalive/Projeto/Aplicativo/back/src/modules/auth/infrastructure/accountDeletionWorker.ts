@@ -18,9 +18,12 @@ export async function startAccountDeletionWorker(): Promise<() => void> {
     if (running) return;
     running = true;
     try {
-      const finalizedCount = await finalizeDueAccountDeletions();
-      if (finalizedCount > 0) {
-        logger.info({ finalizedCount }, "Due account deletions finalized");
+      const processedCount = await finalizeDueAccountDeletions();
+      if (processedCount > 0) {
+        logger.info(
+          { processedCount },
+          "Due account deletion lifecycle actions completed",
+        );
       }
     } catch (error) {
       logger.error(

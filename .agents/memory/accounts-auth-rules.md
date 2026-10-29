@@ -14,12 +14,13 @@ description: Decisões de produto do usuário para cadastro, autenticação, pri
 - Sessão padrão de sete dias, sem expiração por inatividade; no máximo duas sessões simultâneas. Uma terceira sessão revoga a mais antiga. Instalação confiável continua reconhecida até revogação; mudança de senha revoga todas.
 - Contas públicas não podem reivindicar `seekalive` nem variações de formatação, separadores, repetição e substituições numéricas comuns; o validador compartilhado e a política estão documentados. O lookup continua permitindo localizar perfil oficial. A criação/provisionamento privilegiado de contas oficiais ainda não existe.
 
-## IP e retenção: limites pendentes
+## IP e ciclo de retenção
 
 - Token revogável é o identificador durável do dispositivo; IP serve somente ao rate limit nesta etapa e não deve ser tratado como identidade do aparelho nem persistido como histórico de sessão.
 - No desenvolvimento, a API só aceita o cabeçalho interno de IP quando a conexão imediata vem de loopback; a confiança na entrada do proxy ainda não foi validada. Não ampliar o uso do IP sem verificar a cadeia no ambiente-alvo.
-- Após os sete dias de desativação, a conta não pode ser restaurada; todos os registros devem permanecer por mais 90 dias, com acesso restrito para pedidos legais, e depois ser eliminados. O finalizador atual apaga aos sete dias, portanto contradiz a regra e precisa ser substituído antes de fechar Accounts/Auth.
+- Após os sete dias de desativação, a conta não pode ser restaurada; todos os registros permanecem por mais 90 dias e depois são eliminados. Durante a retenção, a conta fica fora das APIs públicas; ainda não existe uma interface ou papel separado para atender pedidos legais.
+- O @ antigo fica reservado por 30 dias desde o pedido de exclusão e pode ser reivindicado depois, mesmo enquanto os registros antigos continuam retidos. O endereço de e-mail permanece indisponível até a purga por causa da unicidade e retenção atuais; esse efeito deve ser informado antes de mudar a política.
 
 **Why:** Estas regras foram fornecidas diretamente pelo usuário em 29/10/2026 e não são dedutíveis do código. A interpretação incorreta de retenção ou de confiança no IP pode mudar exclusão de dados e controles de segurança.
 
-**How to apply:** preservar as regras aprovadas e verificar a implementação antes de fechar Accounts/Auth. O limite de sessões, a retenção legal adicional e a exclusão final precisam de testes próprios; não declarar cobertura onde o domínio ainda não possui persistência. Não usar IP para reconhecer instalação.
+**How to apply:** preservar a janela de restauração de sete dias, a retenção adicional de 90 dias contada do prazo final e a liberação do @ no 30º dia. Não declarar acesso jurídico operacional sem controles e fluxo próprios. O limite de duas sessões ainda precisa de implementação/testes. Não usar IP para reconhecer instalação.

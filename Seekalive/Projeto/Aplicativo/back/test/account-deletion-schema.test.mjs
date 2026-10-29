@@ -62,6 +62,9 @@ test("account deletion state is coherent and can be cleared on restoration", asy
   const scheduledFor = new Date(
     requestedAt.getTime() + 7 * 24 * 60 * 60 * 1000,
   );
+  const retentionUntil = new Date(
+    scheduledFor.getTime() + 90 * 24 * 60 * 60 * 1000,
+  );
 
   await db
     .update(accounts)
@@ -96,9 +99,25 @@ test("account deletion state is coherent and can be cleared on restoration", asy
   await db
     .update(accounts)
     .set({
+      status: "deletion_retained",
+      deletionRetentionUntil: retentionUntil,
+    })
+    .where(eq(accounts.id, account.id));
+
+  await assert.rejects(
+    db
+      .update(accounts)
+      .set({ deletionRetentionUntil: scheduledFor })
+      .where(eq(accounts.id, account.id)),
+  );
+
+  await db
+    .update(accounts)
+    .set({
       status: "active",
       deletionRequestedAt: null,
       deletionScheduledFor: null,
+      deletionRetentionUntil: null,
     })
     .where(eq(accounts.id, account.id));
 
@@ -107,6 +126,7 @@ test("account deletion state is coherent and can be cleared on restoration", asy
       status: accounts.status,
       deletionRequestedAt: accounts.deletionRequestedAt,
       deletionScheduledFor: accounts.deletionScheduledFor,
+      deletionRetentionUntil: accounts.deletionRetentionUntil,
     })
     .from(accounts)
     .where(eq(accounts.id, account.id));
@@ -115,6 +135,7 @@ test("account deletion state is coherent and can be cleared on restoration", asy
     status: "active",
     deletionRequestedAt: null,
     deletionScheduledFor: null,
+    deletionRetentionUntil: null,
   });
 
   const indexResult = await pool.query(
@@ -125,4 +146,22 @@ test("account deletion state is coherent and can be cleared on restoration", asy
   );
   assert.equal(indexResult.rows.length, 1);
   assert.match(indexResult.rows[0].indexdef, /deletion_pending/);
+
+  const retentionIndex = await pool.query(
+    `SELECT indexdef
+     FROM pg_catalog.pg_indexes
+     WHERE schemaname = $1 AND indexname = 'accounts_retention_due_idx'`,
+    [schemaName],
+  );
+  assert.equal(retentionIndex.rows.length, 1);
+  assert.match(retentionIndex.rows[0].indexdef, /deletion_retained/);
+
+  const usernameIndex = await pool.query(
+    `SELECT indexdef
+     FROM pg_catalog.pg_indexes
+     WHERE schemaname = $1 AND indexname = 'accounts_username_unique'`,
+    [schemaName],
+  );
+  assert.equal(usernameIndex.rows.length, 1);
+  assert.match(usernameIndex.rows[0].indexdef, /deletion_retained/);
 });
