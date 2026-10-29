@@ -16,10 +16,12 @@ import { useDeviceLoginChallenge } from "@/modules/auth/application/useDeviceLog
 import { useLoginSubmission } from "@/modules/auth/application/useLoginSubmission";
 import { usePasswordPolicyUpdate } from "@/modules/auth/application/usePasswordPolicyUpdate";
 import { DeviceLoginVerificationPanel } from "@/modules/auth/components/login/DeviceLoginVerificationPanel";
+import { AccountRestorationPanel } from "@/modules/auth/components/login/AccountRestorationPanel";
 import { LoginCredentialsForm } from "@/modules/auth/components/login/LoginCredentialsForm";
 import { PasswordPolicyUpdateForm } from "@/modules/auth/components/login/PasswordPolicyUpdateForm";
 import { PasswordUpdateVerificationPanel } from "@/modules/auth/components/login/PasswordUpdateVerificationPanel";
 import type {
+  AccountDeletionPending,
   AuthResult,
   DeviceVerificationRequired,
 } from "@/modules/auth/types";
@@ -29,6 +31,10 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [savePassword, setSavePassword] = useState(false);
+  const [pendingDeletion, setPendingDeletion] = useState<{
+    challenge: AccountDeletionPending;
+    credentials: LoginFormValues;
+  } | null>(null);
   const {
     setAuthenticatedAccount,
     setPendingVerificationEmail,
@@ -81,6 +87,10 @@ export default function Login() {
     getCredentials: () => form.getValues(),
     onAuthenticated: applyLoginResult,
     onDeviceChallenge: beginDeviceChallenge,
+    onAccountDeletionPending: (challenge, credentials) => {
+      setSupportEmail(null);
+      setPendingDeletion({ challenge, credentials });
+    },
     onChallengeStarted: () => setSupportEmail(null),
     onPasswordApplied: (password) => {
       form.setValue("password", password, { shouldValidate: true });
@@ -92,6 +102,10 @@ export default function Login() {
   const loginSubmission = useLoginSubmission({
     onAuthenticated: applyLoginResult,
     onDeviceChallenge: beginDeviceChallenge,
+    onAccountDeletionPending: (challenge, credentials) => {
+      setSupportEmail(null);
+      setPendingDeletion({ challenge, credentials });
+    },
     onPasswordUpdateRequired: () => {
       passwordUpdate.requireUpdate();
       notify({
@@ -144,16 +158,34 @@ export default function Login() {
           confirmado.
         </p>
 
-        {!deviceLogin.challenge && !passwordUpdate.challenge && (
-          <LoginCredentialsForm
-            form={form}
-            onSubmit={loginSubmission.submit}
-            showPassword={showPassword}
-            savePassword={savePassword}
-            onShowPasswordChange={setShowPassword}
-            onSavePasswordChange={setSavePassword}
+        {!deviceLogin.challenge &&
+          !passwordUpdate.challenge &&
+          !pendingDeletion && (
+            <LoginCredentialsForm
+              form={form}
+              onSubmit={loginSubmission.submit}
+              showPassword={showPassword}
+              savePassword={savePassword}
+              onShowPasswordChange={setShowPassword}
+              onSavePasswordChange={setSavePassword}
+            />
+          )}
+
+        {pendingDeletion ? (
+          <AccountRestorationPanel
+            pending={pendingDeletion.challenge}
+            credentials={pendingDeletion.credentials}
+            onCancel={() => setPendingDeletion(null)}
+            onRestored={() => {
+              setPendingDeletion(null);
+              form.reset();
+              toast({
+                title: "Conta restaurada",
+                description: "Entre novamente para acessar sua conta.",
+              });
+            }}
           />
-        )}
+        ) : null}
 
         {deviceLogin.challenge && (
           <DeviceLoginVerificationPanel

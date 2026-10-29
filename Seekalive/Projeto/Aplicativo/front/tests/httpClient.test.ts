@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { deviceVerificationRequiredResponseSchema } from "@workspace/api-zod";
+import { loginStepUpResponseSchema } from "@workspace/api-zod";
 import {
   ApiResponseContractError,
   ApiRequestError,
@@ -162,7 +162,7 @@ test("validated responses enforce status and shape without changing wire values"
       const result = await postJson<typeof challenge>(
         "/auth/login",
         { identifier: "user", password: "Password1!" },
-        { 202: deviceVerificationRequiredResponseSchema },
+        { 202: loginStepUpResponseSchema },
       );
 
       assert.deepEqual(result, challenge);
@@ -172,7 +172,7 @@ test("validated responses enforce status and shape without changing wire values"
 });
 
 test("validated responses reject unexpected success statuses and malformed bodies", async () => {
-  const contract = { 202: deviceVerificationRequiredResponseSchema };
+  const contract = { 202: loginStepUpResponseSchema };
   const invalidResponses: Array<{
     response: () => Response;
     expectedStatus: number;
@@ -214,7 +214,11 @@ test("validated responses reject unexpected success statuses and malformed bodie
           : invalid.response(),
       async () => {
         await assert.rejects(
-          postJson("/auth/login", { identifier: "user", password: "secret" }, contract),
+          postJson(
+            "/auth/login",
+            { identifier: "user", password: "secret" },
+            contract,
+          ),
           (error: unknown) => {
             assert.ok(error instanceof ApiResponseContractError);
             assert.equal(error.status, invalid.expectedStatus);

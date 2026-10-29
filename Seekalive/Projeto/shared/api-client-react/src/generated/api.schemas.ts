@@ -104,6 +104,13 @@ export interface DeviceVerificationRequired {
   message: string;
 }
 
+export interface AccountDeletionPendingResponse {
+  status: 'account_deletion_pending';
+  deletionScheduledFor: string;
+  emailMasked: string;
+  message: string;
+}
+
 export interface DeviceVerificationResent {
   status: 'verification_code_resent';
   expiresAt: string;
@@ -426,6 +433,47 @@ export interface PasswordChangeCodeResponse {
   emailMasked: string;
   expiresAt: string;
   message: string;
+}
+
+export interface AccountDeletionCodeResponse {
+  status: 'verification_code_sent';
+  challengeId: string;
+  emailMasked: string;
+  expiresAt: string;
+}
+
+export interface AccountDeletionCodeRequest { [key: string]: unknown }
+
+export interface AccountDeletionConfirmation {
+  challengeId: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+}
+
+export interface AccountRestorationConfirmation {
+  /**
+     * @minLength 3
+     * @maxLength 254
+     */
+  identifier: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  password: string;
+  challengeId: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+}
+
+export const AccountRestoredResponseValue = {
+  status: 'account_restored',
+} as const;
+export type AccountRestoredResponse = typeof AccountRestoredResponseValue;
+
+export interface AccountDeletionScheduled {
+  status: 'deletion_scheduled';
+  deletionScheduledFor: string;
 }
 
 export interface AccountEmailChangeResult {

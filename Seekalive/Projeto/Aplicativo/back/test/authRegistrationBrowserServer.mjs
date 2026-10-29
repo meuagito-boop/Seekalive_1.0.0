@@ -342,6 +342,14 @@ try {
         newEmailMasked: message.newEmailMasked,
       });
     },
+    async sendAccountDeletionCode(message) {
+      send({
+        type: "account-deletion-code",
+        email: message.email.toLowerCase(),
+        code: message.code,
+        purpose: message.purpose,
+      });
+    },
     async sendDeviceLoginCode(message) {
       send({
         type: "device-login-email",

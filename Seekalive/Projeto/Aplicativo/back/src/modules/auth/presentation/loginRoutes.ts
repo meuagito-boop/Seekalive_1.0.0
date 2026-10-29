@@ -12,6 +12,7 @@ import {
 } from "../../../security/sessionCookies";
 import { loginOperations } from "../composition/login";
 import { authResult } from "./authResult";
+import { maskEmail } from "../application/emailMasking";
 import {
   sendError,
   sendValidationError,
@@ -61,6 +62,16 @@ router.post(
         "ACCOUNT_UNAVAILABLE",
         "Esta conta não pode acessar o aplicativo.",
       );
+      return;
+    }
+    if (result.kind === "account_deletion_pending") {
+      response.status(202).json({
+        status: "account_deletion_pending",
+        deletionScheduledFor: result.deletionScheduledFor.toISOString(),
+        emailMasked: maskEmail(result.account.email),
+        message:
+          "Sua conta está agendada para exclusão. Você pode restaurá-la até a data informada.",
+      });
       return;
     }
     if (result.kind === "account_locked") {

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import accountSecurityRouter from "./accountSecurityRoutes";
+import accountDeletionRouter from "./accountDeletionRoutes";
 import csrfRouter from "./csrfRoutes";
 import deviceVerificationRouter from "./deviceVerificationRoutes";
 import emailVerificationRouter from "./emailVerificationRoutes";
@@ -18,6 +19,7 @@ router.use((_request, response, next) => {
   next();
 });
 
+router.use("/account/deletion", accountDeletionRouter);
 router.use(registrationRouter);
 router.use(csrfRouter);
 router.use(loginRouter);

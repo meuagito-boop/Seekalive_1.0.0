@@ -83,6 +83,7 @@ const accountPasswordChangeMessages = [];
 const accountEmailChangeCurrentMessages = [];
 const accountEmailChangeNewMessages = [];
 const accountEmailChangeSecurityNotices = [];
+const accountDeletionMessages = [];
 
 before(async () => {
   isolatedDatabaseFixture = await setupIsolatedDatabaseFixture({
@@ -120,6 +121,9 @@ before(async () => {
     },
     async sendAccountEmailChangeSecurityNotice(message) {
       accountEmailChangeSecurityNotices.push(message);
+    },
+    async sendAccountDeletionCode(message) {
+      accountDeletionMessages.push(message);
     },
   });
 

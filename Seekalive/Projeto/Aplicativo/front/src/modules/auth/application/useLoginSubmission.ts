@@ -3,6 +3,7 @@ import { ApiRequestError } from "@/modules/app/api/httpClient";
 import { loginAccount } from "@/modules/auth/services/loginApi";
 import type {
   AuthResult,
+  AccountDeletionPending,
   DeviceVerificationRequired,
 } from "@/modules/auth/types";
 import type { LoginFormValues } from "./loginFormSchema";
@@ -10,6 +11,10 @@ import type { LoginFormValues } from "./loginFormSchema";
 type Options = {
   onAuthenticated: (result: AuthResult) => void;
   onDeviceChallenge: (challenge: DeviceVerificationRequired) => void;
+  onAccountDeletionPending: (
+    challenge: AccountDeletionPending,
+    credentials: LoginFormValues,
+  ) => void;
   onPasswordUpdateRequired: () => void;
   onEmailNotVerified: (identifier: string, message: string) => void;
   onFailure: (error: unknown, fallback: string) => void;
@@ -18,6 +23,7 @@ type Options = {
 export function useLoginSubmission({
   onAuthenticated,
   onDeviceChallenge,
+  onAccountDeletionPending,
   onPasswordUpdateRequired,
   onEmailNotVerified,
   onFailure,
@@ -26,6 +32,13 @@ export function useLoginSubmission({
     async (values: LoginFormValues) => {
       try {
         const result = await loginAccount(values);
+        if (
+          "status" in result &&
+          result.status === "account_deletion_pending"
+        ) {
+          onAccountDeletionPending(result, values);
+          return;
+        }
         if ("challengeId" in result) {
           onDeviceChallenge(result);
           return;
@@ -56,6 +69,7 @@ export function useLoginSubmission({
     },
     [
       onAuthenticated,
+      onAccountDeletionPending,
       onDeviceChallenge,
       onEmailNotVerified,
       onFailure,

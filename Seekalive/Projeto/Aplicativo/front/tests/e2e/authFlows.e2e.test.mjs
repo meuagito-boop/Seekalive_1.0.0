@@ -235,6 +235,64 @@ test("known-device login reaches the feed with the submitted credentials", async
   assertNoExternalRequests(blockedExternalRequests);
 });
 
+test("an account pending deletion can be restored from login with password and e-mail code", async (t) => {
+  const { page, requests, unhandledApiRequests, blockedExternalRequests } =
+    await createAuthTestPage(browser, {
+      "POST /api/v1/auth/login": async () =>
+        jsonResponse(202, {
+          status: "account_deletion_pending",
+          deletionScheduledFor: "2026-11-05T12:00:00.000Z",
+          emailMasked: "ad***@gmail.com",
+          message: "Sua conta está aguardando exclusão.",
+        }),
+      "POST /api/v1/auth/account/deletion/restore/code": async () =>
+        jsonResponse(202, {
+          status: "verification_code_sent",
+          challengeId: "55555555-5555-4555-8555-555555555555",
+          emailMasked: "ad***@gmail.com",
+          expiresAt: "2026-10-29T12:10:00.000Z",
+        }),
+      "POST /api/v1/auth/account/deletion/restore/confirm": async () =>
+        jsonResponse(200, { status: "account_restored" }),
+    });
+  t.after(() => page.close());
+
+  await page.goto(route("/login"), { waitUntil: "domcontentloaded" });
+  await page.getByTestId("input-identifier").fill("ana@example.com");
+  await page.getByTestId("input-password").fill(testPassword);
+  await page.getByTestId("button-login").click();
+  await page.getByRole("heading", { name: "Restaurar sua conta?" }).waitFor();
+  await page.getByTestId("button-start-account-restoration").click();
+  await page.getByLabel("Código de restauração").fill("456123");
+  await page.getByRole("button", { name: "Confirmar restauração" }).click();
+  await page.getByText("Entre novamente para acessar sua conta.").waitFor();
+  assert.equal(await page.getByTestId("input-identifier").count(), 1);
+  assert.equal(await page.getByTestId("input-password").count(), 1);
+
+  const codeRequest = getRequest(
+    requests,
+    "POST",
+    "/api/v1/auth/account/deletion/restore/code",
+  );
+  assert.deepEqual(codeRequest.body, {
+    identifier: "ana@example.com",
+    password: testPassword,
+  });
+  const confirmation = getRequest(
+    requests,
+    "POST",
+    "/api/v1/auth/account/deletion/restore/confirm",
+  );
+  assert.deepEqual(confirmation.body, {
+    challengeId: "55555555-5555-4555-8555-555555555555",
+    code: "456123",
+    identifier: "ana@example.com",
+    password: testPassword,
+  });
+  assertNoUnexpectedAuthRequests(unhandledApiRequests);
+  assertNoExternalRequests(blockedExternalRequests);
+});
+
 test("unknown-device login requires a code before reaching the feed", async (t) => {
   const { page, requests, unhandledApiRequests, blockedExternalRequests } =
     await createAuthTestPage(browser, {
@@ -352,7 +410,8 @@ test("password-policy update reauthenticates on an unrecognized installation", a
     "Password update must submit the old credential and matching new password.",
   );
   assert.ok(
-    updateConfirmation.body?.challengeId === "44444444-4444-4444-8444-444444444444" &&
+    updateConfirmation.body?.challengeId ===
+      "44444444-4444-4444-8444-444444444444" &&
       updateConfirmation.body.code === "654321",
     "Password update confirmation must submit the issued challenge and code.",
   );

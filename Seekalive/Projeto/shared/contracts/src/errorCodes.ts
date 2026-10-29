@@ -93,11 +93,14 @@ export const API_ERROR_CODES = {
   INTERNAL_ERROR: 1801,
   CLIENT_IP_UNAVAILABLE: 1802,
   EMAIL_DELIVERY_UNAVAILABLE: 1803,
+  ACCOUNT_DELETION_SCHEMA_REQUIRED: 1804,
 } as const;
 
 const applicationErrorNumbers = Object.values(API_ERROR_CODES);
 if (new Set(applicationErrorNumbers).size !== applicationErrorNumbers.length) {
-  throw new Error("Each application error type must have a unique numeric code.");
+  throw new Error(
+    "Each application error type must have a unique numeric code.",
+  );
 }
 
 const registeredHttpStatuses = Object.values(HTTP_STATUS_CODES);

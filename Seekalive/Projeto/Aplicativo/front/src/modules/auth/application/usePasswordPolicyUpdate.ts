@@ -8,6 +8,7 @@ import {
   updatePasswordPolicy,
 } from "@/modules/auth/services/loginApi";
 import type {
+  AccountDeletionPending,
   AuthResult,
   DeviceVerificationRequired,
   PasswordUpdateVerificationRequired,
@@ -28,6 +29,10 @@ type Options = {
   getCredentials: () => LoginFormValues;
   onAuthenticated: (result: AuthResult) => void;
   onDeviceChallenge: (challenge: DeviceVerificationRequired) => void;
+  onAccountDeletionPending: (
+    challenge: AccountDeletionPending,
+    credentials: LoginFormValues,
+  ) => void;
   onChallengeStarted: () => void;
   onPasswordApplied: (password: string) => void;
   onFailure: (error: unknown, fallback: string) => void;
@@ -38,6 +43,7 @@ export function usePasswordPolicyUpdate({
   getCredentials,
   onAuthenticated,
   onDeviceChallenge,
+  onAccountDeletionPending,
   onChallengeStarted,
   onPasswordApplied,
   onFailure,
@@ -126,6 +132,16 @@ export function usePasswordPolicyUpdate({
         identifier: identifier.trim(),
         password: newPassword,
       });
+      if (
+        "status" in loginResult &&
+        loginResult.status === "account_deletion_pending"
+      ) {
+        onAccountDeletionPending(loginResult, {
+          identifier: identifier.trim(),
+          password: newPassword,
+        });
+        return;
+      }
       if ("challengeId" in loginResult) {
         onDeviceChallenge(loginResult);
         return;

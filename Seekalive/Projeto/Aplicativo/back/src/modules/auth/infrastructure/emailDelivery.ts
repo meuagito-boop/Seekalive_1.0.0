@@ -1,6 +1,7 @@
 import { SUPPORT_EMAIL } from "@workspace/api-zod";
 import type {
   AccountEmailChangeSecurityNotice,
+  AccountDeletionCodeEmail,
   AuthEmailDelivery,
   DeviceLoginEmail,
   PasswordResetEmail,
@@ -158,6 +159,21 @@ export const authEmailDelivery: AuthEmailDelivery = {
       subject: "O e-mail da sua conta Seekalive foi alterado",
       text: `Olá, ${message.displayName}.\n\nO e-mail da sua conta Seekalive foi alterado. O novo endereço confirmado, mascarado, é: ${message.newEmailMasked}.\n\nSe você não fez essa alteração, entre em contato com o suporte: ${SUPPORT_EMAIL}.`,
       html: `<p>Olá, ${displayName}.</p><p>O e-mail da sua conta Seekalive foi alterado. O novo endereço confirmado, mascarado, é: ${newEmailMasked}.</p><p>Se você não fez essa alteração, entre em contato com o suporte: ${SUPPORT_EMAIL}.</p>`,
+    });
+  },
+  async sendAccountDeletionCode(message: AccountDeletionCodeEmail) {
+    const restore = message.purpose === "restore_account";
+    const displayName = escapeHtml(message.displayName);
+    const action = restore
+      ? "restaurar sua conta"
+      : "solicitar a exclusão da conta";
+    await sendResendEmail({
+      email: message.email,
+      subject: restore
+        ? "Código para restaurar sua conta — Seekalive"
+        : "Código para solicitar a exclusão da conta — Seekalive",
+      text: `Olá, ${message.displayName}.\n\nSeu código para ${action} no Seekalive é: ${message.code}\n\nEle expira em 10 minutos e pode ser usado uma única vez. Nenhuma outra confirmação será enviada por e-mail. Se você não solicitou esta ação, ignore esta mensagem.`,
+      html: `<p>Olá, ${displayName}.</p><p>Seu código para ${action} no Seekalive é:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${message.code}</p><p>Ele expira em 10 minutos e pode ser usado uma única vez. Nenhuma outra confirmação será enviada por e-mail. Se você não solicitou esta ação, ignore esta mensagem.</p>`,
     });
   },
 };

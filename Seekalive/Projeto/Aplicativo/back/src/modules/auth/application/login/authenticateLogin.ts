@@ -25,6 +25,11 @@ export type LoginAuthenticationResult =
   | AuthenticationFailureResult
   | { kind: "unknown_device"; account: LoginAccount }
   | {
+      kind: "account_deletion_pending";
+      account: LoginAccount;
+      deletionScheduledFor: Date;
+    }
+  | {
       kind: "authenticated";
       account: LoginAccount;
       material: ReturnType<typeof createSessionMaterial>;
@@ -74,9 +79,13 @@ export function createAuthenticateLogin(repository: LoginRepository) {
     ) {
       return { kind: "email_not_verified" };
     }
-    if (account.accountStatus !== "active")
-      return { kind: "account_unavailable" };
     if (account.securityLockedAt) return { kind: "account_locked" };
+    if (
+      account.accountStatus !== "active" &&
+      account.accountStatus !== "deletion_pending"
+    ) {
+      return { kind: "account_unavailable" };
+    }
 
     const passwordMatchesCurrentPolicy =
       passwordPolicySchema.safeParse(password).success;
@@ -88,7 +97,7 @@ export function createAuthenticateLogin(repository: LoginRepository) {
       const currentAccount = await transaction.lockAccountForAuthentication(
         account.id,
       );
-      if (!currentAccount || currentAccount.status !== "active") {
+      if (!currentAccount) {
         return { kind: "account_unavailable" as const };
       }
       if (!currentAccount.verifiedAt)
@@ -99,6 +108,20 @@ export function createAuthenticateLogin(repository: LoginRepository) {
       const credential = await transaction.lockPasswordCredential(account.id);
       if (!credential || credential.passwordHash !== account.passwordHash) {
         return { kind: "credentials_changed" as const };
+      }
+      if (currentAccount.status === "deletion_pending") {
+        const deletionScheduledFor = await transaction.findDeletionSchedule(
+          account.id,
+        );
+        return deletionScheduledFor
+          ? {
+              kind: "account_deletion_pending" as const,
+              deletionScheduledFor,
+            }
+          : { kind: "account_unavailable" as const };
+      }
+      if (currentAccount.status !== "active") {
+        return { kind: "account_unavailable" as const };
       }
       if (credential.passwordPolicyVersion > PASSWORD_POLICY_VERSION) {
         return { kind: "unsupported_policy" as const };
@@ -139,6 +162,13 @@ export function createAuthenticateLogin(repository: LoginRepository) {
 
     if (result.kind === "unknown_device") {
       return { kind: "unknown_device", account };
+    }
+    if (result.kind === "account_deletion_pending") {
+      return {
+        kind: "account_deletion_pending",
+        account,
+        deletionScheduledFor: result.deletionScheduledFor,
+      };
     }
     if (result.kind !== "authenticated") return result;
 

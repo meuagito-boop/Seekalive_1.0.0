@@ -23,6 +23,13 @@ export type DeviceVerificationRequired = {
   message: string;
 };
 
+export type AccountDeletionPending = {
+  status: "account_deletion_pending";
+  deletionScheduledFor: string;
+  emailMasked: string;
+  message: string;
+};
+
 export type PasswordUpdateVerificationRequired = {
   status: "password_update_verification_required";
   challengeId: string;
@@ -31,7 +38,10 @@ export type PasswordUpdateVerificationRequired = {
   message: string;
 };
 
-export type LoginResult = AuthResult | DeviceVerificationRequired;
+export type LoginResult =
+  | AuthResult
+  | DeviceVerificationRequired
+  | AccountDeletionPending;
 
 export type EmailConfirmationResult =
   | AuthResult
@@ -39,7 +49,11 @@ export type EmailConfirmationResult =
 
 export type CurrentSession =
   | { authenticated: false; account: null; session: null }
-  | { authenticated: true; account: AuthAccount; session: { id: string; createdAt: string; expiresAt: string } };
+  | {
+      authenticated: true;
+      account: AuthAccount;
+      session: { id: string; createdAt: string; expiresAt: string };
+    };
 
 export type AuthSessionView = {
   id: string;

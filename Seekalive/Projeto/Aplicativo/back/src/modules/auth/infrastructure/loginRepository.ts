@@ -59,6 +59,15 @@ export const loginRepository: LoginRepository = {
           return account ?? null;
         },
 
+        async findDeletionSchedule(accountId) {
+          const [account] = await tx
+            .select({ deletionScheduledFor: accounts.deletionScheduledFor })
+            .from(accounts)
+            .where(eq(accounts.id, accountId))
+            .limit(1);
+          return account?.deletionScheduledFor ?? null;
+        },
+
         async lockPasswordCredential(accountId) {
           const [credential] = await tx
             .select({

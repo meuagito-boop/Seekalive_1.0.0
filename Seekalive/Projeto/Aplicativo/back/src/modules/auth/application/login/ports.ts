@@ -29,6 +29,7 @@ export type LoginTransaction = {
     verifiedAt: Date | null;
     securityLockedAt: Date | null;
   } | null>;
+  findDeletionSchedule(accountId: string): Promise<Date | null>;
   lockPasswordCredential(accountId: string): Promise<{
     passwordHash: string;
     passwordPolicyVersion: number;

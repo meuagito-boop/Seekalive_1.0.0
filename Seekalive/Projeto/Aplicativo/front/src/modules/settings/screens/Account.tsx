@@ -6,38 +6,65 @@ import { useAppContext } from "@/modules/app/state/AppContext";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import type { User } from "@/modules/profile/types/user";
 import { useToast } from "@/hooks/use-toast";
-import { myAccountToUser, socialGraphApi, SocialGraphApiError } from "@/modules/social/services/socialGraphApi";
+import {
+  myAccountToUser,
+  socialGraphApi,
+  SocialGraphApiError,
+} from "@/modules/social/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
 import { accountDraftFromUser } from "@/modules/settings/application/accountDraft";
 import { AccountEmailChange } from "@/modules/settings/components/account/AccountEmailChange";
 import { AccountProfileForm } from "@/modules/settings/components/account/AccountProfileForm";
 import { AccountPasswordChange } from "@/modules/settings/components/account/AccountPasswordChange";
 import { AccountUsernameForm } from "@/modules/settings/components/account/AccountUsernameForm";
-import { SectionTitle, SettingsSubheader, UnavailableNotice } from "@/modules/settings/components/SettingsSubheader";
+import {
+  SectionTitle,
+  SettingsSubheader,
+  UnavailableNotice,
+} from "@/modules/settings/components/SettingsSubheader";
+import { AccountDeletionControls } from "@/modules/settings/components/account/AccountDeletionControls";
 import type { AccountDraft } from "@/modules/settings/types/accountSettings";
+import { useLocation } from "wouter";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 function requestErrorMessage(error: unknown): string {
-  if (error instanceof SocialGraphApiError && error.key === "VERSION_CONFLICT") {
+  if (
+    error instanceof SocialGraphApiError &&
+    error.key === "VERSION_CONFLICT"
+  ) {
     return "Os dados da conta mudaram em outra sessão. Recarregue as informações antes de salvar.";
   }
-  return error instanceof Error ? error.message : "Não foi possível salvar os dados da conta.";
+  return error instanceof Error
+    ? error.message
+    : "Não foi possível salvar os dados da conta.";
 }
 
 export default function SettingsAccount() {
   const shouldReduceMotion = useReducedMotion();
-  const { currentUser, updateAccount } = useAppContext();
-  const {
-    users,
-    updateUser,
-    upsertRemoteUser,
-    isRemoteSocialSession,
-  } = useSocial();
+  const { currentUser, updateAccount, clearLocalAuthentication } =
+    useAppContext();
+  const [, setLocation] = useLocation();
+  const { users, updateUser, upsertRemoteUser, isRemoteSocialSession } =
+    useSocial();
   const { toast } = useToast();
 
-  const [remoteProfile, setRemoteProfile] = useState<MyAccountResponse | null>(null);
-  const [draft, setDraft] = useState<AccountDraft>(() => accountDraftFromUser(currentUser));
+  function handleAccountDeletionScheduled(deletionScheduledFor: string) {
+    const date = new Date(deletionScheduledFor).toLocaleString("pt-BR");
+    clearLocalAuthentication();
+    toast({
+      title: "Exclusão solicitada",
+      description: `A conta foi desativada e ficará oculta. A exclusão definitiva está agendada para ${date}.`,
+    });
+    setLocation("/login");
+  }
+
+  const [remoteProfile, setRemoteProfile] = useState<MyAccountResponse | null>(
+    null,
+  );
+  const [draft, setDraft] = useState<AccountDraft>(() =>
+    accountDraftFromUser(currentUser),
+  );
   const [username, setUsername] = useState(currentUser?.username ?? "");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -61,7 +88,8 @@ export default function SettingsAccount() {
     let active = true;
     setIsLoading(true);
     setLoadError(null);
-    void socialGraphApi.getMyAccount()
+    void socialGraphApi
+      .getMyAccount()
       .then((profile) => {
         if (!active) return;
         const user = myAccountToUser(profile);
@@ -84,12 +112,17 @@ export default function SettingsAccount() {
     };
   }, [currentUser?.id, isRemoteSocialSession, retryLoad]);
 
-  const accountType = remoteProfile?.account.accountType ?? currentUser?.accountType;
+  const accountType =
+    remoteProfile?.account.accountType ?? currentUser?.accountType;
   const isCommercial = accountType === "commercial";
   const email = remoteProfile?.email ?? currentUser?.email ?? "";
-  const currentUsername = remoteProfile?.account.username ?? currentUser?.username ?? "";
+  const currentUsername =
+    remoteProfile?.account.username ?? currentUser?.username ?? "";
 
-  function changeDraft<K extends keyof AccountDraft>(key: K, value: AccountDraft[K]) {
+  function changeDraft<K extends keyof AccountDraft>(
+    key: K,
+    value: AccountDraft[K],
+  ) {
     setDraft((current) => ({ ...current, [key]: value }));
     setProfileError(null);
   }
@@ -110,26 +143,31 @@ export default function SettingsAccount() {
       : `${draft.firstName.trim()} ${draft.lastName.trim()}`.trim();
 
     if (
-      (isCommercial
+      isCommercial
         ? draft.businessName.trim().length < 2
-        : draft.firstName.trim().length < 2 || draft.lastName.trim().length < 2)
+        : draft.firstName.trim().length < 2 || draft.lastName.trim().length < 2
     ) {
-      setProfileError(isCommercial
-        ? "Informe um nome comercial válido."
-        : "Informe nome e sobrenome válidos.");
+      setProfileError(
+        isCommercial
+          ? "Informe um nome comercial válido."
+          : "Informe nome e sobrenome válidos.",
+      );
       return;
     }
     if (displayName.length > 100) {
       setProfileError("O nome público não pode ultrapassar 100 caracteres.");
       return;
     }
-    if (isCommercial && [
-      draft.address,
-      draft.postalCode,
-      draft.cityName,
-      draft.stateName,
-      draft.countryName,
-    ].some((value) => value.trim().length < 2)) {
+    if (
+      isCommercial &&
+      [
+        draft.address,
+        draft.postalCode,
+        draft.cityName,
+        draft.stateName,
+        draft.countryName,
+      ].some((value) => value.trim().length < 2)
+    ) {
       setProfileError("Preencha endereço, CEP, cidade, estado e país.");
       return;
     }
@@ -142,26 +180,31 @@ export default function SettingsAccount() {
           setProfileError("Recarregue os dados da conta antes de salvar.");
           return;
         }
-        const updatedProfile = await socialGraphApi.updateMyAccount(isCommercial
-          ? {
-              displayName,
-              commercialProfile: {
-                address: draft.address.trim(),
-                postalCode: draft.postalCode.trim(),
-                cityName: draft.cityName.trim(),
-                stateName: draft.stateName.trim(),
-                countryName: draft.countryName.trim(),
+        const updatedProfile = await socialGraphApi.updateMyAccount(
+          isCommercial
+            ? {
+                displayName,
+                commercialProfile: {
+                  address: draft.address.trim(),
+                  postalCode: draft.postalCode.trim(),
+                  cityName: draft.cityName.trim(),
+                  stateName: draft.stateName.trim(),
+                  countryName: draft.countryName.trim(),
+                },
+                version: remoteProfile.account.version,
+              }
+            : {
+                firstName: draft.firstName.trim(),
+                lastName: draft.lastName.trim(),
+                version: remoteProfile.account.version,
               },
-              version: remoteProfile.account.version,
-            }
-          : {
-              firstName: draft.firstName.trim(),
-              lastName: draft.lastName.trim(),
-              version: remoteProfile.account.version,
-            });
+        );
         setRemoteProfile(updatedProfile);
         syncUpdatedUser(myAccountToUser(updatedProfile));
-        toast({ title: "Dados da conta atualizados", description: "As alterações foram salvas na sua conta." });
+        toast({
+          title: "Dados da conta atualizados",
+          description: "As alterações foram salvas na sua conta.",
+        });
         return;
       }
 
@@ -191,11 +234,18 @@ export default function SettingsAccount() {
             displayName,
           };
       syncUpdatedUser(updatedUser);
-      toast({ title: "Dados da demonstração atualizados", description: "A alteração fica neste navegador." });
+      toast({
+        title: "Dados da demonstração atualizados",
+        description: "A alteração fica neste navegador.",
+      });
     } catch (error) {
       const message = requestErrorMessage(error);
       setProfileError(message);
-      toast({ title: "Dados não salvos", description: message, variant: "destructive" });
+      toast({
+        title: "Dados não salvos",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsSavingProfile(false);
     }
@@ -206,16 +256,23 @@ export default function SettingsAccount() {
     if (!currentUser || !accountType) return;
     const nextUsername = username.trim().toLowerCase().replace(/^@/, "");
     if (!USERNAME_RE.test(nextUsername)) {
-      setUsernameError("Use de 3 a 20 caracteres: letras minúsculas, números ou _.");
+      setUsernameError(
+        "Use de 3 a 20 caracteres: letras minúsculas, números ou _.",
+      );
       return;
     }
     if (nextUsername === currentUsername) {
       setUsernameError("Esse já é o seu nome de usuário.");
       return;
     }
-    if (!isRemoteSocialSession && users.some(
-      (user) => user.id !== currentUser.id && user.username.toLowerCase() === nextUsername,
-    )) {
+    if (
+      !isRemoteSocialSession &&
+      users.some(
+        (user) =>
+          user.id !== currentUser.id &&
+          user.username.toLowerCase() === nextUsername,
+      )
+    ) {
       setUsernameError("Esse nome de usuário já está em uso na demonstração.");
       return;
     }
@@ -246,14 +303,20 @@ export default function SettingsAccount() {
     } catch (error) {
       const message = requestErrorMessage(error);
       setUsernameError(message);
-      toast({ title: "Nome de usuário não alterado", description: message, variant: "destructive" });
+      toast({
+        title: "Nome de usuário não alterado",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsSavingUsername(false);
     }
   }
 
   function handleEmailChanged(nextEmail: string) {
-    setRemoteProfile((profile) => profile ? { ...profile, email: nextEmail } : profile);
+    setRemoteProfile((profile) =>
+      profile ? { ...profile, email: nextEmail } : profile,
+    );
     if (!currentUser) return;
     const updatedUser = { ...currentUser, email: nextEmail };
     updateAccount(updatedUser);
@@ -261,7 +324,8 @@ export default function SettingsAccount() {
     upsertRemoteUser(updatedUser);
   }
 
-  const disabled = isLoading || Boolean(loadError) || isSavingProfile || isSavingUsername;
+  const disabled =
+    isLoading || Boolean(loadError) || isSavingProfile || isSavingUsername;
   const disabledField = "h-12 bg-card border-border rounded-xl";
 
   return (
@@ -274,13 +338,19 @@ export default function SettingsAccount() {
         className="pb-8"
       >
         {isLoading && (
-          <p role="status" className="flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground">
+          <p
+            role="status"
+            className="flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground"
+          >
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Carregando dados da conta…
           </p>
         )}
         {loadError && (
-          <div role="alert" className="mx-4 mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+          <div
+            role="alert"
+            className="mx-4 mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4"
+          >
             <p className="text-sm text-destructive">{loadError}</p>
             <Button
               type="button"
@@ -325,17 +395,30 @@ export default function SettingsAccount() {
             <SectionTitle>E-mail e senha</SectionTitle>
             {!isRemoteSocialSession ? (
               <UnavailableNotice>
-                A demonstração deste navegador não altera credenciais. A troca de e-mail e senha exige uma conta autenticada pela API.
+                A demonstração deste navegador não altera credenciais. A troca
+                de e-mail e senha exige uma conta autenticada pela API.
               </UnavailableNotice>
             ) : (
               <div className="space-y-5 px-4 pt-2">
-                <AccountEmailChange fieldClassName={disabledField} onEmailChanged={handleEmailChanged} />
+                <AccountEmailChange
+                  fieldClassName={disabledField}
+                  onEmailChanged={handleEmailChanged}
+                />
 
-                <AccountPasswordChange email={email} fieldClassName={disabledField} />
+                <AccountPasswordChange
+                  email={email}
+                  fieldClassName={disabledField}
+                />
 
                 <p className="text-xs text-muted-foreground">
                   Sem acesso ao e-mail atual? Solicite ajuda ao suporte:{" "}
-                  <a className="underline underline-offset-2" href="mailto:admseekalive@gmail.com">admseekalive@gmail.com</a>.
+                  <a
+                    className="underline underline-offset-2"
+                    href="mailto:admseekalive@gmail.com"
+                  >
+                    admseekalive@gmail.com
+                  </a>
+                  .
                 </p>
               </div>
             )}
@@ -343,9 +426,18 @@ export default function SettingsAccount() {
             <SectionTitle>Contas conectadas</SectionTitle>
             <div className="px-4 pt-2 space-y-2">
               {["Google", "Apple"].map((provider) => (
-                <div key={provider} className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
+                <div
+                  key={provider}
+                  className="flex items-center justify-between rounded-xl border border-border bg-card p-3"
+                >
                   <span className="text-sm font-medium">{provider}</span>
-                  <Button disabled variant="outline" size="sm" className="min-h-10 rounded-full text-xs" data-testid={`button-connect-${provider.toLowerCase()}`}>
+                  <Button
+                    disabled
+                    variant="outline"
+                    size="sm"
+                    className="min-h-10 rounded-full text-xs"
+                    data-testid={`button-connect-${provider.toLowerCase()}`}
+                  >
                     Indisponível
                   </Button>
                 </div>
@@ -353,17 +445,25 @@ export default function SettingsAccount() {
             </div>
 
             <div className="flex items-center gap-2 px-4 pt-6">
-              <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-destructive">Zona de perigo</h2>
+              <AlertTriangle
+                className="h-4 w-4 text-destructive"
+                aria-hidden="true"
+              />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-destructive">
+                Zona de perigo
+              </h2>
             </div>
-            <UnavailableNotice>Desativar ou excluir a conta ainda não está disponível. Nenhum dado será alterado por estes controles.</UnavailableNotice>
-            <div className="space-y-2 px-4 pt-3">
-              <Button disabled variant="outline" className="min-h-11 w-full rounded-xl border-destructive/40 text-destructive" data-testid="button-deactivate">
-                Desativar conta
-              </Button>
-              <Button disabled variant="destructive" className="min-h-11 w-full rounded-xl" data-testid="button-delete">
-                Excluir conta permanentemente
-              </Button>
+            <div className="px-4 pt-3">
+              {isRemoteSocialSession ? (
+                <AccountDeletionControls
+                  onScheduled={handleAccountDeletionScheduled}
+                />
+              ) : (
+                <UnavailableNotice>
+                  A solicitação de exclusão exige uma conta autenticada pela
+                  API.
+                </UnavailableNotice>
+              )}
             </div>
           </>
         )}

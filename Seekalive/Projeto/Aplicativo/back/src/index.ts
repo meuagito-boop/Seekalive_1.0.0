@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./common/logger";
 import { pool } from "@workspace/db";
+import { startAccountDeletionWorker } from "./modules/auth/infrastructure/accountDeletionWorker";
 
 const rawPort = process.env["PORT"];
 
@@ -26,20 +27,45 @@ server.on("error", (error) => {
   process.exitCode = 1;
   if (!server.listening) {
     void pool.end().catch((poolError: unknown) => {
-      logger.error({ err: poolError }, "Database pool failed to close after listen error");
+      logger.error(
+        { err: poolError },
+        "Database pool failed to close after listen error",
+      );
     });
   }
 });
 
 let shutdownStarted = false;
+let stopAccountDeletionWorker: (() => void) | null = null;
+
+server.once("listening", () => {
+  void startAccountDeletionWorker()
+    .then((stop) => {
+      if (shutdownStarted) {
+        stop();
+      } else {
+        stopAccountDeletionWorker = stop;
+      }
+    })
+    .catch((error: unknown) => {
+      logger.error(
+        { err: error, feature: "account-deletion" },
+        "Account deletion worker failed to start",
+      );
+    });
+});
 
 function shutdown(signal: NodeJS.Signals): void {
   if (shutdownStarted) return;
   shutdownStarted = true;
+  stopAccountDeletionWorker?.();
   logger.info({ signal }, "Graceful shutdown started");
 
   const forceCloseTimer = setTimeout(() => {
-    logger.error({ signal }, "Graceful shutdown timed out; closing remaining connections");
+    logger.error(
+      { signal },
+      "Graceful shutdown timed out; closing remaining connections",
+    );
     server.closeAllConnections();
     process.exit(1);
   }, 10_000);
@@ -51,7 +77,10 @@ function shutdown(signal: NodeJS.Signals): void {
       .end()
       .then(() => logger.info({ signal }, "Database pool closed"))
       .catch((poolError: unknown) => {
-        logger.error({ err: poolError }, "Database pool failed to close cleanly");
+        logger.error(
+          { err: poolError },
+          "Database pool failed to close cleanly",
+        );
         process.exitCode = 1;
       });
     return;
@@ -70,7 +99,10 @@ function shutdown(signal: NodeJS.Signals): void {
         logger.info({ signal }, "Database pool closed");
       })
       .catch((poolError: unknown) => {
-        logger.error({ err: poolError }, "Database pool failed to close cleanly");
+        logger.error(
+          { err: poolError },
+          "Database pool failed to close cleanly",
+        );
         process.exitCode = 1;
       });
   });

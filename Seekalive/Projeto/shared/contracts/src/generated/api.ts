@@ -600,6 +600,89 @@ export const ConfirmAccountPasswordChangeResponse = zod.object({
 
 
 /**
+ * Requires an active verified session. Sends only the one-time code; scheduling the deletion sends no additional email.
+ * @summary Request the code to schedule account deletion
+ */
+export const RequestAccountDeletionCodeBody = zod.object({
+
+})
+
+export const RequestAccountDeletionCodeResponse = zod.object({
+  "status": zod.literal("verification_code_sent"),
+  "challengeId": zod.uuid(),
+  "emailMasked": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * Hides and disables the account immediately, revokes active sessions, and schedules permanent deletion seven days later.
+ * @summary Schedule account deletion after confirming the code
+ */
+export const confirmAccountDeletionBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmAccountDeletionBody = zod.object({
+  "challengeId": zod.uuid(),
+  "code": zod.string().regex(confirmAccountDeletionBodyCodeRegExp)
+})
+
+export const ConfirmAccountDeletionResponse = zod.object({
+  "status": zod.literal("deletion_scheduled"),
+  "deletionScheduledFor": zod.coerce.date()
+})
+
+
+/**
+ * Requires the account identifier and current password; the code is sent only to its verified e-mail.
+ * @summary Request a code to restore an account pending deletion
+ */
+export const requestAccountRestorationCodeBodyIdentifierMin = 3;
+export const requestAccountRestorationCodeBodyIdentifierMax = 254;
+
+export const requestAccountRestorationCodeBodyPasswordMin = 8;
+export const requestAccountRestorationCodeBodyPasswordMax = 128;
+
+
+
+export const RequestAccountRestorationCodeBody = zod.object({
+  "identifier": zod.string().min(requestAccountRestorationCodeBodyIdentifierMin).max(requestAccountRestorationCodeBodyIdentifierMax).describe('Username or e-mail; surrounding whitespace is trimmed by the server.'),
+  "password": zod.string().min(requestAccountRestorationCodeBodyPasswordMin).max(requestAccountRestorationCodeBodyPasswordMax)
+})
+
+export const RequestAccountRestorationCodeResponse = zod.object({
+  "status": zod.literal("verification_code_sent"),
+  "challengeId": zod.uuid(),
+  "emailMasked": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * Requires the account identifier, current password, and the e-mail code. The user must sign in again after restoration.
+ * @summary Restore an account pending deletion
+ */
+export const confirmAccountRestorationBodyIdentifierMin = 3;
+export const confirmAccountRestorationBodyIdentifierMax = 254;
+
+export const confirmAccountRestorationBodyPasswordMax = 128;
+
+export const confirmAccountRestorationBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const ConfirmAccountRestorationBody = zod.object({
+  "identifier": zod.string().min(confirmAccountRestorationBodyIdentifierMin).max(confirmAccountRestorationBodyIdentifierMax),
+  "password": zod.string().min(1).max(confirmAccountRestorationBodyPasswordMax),
+  "challengeId": zod.uuid(),
+  "code": zod.string().regex(confirmAccountRestorationBodyCodeRegExp)
+})
+
+export const ConfirmAccountRestorationResponse = zod.object({
+  "status": zod.literal("account_restored")
+})
+
+
+/**
  * @summary Get the authenticated account profile
  */
 export const getMyAccountResponseAccountDisplayNameMax = 100;

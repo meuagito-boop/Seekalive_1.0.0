@@ -27,6 +27,13 @@ export type AccountEmailChangeSecurityNotice = {
   newEmailMasked: string;
 };
 
+export type AccountDeletionCodeEmail = {
+  email: string;
+  displayName: string;
+  code: string;
+  purpose: "request_deletion" | "restore_account";
+};
+
 export interface AuthEmailDelivery {
   readonly isConfigured: boolean;
   sendVerificationCode(message: VerificationEmail): Promise<void>;
@@ -41,4 +48,5 @@ export interface AuthEmailDelivery {
   sendAccountEmailChangeSecurityNotice(
     message: AccountEmailChangeSecurityNotice,
   ): Promise<void>;
+  sendAccountDeletionCode(message: AccountDeletionCodeEmail): Promise<void>;
 }

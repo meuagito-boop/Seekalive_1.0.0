@@ -25,6 +25,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountDeletionCodeRequest,
+  AccountDeletionCodeResponse,
+  AccountDeletionConfirmation,
+  AccountDeletionPendingResponse,
+  AccountDeletionScheduled,
   AccountEmailChangeRequest,
   AccountEmailChangeResult,
   AccountList,
@@ -32,8 +37,11 @@ import type {
   AccountPasswordChangeRequest,
   AccountPasswordChangeResult,
   AccountPatch,
+  AccountRestorationConfirmation,
+  AccountRestoredResponse,
   AccountUnavailableResponse,
   AccountView,
+  ApiError,
   ArticleCreate,
   AuthResult,
   AuthSessionPage,
@@ -523,7 +531,7 @@ export const getLoginAccountUrl = () => {
  * An unrecognized installation receives a verification challenge instead of a session.
  * @summary Authenticate with username or e-mail and password
  */
-export const loginAccount = async (loginRequest: LoginRequest, options?: Parameters<typeof customFetch>[1]): Promise<AuthResult | DeviceVerificationRequired> => {
+export const loginAccount = async (loginRequest: LoginRequest, options?: Parameters<typeof customFetch>[1]): Promise<AuthResult | DeviceVerificationRequired | AccountDeletionPendingResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -539,7 +547,7 @@ export const loginAccount = async (loginRequest: LoginRequest, options?: Paramet
     }
     return headers;
   };
-return customFetch<AuthResult | DeviceVerificationRequired>(getLoginAccountUrl(),
+return customFetch<AuthResult | DeviceVerificationRequired | AccountDeletionPendingResponse>(getLoginAccountUrl(),
   {
     ...options,
     method: 'POST',
@@ -554,7 +562,7 @@ return customFetch<AuthResult | DeviceVerificationRequired>(getLoginAccountUrl()
 
 export const getLoginAccountMutationKey = () => ['loginAccount'] as const;
 
-export const getLoginAccountMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+export const getLoginAccountMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | ApiError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginAccount>>, TError,LoginAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof loginAccount>>, TError,LoginAccountMutationVariables, TContext> => {
 
@@ -583,13 +591,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type LoginAccountMutationResult = NonNullable<Awaited<ReturnType<typeof loginAccount>>>
     export type LoginAccountMutationBody = BodyType<LoginRequest>
-    export type LoginAccountMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type LoginAccountMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | ApiError>
     export type LoginAccountMutationVariables = {data: BodyType<LoginRequest>}
 
     /**
  * @summary Authenticate with username or e-mail and password
  */
-export const useLoginAccount = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+export const useLoginAccount = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | AccountUnavailableResponse | TooManyRequestsResponse | ApiError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginAccount>>, TError,LoginAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof loginAccount>>,
@@ -2328,6 +2336,362 @@ export const useConfirmAccountPasswordChange = <TError = ErrorType<ValidationErr
         TContext
       > => {
       return useMutation(getConfirmAccountPasswordChangeMutationOptions(options), queryClient);
+    }
+
+export const getRequestAccountDeletionCodeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/deletion/code`
+}
+
+/**
+ * Requires an active verified session. Sends only the one-time code; scheduling the deletion sends no additional email.
+ * @summary Request the code to schedule account deletion
+ */
+export const requestAccountDeletionCode = async (accountDeletionCodeRequest: AccountDeletionCodeRequest, options?: Parameters<typeof customFetch>[1]): Promise<AccountDeletionCodeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AccountDeletionCodeResponse>(getRequestAccountDeletionCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(accountDeletionCodeRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestAccountDeletionCodeMutationKey = () => ['requestAccountDeletionCode'] as const;
+
+export const getRequestAccountDeletionCodeMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountDeletionCode>>, TError,RequestAccountDeletionCodeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAccountDeletionCode>>, TError,RequestAccountDeletionCodeMutationVariables, TContext> => {
+
+const mutationKey = getRequestAccountDeletionCodeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAccountDeletionCode>>, RequestAccountDeletionCodeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAccountDeletionCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAccountDeletionCodeMutationResult = NonNullable<Awaited<ReturnType<typeof requestAccountDeletionCode>>>
+    export type RequestAccountDeletionCodeMutationBody = BodyType<AccountDeletionCodeRequest>
+    export type RequestAccountDeletionCodeMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>
+    export type RequestAccountDeletionCodeMutationVariables = {data: BodyType<AccountDeletionCodeRequest>}
+
+    /**
+ * @summary Request the code to schedule account deletion
+ */
+export const useRequestAccountDeletionCode = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | TooManyRequestsResponse | EmailDeliveryUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountDeletionCode>>, TError,RequestAccountDeletionCodeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAccountDeletionCode>>,
+        TError,
+        RequestAccountDeletionCodeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAccountDeletionCodeMutationOptions(options), queryClient);
+    }
+
+export const getConfirmAccountDeletionUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/deletion/confirm`
+}
+
+/**
+ * Hides and disables the account immediately, revokes active sessions, and schedules permanent deletion seven days later.
+ * @summary Schedule account deletion after confirming the code
+ */
+export const confirmAccountDeletion = async (accountDeletionConfirmation: AccountDeletionConfirmation, options?: Parameters<typeof customFetch>[1]): Promise<AccountDeletionScheduled> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AccountDeletionScheduled>(getConfirmAccountDeletionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(accountDeletionConfirmation)
+  }
+);}
+
+
+
+
+
+export const getConfirmAccountDeletionMutationKey = () => ['confirmAccountDeletion'] as const;
+
+export const getConfirmAccountDeletionMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | TooManyRequestsResponse | ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountDeletion>>, TError,ConfirmAccountDeletionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAccountDeletion>>, TError,ConfirmAccountDeletionMutationVariables, TContext> => {
+
+const mutationKey = getConfirmAccountDeletionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAccountDeletion>>, ConfirmAccountDeletionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAccountDeletion(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAccountDeletionMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAccountDeletion>>>
+    export type ConfirmAccountDeletionMutationBody = BodyType<AccountDeletionConfirmation>
+    export type ConfirmAccountDeletionMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | TooManyRequestsResponse | ApiError>
+    export type ConfirmAccountDeletionMutationVariables = {data: BodyType<AccountDeletionConfirmation>}
+
+    /**
+ * @summary Schedule account deletion after confirming the code
+ */
+export const useConfirmAccountDeletion = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse | TooManyRequestsResponse | ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountDeletion>>, TError,ConfirmAccountDeletionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAccountDeletion>>,
+        TError,
+        ConfirmAccountDeletionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmAccountDeletionMutationOptions(options), queryClient);
+    }
+
+export const getRequestAccountRestorationCodeUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/deletion/restore/code`
+}
+
+/**
+ * Requires the account identifier and current password; the code is sent only to its verified e-mail.
+ * @summary Request a code to restore an account pending deletion
+ */
+export const requestAccountRestorationCode = async (loginRequest: LoginRequest, options?: Parameters<typeof customFetch>[1]): Promise<AccountDeletionCodeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AccountDeletionCodeResponse>(getRequestAccountRestorationCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(loginRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestAccountRestorationCodeMutationKey = () => ['requestAccountRestorationCode'] as const;
+
+export const getRequestAccountRestorationCodeMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ConflictResponse | TooManyRequestsResponse | ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountRestorationCode>>, TError,RequestAccountRestorationCodeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAccountRestorationCode>>, TError,RequestAccountRestorationCodeMutationVariables, TContext> => {
+
+const mutationKey = getRequestAccountRestorationCodeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAccountRestorationCode>>, RequestAccountRestorationCodeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAccountRestorationCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAccountRestorationCodeMutationResult = NonNullable<Awaited<ReturnType<typeof requestAccountRestorationCode>>>
+    export type RequestAccountRestorationCodeMutationBody = BodyType<LoginRequest>
+    export type RequestAccountRestorationCodeMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ConflictResponse | TooManyRequestsResponse | ApiError>
+    export type RequestAccountRestorationCodeMutationVariables = {data: BodyType<LoginRequest>}
+
+    /**
+ * @summary Request a code to restore an account pending deletion
+ */
+export const useRequestAccountRestorationCode = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ConflictResponse | TooManyRequestsResponse | ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAccountRestorationCode>>, TError,RequestAccountRestorationCodeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAccountRestorationCode>>,
+        TError,
+        RequestAccountRestorationCodeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAccountRestorationCodeMutationOptions(options), queryClient);
+    }
+
+export const getConfirmAccountRestorationUrl = () => {
+
+
+
+
+  return `/api/v1/auth/account/deletion/restore/confirm`
+}
+
+/**
+ * Requires the account identifier, current password, and the e-mail code. The user must sign in again after restoration.
+ * @summary Restore an account pending deletion
+ */
+export const confirmAccountRestoration = async (accountRestorationConfirmation: AccountRestorationConfirmation, options?: Parameters<typeof customFetch>[1]): Promise<AccountRestoredResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AccountRestoredResponse>(getConfirmAccountRestorationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(accountRestorationConfirmation)
+  }
+);}
+
+
+
+
+
+export const getConfirmAccountRestorationMutationKey = () => ['confirmAccountRestoration'] as const;
+
+export const getConfirmAccountRestorationMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ConflictResponse | TooManyRequestsResponse | ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountRestoration>>, TError,ConfirmAccountRestorationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmAccountRestoration>>, TError,ConfirmAccountRestorationMutationVariables, TContext> => {
+
+const mutationKey = getConfirmAccountRestorationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmAccountRestoration>>, ConfirmAccountRestorationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmAccountRestoration(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmAccountRestorationMutationResult = NonNullable<Awaited<ReturnType<typeof confirmAccountRestoration>>>
+    export type ConfirmAccountRestorationMutationBody = BodyType<AccountRestorationConfirmation>
+    export type ConfirmAccountRestorationMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ConflictResponse | TooManyRequestsResponse | ApiError>
+    export type ConfirmAccountRestorationMutationVariables = {data: BodyType<AccountRestorationConfirmation>}
+
+    /**
+ * @summary Restore an account pending deletion
+ */
+export const useConfirmAccountRestoration = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ConflictResponse | TooManyRequestsResponse | ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmAccountRestoration>>, TError,ConfirmAccountRestorationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmAccountRestoration>>,
+        TError,
+        ConfirmAccountRestorationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmAccountRestorationMutationOptions(options), queryClient);
     }
 
 export const getGetMyAccountUrl = () => {

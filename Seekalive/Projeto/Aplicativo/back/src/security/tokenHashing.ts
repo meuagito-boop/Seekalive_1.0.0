@@ -17,21 +17,44 @@ export function hashPasswordResetCode(accountId: string, code: string): string {
     .digest("hex");
 }
 
-export function hashDeviceLoginCode(accountId: string, challengeId: string, code: string): string {
+export function hashDeviceLoginCode(
+  accountId: string,
+  challengeId: string,
+  code: string,
+): string {
   return createHmac("sha256", sessionSecret)
     .update(`device_login:${accountId}:${challengeId}:${code}`)
     .digest("hex");
 }
 
-export function hashPasswordUpdateCode(accountId: string, challengeId: string, code: string): string {
+export function hashPasswordUpdateCode(
+  accountId: string,
+  challengeId: string,
+  code: string,
+): string {
   return createHmac("sha256", sessionSecret)
     .update(`password_update:${accountId}:${challengeId}:${code}`)
     .digest("hex");
 }
 
-export function hashAccountPasswordChangeCode(accountId: string, challengeId: string, code: string): string {
+export function hashAccountPasswordChangeCode(
+  accountId: string,
+  challengeId: string,
+  code: string,
+): string {
   return createHmac("sha256", sessionSecret)
     .update(`account_password_change:${accountId}:${challengeId}:${code}`)
+    .digest("hex");
+}
+
+export function hashAccountDeletionCode(
+  accountId: string,
+  challengeId: string,
+  purpose: "account_deletion_request" | "account_deletion_restore",
+  code: string,
+): string {
+  return createHmac("sha256", sessionSecret)
+    .update(`${purpose}:${accountId}:${challengeId}:${code}`)
     .digest("hex");
 }
 
@@ -49,5 +72,8 @@ export function hashAccountEmailChangeCode(
 export function constantTimeEquals(left: string, right: string): boolean {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
-  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    timingSafeEqual(leftBuffer, rightBuffer)
+  );
 }

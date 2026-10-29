@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './accountDeletionCodeRequest';
+export * from './accountDeletionCodeResponse';
+export * from './accountDeletionConfirmation';
+export * from './accountDeletionPendingResponse';
+export * from './accountDeletionScheduled';
 export * from './accountEmailChangeRequest';
 export * from './accountEmailChangeResult';
 export * from './accountList';
@@ -13,6 +18,8 @@ export * from './accountPage';
 export * from './accountPasswordChangeRequest';
 export * from './accountPasswordChangeResult';
 export * from './accountPatch';
+export * from './accountRestorationConfirmation';
+export * from './accountRestoredResponse';
 export * from './accountStats';
 export * from './accountUnavailableResponse';
 export * from './accountView';

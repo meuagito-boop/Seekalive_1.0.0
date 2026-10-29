@@ -4,7 +4,7 @@ import {
   LoginAccountResponse,
   RequestAuthPasswordPolicyUpdateResponse,
   ResendAuthDeviceVerificationResponse,
-  deviceVerificationRequiredResponseSchema,
+  loginStepUpResponseSchema,
 } from "@workspace/api-zod";
 import { postJson } from "@/modules/app/api/httpClient";
 import type {
@@ -19,7 +19,7 @@ export function loginAccount(payload: {
 }) {
   return postJson<LoginResult>("/auth/login", payload, {
     200: LoginAccountResponse,
-    202: deviceVerificationRequiredResponseSchema,
+    202: loginStepUpResponseSchema,
   });
 }
 

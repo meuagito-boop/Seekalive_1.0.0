@@ -115,11 +115,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthResult"
         "202":
-          description: E-mail code required for an unrecognized installation
+          description: A code is required for a new installation or the account is pending deletion
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeviceVerificationRequired"
+                oneOf:
+                  - $ref: "#/components/schemas/DeviceVerificationRequired"
+                  - $ref: "#/components/schemas/AccountDeletionPendingResponse"
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -133,7 +135,11 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "503":
-          $ref: "#/components/responses/EmailDeliveryUnavailable"
+          description: Email delivery or required development database migration unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /v1/auth/device-verification/confirm:
     post:
       operationId: confirmAuthDeviceVerification
@@ -702,6 +708,146 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/auth/account/deletion/code:
+    post:
+      operationId: requestAccountDeletionCode
+      tags: [auth-security]
+      summary: Request the code to schedule account deletion
+      description: Requires an active verified session. Sends only the one-time code; scheduling the deletion sends no additional email.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountDeletionCodeRequest"
+      responses:
+        "202":
+          description: One-time code sent to the verified address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletionCodeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/EmailDeliveryUnavailable"
+  /v1/auth/account/deletion/confirm:
+    post:
+      operationId: confirmAccountDeletion
+      tags: [auth-security]
+      summary: Schedule account deletion after confirming the code
+      description: Hides and disables the account immediately, revokes active sessions, and schedules permanent deletion seven days later.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountDeletionConfirmation"
+      responses:
+        "200":
+          description: Deletion scheduled; session cookies are cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletionScheduled"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: Required development database migration has not been applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /v1/auth/account/deletion/restore/code:
+    post:
+      operationId: requestAccountRestorationCode
+      tags: [auth-security]
+      summary: Request a code to restore an account pending deletion
+      description: Requires the account identifier and current password; the code is sent only to its verified e-mail.
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "202":
+          description: Restoration code sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletionCodeResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: Email delivery or required development database migration unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /v1/auth/account/deletion/restore/confirm:
+    post:
+      operationId: confirmAccountRestoration
+      tags: [auth-security]
+      summary: Restore an account pending deletion
+      description: Requires the account identifier, current password, and the e-mail code. The user must sign in again after restoration.
+      security:
+        - preAuthCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountRestorationConfirmation"
+      responses:
+        "200":
+          description: Account restored; no session is created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountRestoredResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: Required development database migration has not been applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /v1/accounts/me:
     get:
       operationId: getMyAccount
@@ -1439,7 +1585,8 @@ components:
           format: date-time
         onboardingCompleted:
           type: boolean
-      required: [id, username, displayName, accountType, joinedAt, onboardingCompleted]
+      required:
+        [id, username, displayName, accountType, joinedAt, onboardingCompleted]
     AuthSession:
       type: object
       properties:
@@ -1514,7 +1661,28 @@ components:
           format: date-time
         message:
           type: string
-      required: [status, challengeId, emailMasked, expiresAt, resendAvailableAt, message]
+      required:
+        [
+          status,
+          challengeId,
+          emailMasked,
+          expiresAt,
+          resendAvailableAt,
+          message,
+        ]
+    AccountDeletionPendingResponse:
+      type: object
+      properties:
+        status:
+          const: account_deletion_pending
+        deletionScheduledFor:
+          type: string
+          format: date-time
+        emailMasked:
+          type: string
+        message:
+          type: string
+      required: [status, deletionScheduledFor, emailMasked, message]
     DeviceVerificationResent:
       type: object
       properties:
@@ -1700,7 +1868,15 @@ components:
           minimum: 18
           maximum: 120
           description: Private eligibility data; it is not returned in public account responses.
-      required: [username, email, password, passwordConfirmation, acceptedTermsVersion, age]
+      required:
+        [
+          username,
+          email,
+          password,
+          passwordConfirmation,
+          acceptedTermsVersion,
+          age,
+        ]
     PersonalRegistration:
       allOf:
         - $ref: "#/components/schemas/RegistrationCommon"
@@ -1732,7 +1908,8 @@ components:
               maxLength: 100
             categoryKey:
               type: string
-              enum: [restaurantes, bares, cafes, servicos, compras, saude, lazer]
+              enum:
+                [restaurantes, bares, cafes, servicos, compras, saude, lazer]
             discoveryKind:
               type: string
               enum: [place, provider]
@@ -1756,7 +1933,18 @@ components:
               type: string
               minLength: 2
               maxLength: 100
-          required: [accountType, businessName, categoryKey, discoveryKind, address, postalCode, city, state, country]
+          required:
+            [
+              accountType,
+              businessName,
+              categoryKey,
+              discoveryKind,
+              address,
+              postalCode,
+              city,
+              state,
+              country,
+            ]
     LoginRequest:
       type: object
       properties:
@@ -1906,7 +2094,15 @@ components:
           format: date-time
         message:
           type: string
-      required: [status, challengeId, currentEmailMasked, newEmailMasked, expiresAt, message]
+      required:
+        [
+          status,
+          challengeId,
+          currentEmailMasked,
+          newEmailMasked,
+          expiresAt,
+          message,
+        ]
     EmailChangeNewCodeResponse:
       type: object
       properties:
@@ -1939,6 +2135,68 @@ components:
         message:
           type: string
       required: [status, challengeId, emailMasked, expiresAt, message]
+    AccountDeletionCodeResponse:
+      type: object
+      properties:
+        status:
+          const: verification_code_sent
+        challengeId:
+          type: string
+          format: uuid
+        emailMasked:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required: [status, challengeId, emailMasked, expiresAt]
+    AccountDeletionCodeRequest:
+      type: object
+      additionalProperties: false
+    AccountDeletionConfirmation:
+      type: object
+      properties:
+        challengeId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+      required: [challengeId, code]
+      additionalProperties: false
+    AccountRestorationConfirmation:
+      type: object
+      properties:
+        identifier:
+          type: string
+          minLength: 3
+          maxLength: 254
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+        challengeId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+      required: [identifier, password, challengeId, code]
+      additionalProperties: false
+    AccountRestoredResponse:
+      type: object
+      properties:
+        status:
+          const: account_restored
+      required: [status]
+    AccountDeletionScheduled:
+      type: object
+      properties:
+        status:
+          const: deletion_scheduled
+        deletionScheduledFor:
+          type: string
+          format: date-time
+      required: [status, deletionScheduledFor]
     AccountEmailChangeResult:
       type: object
       properties:
@@ -2128,7 +2386,16 @@ components:
           type: string
           minLength: 1
           maxLength: 100
-      required: [categoryKey, discoveryKind, address, postalCode, cityName, stateName, countryName]
+      required:
+        [
+          categoryKey,
+          discoveryKind,
+          address,
+          postalCode,
+          cityName,
+          stateName,
+          countryName,
+        ]
     ProfileResponse:
       type: object
       properties:
@@ -2360,7 +2627,22 @@ components:
           type: boolean
         isReposted:
           type: boolean
-      required: [id, authorId, content, createdAt, audience, type, format, likes, comments, reposts, shares, isLiked, isReposted]
+      required:
+        [
+          id,
+          authorId,
+          content,
+          createdAt,
+          audience,
+          type,
+          format,
+          likes,
+          comments,
+          reposts,
+          shares,
+          isLiked,
+          isReposted,
+        ]
     PostCreate:
       type: object
       description: Text-only post. Media fields and third-party URLs are not accepted.
@@ -2424,4 +2706,3 @@ components:
         nextCursor:
           type: [string, "null"]
       required: [items, nextCursor]
-
