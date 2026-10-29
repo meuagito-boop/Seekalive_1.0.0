@@ -235,6 +235,120 @@ test("known-device login reaches the feed with the submitted credentials", async
   assertNoExternalRequests(blockedExternalRequests);
 });
 
+test("account owner can request permanent deletion from account settings", async (t) => {
+  const deletionDate = "2026-11-05T12:00:00.000Z";
+  const authResult = createAuthResult();
+  let authenticated = false;
+  const { page, requests, unhandledApiRequests, blockedExternalRequests } =
+    await createAuthTestPage(browser, {
+      "GET /api/v1/auth/session": async () =>
+        authenticated
+          ? jsonResponse(200, {
+              authenticated: true,
+              account: authResult.account,
+              session: authResult.session,
+            })
+          : jsonResponse(200, {
+              authenticated: false,
+              account: null,
+              session: null,
+            }),
+      "POST /api/v1/auth/login": async () => {
+        authenticated = true;
+        return jsonResponse(200, authResult);
+      },
+      "GET /api/v1/accounts/me": async () =>
+        jsonResponse(200, {
+          account: {
+            id: "11111111-1111-4111-8111-111111111111",
+            username: "auth_e2e",
+            displayName: "Conta E2E",
+            bio: "",
+            avatarUrl: null,
+            coverUrl: null,
+            location: null,
+            website: null,
+            accountType: "personal",
+            isPrivate: false,
+            joinedAt: "2026-10-27T00:00:00.000Z",
+            relationship: {
+              following: "none",
+              inCircle: false,
+              blockedByMe: false,
+              blockedByThem: false,
+              mutedByMe: false,
+            },
+            stats: { posts: 0, followers: 0, following: 0, circles: 0 },
+            version: 1,
+          },
+          email: "ana@example.com",
+          firstName: "Ana",
+          lastName: "Silva",
+          publicNameChangeAvailableAt: "2026-11-26T00:00:00.000Z",
+          usernameChangeAvailableAt: "2026-11-26T00:00:00.000Z",
+          commercialProfile: null,
+        }),
+      "POST /api/v1/auth/account/deletion/code": async () =>
+        jsonResponse(202, {
+          status: "verification_code_sent",
+          challengeId: "66666666-6666-4666-8666-666666666666",
+          emailMasked: "an***@example.com",
+          expiresAt: "2026-10-29T12:10:00.000Z",
+        }),
+      "POST /api/v1/auth/account/deletion/confirm": async () =>
+        jsonResponse(200, {
+          status: "deletion_scheduled",
+          deletionScheduledFor: deletionDate,
+        }),
+    });
+  t.after(() => page.close());
+
+  await page.goto(route("/login"), { waitUntil: "domcontentloaded" });
+  await page.getByTestId("input-identifier").fill("ana@example.com");
+  await page.getByTestId("input-password").fill(testPassword);
+  await page.getByTestId("button-login").click();
+  await page.waitForURL((url) => url.pathname === "/feed");
+
+  await page.goto(route("/settings/account"), {
+    waitUntil: "domcontentloaded",
+  });
+  await page
+    .getByRole("heading", { name: "Exclusão permanente da conta" })
+    .waitFor();
+  await page.getByTestId("button-request-account-deletion").click();
+  await page.getByLabel("Código de confirmação").waitFor();
+  assert.match(
+    (await page.getByRole("status").textContent()) ?? "",
+    /an\*\*\*@example\.com/,
+  );
+
+  await page.getByLabel("Código de confirmação").fill("123456");
+  await page.getByTestId("button-confirm-account-deletion").click();
+  await page.waitForURL((url) => url.pathname === "/login");
+  await page.getByTestId("input-identifier").waitFor();
+
+  const codeRequest = getRequest(
+    requests,
+    "POST",
+    "/api/v1/auth/account/deletion/code",
+  );
+  assert.deepEqual(codeRequest.body, {});
+  assert.equal(codeRequest.headers["x-csrf-token"], "csrf-e2e");
+
+  const confirmation = getRequest(
+    requests,
+    "POST",
+    "/api/v1/auth/account/deletion/confirm",
+  );
+  assert.deepEqual(confirmation.body, {
+    challengeId: "66666666-6666-4666-8666-666666666666",
+    code: "123456",
+  });
+  assert.equal(confirmation.headers["x-csrf-token"], "csrf-e2e");
+  assertNoUnexpectedAuthRequests(unhandledApiRequests);
+  assertNoExternalRequests(blockedExternalRequests);
+});
+
 test("an account pending deletion can be restored from login with password and e-mail code", async (t) => {
   const { page, requests, unhandledApiRequests, blockedExternalRequests } =
     await createAuthTestPage(browser, {
