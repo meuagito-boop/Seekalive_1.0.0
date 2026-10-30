@@ -106,7 +106,7 @@ export type PersonalRegistration = {
   accountType: "personal";
   firstName: string;
   lastName: string;
-  age: number;
+  dateOfBirth: string;
   username: string;
   email: string;
   password: string;
@@ -117,7 +117,7 @@ export type PersonalRegistration = {
 export type CommercialRegistration = {
   accountType: "commercial";
   businessName: string;
-  age: number;
+  dateOfBirth: string;
   username: string;
   email: string;
   password: string;

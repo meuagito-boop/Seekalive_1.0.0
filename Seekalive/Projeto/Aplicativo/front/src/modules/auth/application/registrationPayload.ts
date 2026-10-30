@@ -5,7 +5,7 @@ export function toRegistrationPayload(
   values: RegistrationFormValues,
 ): Registration {
   const common = {
-    age: Number(values.age),
+    dateOfBirth: values.dateOfBirth,
     username: values.username.trim().replace(/^@/, "").toLowerCase(),
     email: values.email.trim().toLowerCase(),
     password: values.password,

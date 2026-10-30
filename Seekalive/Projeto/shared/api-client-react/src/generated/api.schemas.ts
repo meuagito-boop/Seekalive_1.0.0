@@ -217,11 +217,10 @@ export interface RegistrationCommon {
   passwordConfirmation: string;
   acceptedTermsVersion: 'v1';
   /**
-     * Private eligibility data; it is not returned in public account responses.
-     * @minimum 18
-     * @maximum 120
+     * Registration-only date in DD/MM/YYYY format. The server validates the calendar date and calculates eligibility; the exact date is not persisted or returned in account responses.
+     * @pattern ^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}$
      */
-  age: number;
+  dateOfBirth: string;
 }
 
 export type PersonalRegistration = RegistrationCommon & {

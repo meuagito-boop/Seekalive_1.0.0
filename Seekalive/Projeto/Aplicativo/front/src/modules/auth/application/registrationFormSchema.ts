@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { passwordPolicySchema, usernameSchema } from "@workspace/api-zod";
+import {
+  passwordPolicySchema,
+  registrationDateOfBirthSchema,
+  usernameSchema,
+} from "@workspace/api-zod";
 
 export const registrationFormSchema = z
   .object({
@@ -7,14 +11,7 @@ export const registrationFormSchema = z
     firstName: z.string(),
     lastName: z.string(),
     businessName: z.string(),
-    age: z
-      .string()
-      .trim()
-      .regex(/^\d{1,3}$/, "Informe uma idade válida")
-      .refine(
-        (value) => Number(value) >= 18 && Number(value) <= 120,
-        "O cadastro está disponível para pessoas com 18 anos ou mais",
-      ),
+    dateOfBirth: registrationDateOfBirthSchema,
     businessCategory: z.string(),
     discoveryKind: z.enum(["place", "provider"]),
     address: z.string(),

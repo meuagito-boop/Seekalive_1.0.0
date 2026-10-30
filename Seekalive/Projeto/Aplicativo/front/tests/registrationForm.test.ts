@@ -8,7 +8,7 @@ const personalForm = {
   firstName: "Ana",
   lastName: "Silva",
   businessName: "",
-  age: "24",
+  dateOfBirth: "29/10/2002",
   businessCategory: "",
   discoveryKind: "place" as const,
   address: "",
@@ -23,10 +23,13 @@ const personalForm = {
   terms: true,
 };
 
-test("personal signup validates minimum age, identity and matching passwords", () => {
+test("personal signup validates birth date, identity and matching passwords", () => {
   assert.equal(registrationFormSchema.safeParse(personalForm).success, true);
   assert.equal(
-    registrationFormSchema.safeParse({ ...personalForm, age: "17" }).success,
+    registrationFormSchema.safeParse({
+      ...personalForm,
+      dateOfBirth: "31/02/2000",
+    }).success,
     false,
   );
   assert.equal(
@@ -67,7 +70,7 @@ test("personal registration payload normalizes email and trims username", () => 
     accountType: "personal",
     firstName: "Ana",
     lastName: "Silva",
-    age: 24,
+    dateOfBirth: "29/10/2002",
     username: "ana_silva",
     email: "ana@example.com",
     password: "Strong!123",

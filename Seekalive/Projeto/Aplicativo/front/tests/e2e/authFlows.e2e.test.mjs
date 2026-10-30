@@ -81,7 +81,7 @@ test("personal registration confirms e-mail before opening onboarding", async (t
   );
   await page.getByTestId("input-first-name").fill("Ana");
   await page.getByTestId("input-last-name").fill("Silva");
-  await page.getByTestId("input-age").fill("29");
+  await page.getByTestId("input-date-of-birth").fill("01/01/1997");
   await page.getByTestId("input-username").fill("ana_e2e");
   await page.getByTestId("input-email").fill("Ana.E2E@Example.com");
   await page.getByTestId("input-password").fill(testPassword);
@@ -166,7 +166,7 @@ test("commercial registration sends the commercial profile fields", async (t) =>
   );
 
   await page.getByTestId("input-business-name").fill("Café de Teste");
-  await page.getByTestId("input-age").fill("36");
+  await page.getByTestId("input-date-of-birth").fill("01/01/1990");
   await page.getByTestId("select-business-category").selectOption("cafes");
   await page.getByTestId("select-discovery-kind").selectOption("provider");
   await page.getByTestId("input-business-address").fill("Rua de Teste, 100");

@@ -175,7 +175,7 @@ test("real API schedules and restores deletion with an authenticated session and
       lastName: "Isolada",
       username: `d_${suffix}`,
       email,
-      age: 18,
+      dateOfBirth: `01/01/${new Date().getUTCFullYear() - 18}`,
       password,
       passwordConfirmation: password,
       acceptedTermsVersion: "v1",

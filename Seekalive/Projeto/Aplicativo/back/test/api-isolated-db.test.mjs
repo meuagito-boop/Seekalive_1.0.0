@@ -48,6 +48,10 @@ const { passwordPolicySchema } = await import("@workspace/api-zod");
 const require = createRequire(import.meta.url);
 const argon2 = require("argon2");
 
+function dateOfBirthForAge(age) {
+  return `01/01/${new Date().getUTCFullYear() - age}`;
+}
+
 const modelTables = [
   accounts,
   accountEmails,
@@ -355,7 +359,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       lastName: "Menor",
       username: `u_${suffix}`,
       email: `underage-${suffix}@example.com`,
-      age: 17,
+      dateOfBirth: dateOfBirthForAge(17),
       password,
       passwordConfirmation: password,
       acceptedTermsVersion: "v1",
@@ -378,7 +382,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       country: "Brasil",
       username: `b_${suffix}`,
       email: `underage-business-${suffix}@example.com`,
-      age: 17,
+      dateOfBirth: dateOfBirthForAge(17),
       password,
       passwordConfirmation: password,
       acceptedTermsVersion: "v1",
@@ -410,7 +414,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       lastName: "Senha",
       username: `weak_${suffix}`,
       email: `weak-password-${suffix}@example.com`,
-      age: 18,
+      dateOfBirth: dateOfBirthForAge(18),
       password: "a02_test_2026!",
       passwordConfirmation: "a02_test_2026!",
       acceptedTermsVersion: "v1",
@@ -439,7 +443,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     lastName: "Isolada",
     username: `p_${suffix}`,
     email: `personal-${suffix}@example.com`,
-    age: 18,
+    dateOfBirth: dateOfBirthForAge(18),
     password,
     passwordConfirmation: password,
     acceptedTermsVersion: "v1",
@@ -1011,7 +1015,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     country: "Brasil",
     username: `c_${suffixCommercial}`,
     email: `commercial-${suffix}@example.com`,
-    age: 35,
+    dateOfBirth: dateOfBirthForAge(35),
     password,
     passwordConfirmation: password,
     acceptedTermsVersion: "v1",
@@ -2007,7 +2011,7 @@ test("unknown installations require email confirmation; password changes revoke 
       lastName: "Dispositivo",
       username: `device_${suffix}`,
       email: `device-${suffix}@example.com`,
-      age: 29,
+      dateOfBirth: dateOfBirthForAge(29),
       password,
       passwordConfirmation: password,
       acceptedTermsVersion: "v1",
@@ -2180,7 +2184,7 @@ test("three incorrect device codes lock the account and expose the configured su
       lastName: "Bloqueada",
       username: `locked_${suffix}`,
       email: `locked-${suffix}@example.com`,
-      age: 31,
+      dateOfBirth: dateOfBirthForAge(31),
       password,
       passwordConfirmation: password,
       acceptedTermsVersion: "v1",
@@ -2259,7 +2263,7 @@ test("authenticated e-mail and password changes verify both mailboxes and revoke
       lastName: "Alteracao",
       username: `change_${suffix}`,
       email: currentEmail,
-      age: 32,
+      dateOfBirth: dateOfBirthForAge(32),
       password: currentPassword,
       passwordConfirmation: currentPassword,
       acceptedTermsVersion: "v1",

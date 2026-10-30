@@ -14,7 +14,7 @@ import { toRegistrationPayload } from "@/modules/auth/application/registrationPa
 import { CommercialRegistrationFields } from "@/modules/auth/components/registration/CommercialRegistrationFields";
 import { CommercialRegistrationNameField } from "@/modules/auth/components/registration/CommercialRegistrationNameField";
 import { PersonalRegistrationFields } from "@/modules/auth/components/registration/PersonalRegistrationFields";
-import { RegistrationAgeField } from "@/modules/auth/components/registration/RegistrationAgeField";
+import { RegistrationDateOfBirthField } from "@/modules/auth/components/registration/RegistrationDateOfBirthField";
 import { RegistrationAccountTypeField } from "@/modules/auth/components/registration/RegistrationAccountTypeField";
 import { RegistrationCredentialsFields } from "@/modules/auth/components/registration/RegistrationCredentialsFields";
 import { RegistrationIdentityFields } from "@/modules/auth/components/registration/RegistrationIdentityFields";
@@ -34,7 +34,7 @@ export default function Register() {
       firstName: "",
       lastName: "",
       businessName: "",
-      age: "",
+      dateOfBirth: "",
       businessCategory: "",
       discoveryKind: "place",
       address: "",
@@ -122,7 +122,7 @@ export default function Register() {
             ) : (
               <CommercialRegistrationNameField control={form.control} />
             )}
-            <RegistrationAgeField
+            <RegistrationDateOfBirthField
               control={form.control}
               accountType={accountType}
             />

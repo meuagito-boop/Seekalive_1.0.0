@@ -4,6 +4,28 @@ import { usernameSchema } from "./username";
 export const PASSWORD_POLICY_VERSION = 1;
 export const SUPPORT_EMAIL = "admseekalive@gmail.com";
 
+const dateOfBirthPattern = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+
+export const registrationDateOfBirthSchema = z
+  .string()
+  .trim()
+  .regex(dateOfBirthPattern, "Informe a data no formato DD/MM/AAAA.")
+  .refine((value) => {
+    const match = dateOfBirthPattern.exec(value);
+    if (!match) return false;
+
+    const [day, month, year] = value.split("/").map(Number);
+    const date = new Date(0);
+    date.setUTCHours(0, 0, 0, 0);
+    date.setUTCFullYear(year, month - 1, day);
+
+    return (
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day
+    );
+  }, "Informe uma data de nascimento válida.");
+
 export const passwordPolicySchema = z
   .string()
   .min(8, "A senha deve ter pelo menos 8 caracteres.")
@@ -19,7 +41,7 @@ const sharedRegistrationFields = {
   password: passwordPolicySchema,
   passwordConfirmation: passwordPolicySchema,
   acceptedTermsVersion: z.string().trim().min(1).max(50),
-  age: z.coerce.number().int().min(18).max(120),
+  dateOfBirth: registrationDateOfBirthSchema,
 };
 
 const personalRegistrationSchema = z.object({
@@ -32,7 +54,15 @@ const personalRegistrationSchema = z.object({
 const commercialRegistrationSchema = z.object({
   accountType: z.literal("commercial"),
   businessName: z.string().trim().min(2).max(100),
-  categoryKey: z.enum(["restaurantes", "bares", "cafes", "servicos", "compras", "saude", "lazer"]),
+  categoryKey: z.enum([
+    "restaurantes",
+    "bares",
+    "cafes",
+    "servicos",
+    "compras",
+    "saude",
+    "lazer",
+  ]),
   discoveryKind: z.enum(["place", "provider"]),
   address: z.string().trim().min(3).max(250),
   postalCode: z.string().trim().min(5).max(20),
@@ -43,7 +73,10 @@ const commercialRegistrationSchema = z.object({
 });
 
 export const registerRequestSchema = z
-  .discriminatedUnion("accountType", [personalRegistrationSchema, commercialRegistrationSchema])
+  .discriminatedUnion("accountType", [
+    personalRegistrationSchema,
+    commercialRegistrationSchema,
+  ])
   .superRefine((value, context) => {
     if (value.password !== value.passwordConfirmation) {
       context.addIssue({
@@ -168,7 +201,8 @@ export const onboardingCompletionSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["interests"],
-        message: "Interesses não devem ser enviados quando esta etapa for pulada.",
+        message:
+          "Interesses não devem ser enviados quando esta etapa for pulada.",
       });
     }
     if (new Set(value.interests).size !== value.interests.length) {
@@ -182,4 +216,6 @@ export const onboardingCompletionSchema = z
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
-export type PasswordPolicyUpdateRequest = z.infer<typeof passwordPolicyUpdateSchema>;
+export type PasswordPolicyUpdateRequest = z.infer<
+  typeof passwordPolicyUpdateSchema
+>;

@@ -191,7 +191,9 @@ async function confirmEmailAndVerifyPersistence({
 async function fillPersonalRegistration(page, registration) {
   await page.getByTestId("input-first-name").fill(registration.firstName);
   await page.getByTestId("input-last-name").fill(registration.lastName);
-  await page.getByTestId("input-age").fill(registration.age ?? "29");
+  await page
+    .getByTestId("input-date-of-birth")
+    .fill(registration.dateOfBirth ?? "01/01/1997");
   await page.getByTestId("input-username").fill(registration.username);
   await page.getByTestId("input-email").fill(registration.email);
   await page.getByTestId("input-password").fill(testPassword);
@@ -257,7 +259,7 @@ test("commercial signup persists the social account and Seek business profile", 
     })
     .click();
   await network.page.getByTestId("input-business-name").fill(businessName);
-  await network.page.getByTestId("input-age").fill("36");
+  await network.page.getByTestId("input-date-of-birth").fill("01/01/1990");
   await network.page
     .getByTestId("select-business-category")
     .selectOption("cafes");

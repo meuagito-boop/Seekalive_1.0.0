@@ -30,7 +30,7 @@ export async function registerPersonalAccount({
   });
   await page.getByTestId("input-first-name").fill("Ana");
   await page.getByTestId("input-last-name").fill("Teste");
-  await page.getByTestId("input-age").fill("29");
+  await page.getByTestId("input-date-of-birth").fill("01/01/1997");
   await page.getByTestId("input-username").fill(username);
   await page.getByTestId("input-email").fill(email);
   await page.getByTestId("input-password").fill(password);

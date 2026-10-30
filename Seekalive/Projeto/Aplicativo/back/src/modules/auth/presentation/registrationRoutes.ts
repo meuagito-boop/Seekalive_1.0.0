@@ -95,14 +95,28 @@ router.post(
     const passwordHash = await hashPassword(registration.password);
 
     try {
-      const account = await createRegistrationAccountService(registration, {
-        username,
-        email,
-        passwordHash,
-        acceptedTermsVersion: CURRENT_TERMS_VERSION,
-      });
+      const registrationResult = await createRegistrationAccountService(
+        registration,
+        {
+          username,
+          email,
+          passwordHash,
+          acceptedTermsVersion: CURRENT_TERMS_VERSION,
+        },
+      );
 
-      if (!account) {
+      if (registrationResult.kind === "age_ineligible") {
+        const message =
+          registrationResult.reason === "underage"
+            ? "O cadastro está disponível para pessoas com 18 anos ou mais."
+            : registrationResult.reason === "over_age_limit"
+              ? "Informe uma data de nascimento válida."
+              : "Informe uma data de nascimento válida.";
+        sendValidationError(response, [{ path: ["dateOfBirth"], message }]);
+        return;
+      }
+
+      if (registrationResult.kind === "username_unavailable") {
         sendError(
           response,
           409,
@@ -112,6 +126,7 @@ router.post(
         return;
       }
 
+      const account = registrationResult.account;
       try {
         await emailVerificationOperations.sendVerificationCode(account, email);
       } catch {

@@ -15,7 +15,7 @@ const personalRegistration = {
   password: "SenhaForte1!",
   passwordConfirmation: "SenhaForte1!",
   acceptedTermsVersion: "v1",
-  age: 18,
+  dateOfBirth: "01/01/2000",
 };
 
 test("registration and profile update normalize usernames consistently", () => {

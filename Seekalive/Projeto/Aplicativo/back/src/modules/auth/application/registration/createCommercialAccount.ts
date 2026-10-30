@@ -1,13 +1,19 @@
-import type { RegisterRequest } from "@workspace/api-zod";
 import type {
   PendingAccountInput,
   RegistrationIdentity,
 } from "./registrationPorts";
 
-type CommercialRegistration = Extract<
-  RegisterRequest,
-  { accountType: "commercial" }
->;
+type CommercialRegistration = {
+  businessName: string;
+  age: number;
+  categoryKey: string;
+  discoveryKind: "place" | "provider";
+  address: string;
+  postalCode: string;
+  city: string;
+  state: string;
+  country: string;
+};
 
 export function createCommercialAccount(
   registration: CommercialRegistration,

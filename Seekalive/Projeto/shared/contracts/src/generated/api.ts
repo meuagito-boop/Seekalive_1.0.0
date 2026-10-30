@@ -76,9 +76,7 @@ export const registerAccountBodyOneOnePasswordMax = 128;
 export const registerAccountBodyOneOnePasswordConfirmationMin = 8;
 export const registerAccountBodyOneOnePasswordConfirmationMax = 128;
 
-export const registerAccountBodyOneOneAgeMin = 18;
-export const registerAccountBodyOneOneAgeMax = 120;
-
+export const registerAccountBodyOneOneDateOfBirthRegExp = new RegExp('^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}$');
 export const registerAccountBodyOneTwoFirstNameMin = 2;
 export const registerAccountBodyOneTwoFirstNameMax = 80;
 
@@ -98,9 +96,7 @@ export const registerAccountBodyTwoOnePasswordMax = 128;
 export const registerAccountBodyTwoOnePasswordConfirmationMin = 8;
 export const registerAccountBodyTwoOnePasswordConfirmationMax = 128;
 
-export const registerAccountBodyTwoOneAgeMin = 18;
-export const registerAccountBodyTwoOneAgeMax = 120;
-
+export const registerAccountBodyTwoOneDateOfBirthRegExp = new RegExp('^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}$');
 export const registerAccountBodyTwoTwoBusinessNameMin = 2;
 export const registerAccountBodyTwoTwoBusinessNameMax = 100;
 
@@ -127,7 +123,7 @@ export const RegisterAccountBody = zod.union([zod.object({
   "password": zod.string().min(registerAccountBodyOneOnePasswordMin).max(registerAccountBodyOneOnePasswordMax).describe('Must include an uppercase letter, lowercase letter, number, and special character.'),
   "passwordConfirmation": zod.string().min(registerAccountBodyOneOnePasswordConfirmationMin).max(registerAccountBodyOneOnePasswordConfirmationMax).describe('Must match password.'),
   "acceptedTermsVersion": zod.literal("v1"),
-  "age": zod.int().min(registerAccountBodyOneOneAgeMin).max(registerAccountBodyOneOneAgeMax).describe('Private eligibility data; it is not returned in public account responses.')
+  "dateOfBirth": zod.string().regex(registerAccountBodyOneOneDateOfBirthRegExp).describe('Registration-only date in DD/MM/YYYY format. The server validates the calendar date and calculates eligibility; the exact date is not persisted or returned in account responses.\n')
 }).and(zod.object({
   "accountType": zod.literal("personal"),
   "firstName": zod.string().min(registerAccountBodyOneTwoFirstNameMin).max(registerAccountBodyOneTwoFirstNameMax),
@@ -138,7 +134,7 @@ export const RegisterAccountBody = zod.union([zod.object({
   "password": zod.string().min(registerAccountBodyTwoOnePasswordMin).max(registerAccountBodyTwoOnePasswordMax).describe('Must include an uppercase letter, lowercase letter, number, and special character.'),
   "passwordConfirmation": zod.string().min(registerAccountBodyTwoOnePasswordConfirmationMin).max(registerAccountBodyTwoOnePasswordConfirmationMax).describe('Must match password.'),
   "acceptedTermsVersion": zod.literal("v1"),
-  "age": zod.int().min(registerAccountBodyTwoOneAgeMin).max(registerAccountBodyTwoOneAgeMax).describe('Private eligibility data; it is not returned in public account responses.')
+  "dateOfBirth": zod.string().regex(registerAccountBodyTwoOneDateOfBirthRegExp).describe('Registration-only date in DD/MM/YYYY format. The server validates the calendar date and calculates eligibility; the exact date is not persisted or returned in account responses.\n')
 }).and(zod.object({
   "accountType": zod.literal("commercial"),
   "businessName": zod.string().min(registerAccountBodyTwoTwoBusinessNameMin).max(registerAccountBodyTwoTwoBusinessNameMax),

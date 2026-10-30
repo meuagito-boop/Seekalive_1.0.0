@@ -1,13 +1,13 @@
-import type { RegisterRequest } from "@workspace/api-zod";
 import type {
   PendingAccountInput,
   RegistrationIdentity,
 } from "./registrationPorts";
 
-type PersonalRegistration = Extract<
-  RegisterRequest,
-  { accountType: "personal" }
->;
+type PersonalRegistration = {
+  firstName: string;
+  lastName: string;
+  age: number;
+};
 
 export function createPersonalAccount(
   registration: PersonalRegistration,

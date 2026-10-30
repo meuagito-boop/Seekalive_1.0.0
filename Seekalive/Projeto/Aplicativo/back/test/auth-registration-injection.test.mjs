@@ -8,6 +8,7 @@ import { createCommercialAccount } from "../src/modules/auth/application/registr
 import { createRegistrationAccount } from "../src/modules/auth/application/registration/createRegistrationAccount.ts";
 import { createRegistrationAvailability } from "../src/modules/auth/application/registration/registrationAvailability.ts";
 import { createRegistrationAccountCoordinator } from "../src/modules/auth/infrastructure/registrationAccountCoordinator.ts";
+import { assessAccountAge } from "../src/modules/accounts/domain/accountAgeEligibility.ts";
 
 const applicationDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -106,12 +107,15 @@ test("registration selects the account-specific mapper and writes once", async (
       };
     },
   };
-  const register = createRegistrationAccount(accountWriter);
-  const created = await register(
+  const register = createRegistrationAccount(
+    accountWriter,
+    () => new Date("2026-10-29T12:00:00.000Z"),
+  );
+  const result = await register(
     {
       accountType: "commercial",
       businessName: "Mercado do Bairro",
-      age: 41,
+      dateOfBirth: "01/01/1985",
       categoryKey: "market",
       discoveryKind: "place",
       address: "Rua A, 1",
@@ -123,14 +127,71 @@ test("registration selects the account-specific mapper and writes once", async (
     identity,
   );
 
-  assert.deepEqual(created, {
-    id: "pending-account",
-    username: identity.username,
-    displayName: "Mercado do Bairro",
+  assert.deepEqual(result, {
+    kind: "created",
+    account: {
+      id: "pending-account",
+      username: identity.username,
+      displayName: "Mercado do Bairro",
+    },
   });
   assert.equal(writes.length, 1);
+  assert.equal(writes[0].age, 41);
+  assert.equal("dateOfBirth" in writes[0], false);
   assert.equal(writes[0].accountType, "commercial");
   assert.equal(writes[0].commercialProfile.cityName, "Santos");
+});
+
+test("registration calculates age on the server and blocks minors before persistence", async () => {
+  const writes = [];
+  const register = createRegistrationAccount(
+    {
+      async createPendingAccount(input) {
+        writes.push(input);
+        return null;
+      },
+    },
+    () => new Date("2026-10-29T12:00:00.000Z"),
+  );
+
+  const result = await register(
+    {
+      accountType: "personal",
+      firstName: "Ana",
+      lastName: "Silva",
+      dateOfBirth: "30/10/2008",
+      username: "ana_silva",
+      email: "ana@example.com",
+      password: "Strong!123",
+      passwordConfirmation: "Strong!123",
+      acceptedTermsVersion: "v1",
+    },
+    identity,
+  );
+
+  assert.deepEqual(result, { kind: "age_ineligible", reason: "underage" });
+  assert.equal(writes.length, 0);
+});
+
+test("account age policy validates calendar dates and exact birthdays", () => {
+  const today = new Date("2026-10-29T12:00:00.000Z");
+
+  assert.deepEqual(assessAccountAge("29/10/2008", today), {
+    kind: "eligible",
+    age: 18,
+  });
+  assert.deepEqual(assessAccountAge("30/10/2008", today), {
+    kind: "ineligible",
+    reason: "underage",
+  });
+  assert.deepEqual(assessAccountAge("31/02/2000", today), {
+    kind: "ineligible",
+    reason: "invalid_date",
+  });
+  assert.deepEqual(assessAccountAge("30/10/2026", today), {
+    kind: "ineligible",
+    reason: "invalid_date",
+  });
 });
 
 test("registration coordinator delegates each write to its owning module", async () => {
