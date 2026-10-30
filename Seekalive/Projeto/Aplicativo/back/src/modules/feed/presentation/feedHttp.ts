@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
 import { sendApiError } from "../../../common/apiErrors";
 import { loadActiveSession } from "../../../security/activeSession";
+export { isFeedResourceId } from "../domain/feedResourceId";
 
 export function sendFeedError(
   response: Response,
@@ -32,13 +33,4 @@ export async function requiredActorId(
     "Entre com uma conta verificada para continuar.",
   );
   return null;
-}
-
-export function isFeedResourceId(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      value,
-    )
-  );
 }

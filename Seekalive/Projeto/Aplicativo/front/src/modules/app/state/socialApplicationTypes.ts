@@ -23,19 +23,29 @@ export interface SocialContextType extends SocialState {
   socialGraphError: string | null;
   retrySocialGraph: () => void;
   loadRemoteProfile: (username: string) => Promise<User | null>;
+  loadRemoteProfileContent: (
+    accountId: string,
+    cursor?: string,
+  ) => Promise<{ items: Post[]; nextCursor: string | null }>;
+  loadRemotePost: (postId: string) => Promise<Post | null>;
+  loadPostComments: (
+    postId: string,
+    cursor?: string,
+  ) => Promise<{ items: SocialComment[]; nextCursor: string | null }>;
   upsertRemoteUser: (user: User) => void;
-  toggleLike: (postId: string) => void;
-  toggleRepost: (postId: string, actorId?: string) => void;
+  toggleLike: (postId: string) => Promise<void>;
+  toggleRepost: (postId: string, actorId?: string) => Promise<void>;
   publishPost: (input: PublishPostInput) => Promise<Post>;
   addComment: (
     postId: string,
     content: string,
     authorId: string,
     replyToCommentId?: string,
+    idempotencyKey?: string,
   ) => Promise<SocialComment>;
-  toggleCommentLike: (commentId: string) => void;
+  toggleCommentLike: (commentId: string) => Promise<void>;
   deletePost: (postId: string, authorId: string) => Promise<void>;
-  toggleBookmark: (postId: string) => void;
+  toggleBookmark: (postId: string) => Promise<void>;
   toggleFollow: (userId: string) => Promise<boolean>;
   blockUser: (userId: string) => Promise<boolean>;
   unblockUser: (userId: string) => Promise<boolean>;

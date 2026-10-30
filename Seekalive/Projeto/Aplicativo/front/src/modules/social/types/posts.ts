@@ -20,9 +20,15 @@ export interface SocialComment {
   authorId: string;
   content: string;
   createdAt: string;
-  replyToCommentId?: string;
+  replyToCommentId?: string | null;
   likes: number;
   isLiked?: boolean;
+  author?: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
 }
 
 export interface SocialRepost {

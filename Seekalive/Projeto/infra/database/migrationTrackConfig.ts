@@ -17,6 +17,11 @@ const migrationTracks = {
     source: "./src/schema/profiles/*.ts",
     ledgerTable: "profiles_migrations",
   },
+  feed: {
+    schema: "feed",
+    source: "./src/schema/feed/*.ts",
+    ledgerTable: "feed_migrations",
+  },
 } as const;
 
 type MigrationTrack = keyof typeof migrationTracks;
@@ -28,7 +33,7 @@ function getMigrationTrack(): {
   const name = process.env.SEEKALIVE_DB_MIGRATION_TRACK;
   if (!name || !Object.hasOwn(migrationTracks, name)) {
     throw new Error(
-      "Set SEEKALIVE_DB_MIGRATION_TRACK to one active domain: accounts, security, or profiles.",
+      "Set SEEKALIVE_DB_MIGRATION_TRACK to one active domain: accounts, security, profiles, or feed.",
     );
   }
 

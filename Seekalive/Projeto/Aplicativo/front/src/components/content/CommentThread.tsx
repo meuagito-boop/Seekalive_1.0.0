@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Heart, CornerDownRight, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +8,7 @@ import { formatTimeAgo } from "@/lib/formatters";
 import type { SocialComment } from "@/modules/social/types/posts";
 import { renderInline } from "./RichText";
 import { ErrorState } from "./StateBlocks";
+import { useToast } from "@/hooks/use-toast";
 
 function CommentForm({
   postId,
@@ -28,6 +29,7 @@ function CommentForm({
   const [status, setStatus] = useState<"idle" | "sending" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const sending = useRef(false);
+  const mutation = useRef<{ content: string; key: string } | null>(null);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -35,9 +37,19 @@ function CommentForm({
     if (!content || sending.current) return;
     sending.current = true;
     setStatus("sending");
+    if (!mutation.current || mutation.current.content !== content) {
+      mutation.current = { content, key: crypto.randomUUID() };
+    }
     try {
-      await addComment(postId, content, currentUser?.id ?? "me", replyTo);
+      await addComment(
+        postId,
+        content,
+        currentUser?.id ?? "me",
+        replyTo,
+        mutation.current.key,
+      );
       setText("");
+      mutation.current = null;
       setStatus("idle");
       onDone?.();
     } catch (error) {
@@ -55,7 +67,12 @@ function CommentForm({
         <input
           id={`comment-${postId}-${replyTo ?? "root"}`}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            if (mutation.current && e.target.value.trim() !== mutation.current.content) {
+              mutation.current = null;
+            }
+            setText(e.target.value);
+          }}
           placeholder={placeholder}
           autoFocus={autoFocus}
           maxLength={2000}
@@ -88,14 +105,28 @@ function CommentItem({
 }) {
   const { getUserById, toggleCommentLike } = useSocial();
   const [replying, setReplying] = useState(false);
-  const author = getUserById(comment.authorId);
+  const account = getUserById(comment.authorId);
+  const author = comment.author ?? account;
   const replies = childrenByParent.get(comment.id) ?? [];
+  const { toast } = useToast();
+
+  async function likeComment() {
+    try {
+      await toggleCommentLike(comment.id);
+    } catch (error) {
+      toast({
+        title: "Não foi possível atualizar a curtida",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  }
 
   return (
     <li className={depth > 0 ? "border-l border-border pl-4" : ""}>
       <div className="flex gap-3 py-3" data-testid={`comment-${comment.id}`}>
         <Avatar className="h-8 w-8 shrink-0">
-          <AvatarImage src={author?.avatarUrl} alt="" />
+          <AvatarImage src={author?.avatarUrl ?? undefined} alt="" />
           <AvatarFallback>{author?.displayName?.[0] ?? "?"}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
@@ -111,7 +142,7 @@ function CommentItem({
           <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
             <button
               type="button"
-              onClick={() => toggleCommentLike(comment.id)}
+              onClick={() => void likeComment()}
               aria-pressed={!!comment.isLiked}
               aria-label={comment.isLiked ? "Descurtir comentário" : "Curtir comentário"}
               className={`inline-flex items-center gap-1 hover:text-red-500 ${comment.isLiked ? "text-red-500" : ""}`}
@@ -150,8 +181,51 @@ function CommentItem({
 
 /** Comments belong to exactly one post id; replies point to a parent comment. */
 export function CommentThread({ postId }: { postId: string }) {
-  const { postComments, users } = useSocial();
+  const {
+    postComments,
+    users,
+    isRemoteSocialSession,
+    loadPostComments,
+  } = useSocial();
   const { currentUser } = useAppContext();
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isRemoteSocialSession) return;
+    let active = true;
+    setLoading(true);
+    setLoadError(null);
+    loadPostComments(postId)
+      .then((page) => {
+        if (active) setNextCursor(page.nextCursor);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : "Não foi possível carregar os comentários.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRemoteSocialSession, loadPostComments, postId]);
+
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    setLoadError(null);
+    try {
+      const page = await loadPostComments(postId, nextCursor);
+      setNextCursor(page.nextCursor);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Não foi possível carregar mais comentários.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   const { roots, childrenByParent } = useMemo(() => {
     const own = postComments.filter((comment) => {
@@ -181,14 +255,25 @@ export function CommentThread({ postId }: { postId: string }) {
         <CommentForm postId={postId} placeholder="Escreva um comentário" />
       </div>
       <h2 className="pt-4 text-sm font-semibold text-muted-foreground">
-        {roots.length ? "Comentários" : "Ainda sem comentários"}
+        {loading ? "Carregando comentários…" : roots.length ? "Comentários" : "Ainda sem comentários"}
       </h2>
-      {roots.length === 0 ? (
+      {loadError && <ErrorState message={loadError} />}
+      {roots.length === 0 && !loading ? (
         <p className="py-6 text-sm text-muted-foreground">Seja a primeira pessoa a comentar nesta publicação.</p>
-      ) : (
+      ) : roots.length > 0 ? (
         <ul className="divide-y divide-border">
           {roots.map((c) => <CommentItem key={c.id} comment={c} childrenByParent={childrenByParent} depth={0} />)}
         </ul>
+      ) : null}
+      {nextCursor && (
+        <button
+          type="button"
+          onClick={() => void loadMore()}
+          disabled={loadingMore}
+          className="mt-3 rounded-full border border-border px-4 py-2 text-sm font-medium disabled:opacity-50"
+        >
+          {loadingMore ? "Carregando…" : "Carregar mais comentários"}
+        </button>
       )}
     </section>
   );

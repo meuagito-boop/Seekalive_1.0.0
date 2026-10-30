@@ -60,6 +60,7 @@ const input: PublishPostInput = {
 const post = makeDemoPost(input);
 const state = (): SocialState => ({
   posts: [post],
+  remotePosts: [],
   users: mockUsers,
   conversations: [],
   messages: [],
@@ -1037,7 +1038,10 @@ test("REST trata 401/403/404/409/422/5xx e falha de rede explicitamente", async 
       apiRequest("/api/proposto"),
       (error) => (error as { status: number }).status === 0,
     );
-    globalThis.fetch = async () => Response.json({ sucesso: true });
+    globalThis.fetch = async (input) =>
+      String(input).endsWith("/api/v1/auth/csrf")
+        ? Response.json({ csrfToken: "test-csrf-token" })
+        : Response.json({ sucesso: true });
     await assert.rejects(
       restContentAdapter.createPost(input),
       (error) => (error as { status: number }).status === 502,

@@ -29,6 +29,7 @@ export function createDevelopmentPreviewState(): SocialState {
       isBookmarked: false,
       isReposted: false,
     })),
+    remotePosts: [],
     users: [...mockUsers.map(withDemoSeekMedia), ...demoSeekAccounts],
     notifications: [...mockNotifications],
     conversations: [...mockConversations],

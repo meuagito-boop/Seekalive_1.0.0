@@ -682,6 +682,7 @@ export interface Post {
   shares: number;
   isLiked: boolean;
   isReposted: boolean;
+  isBookmarked: boolean;
 }
 
 export interface PostPage {
@@ -854,6 +855,48 @@ export const FollowStateStatus = {
 export interface FollowState {
   status: FollowStateStatus;
   updatedAt: string;
+}
+
+export interface CommentCreate {
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  text: string;
+  idempotencyKey: string;
+  /** Optional compatibility field; must match the authenticated account. */
+  authorId?: string;
+  /** @nullable */
+  replyToCommentId?: string | null;
+}
+
+export interface CommentAuthor {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl: string | null;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  /** @maxLength 2000 */
+  content: string;
+  createdAt: string;
+  /** @nullable */
+  replyToCommentId: string | null;
+  /** @minimum 0 */
+  likes: number;
+  isLiked: boolean;
+  author: CommentAuthor;
+}
+
+export interface CommentPage {
+  items: Comment[];
+  /** @nullable */
+  nextCursor: string | null;
 }
 
 export type PostCreateAudience = typeof PostCreateAudience[keyof typeof PostCreateAudience];
@@ -1032,6 +1075,30 @@ cursor?: PageCursorParameter;
 };
 
 export type GetCircleParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
+
+export type GetSocialPostCommentsParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
+
+export type CreateSocialPostCommentParams = {
 /**
  * @minimum 1
  * @maximum 100

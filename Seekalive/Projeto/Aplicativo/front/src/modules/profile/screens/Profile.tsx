@@ -20,17 +20,22 @@ export default function Profile() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [profileRetry, setProfileRetry] = useState(0);
+  const [profileContentLoading, setProfileContentLoading] = useState(false);
+  const [profileContentCursor, setProfileContentCursor] = useState<string | null>(null);
+  const [profileContentError, setProfileContentError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const {
     users,
     posts,
+    remotePosts,
     repostEntries,
     postComments,
     toggleFollow,
     blockUser,
     unblockUser,
     loadRemoteProfile,
+    loadRemoteProfileContent,
   } = useSocial();
   const { currentUser: signedInUser, isDevelopmentPreview } = useAppContext();
   const viewer = signedInUser;
@@ -68,6 +73,30 @@ export default function Profile() {
     };
   }, [isRemoteSocialSession, isMe, username, remoteUser?.id, profileRetry, loadRemoteProfile]);
 
+  const contentAccountId = isMe ? viewer?.id : remoteUser?.id;
+  useEffect(() => {
+    if (!isRemoteSocialSession || !contentAccountId) return;
+    let active = true;
+    setProfileContentLoading(true);
+    setProfileContentError(null);
+    setProfileContentCursor(null);
+    loadRemoteProfileContent(contentAccountId)
+      .then((page) => {
+        if (active) setProfileContentCursor(page.nextCursor);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setProfileContentError(error instanceof Error ? error.message : "Não foi possível carregar as publicações.");
+        }
+      })
+      .finally(() => {
+        if (active) setProfileContentLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRemoteSocialSession, contentAccountId, profileRetry, loadRemoteProfileContent]);
+
   if (!viewer) {
     return (
       <UnavailableState
@@ -100,6 +129,10 @@ export default function Profile() {
     );
   }
   const user = found;
+  const profilePosts =
+    isRemoteSocialSession && user.source === "server"
+      ? remotePosts.filter((post) => post.authorId === user.id)
+      : posts;
 
   const following = user.isFollowing ?? false;
   const followRequested = user.followRequestSent ?? false;
@@ -107,19 +140,52 @@ export default function Profile() {
   const circleCount = isMe ? users.filter(candidate => candidate.isInCircle).length : user.stats.circles;
 
   // Posts filtered to this user
-  const visibleToViewer = (p: (typeof posts)[number]) => {
+  const visibleToViewer = (p: (typeof profilePosts)[number]) => {
     const author = users.find(u => u.id === p.authorId) ?? (p.authorId === viewer.id ? viewer : undefined);
+    if (isRemoteSocialSession && p.source === "server") {
+      return !!author && !author.isBlocked;
+    }
     return !!author && !author.isBlocked && canReadPost(p, viewer.id, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false);
   };
   // Authored posts plus repost distribution records (original author preserved).
-  const timeline = buildProfileTimeline(posts, repostEntries, user.id, visibleToViewer);
-  const userArticles = posts.filter(p => p.authorId === user.id && p.format === "article" && visibleToViewer(p));
+  const timeline = buildProfileTimeline(profilePosts, repostEntries, user.id, visibleToViewer);
+  const userArticles = profilePosts.filter(p => p.authorId === user.id && p.format === "article" && visibleToViewer(p));
   const userComments = postComments.filter(c => {
-    const target = posts.find(post => post.id === c.postId);
+    const target = profilePosts.find(post => post.id === c.postId);
     return c.authorId === user.id && !!target && visibleToViewer(target);
   }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const likedPosts = isMe ? posts.filter(p => p.isLiked && visibleToViewer(p)) : [];
-  const userMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
+  const likedPosts = isMe ? profilePosts.filter(p => p.isLiked && visibleToViewer(p)) : [];
+  const userMedia = getProfileMedia(profilePosts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
+
+  async function loadMoreProfileContent() {
+    if (!profileContentCursor || profileContentLoading) return;
+    setProfileContentLoading(true);
+    setProfileContentError(null);
+    try {
+      const page = await loadRemoteProfileContent(user.id, profileContentCursor);
+      setProfileContentCursor(page.nextCursor);
+    } catch (error) {
+      setProfileContentError(error instanceof Error ? error.message : "Não foi possível carregar mais publicações.");
+    } finally {
+      setProfileContentLoading(false);
+    }
+  }
+
+  const moreContentControl = isRemoteSocialSession ? (
+    <div className="mx-auto flex max-w-xl flex-col items-center gap-2 px-4 py-4">
+      {profileContentError && <p className="text-sm text-destructive" role="alert">{profileContentError}</p>}
+      {profileContentCursor && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void loadMoreProfileContent()}
+          disabled={profileContentLoading}
+        >
+          {profileContentLoading ? "Carregando…" : "Carregar mais publicações"}
+        </Button>
+      )}
+    </div>
+  ) : null;
 
   function handleFollow() {
     if (isMe || user.isBlocked) return;
@@ -214,11 +280,14 @@ export default function Profile() {
 
   if (user.accountType === "commercial" && user.commercialProfile) {
     return (
-      <CommercialProfilePage
-        circleCount={circleCount}
-        user={user}
-        isMe={isMe}
-      />
+      <>
+        <CommercialProfilePage
+          circleCount={circleCount}
+          user={user}
+          isMe={isMe}
+        />
+        {moreContentControl}
+      </>
     );
   }
 
@@ -247,7 +316,7 @@ export default function Profile() {
         isMe={isMe}
         likedPosts={likedPosts}
         media={userMedia}
-        posts={posts}
+        posts={profilePosts}
         profile={user}
         isPostReadable={visibleToViewer}
         setActiveTab={setActiveTab}
@@ -255,6 +324,7 @@ export default function Profile() {
         userArticles={userArticles}
         userComments={userComments}
       />
+      {moreContentControl}
     </div>
   );
 }

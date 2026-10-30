@@ -10,15 +10,20 @@ import {
 import type { ReactNode } from "react";
 import { usernameFormatSchema } from "@workspace/api-zod";
 import type { User } from "@/modules/profile/types/user";
+import type { Post } from "@/modules/social/types/post";
+import type { SocialComment } from "@/modules/social/types/posts";
 import { saveSocialAccount } from "@/modules/profile/data/accountStorage";
 import { saveStoredFollowRequests } from "@/modules/social/data/followRequestStorage";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { toast } from "@/hooks/use-toast";
 import {
+  accountViewToUser,
   myAccountToUser,
+  profileResponseToPosts,
   profileResponseToUser,
   socialGraphApi,
 } from "@/modules/social/services/socialGraphApi";
+import { restSocialApi } from "@/modules/social/services/restContracts";
 import { readAccountScopedIdsMap } from "@/modules/app/persistence/browserAccountStorage";
 import { useAccountScopedIds } from "@/modules/app/hooks/useAccountScopedIds";
 import { getAccountBlockProjection } from "@/modules/social/application/blockProjection";
@@ -142,7 +147,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       readMessageIds: accountActivity.readMessageIds,
     });
   const { assertSession, assertReadable } = createPostAccessPolicy({
-    posts: state.posts,
+    posts: [...state.posts, ...state.remotePosts],
     users,
     currentUser,
     viewer,
@@ -211,7 +216,60 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       );
       const user = profileResponseToUser(profile);
       dispatch({ type: "ADD_USER", user });
+      dispatch({
+        type: "UPSERT_REMOTE_PROFILE_POSTS",
+        authorId: user.id,
+        posts: profileResponseToPosts(profile),
+        append: false,
+      });
       return user;
+    },
+    [isRemoteSocialSession],
+  );
+
+  const loadRemotePost = useCallback(
+    async (postId: string): Promise<Post | null> => {
+      if (!isRemoteSocialSession) return null;
+      const post = await restSocialApi.post(postId);
+      const profile = await socialGraphApi.getProfileByAccountId(post.authorId);
+      const author = accountViewToUser(profile);
+      dispatch({ type: "ADD_USER", user: author });
+      dispatch({ type: "UPSERT_POST", post });
+      return post;
+    },
+    [isRemoteSocialSession],
+  );
+
+  const loadRemoteProfileContent = useCallback(
+    async (accountId: string, cursor?: string) => {
+      if (!isRemoteSocialSession) {
+        return { items: [] as Post[], nextCursor: null };
+      }
+      const page = await restSocialApi.profilePosts(accountId, cursor, 100);
+      dispatch({
+        type: "UPSERT_REMOTE_PROFILE_POSTS",
+        authorId: accountId,
+        posts: page.items,
+        append: Boolean(cursor),
+      });
+      return page;
+    },
+    [isRemoteSocialSession],
+  );
+
+  const loadPostComments = useCallback(
+    async (postId: string, cursor?: string) => {
+      if (!isRemoteSocialSession) {
+        return { items: [] as SocialComment[], nextCursor: null };
+      }
+      const page = await restSocialApi.comments(postId, cursor);
+      dispatch({
+        type: "HYDRATE_POST_COMMENTS",
+        postId,
+        comments: page.items,
+        replace: !cursor,
+      });
+      return page;
     },
     [isRemoteSocialSession],
   );
@@ -248,6 +306,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     updateCurrentActivity,
     assertSession,
     assertReadable,
+    isRemoteSocialSession,
   });
   const reviewActions = createSeekReviewActions({
     state,
@@ -290,7 +349,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     socialGraphError,
     retrySocialGraph,
 
-    getPostById: (id) => posts.find((p) => p.id === id),
+    getPostById: (id) =>
+      posts.find((p) => p.id === id) ??
+      state.remotePosts.find((post) => post.id === id),
     getUserById: (id) => {
       if (id === currentUser?.id) return currentUser;
       if (id === "me") return currentUser ?? undefined;
@@ -318,6 +379,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
             !accountsBlockingViewerSet.has(request.requesterId),
         ),
     loadRemoteProfile,
+    loadRemoteProfileContent,
+    loadRemotePost,
+    loadPostComments,
     upsertRemoteUser,
 
     ...postActions,

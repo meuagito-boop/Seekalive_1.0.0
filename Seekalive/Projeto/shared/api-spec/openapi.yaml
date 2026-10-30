@@ -1307,6 +1307,247 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/social/posts/{postId}/like:
+    parameters:
+      - $ref: "#/components/parameters/PostId"
+    put:
+      operationId: likeSocialPost
+      tags: [feed]
+      summary: Like a readable publication
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated publication interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    delete:
+      operationId: unlikeSocialPost
+      tags: [feed]
+      summary: Remove the authenticated account's like
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated publication interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/social/posts/{postId}/repost:
+    parameters:
+      - $ref: "#/components/parameters/PostId"
+    post:
+      operationId: repostSocialPost
+      tags: [feed]
+      summary: Repost a readable public publication
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated publication interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    delete:
+      operationId: removeSocialPostRepost
+      tags: [feed]
+      summary: Remove the authenticated account's repost
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated publication interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/social/posts/{postId}/bookmark:
+    parameters:
+      - $ref: "#/components/parameters/PostId"
+    put:
+      operationId: bookmarkSocialPost
+      tags: [feed]
+      summary: Save a readable publication
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated publication interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    delete:
+      operationId: removeSocialPostBookmark
+      tags: [feed]
+      summary: Remove a publication from saved items
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated publication interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/social/posts/{postId}/comments:
+    parameters:
+      - $ref: "#/components/parameters/PostId"
+      - $ref: "#/components/parameters/PageLimit"
+      - $ref: "#/components/parameters/PageCursor"
+    get:
+      operationId: getSocialPostComments
+      tags: [feed]
+      summary: List comments on a currently readable publication
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Chronologically paginated comments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createSocialPostComment
+      tags: [feed]
+      summary: Comment on a currently readable publication
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreate"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/social/comments/{commentId}:
+    parameters:
+      - $ref: "#/components/parameters/CommentId"
+    delete:
+      operationId: deleteSocialComment
+      tags: [feed]
+      summary: Delete the authenticated account's comment
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Comment deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/social/comments/{commentId}/like:
+    parameters:
+      - $ref: "#/components/parameters/CommentId"
+    put:
+      operationId: likeSocialComment
+      tags: [feed]
+      summary: Like a comment on a readable publication
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated comment interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    delete:
+      operationId: unlikeSocialComment
+      tags: [feed]
+      summary: Remove the authenticated account's comment like
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Updated comment interaction state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/social/articles:
     post:
       operationId: createSocialArticle
@@ -1417,6 +1658,13 @@ components:
         format: uuid
     PostId:
       name: postId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CommentId:
+      name: commentId
       in: path
       required: true
       schema:
@@ -2651,6 +2899,8 @@ components:
           type: boolean
         isReposted:
           type: boolean
+        isBookmarked:
+          type: boolean
       required:
         [
           id,
@@ -2666,7 +2916,92 @@ components:
           shares,
           isLiked,
           isReposted,
+          isBookmarked,
         ]
+    CommentCreate:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        idempotencyKey:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+          description: Optional compatibility field; must match the authenticated account.
+        replyToCommentId:
+          type: [string, "null"]
+          format: uuid
+      required: [text, idempotencyKey]
+      additionalProperties: false
+    CommentAuthor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: [string, "null"]
+          format: uri
+      required: [id, username, displayName, avatarUrl]
+      additionalProperties: false
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        content:
+          type: string
+          maxLength: 2000
+        createdAt:
+          type: string
+          format: date-time
+        replyToCommentId:
+          type: [string, "null"]
+          format: uuid
+        likes:
+          type: integer
+          minimum: 0
+        isLiked:
+          type: boolean
+        author:
+          $ref: "#/components/schemas/CommentAuthor"
+      required:
+        [
+          id,
+          postId,
+          authorId,
+          content,
+          createdAt,
+          replyToCommentId,
+          likes,
+          isLiked,
+          author,
+        ]
+    CommentPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
     PostCreate:
       type: object
       description: Text-only post. Media fields and third-party URLs are not accepted.

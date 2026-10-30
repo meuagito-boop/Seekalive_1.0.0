@@ -29,4 +29,5 @@ export interface Post {
   shares: number;
   isLiked: boolean;
   isReposted: boolean;
+  isBookmarked: boolean;
 }

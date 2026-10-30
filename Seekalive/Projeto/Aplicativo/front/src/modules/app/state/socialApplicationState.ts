@@ -61,6 +61,7 @@ export function mergeDevelopmentPreviewState(
 ): SocialState {
   return {
     posts: mergeById(preview.posts, current.posts),
+    remotePosts: mergeById(preview.remotePosts, current.remotePosts),
     users: mergeById(preview.users, current.users),
     notifications: mergeById(preview.notifications, current.notifications),
     conversations: mergeById(preview.conversations, current.conversations),
@@ -87,6 +88,11 @@ export function socialReducer(
     case "TOGGLE_BOOKMARK":
     case "INCREMENT_COMMENTS":
     case "ADD_POST":
+    case "UPSERT_POST":
+    case "UPSERT_REMOTE_PROFILE_POSTS":
+    case "HYDRATE_POST_COMMENTS":
+    case "UPSERT_COMMENT":
+    case "REMOVE_COMMENT":
       return { ...state, ...socialContentReducer(state, action) };
     case "ADD_USER":
     case "UPDATE_USER":
@@ -105,6 +111,7 @@ export function socialReducer(
 
 const initialState: SocialState = {
   posts: [],
+  remotePosts: [],
   users: [],
   notifications: [],
   conversations: [],

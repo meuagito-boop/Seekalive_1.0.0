@@ -31,11 +31,19 @@ export default function PostDetail() {
       <div className="min-h-[100dvh] pb-16 md:pb-0">
         {header}
         <UnavailableState
-          title={result.state === "forbidden" ? "Sem permissão" : "Publicação indisponível"}
-          description={result.state === "forbidden"
-            ? "Esta publicação é restrita ao Círculo ou privada."
-            : "Ela pode ter sido removida ou o link está incorreto."}
-          action={<Button asChild className="rounded-full"><Link href="/feed">Voltar ao feed</Link></Button>}
+          title={result.state === "loading"
+            ? "Carregando publicação"
+            : result.state === "forbidden"
+              ? "Sem permissão"
+              : "Publicação indisponível"}
+          description={result.state === "loading"
+            ? "Buscando a publicação e as informações do perfil."
+            : result.state === "forbidden"
+              ? "Esta publicação é restrita ao Círculo ou privada."
+              : "Ela pode ter sido removida ou o link está incorreto."}
+          action={result.state === "loading"
+            ? undefined
+            : <Button asChild className="rounded-full"><Link href="/feed">Voltar ao feed</Link></Button>}
         />
       </div>
     );

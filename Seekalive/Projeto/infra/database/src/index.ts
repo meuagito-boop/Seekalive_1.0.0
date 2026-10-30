@@ -27,6 +27,11 @@ export {
 } from "./schema/profiles/relationships";
 export { accountProfiles } from "./schema/profiles/accountProfiles";
 export { feedPosts } from "./schema/feed/posts";
+export { feedPostLikes } from "./schema/feed/postLikes";
+export { feedPostReposts } from "./schema/feed/postReposts";
+export { feedPostBookmarks } from "./schema/feed/postBookmarks";
+export { feedPostComments } from "./schema/feed/postComments";
+export { feedCommentLikes } from "./schema/feed/commentLikes";
 export { commercialProfiles } from "./schema/profiles/businessProfiles";
 export {
   authChallenges,

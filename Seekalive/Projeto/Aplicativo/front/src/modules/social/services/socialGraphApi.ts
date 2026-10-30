@@ -28,9 +28,11 @@ import type {
 } from "@workspace/api-client-react";
 import { API_ERROR_CODES, type ApiErrorKey } from "@workspace/api-zod";
 import type { FollowRequest } from "@/modules/social/types/followRequest";
+import type { Post } from "@/modules/social/types/post";
 import type { User } from "@/modules/profile/types/user";
 import { getCsrfToken } from "@/modules/app/api/httpClient";
 import { readApiError } from "@/modules/app/api/apiErrors";
+import { parsePost } from "@/modules/social/services/socialHttp";
 
 type RequestOptions = Parameters<typeof getMyAccount>[0];
 
@@ -173,6 +175,12 @@ export function profileResponseToUser(profile: ProfileResponse): User {
   }
 
   return withCommercialProfile(user, profile.commercialProfile);
+}
+
+export function profileResponseToPosts(profile: ProfileResponse): Post[] {
+  return [...profile.posts.items, ...profile.articles.items]
+    .map((item) => parsePost(item))
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
 export function myAccountToUser(response: MyAccountResponse): User {

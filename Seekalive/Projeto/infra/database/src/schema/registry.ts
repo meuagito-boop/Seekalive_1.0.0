@@ -5,6 +5,11 @@ import {
   accounts,
 } from "./accounts/schema";
 import { feedPosts } from "./feed/posts";
+import { feedPostLikes } from "./feed/postLikes";
+import { feedPostReposts } from "./feed/postReposts";
+import { feedPostBookmarks } from "./feed/postBookmarks";
+import { feedPostComments } from "./feed/postComments";
+import { feedCommentLikes } from "./feed/commentLikes";
 import {
   accountBlocks,
   accountFollows,
@@ -34,6 +39,11 @@ export const databaseSchema = {
   accountFollowRequests,
   accountBlocks,
   feedPosts,
+  feedPostLikes,
+  feedPostReposts,
+  feedPostBookmarks,
+  feedPostComments,
+  feedCommentLikes,
   accountProfiles,
   commercialProfiles,
 };
@@ -50,6 +60,11 @@ export {
   accountFollows,
   accountFollowRequests,
   feedPosts,
+  feedPostLikes,
+  feedPostReposts,
+  feedPostBookmarks,
+  feedPostComments,
+  feedCommentLikes,
   passwordCredentials,
   sessions,
   trustedDevices,

@@ -3,6 +3,7 @@ import type { Post } from "@/modules/social/types/post";
 import type { SocialComment } from "@/modules/social/types/posts";
 import { ContentServiceError } from "@/modules/app/api/contentServiceError";
 import { referenceSchema } from "@/modules/app/content/referenceSchema";
+import { getCsrfToken } from "@/modules/app/api/httpClient";
 
 export const postSchema = z.object({
   id: z.string(),
@@ -22,6 +23,7 @@ export const postSchema = z.object({
   mediaTypes: z.array(z.enum(["image", "video"])).optional(),
   isLiked: z.boolean().optional(),
   isReposted: z.boolean().optional(),
+  isBookmarked: z.boolean().optional(),
   mentions: z.array(z.string()).optional(),
   hashtags: z.array(z.string()).optional(),
 });
@@ -32,18 +34,32 @@ export const commentSchema = z.object({
   authorId: z.string(),
   content: z.string(),
   createdAt: z.string(),
-  replyToCommentId: z.string().optional(),
+  replyToCommentId: z.string().nullable().optional(),
   likes: z.number().nonnegative(),
   isLiked: z.boolean().optional(),
+  author: z.object({
+    id: z.string(),
+    username: z.string(),
+    displayName: z.string(),
+    avatarUrl: z.string().nullable(),
+  }).optional(),
 });
 
 export async function apiRequest(path: string, init?: RequestInit): Promise<unknown> {
   let response: Response;
   try {
+    const method = init?.method?.toUpperCase() ?? "GET";
+    const csrfToken = ["GET", "HEAD", "OPTIONS"].includes(method)
+      ? undefined
+      : await getCsrfToken();
     response = await fetch(path, {
       ...init,
       credentials: "include",
-      headers: { "Content-Type": "application/json", ...init?.headers },
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        ...init?.headers,
+      },
     });
   } catch {
     throw new ContentServiceError("Falha de rede. Seu rascunho foi preservado; tente novamente.", 0);
@@ -78,7 +94,7 @@ export function parseResponse<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 export function parsePost(value: unknown): Post {
-  return parseResponse(postSchema, value);
+  return { ...parseResponse(postSchema, value), source: "server" };
 }
 
 export function parseComment(value: unknown): SocialComment {

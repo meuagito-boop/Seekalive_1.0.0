@@ -20,12 +20,13 @@ if (
   );
 }
 
-const tracks = ["accounts", "security", "profiles", "seek"];
+const tracks = ["accounts", "security", "profiles", "seek", "feed"];
 const expectedTablesAfterTransfer = {
   accounts: 4,
   security: 4,
   profiles: 5,
   seek: 0,
+  feed: 6,
 };
 const expectedBusinessProfileColumns = [
   "account_id",

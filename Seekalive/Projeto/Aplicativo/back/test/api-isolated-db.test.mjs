@@ -1881,6 +1881,178 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   assert.equal(articleRead.response.status, 200);
 
+  const likedPost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/like`,
+    { method: "PUT", auth: commercial },
+  );
+  assert.equal(likedPost.response.status, 200);
+  assert.equal(likedPost.body.likes, 1);
+  assert.equal(likedPost.body.isLiked, true);
+  const repeatedLike = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/like`,
+    { method: "PUT", auth: commercial },
+  );
+  assert.equal(repeatedLike.response.status, 200);
+  assert.equal(repeatedLike.body.likes, 1);
+  const unlikedPost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/like`,
+    { method: "DELETE", auth: commercial },
+  );
+  assert.equal(unlikedPost.response.status, 200);
+  assert.equal(unlikedPost.body.likes, 0);
+  assert.equal(unlikedPost.body.isLiked, false);
+
+  const repostedPost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/repost`,
+    { method: "POST", auth: commercial },
+  );
+  assert.equal(repostedPost.response.status, 200);
+  assert.equal(repostedPost.body.reposts, 1);
+  assert.equal(repostedPost.body.isReposted, true);
+  const repeatedRepost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/repost`,
+    { method: "POST", auth: commercial },
+  );
+  assert.equal(repeatedRepost.response.status, 200);
+  assert.equal(repeatedRepost.body.reposts, 1);
+  const unrepostedPost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/repost`,
+    { method: "DELETE", auth: commercial },
+  );
+  assert.equal(unrepostedPost.response.status, 200);
+  assert.equal(unrepostedPost.body.reposts, 0);
+  assert.equal(unrepostedPost.body.isReposted, false);
+
+  const bookmarkedPost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/bookmark`,
+    { method: "PUT", auth: commercial },
+  );
+  assert.equal(bookmarkedPost.response.status, 200);
+  assert.equal(bookmarkedPost.body.isBookmarked, true);
+  const unbookmarkedPost = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/bookmark`,
+    { method: "DELETE", auth: commercial },
+  );
+  assert.equal(unbookmarkedPost.response.status, 200);
+  assert.equal(unbookmarkedPost.body.isBookmarked, false);
+
+  const commentInput = {
+    text: "Comentário persistido no servidor",
+    idempotencyKey: "c1e85a51-a12f-4bb3-b5ca-8fcd01d822f6",
+  };
+  const createdComment = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/comments`,
+    { method: "POST", auth: commercial, body: commentInput },
+  );
+  assert.equal(
+    createdComment.response.status,
+    201,
+    JSON.stringify(createdComment.body),
+  );
+  assert.equal(createdComment.body.authorId, commercial.account.id);
+  assert.equal(createdComment.body.content, commentInput.text);
+  const repeatedComment = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/comments`,
+    { method: "POST", auth: commercial, body: commentInput },
+  );
+  assert.ok([200, 201].includes(repeatedComment.response.status));
+  assert.equal(repeatedComment.body.id, createdComment.body.id);
+  const conflictingCommentReplay = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/comments`,
+    {
+      method: "POST",
+      auth: commercial,
+      body: { ...commentInput, text: "Conteúdo diferente com a mesma chave" },
+    },
+  );
+  assert.equal(conflictingCommentReplay.response.status, 409);
+  assert.equal(
+    conflictingCommentReplay.body.error.key,
+    "CONTENT_IDEMPOTENCY_CONFLICT",
+  );
+
+  const createdReply = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/comments`,
+    {
+      method: "POST",
+      auth: personal,
+      body: {
+        text: "Resposta vinculada à publicação correta",
+        idempotencyKey: "d4d41e2b-6138-4440-a970-58d5a036eb5e",
+        replyToCommentId: createdComment.body.id,
+      },
+    },
+  );
+  assert.equal(createdReply.response.status, 201);
+  assert.equal(createdReply.body.replyToCommentId, createdComment.body.id);
+  const invalidCrossPostReply = await request(
+    `/api/v1/social/posts/${createdCirclePost.body.id}/comments`,
+    {
+      method: "POST",
+      auth: personal,
+      body: {
+        text: "Resposta tentando atravessar publicações",
+        idempotencyKey: "c6a41d0e-b9e3-4f7b-9343-8aef25e16b64",
+        replyToCommentId: createdComment.body.id,
+      },
+    },
+  );
+  assert.equal(invalidCrossPostReply.response.status, 422);
+
+  const commentsPage = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/comments`,
+    { auth: personal },
+  );
+  assert.equal(commentsPage.response.status, 200);
+  assert.equal(commentsPage.body.items.length, 2);
+  assert.equal(commentsPage.body.items[0].author.id, commercial.account.id);
+  const commentLiked = await request(
+    `/api/v1/social/comments/${createdComment.body.id}/like`,
+    { method: "PUT", auth: personal },
+  );
+  assert.equal(commentLiked.response.status, 200);
+  assert.equal(commentLiked.body.likes, 1);
+  const commentUnliked = await request(
+    `/api/v1/social/comments/${createdComment.body.id}/like`,
+    { method: "DELETE", auth: personal },
+  );
+  assert.equal(commentUnliked.response.status, 200);
+  assert.equal(commentUnliked.body.likes, 0);
+
+  const postWithInteractions = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}`,
+    { auth: personal },
+  );
+  assert.equal(postWithInteractions.response.status, 200);
+  assert.equal(postWithInteractions.body.comments, 2);
+  const ownerContentPage = await request(
+    `/api/v1/social/accounts/${personal.account.id}/posts?format=all`,
+    { auth: commercial },
+  );
+  assert.equal(ownerContentPage.response.status, 200);
+  assert.equal(
+    ownerContentPage.body.items.find(
+      (post) => post.id === createdPublicPost.body.id,
+    )?.comments,
+    2,
+  );
+  const deletedRootComment = await request(
+    `/api/v1/social/comments/${createdComment.body.id}`,
+    { method: "DELETE", auth: commercial },
+  );
+  assert.equal(deletedRootComment.response.status, 204);
+  const commentsAfterCascade = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/comments`,
+    { auth: personal },
+  );
+  assert.equal(commentsAfterCascade.response.status, 200);
+  assert.deepEqual(commentsAfterCascade.body.items, []);
+  const postAfterCommentDelete = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}`,
+    { auth: personal },
+  );
+  assert.equal(postAfterCommentDelete.body.comments, 0);
+
   const deniedDeleteByOtherAccount = await request(
     `/api/v1/social/posts/${createdPublicPost.body.id}`,
     {

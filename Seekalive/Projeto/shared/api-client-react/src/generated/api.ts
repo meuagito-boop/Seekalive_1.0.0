@@ -48,7 +48,11 @@ import type {
   ChallengeConfirmInput,
   ChallengeResendInput,
   CirclePage,
+  Comment,
+  CommentCreate,
+  CommentPage,
   ConflictResponse,
+  CreateSocialPostCommentParams,
   CsrfToken,
   CurrentSession,
   DeviceVerificationRequired,
@@ -67,6 +71,7 @@ import type {
   GetFollowingParams,
   GetIncomingFollowRequestsParams,
   GetSocialAccountPostsParams,
+  GetSocialPostCommentsParams,
   HealthStatus,
   InternalErrorResponse,
   ListAuthSessionsParams,
@@ -4644,6 +4649,886 @@ export const useDeleteSocialPost = <TError = ErrorType<UnauthorizedResponse | No
         TContext
       > => {
       return useMutation(getDeleteSocialPostMutationOptions(options), queryClient);
+    }
+
+export const getLikeSocialPostUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}/like`
+}
+
+/**
+ * @summary Like a readable publication
+ */
+export const likeSocialPost = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getLikeSocialPostUrl(postId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getLikeSocialPostMutationKey = () => ['likeSocialPost'] as const;
+
+export const getLikeSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeSocialPost>>, TError,LikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likeSocialPost>>, TError,LikeSocialPostMutationVariables, TContext> => {
+
+const mutationKey = getLikeSocialPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likeSocialPost>>, LikeSocialPostMutationVariables> = (props) => {
+          const {postId} = props ?? {};
+
+          return  likeSocialPost(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LikeSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof likeSocialPost>>>
+
+    export type LikeSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type LikeSocialPostMutationVariables = {postId: string}
+
+    /**
+ * @summary Like a readable publication
+ */
+export const useLikeSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeSocialPost>>, TError,LikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof likeSocialPost>>,
+        TError,
+        LikeSocialPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLikeSocialPostMutationOptions(options), queryClient);
+    }
+
+export const getUnlikeSocialPostUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}/like`
+}
+
+/**
+ * @summary Remove the authenticated account's like
+ */
+export const unlikeSocialPost = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getUnlikeSocialPostUrl(postId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlikeSocialPostMutationKey = () => ['unlikeSocialPost'] as const;
+
+export const getUnlikeSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialPost>>, TError,UnlikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialPost>>, TError,UnlikeSocialPostMutationVariables, TContext> => {
+
+const mutationKey = getUnlikeSocialPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikeSocialPost>>, UnlikeSocialPostMutationVariables> = (props) => {
+          const {postId} = props ?? {};
+
+          return  unlikeSocialPost(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikeSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeSocialPost>>>
+
+    export type UnlikeSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type UnlikeSocialPostMutationVariables = {postId: string}
+
+    /**
+ * @summary Remove the authenticated account's like
+ */
+export const useUnlikeSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialPost>>, TError,UnlikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unlikeSocialPost>>,
+        TError,
+        UnlikeSocialPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnlikeSocialPostMutationOptions(options), queryClient);
+    }
+
+export const getRepostSocialPostUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}/repost`
+}
+
+/**
+ * @summary Repost a readable public publication
+ */
+export const repostSocialPost = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getRepostSocialPostUrl(postId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRepostSocialPostMutationKey = () => ['repostSocialPost'] as const;
+
+export const getRepostSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof repostSocialPost>>, TError,RepostSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof repostSocialPost>>, TError,RepostSocialPostMutationVariables, TContext> => {
+
+const mutationKey = getRepostSocialPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof repostSocialPost>>, RepostSocialPostMutationVariables> = (props) => {
+          const {postId} = props ?? {};
+
+          return  repostSocialPost(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RepostSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof repostSocialPost>>>
+
+    export type RepostSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>
+    export type RepostSocialPostMutationVariables = {postId: string}
+
+    /**
+ * @summary Repost a readable public publication
+ */
+export const useRepostSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof repostSocialPost>>, TError,RepostSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof repostSocialPost>>,
+        TError,
+        RepostSocialPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRepostSocialPostMutationOptions(options), queryClient);
+    }
+
+export const getRemoveSocialPostRepostUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}/repost`
+}
+
+/**
+ * @summary Remove the authenticated account's repost
+ */
+export const removeSocialPostRepost = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getRemoveSocialPostRepostUrl(postId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveSocialPostRepostMutationKey = () => ['removeSocialPostRepost'] as const;
+
+export const getRemoveSocialPostRepostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostRepost>>, TError,RemoveSocialPostRepostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostRepost>>, TError,RemoveSocialPostRepostMutationVariables, TContext> => {
+
+const mutationKey = getRemoveSocialPostRepostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeSocialPostRepost>>, RemoveSocialPostRepostMutationVariables> = (props) => {
+          const {postId} = props ?? {};
+
+          return  removeSocialPostRepost(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveSocialPostRepostMutationResult = NonNullable<Awaited<ReturnType<typeof removeSocialPostRepost>>>
+
+    export type RemoveSocialPostRepostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type RemoveSocialPostRepostMutationVariables = {postId: string}
+
+    /**
+ * @summary Remove the authenticated account's repost
+ */
+export const useRemoveSocialPostRepost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostRepost>>, TError,RemoveSocialPostRepostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeSocialPostRepost>>,
+        TError,
+        RemoveSocialPostRepostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveSocialPostRepostMutationOptions(options), queryClient);
+    }
+
+export const getBookmarkSocialPostUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}/bookmark`
+}
+
+/**
+ * @summary Save a readable publication
+ */
+export const bookmarkSocialPost = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getBookmarkSocialPostUrl(postId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getBookmarkSocialPostMutationKey = () => ['bookmarkSocialPost'] as const;
+
+export const getBookmarkSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bookmarkSocialPost>>, TError,BookmarkSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bookmarkSocialPost>>, TError,BookmarkSocialPostMutationVariables, TContext> => {
+
+const mutationKey = getBookmarkSocialPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bookmarkSocialPost>>, BookmarkSocialPostMutationVariables> = (props) => {
+          const {postId} = props ?? {};
+
+          return  bookmarkSocialPost(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BookmarkSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof bookmarkSocialPost>>>
+
+    export type BookmarkSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type BookmarkSocialPostMutationVariables = {postId: string}
+
+    /**
+ * @summary Save a readable publication
+ */
+export const useBookmarkSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bookmarkSocialPost>>, TError,BookmarkSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bookmarkSocialPost>>,
+        TError,
+        BookmarkSocialPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getBookmarkSocialPostMutationOptions(options), queryClient);
+    }
+
+export const getRemoveSocialPostBookmarkUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}/bookmark`
+}
+
+/**
+ * @summary Remove a publication from saved items
+ */
+export const removeSocialPostBookmark = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
+
+  return customFetch<Post>(getRemoveSocialPostBookmarkUrl(postId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveSocialPostBookmarkMutationKey = () => ['removeSocialPostBookmark'] as const;
+
+export const getRemoveSocialPostBookmarkMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostBookmark>>, TError,RemoveSocialPostBookmarkMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostBookmark>>, TError,RemoveSocialPostBookmarkMutationVariables, TContext> => {
+
+const mutationKey = getRemoveSocialPostBookmarkMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeSocialPostBookmark>>, RemoveSocialPostBookmarkMutationVariables> = (props) => {
+          const {postId} = props ?? {};
+
+          return  removeSocialPostBookmark(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveSocialPostBookmarkMutationResult = NonNullable<Awaited<ReturnType<typeof removeSocialPostBookmark>>>
+
+    export type RemoveSocialPostBookmarkMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type RemoveSocialPostBookmarkMutationVariables = {postId: string}
+
+    /**
+ * @summary Remove a publication from saved items
+ */
+export const useRemoveSocialPostBookmark = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostBookmark>>, TError,RemoveSocialPostBookmarkMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeSocialPostBookmark>>,
+        TError,
+        RemoveSocialPostBookmarkMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveSocialPostBookmarkMutationOptions(options), queryClient);
+    }
+
+export const getGetSocialPostCommentsUrl = (postId: string,
+    params?: GetSocialPostCommentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/posts/${postId}/comments?${stringifiedParams}` : `/api/v1/social/posts/${postId}/comments`
+}
+
+/**
+ * @summary List comments on a currently readable publication
+ */
+export const getSocialPostComments = async (postId: string,
+    params?: GetSocialPostCommentsParams, options?: Parameters<typeof customFetch>[1]): Promise<CommentPage> => {
+
+  return customFetch<CommentPage>(getGetSocialPostCommentsUrl(postId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialPostCommentsQueryKey = (postId: string,
+    params?: GetSocialPostCommentsParams,) => {
+    return [
+    `/api/v1/social/posts/${postId}/comments`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSocialPostCommentsQueryOptions = <TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(postId: string,
+    params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialPostCommentsQueryKey(postId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialPostComments>>> = ({ signal }) => getSocialPostComments(postId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: postId !== null && postId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialPostCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialPostComments>>>
+export type GetSocialPostCommentsQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ postId: string,
+    params: undefined |  GetSocialPostCommentsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialPostComments>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialPostComments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ postId: string,
+    params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialPostComments>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialPostComments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ postId: string,
+    params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List comments on a currently readable publication
+ */
+
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+ postId: string,
+    params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialPostCommentsQueryOptions(postId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateSocialPostCommentUrl = (postId: string,
+    params?: CreateSocialPostCommentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/posts/${postId}/comments?${stringifiedParams}` : `/api/v1/social/posts/${postId}/comments`
+}
+
+/**
+ * @summary Comment on a currently readable publication
+ */
+export const createSocialPostComment = async (postId: string,
+    commentCreate: CommentCreate,
+    params?: CreateSocialPostCommentParams, options?: Parameters<typeof customFetch>[1]): Promise<Comment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Comment>(getCreateSocialPostCommentUrl(postId,params),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(commentCreate)
+  }
+);}
+
+
+
+
+
+export const getCreateSocialPostCommentMutationKey = () => ['createSocialPostComment'] as const;
+
+export const getCreateSocialPostCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialPostComment>>, TError,CreateSocialPostCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSocialPostComment>>, TError,CreateSocialPostCommentMutationVariables, TContext> => {
+
+const mutationKey = getCreateSocialPostCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSocialPostComment>>, CreateSocialPostCommentMutationVariables> = (props) => {
+          const {postId,data,params} = props ?? {};
+
+          return  createSocialPostComment(postId,data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSocialPostCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createSocialPostComment>>>
+    export type CreateSocialPostCommentMutationBody = BodyType<CommentCreate>
+    export type CreateSocialPostCommentMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>
+    export type CreateSocialPostCommentMutationVariables = {postId: string;data: BodyType<CommentCreate>;params?: CreateSocialPostCommentParams}
+
+    /**
+ * @summary Comment on a currently readable publication
+ */
+export const useCreateSocialPostComment = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialPostComment>>, TError,CreateSocialPostCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createSocialPostComment>>,
+        TError,
+        CreateSocialPostCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateSocialPostCommentMutationOptions(options), queryClient);
+    }
+
+export const getDeleteSocialCommentUrl = (commentId: string,) => {
+
+
+
+
+  return `/api/v1/social/comments/${commentId}`
+}
+
+/**
+ * @summary Delete the authenticated account's comment
+ */
+export const deleteSocialComment = async (commentId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteSocialCommentUrl(commentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteSocialCommentMutationKey = () => ['deleteSocialComment'] as const;
+
+export const getDeleteSocialCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialComment>>, TError,DeleteSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteSocialComment>>, TError,DeleteSocialCommentMutationVariables, TContext> => {
+
+const mutationKey = getDeleteSocialCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteSocialComment>>, DeleteSocialCommentMutationVariables> = (props) => {
+          const {commentId} = props ?? {};
+
+          return  deleteSocialComment(commentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteSocialCommentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSocialComment>>>
+
+    export type DeleteSocialCommentMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type DeleteSocialCommentMutationVariables = {commentId: string}
+
+    /**
+ * @summary Delete the authenticated account's comment
+ */
+export const useDeleteSocialComment = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialComment>>, TError,DeleteSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteSocialComment>>,
+        TError,
+        DeleteSocialCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteSocialCommentMutationOptions(options), queryClient);
+    }
+
+export const getLikeSocialCommentUrl = (commentId: string,) => {
+
+
+
+
+  return `/api/v1/social/comments/${commentId}/like`
+}
+
+/**
+ * @summary Like a comment on a readable publication
+ */
+export const likeSocialComment = async (commentId: string, options?: Parameters<typeof customFetch>[1]): Promise<Comment> => {
+
+  return customFetch<Comment>(getLikeSocialCommentUrl(commentId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getLikeSocialCommentMutationKey = () => ['likeSocialComment'] as const;
+
+export const getLikeSocialCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeSocialComment>>, TError,LikeSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likeSocialComment>>, TError,LikeSocialCommentMutationVariables, TContext> => {
+
+const mutationKey = getLikeSocialCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likeSocialComment>>, LikeSocialCommentMutationVariables> = (props) => {
+          const {commentId} = props ?? {};
+
+          return  likeSocialComment(commentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LikeSocialCommentMutationResult = NonNullable<Awaited<ReturnType<typeof likeSocialComment>>>
+
+    export type LikeSocialCommentMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type LikeSocialCommentMutationVariables = {commentId: string}
+
+    /**
+ * @summary Like a comment on a readable publication
+ */
+export const useLikeSocialComment = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeSocialComment>>, TError,LikeSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof likeSocialComment>>,
+        TError,
+        LikeSocialCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLikeSocialCommentMutationOptions(options), queryClient);
+    }
+
+export const getUnlikeSocialCommentUrl = (commentId: string,) => {
+
+
+
+
+  return `/api/v1/social/comments/${commentId}/like`
+}
+
+/**
+ * @summary Remove the authenticated account's comment like
+ */
+export const unlikeSocialComment = async (commentId: string, options?: Parameters<typeof customFetch>[1]): Promise<Comment> => {
+
+  return customFetch<Comment>(getUnlikeSocialCommentUrl(commentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlikeSocialCommentMutationKey = () => ['unlikeSocialComment'] as const;
+
+export const getUnlikeSocialCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialComment>>, TError,UnlikeSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialComment>>, TError,UnlikeSocialCommentMutationVariables, TContext> => {
+
+const mutationKey = getUnlikeSocialCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikeSocialComment>>, UnlikeSocialCommentMutationVariables> = (props) => {
+          const {commentId} = props ?? {};
+
+          return  unlikeSocialComment(commentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikeSocialCommentMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeSocialComment>>>
+
+    export type UnlikeSocialCommentMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type UnlikeSocialCommentMutationVariables = {commentId: string}
+
+    /**
+ * @summary Remove the authenticated account's comment like
+ */
+export const useUnlikeSocialComment = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialComment>>, TError,UnlikeSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unlikeSocialComment>>,
+        TError,
+        UnlikeSocialCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnlikeSocialCommentMutationOptions(options), queryClient);
     }
 
 export const getCreateSocialArticleUrl = () => {

@@ -2,7 +2,9 @@ import { z } from "zod";
 import {
   apiRequest,
   commentSchema,
+  parseComment,
   parseResponse,
+  parsePost,
   postSchema,
 } from "@/modules/social/services/socialHttp";
 import { referenceSchema } from "@/modules/app/content/referenceSchema";
@@ -33,7 +35,7 @@ const referencePreviewSchema = referenceSchema.extend({
 const page = <T extends z.ZodType>(schema: T) =>
   z.object({
     items: z.array(schema),
-    nextCursor: z.string().nullable().optional(),
+    nextCursor: z.string().nullable(),
   });
 const idPath = (id: string) => `/api/v1/social/posts/${encodeURIComponent(id)}`;
 
@@ -41,36 +43,55 @@ export const restSocialApi = {
   async feed(cursor?: string, tab = "for-you", limit = 20) {
     const query = new URLSearchParams({ tab, limit: String(limit) });
     if (cursor) query.set("cursor", cursor);
-    return parseResponse(
+    const result = parseResponse(
       page(postSchema),
       await apiRequest(`/api/v1/social/feed?${query}`),
     );
+    return { ...result, items: result.items.map((post) => parsePost(post)) };
   },
   async post(id: string) {
-    return parseResponse(postSchema, await apiRequest(idPath(id)));
+    return parsePost(await apiRequest(idPath(id)));
   },
   async article(id: string) {
-    return parseResponse(
-      postSchema,
-      await apiRequest(`/api/v1/social/articles/${encodeURIComponent(id)}`),
-    );
+    return parsePost(await apiRequest(`/api/v1/social/articles/${encodeURIComponent(id)}`));
   },
   async setLiked(id: string, liked: boolean) {
-    return apiRequest(`${idPath(id)}/like`, {
+    return parsePost(await apiRequest(`${idPath(id)}/like`, {
       method: liked ? "PUT" : "DELETE",
-    });
+    }));
   },
   async comments(id: string, cursor?: string) {
     const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-    return parseResponse(
+    const result = parseResponse(
       page(commentSchema),
       await apiRequest(`${idPath(id)}/comments${query}`),
     );
+    return { ...result, items: result.items.map(parseComment) };
   },
   async setReposted(id: string, reposted: boolean) {
-    return apiRequest(`${idPath(id)}/repost`, {
+    return parsePost(await apiRequest(`${idPath(id)}/repost`, {
       method: reposted ? "POST" : "DELETE",
-    });
+    }));
+  },
+  async setBookmarked(id: string, bookmarked: boolean) {
+    return parsePost(await apiRequest(`${idPath(id)}/bookmark`, {
+      method: bookmarked ? "PUT" : "DELETE",
+    }));
+  },
+  async setCommentLiked(id: string, liked: boolean) {
+    return parseComment(await apiRequest(
+      `/api/v1/social/comments/${encodeURIComponent(id)}/like`,
+      { method: liked ? "PUT" : "DELETE" },
+    ));
+  },
+  async profilePosts(accountId: string, cursor?: string, limit = 20) {
+    const query = new URLSearchParams({ format: "all", limit: String(limit) });
+    if (cursor) query.set("cursor", cursor);
+    const result = parseResponse(
+      page(postSchema),
+      await apiRequest(`/api/v1/social/accounts/${encodeURIComponent(accountId)}/posts?${query}`),
+    );
+    return { ...result, items: result.items.map(parsePost) };
   },
   async removePost(id: string) {
     return apiRequest(idPath(id), { method: "DELETE" });

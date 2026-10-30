@@ -1,6 +1,13 @@
 import type { FeedPost } from "../domain/post";
+import {
+  EMPTY_POST_INTERACTION_SUMMARY,
+  type PostInteractionSummary,
+} from "../domain/postInteractions";
 
-export function toPostView(post: FeedPost) {
+export function toPostView(
+  post: FeedPost,
+  interactions: PostInteractionSummary = EMPTY_POST_INTERACTION_SUMMARY,
+) {
   return {
     id: post.id,
     authorId: post.authorId,
@@ -12,12 +19,13 @@ export function toPostView(post: FeedPost) {
     ...(post.format === "article" && post.articleTitle && post.articleBody
       ? { article: { title: post.articleTitle, body: post.articleBody } }
       : {}),
-    likes: 0,
-    comments: 0,
-    reposts: 0,
+    likes: interactions.likes,
+    comments: interactions.comments,
+    reposts: interactions.reposts,
     shares: 0,
-    isLiked: false,
-    isReposted: false,
+    isLiked: interactions.isLiked,
+    isReposted: interactions.isReposted,
+    isBookmarked: interactions.isBookmarked,
   };
 }
 

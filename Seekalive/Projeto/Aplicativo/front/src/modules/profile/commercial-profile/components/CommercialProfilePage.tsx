@@ -60,7 +60,7 @@ export function CommercialProfilePage({
   isMe: boolean;
 }) {
   const { currentUser } = useAppContext();
-  const { posts, reviews, repostEntries, getUserById, toggleFollow, blockUser } = useSocial();
+  const { posts, remotePosts, reviews, repostEntries, getUserById, toggleFollow, blockUser } = useSocial();
   const { toast } = useToast();
   const { ids: savedIds, toggle: toggleSavedBusiness } = useAccountScopedIds(
     savedBusinessStorageKey,
@@ -71,7 +71,10 @@ export function CommercialProfilePage({
     ? formatWeeklyHours(commercial.weeklyHours)
     : commercial?.openingHours ?? "Horário não informado";
   const offeredServices = serviceOptions.filter(service => commercial?.serviceOptions?.[service.key] === true);
-  const postMedia = getProfileMedia(posts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
+  const profilePosts = user.source === "server"
+    ? remotePosts.filter((post) => post.authorId === user.id)
+    : posts;
+  const postMedia = getProfileMedia(profilePosts, user.id, isMe, user.isInCircle ?? false, user.isPrivate ?? false, user.isFollowing ?? false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("Informações");
   const [activeMediaTab, setActiveMediaTab] = useState<MediaTab>("Fotos");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
@@ -100,7 +103,11 @@ export function CommercialProfilePage({
     ...postMedia.filter((media) => media.type === "video").map((media) => media.url),
   ])];
   const isSaved = savedIds.includes(user.id);
-  const visiblePosts = posts.filter(post => {
+  const visiblePosts = profilePosts.filter(post => {
+    if (user.source === "server" && post.source === "server") {
+      const author = getUserById(post.authorId);
+      return !!author && !author.isBlocked;
+    }
     const author = getUserById(post.authorId);
     return !!author && !author.isBlocked && canReadPost(post, currentUser?.id, author.isInCircle ?? false, author.isPrivate ?? false, author.isFollowing ?? false);
   });

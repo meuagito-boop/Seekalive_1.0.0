@@ -1066,7 +1066,8 @@ export const GetProfileByUsernameResponse = zod.object({
   "reposts": zod.int().min(getProfileByUsernameResponsePostsItemsItemRepostsMin),
   "shares": zod.int().min(getProfileByUsernameResponsePostsItemsItemSharesMin),
   "isLiked": zod.boolean(),
-  "isReposted": zod.boolean()
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
 })),
   "nextCursor": zod.string().nullable()
 }),
@@ -1088,7 +1089,8 @@ export const GetProfileByUsernameResponse = zod.object({
   "reposts": zod.int().min(getProfileByUsernameResponseArticlesItemsItemRepostsMin),
   "shares": zod.int().min(getProfileByUsernameResponseArticlesItemsItemSharesMin),
   "isLiked": zod.boolean(),
-  "isReposted": zod.boolean()
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
 })),
   "nextCursor": zod.string().nullable()
 }),
@@ -1641,7 +1643,8 @@ export const CreateSocialPostResponse = zod.object({
   "reposts": zod.int().min(createSocialPostResponseRepostsMin),
   "shares": zod.int().min(createSocialPostResponseSharesMin),
   "isLiked": zod.boolean(),
-  "isReposted": zod.boolean()
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
 })
 
 
@@ -1685,7 +1688,8 @@ export const GetSocialPostResponse = zod.object({
   "reposts": zod.int().min(getSocialPostResponseRepostsMin),
   "shares": zod.int().min(getSocialPostResponseSharesMin),
   "isLiked": zod.boolean(),
-  "isReposted": zod.boolean()
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
 })
 
 
@@ -1697,6 +1701,448 @@ export const DeleteSocialPostParams = zod.object({
 })
 
 export const DeleteSocialPostResponse = zod.void()
+
+
+/**
+ * @summary Like a readable publication
+ */
+export const LikeSocialPostParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const likeSocialPostResponseContentMax = 280;
+
+export const likeSocialPostResponseArticleTitleMax = 160;
+
+export const likeSocialPostResponseArticleBodyMax = 50000;
+
+export const likeSocialPostResponseLikesMin = 0;
+
+export const likeSocialPostResponseCommentsMin = 0;
+
+export const likeSocialPostResponseRepostsMin = 0;
+
+export const likeSocialPostResponseSharesMin = 0;
+
+
+
+export const LikeSocialPostResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(likeSocialPostResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(likeSocialPostResponseArticleTitleMax),
+  "body": zod.string().max(likeSocialPostResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(likeSocialPostResponseLikesMin),
+  "comments": zod.int().min(likeSocialPostResponseCommentsMin),
+  "reposts": zod.int().min(likeSocialPostResponseRepostsMin),
+  "shares": zod.int().min(likeSocialPostResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
+})
+
+
+/**
+ * @summary Remove the authenticated account's like
+ */
+export const UnlikeSocialPostParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const unlikeSocialPostResponseContentMax = 280;
+
+export const unlikeSocialPostResponseArticleTitleMax = 160;
+
+export const unlikeSocialPostResponseArticleBodyMax = 50000;
+
+export const unlikeSocialPostResponseLikesMin = 0;
+
+export const unlikeSocialPostResponseCommentsMin = 0;
+
+export const unlikeSocialPostResponseRepostsMin = 0;
+
+export const unlikeSocialPostResponseSharesMin = 0;
+
+
+
+export const UnlikeSocialPostResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(unlikeSocialPostResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(unlikeSocialPostResponseArticleTitleMax),
+  "body": zod.string().max(unlikeSocialPostResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(unlikeSocialPostResponseLikesMin),
+  "comments": zod.int().min(unlikeSocialPostResponseCommentsMin),
+  "reposts": zod.int().min(unlikeSocialPostResponseRepostsMin),
+  "shares": zod.int().min(unlikeSocialPostResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
+})
+
+
+/**
+ * @summary Repost a readable public publication
+ */
+export const RepostSocialPostParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const repostSocialPostResponseContentMax = 280;
+
+export const repostSocialPostResponseArticleTitleMax = 160;
+
+export const repostSocialPostResponseArticleBodyMax = 50000;
+
+export const repostSocialPostResponseLikesMin = 0;
+
+export const repostSocialPostResponseCommentsMin = 0;
+
+export const repostSocialPostResponseRepostsMin = 0;
+
+export const repostSocialPostResponseSharesMin = 0;
+
+
+
+export const RepostSocialPostResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(repostSocialPostResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(repostSocialPostResponseArticleTitleMax),
+  "body": zod.string().max(repostSocialPostResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(repostSocialPostResponseLikesMin),
+  "comments": zod.int().min(repostSocialPostResponseCommentsMin),
+  "reposts": zod.int().min(repostSocialPostResponseRepostsMin),
+  "shares": zod.int().min(repostSocialPostResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
+})
+
+
+/**
+ * @summary Remove the authenticated account's repost
+ */
+export const RemoveSocialPostRepostParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const removeSocialPostRepostResponseContentMax = 280;
+
+export const removeSocialPostRepostResponseArticleTitleMax = 160;
+
+export const removeSocialPostRepostResponseArticleBodyMax = 50000;
+
+export const removeSocialPostRepostResponseLikesMin = 0;
+
+export const removeSocialPostRepostResponseCommentsMin = 0;
+
+export const removeSocialPostRepostResponseRepostsMin = 0;
+
+export const removeSocialPostRepostResponseSharesMin = 0;
+
+
+
+export const RemoveSocialPostRepostResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(removeSocialPostRepostResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(removeSocialPostRepostResponseArticleTitleMax),
+  "body": zod.string().max(removeSocialPostRepostResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(removeSocialPostRepostResponseLikesMin),
+  "comments": zod.int().min(removeSocialPostRepostResponseCommentsMin),
+  "reposts": zod.int().min(removeSocialPostRepostResponseRepostsMin),
+  "shares": zod.int().min(removeSocialPostRepostResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
+})
+
+
+/**
+ * @summary Save a readable publication
+ */
+export const BookmarkSocialPostParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const bookmarkSocialPostResponseContentMax = 280;
+
+export const bookmarkSocialPostResponseArticleTitleMax = 160;
+
+export const bookmarkSocialPostResponseArticleBodyMax = 50000;
+
+export const bookmarkSocialPostResponseLikesMin = 0;
+
+export const bookmarkSocialPostResponseCommentsMin = 0;
+
+export const bookmarkSocialPostResponseRepostsMin = 0;
+
+export const bookmarkSocialPostResponseSharesMin = 0;
+
+
+
+export const BookmarkSocialPostResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(bookmarkSocialPostResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(bookmarkSocialPostResponseArticleTitleMax),
+  "body": zod.string().max(bookmarkSocialPostResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(bookmarkSocialPostResponseLikesMin),
+  "comments": zod.int().min(bookmarkSocialPostResponseCommentsMin),
+  "reposts": zod.int().min(bookmarkSocialPostResponseRepostsMin),
+  "shares": zod.int().min(bookmarkSocialPostResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
+})
+
+
+/**
+ * @summary Remove a publication from saved items
+ */
+export const RemoveSocialPostBookmarkParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const removeSocialPostBookmarkResponseContentMax = 280;
+
+export const removeSocialPostBookmarkResponseArticleTitleMax = 160;
+
+export const removeSocialPostBookmarkResponseArticleBodyMax = 50000;
+
+export const removeSocialPostBookmarkResponseLikesMin = 0;
+
+export const removeSocialPostBookmarkResponseCommentsMin = 0;
+
+export const removeSocialPostBookmarkResponseRepostsMin = 0;
+
+export const removeSocialPostBookmarkResponseSharesMin = 0;
+
+
+
+export const RemoveSocialPostBookmarkResponse = zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(removeSocialPostBookmarkResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(removeSocialPostBookmarkResponseArticleTitleMax),
+  "body": zod.string().max(removeSocialPostBookmarkResponseArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(removeSocialPostBookmarkResponseLikesMin),
+  "comments": zod.int().min(removeSocialPostBookmarkResponseCommentsMin),
+  "reposts": zod.int().min(removeSocialPostBookmarkResponseRepostsMin),
+  "shares": zod.int().min(removeSocialPostBookmarkResponseSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
+})
+
+
+/**
+ * @summary List comments on a currently readable publication
+ */
+export const GetSocialPostCommentsParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const getSocialPostCommentsQueryLimitDefault = 20;
+export const getSocialPostCommentsQueryLimitMax = 100;
+
+export const getSocialPostCommentsQueryCursorMax = 32;
+
+
+
+export const GetSocialPostCommentsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(getSocialPostCommentsQueryLimitMax).default(getSocialPostCommentsQueryLimitDefault),
+  "cursor": zod.coerce.string().max(getSocialPostCommentsQueryCursorMax).optional()
+})
+
+export const getSocialPostCommentsResponseItemsItemContentMax = 2000;
+
+export const getSocialPostCommentsResponseItemsItemLikesMin = 0;
+
+
+
+export const GetSocialPostCommentsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "postId": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(getSocialPostCommentsResponseItemsItemContentMax),
+  "createdAt": zod.coerce.date(),
+  "replyToCommentId": zod.uuid().nullable(),
+  "likes": zod.int().min(getSocialPostCommentsResponseItemsItemLikesMin),
+  "isLiked": zod.boolean(),
+  "author": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.url().nullable()
+})
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Comment on a currently readable publication
+ */
+export const CreateSocialPostCommentParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const createSocialPostCommentQueryLimitDefault = 20;
+export const createSocialPostCommentQueryLimitMax = 100;
+
+export const createSocialPostCommentQueryCursorMax = 32;
+
+
+
+export const CreateSocialPostCommentQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(createSocialPostCommentQueryLimitMax).default(createSocialPostCommentQueryLimitDefault),
+  "cursor": zod.coerce.string().max(createSocialPostCommentQueryCursorMax).optional()
+})
+
+export const createSocialPostCommentBodyTextMax = 2000;
+
+
+
+export const CreateSocialPostCommentBody = zod.object({
+  "text": zod.string().min(1).max(createSocialPostCommentBodyTextMax),
+  "idempotencyKey": zod.uuid(),
+  "authorId": zod.uuid().optional().describe('Optional compatibility field; must match the authenticated account.'),
+  "replyToCommentId": zod.uuid().nullish()
+})
+
+export const createSocialPostCommentResponseContentMax = 2000;
+
+export const createSocialPostCommentResponseLikesMin = 0;
+
+
+
+export const CreateSocialPostCommentResponse = zod.object({
+  "id": zod.uuid(),
+  "postId": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(createSocialPostCommentResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "replyToCommentId": zod.uuid().nullable(),
+  "likes": zod.int().min(createSocialPostCommentResponseLikesMin),
+  "isLiked": zod.boolean(),
+  "author": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.url().nullable()
+})
+})
+
+
+/**
+ * @summary Delete the authenticated account's comment
+ */
+export const DeleteSocialCommentParams = zod.object({
+  "commentId": zod.uuid()
+})
+
+export const DeleteSocialCommentResponse = zod.void()
+
+
+/**
+ * @summary Like a comment on a readable publication
+ */
+export const LikeSocialCommentParams = zod.object({
+  "commentId": zod.uuid()
+})
+
+export const likeSocialCommentResponseContentMax = 2000;
+
+export const likeSocialCommentResponseLikesMin = 0;
+
+
+
+export const LikeSocialCommentResponse = zod.object({
+  "id": zod.uuid(),
+  "postId": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(likeSocialCommentResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "replyToCommentId": zod.uuid().nullable(),
+  "likes": zod.int().min(likeSocialCommentResponseLikesMin),
+  "isLiked": zod.boolean(),
+  "author": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.url().nullable()
+})
+})
+
+
+/**
+ * @summary Remove the authenticated account's comment like
+ */
+export const UnlikeSocialCommentParams = zod.object({
+  "commentId": zod.uuid()
+})
+
+export const unlikeSocialCommentResponseContentMax = 2000;
+
+export const unlikeSocialCommentResponseLikesMin = 0;
+
+
+
+export const UnlikeSocialCommentResponse = zod.object({
+  "id": zod.uuid(),
+  "postId": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(unlikeSocialCommentResponseContentMax),
+  "createdAt": zod.coerce.date(),
+  "replyToCommentId": zod.uuid().nullable(),
+  "likes": zod.int().min(unlikeSocialCommentResponseLikesMin),
+  "isLiked": zod.boolean(),
+  "author": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.url().nullable()
+})
+})
 
 
 /**
@@ -1755,7 +2201,8 @@ export const CreateSocialArticleResponse = zod.object({
   "reposts": zod.int().min(createSocialArticleResponseRepostsMin),
   "shares": zod.int().min(createSocialArticleResponseSharesMin),
   "isLiked": zod.boolean(),
-  "isReposted": zod.boolean()
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
 })
 
 
@@ -1799,7 +2246,8 @@ export const GetSocialArticleResponse = zod.object({
   "reposts": zod.int().min(getSocialArticleResponseRepostsMin),
   "shares": zod.int().min(getSocialArticleResponseSharesMin),
   "isLiked": zod.boolean(),
-  "isReposted": zod.boolean()
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
 })
 
 
@@ -1858,7 +2306,8 @@ export const GetSocialAccountPostsResponse = zod.object({
   "reposts": zod.int().min(getSocialAccountPostsResponseItemsItemRepostsMin),
   "shares": zod.int().min(getSocialAccountPostsResponseItemsItemSharesMin),
   "isLiked": zod.boolean(),
-  "isReposted": zod.boolean()
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
 })),
   "nextCursor": zod.string().nullable()
 })

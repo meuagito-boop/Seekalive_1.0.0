@@ -23,4 +23,5 @@ export interface Post {
   reference?: ContentReference;
   mentions?: string[];
   hashtags?: string[];
+  source?: "server";
 }

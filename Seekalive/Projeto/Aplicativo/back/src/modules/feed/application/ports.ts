@@ -4,6 +4,12 @@ import type {
   NewFeedPost,
   PostPosition,
 } from "../domain/post";
+import type { PostInteractionSummary } from "../domain/postInteractions";
+import type {
+  CommentPosition,
+  FeedComment,
+  FeedCommentAuthor,
+} from "../domain/postInteractions";
 import type { FeedAuthorAccessView } from "./postVisibility";
 
 export type InsertFeedPost = (post: NewFeedPost) => Promise<FeedPost>;
@@ -24,3 +30,18 @@ export type FindFeedAuthors = (
   authorIds: string[],
   viewerId: string | null,
 ) => Promise<FeedAuthorAccessView[]>;
+
+export type FindPostInteractionSummaries = (
+  postIds: string[],
+  viewerId: string | null,
+) => Promise<Map<string, PostInteractionSummary>>;
+
+export type FindFeedCommentAuthors = (
+  accountIds: string[],
+  viewerId: string,
+) => Promise<FeedCommentAuthor[]>;
+export type ListFeedPostComments = (input: {
+  postId: string;
+  after: CommentPosition | null;
+  limit: number;
+}) => Promise<FeedComment[]>;

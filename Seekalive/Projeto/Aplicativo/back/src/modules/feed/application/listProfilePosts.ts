@@ -1,5 +1,9 @@
-import type { FeedPostFormat } from "../domain/post";
-import type { FindFeedAuthors, ListFeedPostsByAuthor } from "./ports";
+import type { FeedPost, FeedPostFormat } from "../domain/post";
+import type {
+  FindFeedAuthors,
+  FindPostInteractionSummaries,
+  ListFeedPostsByAuthor,
+} from "./ports";
 import type { PostCursor } from "./postCursor";
 import { encodePostCursor } from "./postCursor";
 import { canReadPost } from "./postVisibility";
@@ -11,6 +15,7 @@ const MAX_SCANNED_PER_REQUEST = 500;
 export function createProfilePostLister(
   listPosts: ListFeedPostsByAuthor,
   findAuthors: FindFeedAuthors,
+  findInteractionSummaries: FindPostInteractionSummaries,
 ) {
   return async function listProfilePosts(
     authorId: string,
@@ -22,14 +27,14 @@ export function createProfilePostLister(
     const [author] = await findAuthors([authorId], viewerId);
     if (!author) return null;
 
-    const items: ReturnType<typeof toPostView>[] = [];
+    const visiblePosts: FeedPost[] = [];
     let position = cursor;
     let nextCursor: string | null = null;
     let scanned = 0;
     let hasMoreRows = true;
 
     while (
-      items.length <= limit &&
+      visiblePosts.length <= limit &&
       scanned < MAX_SCANNED_PER_REQUEST &&
       hasMoreRows
     ) {
@@ -54,14 +59,14 @@ export function createProfilePostLister(
         scanned += 1;
         const previousPosition = position;
         if (canReadPost(post, viewerId, author)) {
-          if (items.length === limit) {
+          if (visiblePosts.length === limit) {
             nextCursor = previousPosition
               ? encodePostCursor(previousPosition, { authorId, format })
               : null;
             foundExtraVisiblePost = true;
             break;
           }
-          items.push(toPostView(post));
+          visiblePosts.push(post);
         }
         position = { createdAt: post.createdAt, id: post.id };
       }
@@ -81,8 +86,15 @@ export function createProfilePostLister(
       nextCursor = encodePostCursor(position, { authorId, format });
     }
 
+    const summaries = await findInteractionSummaries(
+      visiblePosts.map((post) => post.id),
+      viewerId,
+    );
+
     return {
-      items,
+      items: visiblePosts.map((post) =>
+        toPostView(post, summaries.get(post.id)),
+      ),
       nextCursor,
     };
   };

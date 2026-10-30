@@ -9,6 +9,7 @@ export interface ContentService {
     content: string,
     authorId: string,
     replyToCommentId?: string,
+    idempotencyKey?: string,
   ): Promise<SocialComment>;
 }
 

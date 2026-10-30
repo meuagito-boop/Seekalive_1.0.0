@@ -12,20 +12,45 @@ import { ShareContentDialog } from "@/components/content/ShareContentDialog";
 
 /** One interaction model shared by feed cards, post detail and article reader. */
 export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" | "lg" }) {
-  const { toggleLike, toggleRepost, toggleBookmark, repostEntries } = useSocial();
+  const {
+    toggleLike,
+    toggleRepost,
+    toggleBookmark,
+    repostEntries,
+    getPostById,
+    isRemoteSocialSession,
+  } = useSocial();
   const { currentUser } = useAppContext();
   const viewerId = currentUser?.id ?? "me";
   const [shareOpen, setShareOpen] = useState(false);
+  const [busyAction, setBusyAction] = useState<"like" | "repost" | "bookmark" | null>(null);
   const { toast } = useToast();
-  const canRepost = post.audience === "public";
-  function repost() {
+  const currentPost = getPostById(post.id) ?? post;
+  const canRepost = currentPost.audience === "public";
+  async function runAction(
+    action: "like" | "repost" | "bookmark",
+    operation: () => Promise<void>,
+  ) {
+    if (busyAction) return;
+    setBusyAction(action);
     try {
-      toggleRepost(post.id, viewerId);
+      await operation();
     } catch (error) {
-      toast({ title: "Repostagem indisponível", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+      toast({
+        title: action === "repost" ? "Repostagem indisponível" : action === "like" ? "Curtida não atualizada" : "Salvamento não atualizado",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyAction(null);
     }
   }
-  const reposted = repostEntries.some((r) => r.postId === post.id && r.authorId === viewerId);
+  function repost() {
+    return runAction("repost", () => toggleRepost(post.id, viewerId));
+  }
+  const reposted = isRemoteSocialSession
+    ? Boolean(currentPost.isReposted)
+    : repostEntries.some((r) => r.postId === post.id && r.authorId === viewerId);
   const icon = size === "lg" ? "h-5 w-5" : "h-4 w-4";
   const btn = "flex items-center gap-1.5 h-8 px-2 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
   const title = post.format === "article" && post.article ? post.article.title : post.content.slice(0, 80) || "Publicação";
@@ -45,8 +70,8 @@ export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" |
         <motion.button
           type="button"
           whileTap={{ scale: 1.2 }}
-          onClick={repost}
-          disabled={!canRepost}
+          onClick={() => void repost()}
+          disabled={!canRepost || busyAction !== null}
           title={canRepost ? undefined : "Somente publicações públicas podem ser repostadas"}
           aria-pressed={reposted}
           aria-label={reposted ? "Desfazer repostagem" : "Repostar"}
@@ -59,25 +84,27 @@ export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" |
         <motion.button
           type="button"
           whileTap={{ scale: 1.3 }}
-          onClick={() => toggleLike(post.id)}
-          aria-pressed={!!post.isLiked}
-          aria-label={post.isLiked ? "Descurtir" : "Curtir"}
+          onClick={() => void runAction("like", () => toggleLike(post.id))}
+          disabled={busyAction !== null}
+          aria-pressed={!!currentPost.isLiked}
+          aria-label={currentPost.isLiked ? "Descurtir" : "Curtir"}
           data-testid={`button-like-${post.id}`}
-          className={`${btn} hover:bg-red-500/10 ${post.isLiked ? "text-red-500" : "hover:text-red-500"}`}
+          className={`${btn} hover:bg-red-500/10 disabled:opacity-50 ${currentPost.isLiked ? "text-red-500" : "hover:text-red-500"}`}
         >
-          <Heart className={`${icon} ${post.isLiked ? "fill-red-500" : ""}`} />
-          {formatCount(Math.max(0, post.likes))}
+          <Heart className={`${icon} ${currentPost.isLiked ? "fill-red-500" : ""}`} />
+          {formatCount(Math.max(0, currentPost.likes))}
         </motion.button>
         <motion.button
           type="button"
           whileTap={{ scale: 1.2 }}
-          onClick={() => toggleBookmark(post.id)}
-          aria-pressed={!!post.isBookmarked}
-          aria-label={post.isBookmarked ? "Remover dos salvos" : "Salvar"}
+          onClick={() => void runAction("bookmark", () => toggleBookmark(post.id))}
+          disabled={busyAction !== null}
+          aria-pressed={!!currentPost.isBookmarked}
+          aria-label={currentPost.isBookmarked ? "Remover dos salvos" : "Salvar"}
           data-testid={`button-bookmark-${post.id}`}
-          className={`${btn} hover:bg-yellow-500/10 ${post.isBookmarked ? "text-yellow-500" : "hover:text-yellow-500"}`}
+          className={`${btn} hover:bg-yellow-500/10 disabled:opacity-50 ${currentPost.isBookmarked ? "text-yellow-500" : "hover:text-yellow-500"}`}
         >
-          <Bookmark className={`${icon} ${post.isBookmarked ? "fill-yellow-500" : ""}`} />
+          <Bookmark className={`${icon} ${currentPost.isBookmarked ? "fill-yellow-500" : ""}`} />
         </motion.button>
         <button
           type="button"
@@ -95,7 +122,7 @@ export function PostActionBar({ post, size = "sm" }: { post: Post; size?: "sm" |
         reference={{ type: "social_post", id: post.id }}
         title={title}
         linkPath={postPath(post)}
-        repost={canRepost ? { active: reposted, onToggle: repost } : undefined}
+        repost={canRepost ? { active: reposted, onToggle: () => void repost() } : undefined}
       />
     </>
   );

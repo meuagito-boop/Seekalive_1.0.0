@@ -4,6 +4,7 @@ import {
   countFeedPostsByAuthorIds,
   listFeedPostsByAuthor,
 } from "../infrastructure/postRepository";
+import { findPostInteractionSummaries } from "../infrastructure/postInteractionSummaryRepository";
 import type { FindFeedAuthors } from "../application/ports";
 
 export const countAllPostsByAuthorIds = createCountAllPostsByAuthorIds(
@@ -11,5 +12,9 @@ export const countAllPostsByAuthorIds = createCountAllPostsByAuthorIds(
 );
 
 export function createProfilePostListApi(findAuthors: FindFeedAuthors) {
-  return createProfilePostLister(listFeedPostsByAuthor, findAuthors);
+  return createProfilePostLister(
+    listFeedPostsByAuthor,
+    findAuthors,
+    findPostInteractionSummaries,
+  );
 }
