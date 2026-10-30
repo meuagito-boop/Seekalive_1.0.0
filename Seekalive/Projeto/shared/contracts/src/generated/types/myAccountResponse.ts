@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AccountView } from './accountView';
-import type { OwnerCommercialProfile } from './ownerCommercialProfile';
+import type { CommercialProfileDetails } from './commercialProfileDetails';
 
 /**
  * Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.
@@ -32,5 +32,6 @@ export interface MyAccountResponse {
   publicNameChangeAvailableAt: Date;
   /** The next date and time when the owner may change the account's social identifier. */
   usernameChangeAvailableAt: Date;
-  commercialProfile: OwnerCommercialProfile | null;
+  /** Persisted commercial account details only when the viewer is allowed by profile visibility; null for personal or inaccessible private profiles. */
+  commercialProfile: CommercialProfileDetails | null;
 }

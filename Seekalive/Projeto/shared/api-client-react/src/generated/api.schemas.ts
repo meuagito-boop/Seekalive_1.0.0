@@ -565,24 +565,24 @@ export interface AccountView {
   version: number;
 }
 
-export type OwnerCommercialProfileDiscoveryKind = typeof OwnerCommercialProfileDiscoveryKind[keyof typeof OwnerCommercialProfileDiscoveryKind];
+export type CommercialProfileDetailsDiscoveryKind = typeof CommercialProfileDetailsDiscoveryKind[keyof typeof CommercialProfileDetailsDiscoveryKind];
 
 
-export const OwnerCommercialProfileDiscoveryKind = {
+export const CommercialProfileDetailsDiscoveryKind = {
   place: 'place',
   provider: 'provider',
 } as const;
 
 /**
- * Full commercial registration details returned only to the authenticated owner.
+ * Commercial registration details returned to the owner or to viewers permitted by the public profile privacy rules.
  */
-export interface OwnerCommercialProfile {
+export interface CommercialProfileDetails {
   /**
      * @minLength 1
      * @maxLength 40
      */
   categoryKey: string;
-  discoveryKind: OwnerCommercialProfileDiscoveryKind;
+  discoveryKind: CommercialProfileDetailsDiscoveryKind;
   /**
      * @minLength 1
      * @maxLength 250
@@ -634,7 +634,8 @@ export interface MyAccountResponse {
   publicNameChangeAvailableAt: string;
   /** The next date and time when the owner may change the account's social identifier. */
   usernameChangeAvailableAt: string;
-  commercialProfile: OwnerCommercialProfile | null;
+  /** Persisted commercial account details only when the viewer is allowed by profile visibility; null for personal or inaccessible private profiles. */
+  commercialProfile: CommercialProfileDetails | null;
 }
 
 export type PostAudience = typeof PostAudience[keyof typeof PostAudience];
@@ -692,6 +693,8 @@ export interface PostPage {
 export interface ProfileResponse {
   account: AccountView;
   visibility: ProfileVisibility;
+  /** Persisted commercial details only when the viewer is allowed by profile visibility; null for personal or inaccessible private profiles. */
+  commercialProfile: CommercialProfileDetails | null;
   posts: PostPage;
   articles: PostPage;
   media: ProfileContentPage;

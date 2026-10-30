@@ -1137,6 +1137,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     "A session ID from another account must not be accessible.",
   );
 
+  const initialPersonalSession = {
+    cookie: personal.cookie,
+    csrfToken: personal.csrfToken,
+  };
   const secondPersonalLogin = await request("/api/v1/auth/login", {
     method: "POST",
     body: {
@@ -1168,19 +1172,6 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     1,
   );
 
-  const revokeOneSession = await request(
-    `/api/v1/auth/sessions/${secondPersonalLogin.body.session.id}`,
-    {
-      method: "DELETE",
-      auth: personal,
-    },
-  );
-  assert.equal(revokeOneSession.response.status, 204);
-  const revokedIndividualSession = await request("/api/v1/auth/session", {
-    auth: secondPersonalSession,
-  });
-  assert.equal(revokedIndividualSession.body.authenticated, false);
-
   const thirdPersonalLogin = await request("/api/v1/auth/login", {
     method: "POST",
     body: {
@@ -1201,6 +1192,33 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     ),
     csrfToken: thirdPersonalLogin.body.csrfToken,
   };
+  const oldestSessionAfterThirdLogin = await request("/api/v1/auth/session", {
+    auth: initialPersonalSession,
+  });
+  assert.equal(oldestSessionAfterThirdLogin.body.authenticated, false);
+  const secondSessionAfterThirdLogin = await request("/api/v1/auth/session", {
+    auth: secondPersonalSession,
+  });
+  assert.equal(secondSessionAfterThirdLogin.body.authenticated, true);
+  const thirdSessionAfterThirdLogin = await request("/api/v1/auth/session", {
+    auth: thirdPersonalSession,
+  });
+  assert.equal(thirdSessionAfterThirdLogin.body.authenticated, true);
+  const sessionsAfterThirdLogin = await request("/api/v1/auth/sessions", {
+    auth: secondPersonalSession,
+  });
+  assert.equal(sessionsAfterThirdLogin.response.status, 200);
+  assert.equal(sessionsAfterThirdLogin.body.items.length, 2);
+  assert.deepEqual(
+    sessionsAfterThirdLogin.body.items.map((session) => session.id).sort(),
+    [
+      secondPersonalLogin.body.session.id,
+      thirdPersonalLogin.body.session.id,
+    ].sort(),
+  );
+
+  personal.cookie = secondPersonalSession.cookie;
+  personal.csrfToken = secondPersonalSession.csrfToken;
   const revokeOtherSessions = await request("/api/v1/auth/sessions/others", {
     method: "DELETE",
     auth: personal,
@@ -1264,6 +1282,29 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     JSON.stringify(commercialOwnerProfile.body),
   );
   assert.equal(commercialOwnerProfile.body.account.id, commercial.account.id);
+  assert.equal(
+    publicProfile.body.commercialProfile.address,
+    "Rua de Teste, 100",
+  );
+  assert.deepEqual(
+    publicProfile.body.commercialProfile,
+    commercialOwnerProfile.body.commercialProfile,
+  );
+  const personalPublicProfile = await request(
+    `/api/v1/profiles/${updatedPersonalProfile.body.account.username}`,
+    { auth: commercial },
+  );
+  assert.equal(
+    personalPublicProfile.response.status,
+    200,
+    JSON.stringify(personalPublicProfile.body),
+  );
+  assert.equal(personalPublicProfile.body.account.id, personal.account.id);
+  assert.equal(
+    personalPublicProfile.body.visibility.canViewPublicContent,
+    true,
+  );
+  assert.equal(personalPublicProfile.body.commercialProfile, null);
   assert.equal(
     commercialOwnerProfile.body.email,
     commercialRegistration.email.toLowerCase(),

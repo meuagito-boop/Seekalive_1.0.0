@@ -2,7 +2,7 @@ import {
   type OwnerProfileFailure,
   type OwnerProfileIdentity,
 } from "./ownerProfileCommon";
-import type { CommercialProfileDetailsReader } from "./ports";
+import type { CommercialProfileDetailsReader } from "../../seek/application/commercialProfileDetails";
 
 export function createCommercialProfileLoader(
   findCommercialProfileDetails: CommercialProfileDetailsReader,
@@ -30,15 +30,7 @@ export function createCommercialProfileLoader(
       };
     }
     const commercialProfile = await findCommercialProfileDetails(accountId);
-    if (
-      !commercialProfile?.categoryKey ||
-      !commercialProfile.discoveryKind ||
-      !commercialProfile.address ||
-      !commercialProfile.postalCode ||
-      !commercialProfile.cityName ||
-      !commercialProfile.stateName ||
-      !commercialProfile.countryName
-    ) {
+    if (!commercialProfile) {
       return {
         ok: false,
         status: 500,

@@ -5,6 +5,10 @@ import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisib
 import type { ListProfilePosts } from "../../feed/application/listProfilePosts";
 import type { RelationshipView } from "../../social/domain/relationshipView";
 import { usernameFormatSchema } from "@workspace/api-zod";
+import type {
+  CommercialProfileDetails,
+  CommercialProfileDetailsReader,
+} from "../../seek/application/commercialProfileDetails";
 
 const emptyPage = { items: [], nextCursor: null };
 type AccountViewReader = ReturnType<typeof createAccountViews>["accountView"];
@@ -13,6 +17,7 @@ export type PublicProfileDependencies = {
   accountView: AccountViewReader;
   findActiveAccountById: AccountReadPort["findActiveAccountById"];
   findActiveAccountByUsername: AccountReadPort["findActiveAccountByUsername"];
+  readCommercialProfileDetails: CommercialProfileDetailsReader;
   getRelationshipFor: (
     viewerId: string | null,
     targetId: string,
@@ -32,6 +37,7 @@ type ProfilePage = NonNullable<Awaited<ReturnType<ListProfilePosts>>>;
 
 export type PublicProfileData = {
   account: Awaited<ReturnType<AccountViewReader>>;
+  commercialProfile: CommercialProfileDetails | null;
   visibility: {
     canViewPublicContent: boolean;
     canViewCircleContent: boolean;
@@ -62,11 +68,19 @@ async function composePublicProfile(
     dependencies.listProfilePosts(row.id, viewerId, 20, null, "text"),
     dependencies.listProfilePosts(row.id, viewerId, 20, null, "article"),
   ]);
+  let commercialProfile: CommercialProfileDetails | null = null;
+  if (row.accountType === "commercial" && canViewPublicContent) {
+    commercialProfile = await dependencies.readCommercialProfileDetails(row.id);
+    if (!commercialProfile) {
+      throw new Error("Visible commercial account is missing profile details.");
+    }
+  }
 
   return {
     kind: "found",
     data: {
       account,
+      commercialProfile,
       visibility: {
         canViewPublicContent,
         canViewCircleContent: relationship.inCircle || viewerId === row.id,

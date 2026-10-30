@@ -13,16 +13,6 @@ export type OwnerProfileIdentityRecord = {
   usernameChangedAt: Date | null;
 };
 
-export type CommercialProfileDetails = {
-  categoryKey: string | null;
-  discoveryKind: string | null;
-  address: string | null;
-  postalCode: string | null;
-  cityName: string | null;
-  stateName: string | null;
-  countryName: string | null;
-};
-
 export type PrivacySettingsRecord = {
   isPrivate: boolean;
   messagesPolicy: string;
@@ -34,9 +24,6 @@ export type UsernameClaimLookup = (username: string) => Promise<boolean>;
 export type OwnerProfileIdentityReader = (
   accountId: string,
 ) => Promise<OwnerProfileIdentityRecord | null>;
-export type CommercialProfileDetailsReader = (
-  accountId: string,
-) => Promise<CommercialProfileDetails | null>;
 export type PrivacySettingsReader = (
   accountId: string,
 ) => Promise<PrivacySettingsRecord | null>;

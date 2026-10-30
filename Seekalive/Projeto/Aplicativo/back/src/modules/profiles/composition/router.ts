@@ -21,10 +21,8 @@ import {
 } from "../application/publicProfile";
 import { createOwnerProfileUpdater } from "../application/updateOwnerProfile";
 import { createUsernameAvailabilityChecker } from "../application/usernameAvailability";
-import {
-  findCommercialProfileDetails,
-  findOwnerProfileIdentity,
-} from "../infrastructure/ownerProfileRepository";
+import { findOwnerProfileIdentity } from "../infrastructure/ownerProfileRepository";
+import { readCommercialProfileDetails } from "../../seek/composition/publicApi";
 import { persistOwnerProfileUpdate } from "../infrastructure/ownerProfileUpdateRepository";
 import {
   findPrivacySettings,
@@ -42,7 +40,7 @@ const loadOwnerProfileIdentity = createOwnerProfileIdentityLoader({
   findOwnerProfileIdentity,
 });
 const loadCommercialProfile = createCommercialProfileLoader(
-  findCommercialProfileDetails,
+  readCommercialProfileDetails,
 );
 const loadOwnerProfile = createOwnerProfileLoader({
   loadIdentity: loadOwnerProfileIdentity,
@@ -62,6 +60,7 @@ const publicProfileDependencies: PublicProfileDependencies = {
   accountView,
   findActiveAccountById,
   findActiveAccountByUsername,
+  readCommercialProfileDetails,
   getRelationshipFor,
   isBlockedBetween,
   listProfilePosts,

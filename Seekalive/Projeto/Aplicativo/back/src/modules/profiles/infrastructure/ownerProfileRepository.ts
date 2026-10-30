@@ -1,9 +1,6 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { accountEmails, accounts, commercialProfiles, db } from "@workspace/db";
-import type {
-  CommercialProfileDetails,
-  OwnerProfileIdentityRecord,
-} from "../application/ports";
+import { accountEmails, accounts, db } from "@workspace/db";
+import type { OwnerProfileIdentityRecord } from "../application/ports";
 
 export async function findOwnerProfileIdentity(
   accountId: string,
@@ -35,24 +32,4 @@ export async function findOwnerProfileIdentity(
   return owner && verifiedEmail
     ? { ...owner, email: verifiedEmail.email }
     : null;
-}
-
-export async function findCommercialProfileDetails(
-  accountId: string,
-): Promise<CommercialProfileDetails | null> {
-  const [profile] = await db
-    .select({
-      categoryKey: commercialProfiles.categoryKey,
-      discoveryKind: commercialProfiles.discoveryKind,
-      address: commercialProfiles.address,
-      postalCode: commercialProfiles.postalCode,
-      cityName: commercialProfiles.cityName,
-      stateName: commercialProfiles.stateName,
-      countryName: commercialProfiles.countryName,
-    })
-    .from(commercialProfiles)
-    .where(eq(commercialProfiles.accountId, accountId))
-    .limit(1);
-
-  return profile ?? null;
 }

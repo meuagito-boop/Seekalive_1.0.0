@@ -63,7 +63,8 @@ As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módul
   histórico de sessão ou identificador do aparelho.
 - A regra aprovada limita a conta a duas sessões simultâneas, sem expiração por
   inatividade. Ao iniciar uma terceira sessão, a mais antiga deve ser revogada.
-  A implementação e o teste desse limite continuam pendentes.
+  A implementação centralizada e os testes unitários e de integração isolada
+  cobrem essa regra.
 
 ### Alteração e recuperação de credenciais
 
@@ -76,14 +77,11 @@ As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módul
 
 - A solicitação exige confirmação conforme o fluxo atual; a conta fica imediatamente oculta/desativada por sete dias.
 - Durante o prazo, a tela de login permite restauração com senha e código de e-mail; a restauração não cria sessão automaticamente.
-- Ao completar sete dias, a restauração deixa de ser permitida. Todos os registros
-  da conta devem permanecer retidos por mais 90 dias, com acesso restrito e uso
-  somente para atender pedido legal válido; após esse prazo, devem seguir a
-  eliminação definitiva aprovada.
-- **Divergência de implementação:** o finalizador atual apaga fisicamente a
-  conta ao vencer o prazo de sete dias. Ele não atende à retenção adicional de
-  90 dias e deve ser substituído antes do fechamento de Accounts/Auth. Não
-  afirmar que a retenção legal já está implementada.
+- Ao completar sete dias, a restauração deixa de ser permitida e a conta passa
+  para o estado de retenção. Seus registros permanecem por mais 90 dias e são
+  eliminados ao final desse prazo.
+- A implementação e os testes isolados cobrem o prazo de sete dias, a
+  restauração durante esse período e a remoção após a retenção adicional.
 - Mensagens, Mídias e demais domínios ainda precisam aplicar a própria parte
   dessa retenção quando suas persistências existirem.
 - A reserva do `@` permanece pelo prazo aprovado. Dados de mensagens que venham a existir devem preservar o conteúdo do destinatário e anonimizar o remetente, conforme regra já definida.

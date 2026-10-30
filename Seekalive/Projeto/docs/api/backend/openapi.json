@@ -3782,6 +3782,1624 @@
         }
       }
     },
+    "/v1/auth/account/email/change/request": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_email_change_request_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Iniciar troca de e-mail com senha atual",
+        "description": "Exige senha atual e envia código ao e-mail verificado atual. O endereço atual permanece ativo até que o novo e-mail também seja confirmado.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountEmailChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChangeCurrentCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/email/change/confirm-current": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_email_change_confirm_current_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirmar acesso ao e-mail atual",
+        "description": "Valida o código enviado ao endereço atual e então envia o segundo código ao novo endereço proposto.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeConfirmInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChangeNewCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/email/change/confirm-new": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_email_change_confirm_new_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirmar e ativar o novo e-mail",
+        "description": "Ativa o novo endereço somente após confirmar seu código e envia um aviso de segurança ao endereço anterior.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeConfirmInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountEmailChangeResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/password/change/request": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_password_change_request_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Iniciar troca de senha com a senha atual",
+        "description": "Exige senha atual, valida a política da nova senha e envia código ao e-mail verificado. A senha não muda até a confirmação do código.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountPasswordChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordChangeCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/password/change/confirm": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_password_change_confirm_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirmar troca de senha e revogar instalações",
+        "description": "Atualiza a senha e revoga, na mesma transação, as sessões e instalações confiáveis. Exige novo login e confirmação da instalação.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeConfirmInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPasswordChangeResult"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Expira os cookies de sessão e instalação atuais.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/deletion/code": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_deletion_code_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Solicitar código para pedir exclusão da conta",
+        "description": "Exige sessão ativa e e-mail verificado. Envia somente o código de uso único; a solicitação não dispara outro e-mail.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeletionCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/deletion/confirm": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_deletion_confirm_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirmar e agendar a exclusão da conta",
+        "description": "Oculta e desativa a conta imediatamente, revoga sessões e permite restauração somente durante sete dias. Depois, os registros permanecem retidos por mais 90 dias antes da remoção física.",
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeletionConfirmation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionScheduled"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Expira os cookies de sessão e instalação atuais.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/deletion/restore/code": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_deletion_restore_code_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Solicitar código para restaurar conta pendente",
+        "description": "Exige identificador, senha e o contexto de pré-autenticação. Disponível apenas durante os sete dias de restauração; envia o código ao e-mail verificado da conta.",
+        "security": [
+          {
+            "PreAuthCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/account/deletion/restore/confirm": {
+      "post": {
+        "operationId": "auth_post_v1_auth_account_deletion_restore_confirm_1",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Restaurar conta com senha e código de e-mail",
+        "description": "Exige identificador, senha, código e contexto de pré-autenticação. Restaura a conta somente dentro dos sete dias e não cria sessão; a pessoa deve entrar novamente.",
+        "security": [
+          {
+            "PreAuthCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountRestorationConfirmation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountRestoredResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/onboarding/interests": {
       "post": {
         "operationId": "onboarding_post_v1_onboarding_interests_1",
@@ -4296,172 +5914,6 @@
             }
           }
         }
-      },
-      "delete": {
-        "operationId": "accounts_delete_v1_accounts_me_3",
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Solicitar exclusão segura",
-        "description": "PROPOSED ONLY; not currently implemented. Async job and request ID; no synchronous-success simulation.",
-        "security": [
-          {
-            "SessionCookie": [],
-            "CsrfHeader": []
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Contrato proposto; handler ainda não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Accepted"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "415": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "423": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/v1/accounts/availability": {
@@ -4823,7 +6275,7 @@
           "accounts"
         ],
         "summary": "Resolver perfil por username respeitando privacidade e bloqueios",
-        "description": "LIVE on the audited API server.",
+        "description": "Retorna detalhes comerciais persistidos somente se o perfil comercial estiver visível para o visitante. Campos de horários, serviços, avaliações e galeria não são inventados nem incluídos enquanto seus domínios não estiverem implementados.",
         "parameters": [
           {
             "name": "username",
@@ -25246,6 +26698,315 @@
           "status"
         ]
       },
+      "AccountEmailChangeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "newEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newEmail"
+        ]
+      },
+      "AccountPasswordChangeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "Must include uppercase, lowercase, numeric, and special characters."
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword",
+          "passwordConfirmation"
+        ]
+      },
+      "ChallengeConfirmInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        },
+        "required": [
+          "challengeId",
+          "code"
+        ]
+      },
+      "EmailChangeCurrentCodeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "current_email_verification_required"
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currentEmailMasked": {
+            "type": "string"
+          },
+          "newEmailMasked": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "challengeId",
+          "currentEmailMasked",
+          "newEmailMasked",
+          "expiresAt",
+          "message"
+        ]
+      },
+      "EmailChangeNewCodeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "new_email_verification_required"
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newEmailMasked": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "challengeId",
+          "newEmailMasked",
+          "expiresAt",
+          "message"
+        ]
+      },
+      "PasswordChangeCodeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "password_change_verification_required"
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "emailMasked": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "challengeId",
+          "emailMasked",
+          "expiresAt",
+          "message"
+        ]
+      },
+      "AccountDeletionCodeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "AccountDeletionCodeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "verification_code_sent"
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "emailMasked": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "challengeId",
+          "emailMasked",
+          "expiresAt"
+        ]
+      },
+      "AccountDeletionConfirmation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        },
+        "required": [
+          "challengeId",
+          "code"
+        ]
+      },
+      "AccountRestorationConfirmation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        },
+        "required": [
+          "identifier",
+          "password",
+          "challengeId",
+          "code"
+        ]
+      },
+      "AccountRestoredResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "account_restored"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "AccountDeletionScheduled": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "deletion_scheduled"
+          },
+          "deletionScheduledFor": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "deletionScheduledFor"
+        ]
+      },
+      "AccountEmailChangeResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "email_changed"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "securityNoticeSent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "email",
+          "securityNoticeSent"
+        ]
+      },
+      "AccountPasswordChangeResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "password_changed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "Health": {
         "type": "object",
         "additionalProperties": false,
@@ -26172,16 +27933,6 @@
             "type": "string",
             "format": "date-time"
           },
-          "businessProfile": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/BusinessProfile"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "relationship": {
             "$ref": "#/components/schemas/RelationshipView"
           },
@@ -26267,7 +28018,7 @@
           "mutedByMe"
         ]
       },
-      "OwnerCommercialProfile": {
+      "CommercialProfileDetails": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -26348,12 +28099,13 @@
           "commercialProfile": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/OwnerCommercialProfile"
+                "$ref": "#/components/schemas/CommercialProfileDetails"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Persisted commercial details, included only when profile visibility allows; null for personal or inaccessible private profiles."
           }
         },
         "required": [
@@ -26478,6 +28230,17 @@
           "account": {
             "$ref": "#/components/schemas/Account"
           },
+          "commercialProfile": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CommercialProfileDetails"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Persisted commercial details, included only when profile visibility allows; null for personal or inaccessible private profiles."
+          },
           "visibility": {
             "$ref": "#/components/schemas/ProfileVisibility"
           },
@@ -26547,6 +28310,7 @@
         },
         "required": [
           "account",
+          "commercialProfile",
           "visibility",
           "posts",
           "articles",

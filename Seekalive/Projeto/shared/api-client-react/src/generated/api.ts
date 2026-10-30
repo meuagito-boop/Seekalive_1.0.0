@@ -2436,7 +2436,7 @@ export const getConfirmAccountDeletionUrl = () => {
 }
 
 /**
- * Hides and disables the account immediately, revokes active sessions, and schedules permanent deletion seven days later.
+ * Hides and disables the account immediately and revokes active sessions. Restoration is available only during the first seven days; after that cutoff the account cannot be restored, and its retained records are purged after an additional 90 days.
  * @summary Schedule account deletion after confirming the code
  */
 export const confirmAccountDeletion = async (accountDeletionConfirmation: AccountDeletionConfirmation, options?: Parameters<typeof customFetch>[1]): Promise<AccountDeletionScheduled> => {
@@ -3081,7 +3081,7 @@ export const getGetProfileByUsernameUrl = (username: string,) => {
 }
 
 /**
- * Authentication is optional. Private profile fields are limited according to follow approval and block rules.
+ * Authentication is optional. Private profile fields and commercial details are limited according to follow approval and block rules.
  * @summary Get a visible profile by username
  */
 export const getProfileByUsername = async (username: string, options?: Parameters<typeof customFetch>[1]): Promise<ProfileResponse> => {

@@ -33,14 +33,29 @@ const stats = {
 };
 
 test("public profiles remain visible to signed-out visitors", () => {
-  assert.equal(canViewPrivateProfileContent(false, null, "account", "none"), true);
+  assert.equal(
+    canViewPrivateProfileContent(false, null, "account", "none"),
+    true,
+  );
 });
 
 test("private profile visibility is limited to the owner and accepted followers", () => {
-  assert.equal(canViewPrivateProfileContent(true, null, "account", "none"), false);
-  assert.equal(canViewPrivateProfileContent(true, "account", "account", "none"), true);
-  assert.equal(canViewPrivateProfileContent(true, "follower", "account", "accepted"), true);
-  assert.equal(canViewPrivateProfileContent(true, "requester", "account", "pending"), false);
+  assert.equal(
+    canViewPrivateProfileContent(true, null, "account", "none"),
+    false,
+  );
+  assert.equal(
+    canViewPrivateProfileContent(true, "account", "account", "none"),
+    true,
+  );
+  assert.equal(
+    canViewPrivateProfileContent(true, "follower", "account", "accepted"),
+    true,
+  );
+  assert.equal(
+    canViewPrivateProfileContent(true, "requester", "account", "pending"),
+    false,
+  );
 });
 
 test("account view mapper redacts private profile details from non-followers", () => {
@@ -63,10 +78,19 @@ test("account view mapper shows private profile details to the owner", () => {
 
 test("public profile composition hides a blocked profile before loading its content", async () => {
   let contentWasLoaded = false;
+  let commercialDetailsWereLoaded = false;
   const result = await getPublicProfileByUsername("blocked_user", "viewer", {
     accountView: async () => ({}),
     findActiveAccountById: async () => null,
-    findActiveAccountByUsername: async () => ({ ...account, id: "blocked-account" }),
+    findActiveAccountByUsername: async () => ({
+      ...account,
+      id: "blocked-account",
+      accountType: "commercial",
+    }),
+    readCommercialProfileDetails: async () => {
+      commercialDetailsWereLoaded = true;
+      return null;
+    },
     getRelationshipFor: async () => relationship,
     isBlockedBetween: async () => true,
     listProfilePosts: async () => {
@@ -77,6 +101,7 @@ test("public profile composition hides a blocked profile before loading its cont
 
   assert.deepEqual(result, { kind: "not_found" });
   assert.equal(contentWasLoaded, false);
+  assert.equal(commercialDetailsWereLoaded, false);
 });
 
 test("public profile composition delegates private-content access to the visibility policy", async () => {
@@ -84,6 +109,7 @@ test("public profile composition delegates private-content access to the visibil
     accountView: async () => ({ id: "account" }),
     findActiveAccountById: async () => null,
     findActiveAccountByUsername: async () => ({ ...account, id: "account" }),
+    readCommercialProfileDetails: async () => null,
     getRelationshipFor: async () => relationship,
     isBlockedBetween: async () => false,
     listProfilePosts: async () => ({ items: [], nextCursor: null }),
@@ -92,4 +118,134 @@ test("public profile composition delegates private-content access to the visibil
   assert.equal(result.kind, "found");
   assert.equal(result.data.visibility.canViewPublicContent, false);
   assert.equal(result.data.visibility.canViewCircleContent, false);
+  assert.equal(result.data.commercialProfile, null);
+});
+
+test("visible commercial profiles include persisted business details", async () => {
+  const commercialProfile = {
+    categoryKey: "cafes",
+    discoveryKind: "place",
+    address: "Rua de Teste, 100",
+    postalCode: "01001000",
+    cityName: "São Paulo",
+    stateName: "São Paulo",
+    countryName: "Brasil",
+  };
+  const result = await getPublicProfileByUsername("test_user", null, {
+    accountView: async () => ({ id: "account" }),
+    findActiveAccountById: async () => null,
+    findActiveAccountByUsername: async () => ({
+      ...account,
+      accountType: "commercial",
+      isPrivate: false,
+    }),
+    readCommercialProfileDetails: async () => commercialProfile,
+    getRelationshipFor: async () => relationship,
+    isBlockedBetween: async () => false,
+    listProfilePosts: async () => ({ items: [], nextCursor: null }),
+  });
+
+  assert.equal(result.kind, "found");
+  assert.deepEqual(result.data.commercialProfile, commercialProfile);
+});
+
+test("public personal profiles never read or expose commercial details", async () => {
+  let commercialDetailsLookups = 0;
+  const result = await getPublicProfileByUsername("personal_user", null, {
+    accountView: async () => ({ id: "personal-account" }),
+    findActiveAccountById: async () => null,
+    findActiveAccountByUsername: async () => ({
+      ...account,
+      id: "personal-account",
+      accountType: "personal",
+      isPrivate: false,
+    }),
+    readCommercialProfileDetails: async () => {
+      commercialDetailsLookups += 1;
+      return null;
+    },
+    getRelationshipFor: async () => relationship,
+    isBlockedBetween: async () => false,
+    listProfilePosts: async () => ({ items: [], nextCursor: null }),
+  });
+
+  assert.equal(result.kind, "found");
+  assert.equal(result.data.commercialProfile, null);
+  assert.equal(commercialDetailsLookups, 0);
+});
+
+test("private commercial details stay hidden from an unapproved visitor", async () => {
+  let detailsWereLoaded = false;
+  const result = await getPublicProfileByUsername("test_user", null, {
+    accountView: async () => ({ id: "account" }),
+    findActiveAccountById: async () => null,
+    findActiveAccountByUsername: async () => ({
+      ...account,
+      accountType: "commercial",
+      isPrivate: true,
+    }),
+    readCommercialProfileDetails: async () => {
+      detailsWereLoaded = true;
+      return null;
+    },
+    getRelationshipFor: async () => relationship,
+    isBlockedBetween: async () => false,
+    listProfilePosts: async () => ({ items: [], nextCursor: null }),
+  });
+
+  assert.equal(result.kind, "found");
+  assert.equal(result.data.commercialProfile, null);
+  assert.equal(detailsWereLoaded, false);
+});
+
+test("an approved follower can view a private commercial profile's details", async () => {
+  const commercialProfile = {
+    categoryKey: "cafes",
+    discoveryKind: "place",
+    address: "Rua de Teste, 100",
+    postalCode: "01001000",
+    cityName: "São Paulo",
+    stateName: "São Paulo",
+    countryName: "Brasil",
+  };
+  const result = await getPublicProfileByUsername("test_user", "follower", {
+    accountView: async () => ({ id: "account" }),
+    findActiveAccountById: async () => null,
+    findActiveAccountByUsername: async () => ({
+      ...account,
+      accountType: "commercial",
+      isPrivate: true,
+    }),
+    readCommercialProfileDetails: async () => commercialProfile,
+    getRelationshipFor: async () => ({
+      ...relationship,
+      following: "accepted",
+    }),
+    isBlockedBetween: async () => false,
+    listProfilePosts: async () => ({ items: [], nextCursor: null }),
+  });
+
+  assert.equal(result.kind, "found");
+  assert.equal(result.data.visibility.canViewPublicContent, true);
+  assert.equal(result.data.visibility.canViewCircleContent, false);
+  assert.deepEqual(result.data.commercialProfile, commercialProfile);
+});
+
+test("a visible commercial profile with missing required details fails explicitly", async () => {
+  await assert.rejects(
+    getPublicProfileByUsername("test_user", null, {
+      accountView: async () => ({ id: "account" }),
+      findActiveAccountById: async () => null,
+      findActiveAccountByUsername: async () => ({
+        ...account,
+        accountType: "commercial",
+        isPrivate: false,
+      }),
+      readCommercialProfileDetails: async () => null,
+      getRelationshipFor: async () => relationship,
+      isBlockedBetween: async () => false,
+      listProfilePosts: async () => ({ items: [], nextCursor: null }),
+    }),
+    /Visible commercial account is missing profile details/,
+  );
 });

@@ -1,8 +1,8 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **138 operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **146 operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
-> **ATIVA** significa que o handler existe no código e que os objetos de persistência necessários estão presentes no PostgreSQL de desenvolvimento para aquela operação. Isso não significa que o front-end consuma a rota nem que a operação tenha sido validada em produção. Em 29/10/2026, a suíte de API isolada passou em 5/5 com schema temporário; o SQL versionado `0005` também foi testado em isolamento. O banco permanente continua sem `feed.posts`; endpoints de Feed ainda aparecem como propostas. Produção não foi consultada, alterada ou publicada.
+> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A suíte de API isolada passou após a sincronização, criando e removendo seu schema temporário. Produção não foi consultada, alterada ou publicada.
 
 ## Respostas, paginação e autenticação
 
@@ -42,6 +42,15 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | POST | `/v1/auth/password/reset/confirm` | Público | `PasswordResetConfirm` | `PasswordResetComplete` | **ATIVA** |
 | POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **ATIVA**; assíncrona |
 | POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `VerificationConfirmation` | **ATIVA** |
+| POST | `/v1/auth/account/email/change/request` | Sessão autenticada | `AccountEmailChangeRequest` | `EmailChangeCurrentCodeResponse` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/account/email/change/confirm-current` | Sessão autenticada | `ChallengeConfirmInput` | `EmailChangeNewCodeResponse` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/account/email/change/confirm-new` | Sessão autenticada | `ChallengeConfirmInput` | `AccountEmailChangeResult` | **ATIVA** |
+| POST | `/v1/auth/account/password/change/request` | Sessão autenticada | `AccountPasswordChangeRequest` | `PasswordChangeCodeResponse` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/account/password/change/confirm` | Sessão autenticada | `ChallengeConfirmInput` | `AccountPasswordChangeResult` | **ATIVA** |
+| POST | `/v1/auth/account/deletion/code` | Sessão autenticada | `AccountDeletionCodeRequest` | `AccountDeletionCodeResponse` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/account/deletion/confirm` | Sessão autenticada | `AccountDeletionConfirmation` | `AccountDeletionScheduled` | **ATIVA** |
+| POST | `/v1/auth/account/deletion/restore/code` | Cookie de pré-autenticação | `LoginRequest` | `AccountDeletionCodeResponse` | **ATIVA**; assíncrona |
+| POST | `/v1/auth/account/deletion/restore/confirm` | Cookie de pré-autenticação | `AccountRestorationConfirmation` | `AccountRestoredResponse` | **ATIVA** |
 
 ## Onboarding
 
@@ -55,7 +64,6 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 |---|---|---|---|---|---|
 | GET | `/v1/accounts/me` | Sessão autenticada | — | `MyAccountResponse` | **ATIVA** |
 | PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `MyAccountResponse` | **ATIVA** |
-| DELETE | `/v1/accounts/me` | Sessão autenticada | — | `Accepted` | **PROPOSTA**; assíncrona |
 | GET | `/v1/accounts/availability` | Público | — | `Availability` | **ATIVA** |
 | GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **ATIVA** |
 | GET | `/v1/profiles/{username}` | Público/sessão; ACL no servidor | — | `Profile` | **ATIVA** |

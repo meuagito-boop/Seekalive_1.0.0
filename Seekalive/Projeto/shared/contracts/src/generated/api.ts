@@ -616,7 +616,7 @@ export const RequestAccountDeletionCodeResponse = zod.object({
 
 
 /**
- * Hides and disables the account immediately, revokes active sessions, and schedules permanent deletion seven days later.
+ * Hides and disables the account immediately and revokes active sessions. Restoration is available only during the first seven days; after that cutoff the account cannot be restored, and its retained records are purged after an additional 90 days.
  * @summary Schedule account deletion after confirming the code
  */
 export const confirmAccountDeletionBodyCodeRegExp = new RegExp('^[0-9]{6}$');
@@ -758,7 +758,7 @@ export const GetMyAccountResponse = zod.object({
   "cityName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneCityNameMax),
   "stateName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneStateNameMax),
   "countryName": zod.string().min(1).max(getMyAccountResponseCommercialProfileOneCountryNameMax)
-}).describe('Full commercial registration details returned only to the authenticated owner.'),zod.null()])
+}).describe('Commercial registration details returned to the owner or to viewers permitted by the public profile privacy rules.'),zod.null()]).describe('Persisted commercial account details only when the viewer is allowed by profile visibility; null for personal or inaccessible private profiles.')
 }).describe('Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.')
 
 
@@ -896,7 +896,7 @@ export const UpdateMyAccountResponse = zod.object({
   "cityName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneCityNameMax),
   "stateName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneStateNameMax),
   "countryName": zod.string().min(1).max(updateMyAccountResponseCommercialProfileOneCountryNameMax)
-}).describe('Full commercial registration details returned only to the authenticated owner.'),zod.null()])
+}).describe('Commercial registration details returned to the owner or to viewers permitted by the public profile privacy rules.'),zod.null()]).describe('Persisted commercial account details only when the viewer is allowed by profile visibility; null for personal or inaccessible private profiles.')
 }).describe('Owner-only account details. Age is intentionally excluded after registration and is never returned to the client.')
 
 
@@ -939,7 +939,7 @@ export const UpdateMyPrivacySettingsResponse = zod.object({
 
 
 /**
- * Authentication is optional. Private profile fields are limited according to follow approval and block rules.
+ * Authentication is optional. Private profile fields and commercial details are limited according to follow approval and block rules.
  * @summary Get a visible profile by username
  */
 export const getProfileByUsernamePathUsernameMin = 3;
@@ -964,6 +964,18 @@ export const getProfileByUsernameResponseAccountStatsFollowingMin = 0;
 
 export const getProfileByUsernameResponseAccountStatsCirclesMin = 0;
 
+
+export const getProfileByUsernameResponseCommercialProfileOneCategoryKeyMax = 40;
+
+export const getProfileByUsernameResponseCommercialProfileOneAddressMax = 250;
+
+export const getProfileByUsernameResponseCommercialProfileOnePostalCodeMax = 20;
+
+export const getProfileByUsernameResponseCommercialProfileOneCityNameMax = 120;
+
+export const getProfileByUsernameResponseCommercialProfileOneStateNameMax = 100;
+
+export const getProfileByUsernameResponseCommercialProfileOneCountryNameMax = 100;
 
 export const getProfileByUsernameResponsePostsItemsItemContentMax = 280;
 
@@ -1027,6 +1039,15 @@ export const GetProfileByUsernameResponse = zod.object({
   "canViewPublicContent": zod.boolean(),
   "canViewCircleContent": zod.boolean()
 }),
+  "commercialProfile": zod.union([zod.object({
+  "categoryKey": zod.string().min(1).max(getProfileByUsernameResponseCommercialProfileOneCategoryKeyMax),
+  "discoveryKind": zod.enum(['place', 'provider']),
+  "address": zod.string().min(1).max(getProfileByUsernameResponseCommercialProfileOneAddressMax),
+  "postalCode": zod.string().min(1).max(getProfileByUsernameResponseCommercialProfileOnePostalCodeMax),
+  "cityName": zod.string().min(1).max(getProfileByUsernameResponseCommercialProfileOneCityNameMax),
+  "stateName": zod.string().min(1).max(getProfileByUsernameResponseCommercialProfileOneStateNameMax),
+  "countryName": zod.string().min(1).max(getProfileByUsernameResponseCommercialProfileOneCountryNameMax)
+}).describe('Commercial registration details returned to the owner or to viewers permitted by the public profile privacy rules.'),zod.null()]).describe('Persisted commercial details only when the viewer is allowed by profile visibility; null for personal or inaccessible private profiles.'),
   "posts": zod.object({
   "items": zod.array(zod.object({
   "id": zod.uuid(),

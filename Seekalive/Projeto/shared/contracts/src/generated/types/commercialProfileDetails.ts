@@ -5,18 +5,18 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { OwnerCommercialProfileDiscoveryKind } from './ownerCommercialProfileDiscoveryKind';
+import type { CommercialProfileDetailsDiscoveryKind } from './commercialProfileDetailsDiscoveryKind';
 
 /**
- * Full commercial registration details returned only to the authenticated owner.
+ * Commercial registration details returned to the owner or to viewers permitted by the public profile privacy rules.
  */
-export interface OwnerCommercialProfile {
+export interface CommercialProfileDetails {
   /**
      * @minLength 1
      * @maxLength 40
      */
   categoryKey: string;
-  discoveryKind: OwnerCommercialProfileDiscoveryKind;
+  discoveryKind: CommercialProfileDetailsDiscoveryKind;
   /**
      * @minLength 1
      * @maxLength 250

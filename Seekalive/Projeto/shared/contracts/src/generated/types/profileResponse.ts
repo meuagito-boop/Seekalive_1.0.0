@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AccountView } from './accountView';
+import type { CommercialProfileDetails } from './commercialProfileDetails';
 import type { PostPage } from './postPage';
 import type { ProfileContentPage } from './profileContentPage';
 import type { ProfileVisibility } from './profileVisibility';
@@ -13,6 +14,8 @@ import type { ProfileVisibility } from './profileVisibility';
 export interface ProfileResponse {
   account: AccountView;
   visibility: ProfileVisibility;
+  /** Persisted commercial details only when the viewer is allowed by profile visibility; null for personal or inaccessible private profiles. */
+  commercialProfile: CommercialProfileDetails | null;
   posts: PostPage;
   articles: PostPage;
   media: ProfileContentPage;

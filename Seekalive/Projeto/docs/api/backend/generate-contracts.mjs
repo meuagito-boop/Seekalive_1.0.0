@@ -1,5 +1,5 @@
 /**
- * Reproducibly generates the proposed endpoint catalog and OpenAPI 3.1 spec.
+ * Reproducibly generates the endpoint catalog and OpenAPI 3.1 spec.
  * It documents contracts only; it does not add handlers or run database SQL.
  * Run: node docs/api/backend/generate-contracts.mjs
  */
@@ -201,6 +201,149 @@ post("auth", "/v1/auth/verification/confirm", "Confirmar desafio de e-mail de us
     },
   },
 });
+post(
+  "auth",
+  "/v1/auth/account/email/change/request",
+  "Iniciar troca de e-mail com senha atual",
+  "AccountEmailChangeRequest",
+  "EmailChangeCurrentCodeResponse",
+  {
+    auth: "required",
+    csrfOnly: true,
+    accepted: true,
+    status: "live",
+    contractDescription:
+      "Exige senha atual e envia código ao e-mail verificado atual. O endereço atual permanece ativo até que o novo e-mail também seja confirmado.",
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/email/change/confirm-current",
+  "Confirmar acesso ao e-mail atual",
+  "ChallengeConfirmInput",
+  "EmailChangeNewCodeResponse",
+  {
+    auth: "required",
+    csrfOnly: true,
+    accepted: true,
+    status: "live",
+    contractDescription:
+      "Valida o código enviado ao endereço atual e então envia o segundo código ao novo endereço proposto.",
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/email/change/confirm-new",
+  "Confirmar e ativar o novo e-mail",
+  "ChallengeConfirmInput",
+  "AccountEmailChangeResult",
+  {
+    auth: "required",
+    csrfOnly: true,
+    status: "live",
+    contractDescription:
+      "Ativa o novo endereço somente após confirmar seu código e envia um aviso de segurança ao endereço anterior.",
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/password/change/request",
+  "Iniciar troca de senha com a senha atual",
+  "AccountPasswordChangeRequest",
+  "PasswordChangeCodeResponse",
+  {
+    auth: "required",
+    csrfOnly: true,
+    accepted: true,
+    status: "live",
+    contractDescription:
+      "Exige senha atual, valida a política da nova senha e envia código ao e-mail verificado. A senha não muda até a confirmação do código.",
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/password/change/confirm",
+  "Confirmar troca de senha e revogar instalações",
+  "ChallengeConfirmInput",
+  "AccountPasswordChangeResult",
+  {
+    auth: "required",
+    csrfOnly: true,
+    status: "live",
+    contractDescription:
+      "Atualiza a senha e revoga, na mesma transação, as sessões e instalações confiáveis. Exige novo login e confirmação da instalação.",
+    responseHeaders: {
+      "Set-Cookie": {
+        description: "Expira os cookies de sessão e instalação atuais.",
+        schema: { type: "string" },
+      },
+    },
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/deletion/code",
+  "Solicitar código para pedir exclusão da conta",
+  "AccountDeletionCodeRequest",
+  "AccountDeletionCodeResponse",
+  {
+    auth: "required",
+    csrfOnly: true,
+    accepted: true,
+    status: "live",
+    contractDescription:
+      "Exige sessão ativa e e-mail verificado. Envia somente o código de uso único; a solicitação não dispara outro e-mail.",
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/deletion/confirm",
+  "Confirmar e agendar a exclusão da conta",
+  "AccountDeletionConfirmation",
+  "AccountDeletionScheduled",
+  {
+    auth: "required",
+    csrfOnly: true,
+    status: "live",
+    contractDescription:
+      "Oculta e desativa a conta imediatamente, revoga sessões e permite restauração somente durante sete dias. Depois, os registros permanecem retidos por mais 90 dias antes da remoção física.",
+    responseHeaders: {
+      "Set-Cookie": {
+        description: "Expira os cookies de sessão e instalação atuais.",
+        schema: { type: "string" },
+      },
+    },
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/deletion/restore/code",
+  "Solicitar código para restaurar conta pendente",
+  "LoginRequest",
+  "AccountDeletionCodeResponse",
+  {
+    auth: "preAuth",
+    csrfOnly: true,
+    accepted: true,
+    status: "live",
+    contractDescription:
+      "Exige identificador, senha e o contexto de pré-autenticação. Disponível apenas durante os sete dias de restauração; envia o código ao e-mail verificado da conta.",
+  },
+);
+post(
+  "auth",
+  "/v1/auth/account/deletion/restore/confirm",
+  "Restaurar conta com senha e código de e-mail",
+  "AccountRestorationConfirmation",
+  "AccountRestoredResponse",
+  {
+    auth: "preAuth",
+    csrfOnly: true,
+    status: "live",
+    contractDescription:
+      "Exige identificador, senha, código e contexto de pré-autenticação. Restaura a conta somente dentro dos sete dias e não cria sessão; a pessoa deve entrar novamente.",
+  },
+);
 post("onboarding", "/v1/onboarding/interests", "Salvar ou pular interesses do onboarding", "OnboardingCompletionRequest", "OnboardingCompletionResult", {
   status: "live",
   contractDescription: "Requer sessão ativa e e-mail verificado. Substitui as escolhas anteriores e marca o onboarding como concluído; pular salva uma lista vazia, mas também conclui a etapa.",
@@ -214,10 +357,21 @@ patch("accounts", "/v1/accounts/me", "Editar dados próprios conforme o tipo de 
   status: "live",
   contractDescription: "Atualiza username e dados de perfil com controle de versão. Idade é coletada somente no cadastro e não é retornada nem editável após a criação. Contas pessoais enviam nome e sobrenome juntos, com nome público total de até 100 caracteres; contas comerciais podem atualizar o nome público e o endereço completo. Conta e extensão comercial são atualizadas na mesma transação; campos de outro tipo de conta são rejeitados.",
 });
-del("accounts", "/v1/accounts/me", "Solicitar exclusão segura", "Accepted", { accepted: true });
 g("accounts", "/v1/accounts/availability", "Verificar disponibilidade pública de username", "Availability", null, { query: ["username"], requiredQuery: ["username"], auth: "none", status: "live" });
 g("accounts", "/v1/accounts/{accountId}", "Consultar perfil por identificador respeitando privacidade e bloqueios", A, null, { auth: "optional", status: "live" });
-g("accounts", "/v1/profiles/{username}", "Resolver perfil por username respeitando privacidade e bloqueios", "Profile", null, { auth: "optional", status: "live" });
+g(
+  "accounts",
+  "/v1/profiles/{username}",
+  "Resolver perfil por username respeitando privacidade e bloqueios",
+  "Profile",
+  null,
+  {
+    auth: "optional",
+    status: "live",
+    contractDescription:
+      "Retorna detalhes comerciais persistidos somente se o perfil comercial estiver visível para o visitante. Campos de horários, serviços, avaliações e galeria não são inventados nem incluídos enquanto seus domínios não estiverem implementados.",
+  },
+);
 put("accounts", "/v1/accounts/me/preferences", "Substituir preferências próprias", "Preferences", "Preferences");
 g("accounts", "/v1/accounts/me/preferences", "Consultar preferências próprias", "Preferences");
 put("accounts", "/v1/accounts/me/onboarding", "Salvar interesses e concluir onboarding", "Interests", "Empty");
@@ -365,6 +519,124 @@ const schemas = {
   Accepted: model({ jobId: uuid, status: { type: "string", enum: ["queued", "processing"] } }, ["jobId", "status"]),
   PasswordResetRequested: model({ status: { type: "string", enum: ["reset_requested"] }, message: string }, ["status", "message"]),
   PasswordResetComplete: model({ status: { type: "string", enum: ["password_reset"] } }, ["status"]),
+  AccountEmailChangeRequest: model(
+    {
+      currentPassword: { type: "string", minLength: 8, maxLength: 128 },
+      newEmail: { type: "string", format: "email", maxLength: 254 },
+    },
+    ["currentPassword", "newEmail"],
+  ),
+  AccountPasswordChangeRequest: model(
+    {
+      currentPassword: { type: "string", minLength: 8, maxLength: 128 },
+      newPassword: {
+        type: "string",
+        minLength: 8,
+        maxLength: 128,
+        description:
+          "Must include uppercase, lowercase, numeric, and special characters.",
+      },
+      passwordConfirmation: { type: "string", minLength: 8, maxLength: 128 },
+    },
+    ["currentPassword", "newPassword", "passwordConfirmation"],
+  ),
+  ChallengeConfirmInput: model(
+    {
+      challengeId: uuid,
+      code: { type: "string", pattern: "^[0-9]{6}$" },
+    },
+    ["challengeId", "code"],
+  ),
+  EmailChangeCurrentCodeResponse: model(
+    {
+      status: { type: "string", const: "current_email_verification_required" },
+      challengeId: uuid,
+      currentEmailMasked: string,
+      newEmailMasked: string,
+      expiresAt: { type: "string", format: "date-time" },
+      message: string,
+    },
+    [
+      "status",
+      "challengeId",
+      "currentEmailMasked",
+      "newEmailMasked",
+      "expiresAt",
+      "message",
+    ],
+  ),
+  EmailChangeNewCodeResponse: model(
+    {
+      status: { type: "string", const: "new_email_verification_required" },
+      challengeId: uuid,
+      newEmailMasked: string,
+      expiresAt: { type: "string", format: "date-time" },
+      message: string,
+    },
+    ["status", "challengeId", "newEmailMasked", "expiresAt", "message"],
+  ),
+  PasswordChangeCodeResponse: model(
+    {
+      status: {
+        type: "string",
+        const: "password_change_verification_required",
+      },
+      challengeId: uuid,
+      emailMasked: string,
+      expiresAt: { type: "string", format: "date-time" },
+      message: string,
+    },
+    ["status", "challengeId", "emailMasked", "expiresAt", "message"],
+  ),
+  AccountDeletionCodeRequest: model({}),
+  AccountDeletionCodeResponse: model(
+    {
+      status: { type: "string", const: "verification_code_sent" },
+      challengeId: uuid,
+      emailMasked: string,
+      expiresAt: { type: "string", format: "date-time" },
+    },
+    ["status", "challengeId", "emailMasked", "expiresAt"],
+  ),
+  AccountDeletionConfirmation: model(
+    {
+      challengeId: uuid,
+      code: { type: "string", pattern: "^[0-9]{6}$" },
+    },
+    ["challengeId", "code"],
+  ),
+  AccountRestorationConfirmation: model(
+    {
+      identifier: { type: "string", minLength: 3, maxLength: 254 },
+      password: { type: "string", minLength: 1, maxLength: 128 },
+      challengeId: uuid,
+      code: { type: "string", pattern: "^[0-9]{6}$" },
+    },
+    ["identifier", "password", "challengeId", "code"],
+  ),
+  AccountRestoredResponse: model(
+    { status: { type: "string", const: "account_restored" } },
+    ["status"],
+  ),
+  AccountDeletionScheduled: model(
+    {
+      status: { type: "string", const: "deletion_scheduled" },
+      deletionScheduledFor: { type: "string", format: "date-time" },
+    },
+    ["status", "deletionScheduledFor"],
+  ),
+  AccountEmailChangeResult: model(
+    {
+      status: { type: "string", const: "email_changed" },
+      email: { type: "string", format: "email" },
+      securityNoticeSent: { type: "boolean" },
+    },
+    ["status", "email", "securityNoticeSent"],
+  ),
+  AccountPasswordChangeResult: model(
+    { status: { type: "string", const: "password_changed" } },
+    ["status"],
+  ),
   Health: model({ status: { type: "string", const: "ok" } }, ["status"]),
   Readiness: model({ status: { type: "string", enum: ["ready", "degraded"] }, checks: { type: "object", additionalProperties: { type: "string" } } }, ["status", "checks"]),
   Csrf: model({ csrfToken: string }, ["csrfToken"]),
@@ -521,7 +793,7 @@ const schemas = {
     bio: { type: "string", maxLength: 500 }, avatarUrl: { type: ["string", "null"] }, coverUrl: { type: ["string", "null"] },
     location: { type: ["string", "null"] }, website: { type: ["string", "null"], format: "uri" },
     accountType: { type: "string", enum: ["personal", "commercial"] }, isPrivate: { type: "boolean" },
-    joinedAt: { type: "string", format: "date-time" }, businessProfile: { oneOf: [ref("BusinessProfile"), { type: "null" }] },
+    joinedAt: { type: "string", format: "date-time" },
     relationship: ref("RelationshipView"), stats: ref("AccountStats"), version: { type: "integer" },
   }, ["id", "username", "displayName", "accountType", "joinedAt", "relationship", "stats", "version"]),
   AccountStats: model({ posts: { type: "integer", minimum: 0 }, followers: { type: "integer", minimum: 0 }, following: { type: "integer", minimum: 0 }, circles: { type: "integer", minimum: 0 } }, ["posts", "followers", "following", "circles"]),
@@ -532,7 +804,7 @@ const schemas = {
     blockedByThem: { type: "boolean", description: "O perfil alvo iniciou o bloqueio; o visitante não pode removê-lo." },
     mutedByMe: { type: "boolean" },
   }, ["following", "inCircle", "blockedByMe", "blockedByThem", "mutedByMe"]),
-  OwnerCommercialProfile: model({
+  CommercialProfileDetails: model({
     categoryKey: { type: "string", minLength: 1, maxLength: 40 },
     discoveryKind: { type: "string", enum: ["place", "provider"] },
     address: { type: "string", minLength: 1, maxLength: 250 },
@@ -546,7 +818,11 @@ const schemas = {
     email: { type: "string", format: "email", maxLength: 254 },
     firstName: { type: ["string", "null"], maxLength: 80 },
     lastName: { type: ["string", "null"], maxLength: 80 },
-    commercialProfile: { oneOf: [ref("OwnerCommercialProfile"), { type: "null" }] },
+    commercialProfile: {
+      oneOf: [ref("CommercialProfileDetails"), { type: "null" }],
+      description:
+        "Persisted commercial details, included only when profile visibility allows; null for personal or inaccessible private profiles.",
+    },
   }, ["account", "email", "firstName", "lastName", "commercialProfile"]),
   CommercialAccountPatch: model({
     address: { type: "string", minLength: 5, maxLength: 250 },
@@ -567,7 +843,18 @@ const schemas = {
     version: { type: "integer", minimum: 1 },
   }, ["version"]),
   ProfileVisibility: model({ canViewPublicContent: { type: "boolean" }, canViewCircleContent: { type: "boolean" } }, ["canViewPublicContent", "canViewCircleContent"]),
-  Profile: model({ account: ref("Account"), visibility: ref("ProfileVisibility"), posts: page("Post"), articles: page("Post"), media: page("MediaAsset") }, ["account", "visibility", "posts", "articles", "media"]),
+  Profile: model({
+    account: ref("Account"),
+    commercialProfile: {
+      oneOf: [ref("CommercialProfileDetails"), { type: "null" }],
+      description:
+        "Persisted commercial details, included only when profile visibility allows; null for personal or inaccessible private profiles.",
+    },
+    visibility: ref("ProfileVisibility"),
+    posts: page("Post"),
+    articles: page("Post"),
+    media: page("MediaAsset"),
+  }, ["account", "commercialProfile", "visibility", "posts", "articles", "media"]),
   BusinessProfile: model({
     accountId: uuid, discoveryKind: { type: "string", enum: ["place", "provider"] }, categoryKey: string, category: string,
     cityId: { type: "string", pattern: "^[0-9]{7}$" }, cityName: string, cityState: { type: "string", minLength: 2, maxLength: 2 },
@@ -766,7 +1053,7 @@ await writeFile(join(dir, "openapi.json"), `${JSON.stringify(spec, null, 2)}\n`)
 const lines = [
   "# Endpoints e contrato OpenAPI",
   "",
-  `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. OpenAPI 3.1 em \`openapi.json\`: **${R.length} operações candidatas**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
+  `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. OpenAPI 3.1 em \`openapi.json\`: **${R.length} operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
   "",
   "> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A suíte de API isolada passou após a sincronização, criando e removendo seu schema temporário. Produção não foi consultada, alterada ou publicada.",
   "",
@@ -782,7 +1069,14 @@ const lines = [
 for (const tag of [...new Set(R.map(r => r.tag))]) {
   lines.push(`## ${tag[0].toUpperCase()}${tag.slice(1)}`, "", "| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |", "|---|---|---|---|---|---|");
   for (const r of R.filter(x => x.tag === tag)) {
-    const access = r.auth === "none" ? "Público" : r.auth === "optional" ? "Público/sessão; ACL no servidor" : "Sessão autenticada";
+    const access =
+      r.auth === "none"
+        ? "Público"
+        : r.auth === "optional"
+          ? "Público/sessão; ACL no servidor"
+          : r.auth === "preAuth"
+            ? "Cookie de pré-autenticação"
+            : "Sessão autenticada";
     const state = r.status === "live" ? "ATIVA" : "PROPOSTA";
     const responseLabel = r.responseVariants ?? (r.response ? `\`${r.response}\`` : "bytes/SSE");
     lines.push(`| ${r.method.toUpperCase()} | \`${r.path}\` | ${access} | ${r.request ? `\`${r.request}\`` : "—"} | ${responseLabel} | **${state}**${r.accepted ? "; assíncrona" : ""}${r.stream ? "; Server-Sent Events" : ""} |`);
