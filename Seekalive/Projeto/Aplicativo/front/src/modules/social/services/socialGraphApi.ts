@@ -115,10 +115,6 @@ export function accountViewToUser(account: AccountView): User {
   };
 }
 
-export function profileResponseToUser(profile: ProfileResponse): User {
-  return accountViewToUser(profile.account);
-}
-
 const commercialCategoryLabels: Record<string, string> = {
   restaurantes: "Restaurantes",
   bares: "Bares",
@@ -128,6 +124,56 @@ const commercialCategoryLabels: Record<string, string> = {
   saude: "Saúde e beleza",
   lazer: "Lazer",
 };
+
+type CommercialProfileDetails = {
+  categoryKey: string;
+  discoveryKind: "place" | "provider";
+  address: string;
+  postalCode: string;
+  cityName: string;
+  stateName: string;
+  countryName: string;
+};
+
+function withCommercialProfile(
+  user: User,
+  details: CommercialProfileDetails,
+): User {
+  const category =
+    commercialCategoryLabels[details.categoryKey] ?? details.categoryKey;
+  const location = `${details.cityName}, ${details.stateName}`;
+
+  return {
+    ...user,
+    address: details.address,
+    postalCode: details.postalCode,
+    city: details.cityName,
+    state: details.stateName,
+    country: details.countryName,
+    location,
+    commercialProfile: {
+      categoryKey: details.categoryKey,
+      category,
+      discoveryKind: details.discoveryKind,
+      address: details.address,
+      cityName: details.cityName,
+      cityState: details.stateName,
+      tags: [],
+    },
+  };
+}
+
+export function profileResponseToUser(profile: ProfileResponse): User {
+  const user = accountViewToUser(profile.account);
+  if (
+    profile.account.accountType !== "commercial" ||
+    !profile.commercialProfile
+  ) {
+    return user;
+  }
+
+  return withCommercialProfile(user, profile.commercialProfile);
+}
 
 export function myAccountToUser(response: MyAccountResponse): User {
   const user = accountViewToUser(response.account);
@@ -148,30 +194,15 @@ export function myAccountToUser(response: MyAccountResponse): User {
       lastName: response.lastName ?? undefined,
     };
   }
-  const category =
-    commercialCategoryLabels[commercial.categoryKey] ?? commercial.categoryKey;
-  const location = `${commercial.cityName}, ${commercial.stateName}`;
-  return {
-    ...user,
-    email: response.email,
-    firstName: response.firstName ?? undefined,
-    lastName: response.lastName ?? undefined,
-    address: commercial.address,
-    postalCode: commercial.postalCode,
-    city: commercial.cityName,
-    state: commercial.stateName,
-    country: commercial.countryName,
-    location,
-    commercialProfile: {
-      categoryKey: commercial.categoryKey,
-      category,
-      discoveryKind: commercial.discoveryKind,
-      address: commercial.address,
-      cityName: commercial.cityName,
-      cityState: commercial.stateName,
-      tags: [],
+  return withCommercialProfile(
+    {
+      ...user,
+      email: response.email,
+      firstName: response.firstName ?? undefined,
+      lastName: response.lastName ?? undefined,
     },
-  };
+    commercial,
+  );
 }
 
 export function accountListToUsers(accounts: AccountView[]): User[] {

@@ -15,8 +15,8 @@ import { saveStoredFollowRequests } from "@/modules/social/data/followRequestSto
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { toast } from "@/hooks/use-toast";
 import {
-  accountViewToUser,
   myAccountToUser,
+  profileResponseToUser,
   socialGraphApi,
 } from "@/modules/social/services/socialGraphApi";
 import { readAccountScopedIdsMap } from "@/modules/app/persistence/browserAccountStorage";
@@ -209,7 +209,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       const profile = await socialGraphApi.getProfileByUsername(
         parsedUsername.data,
       );
-      const user = accountViewToUser(profile.account);
+      const user = profileResponseToUser(profile);
       dispatch({ type: "ADD_USER", user });
       return user;
     },

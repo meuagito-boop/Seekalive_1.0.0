@@ -18,6 +18,7 @@ try {
     "Aplicativo/front/tests/onboarding.test.ts",
     "Aplicativo/front/tests/contracts.test.ts",
     "Aplicativo/front/tests/profilePresentation.test.ts",
+    "Aplicativo/front/tests/profileApiMapping.test.ts",
     "Aplicativo/front/tests/profileEdit.test.ts",
     "Aplicativo/front/tests/relationshipActions.test.ts",
     "Aplicativo/front/tests/tabKeyboard.test.ts",
