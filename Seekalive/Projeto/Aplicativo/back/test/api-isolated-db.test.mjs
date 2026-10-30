@@ -1756,6 +1756,14 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     profileWhileRequestPending.body.visibility.canViewCircleContent,
     false,
   );
+  assert.deepEqual(profileWhileRequestPending.body.posts, {
+    items: [],
+    nextCursor: null,
+  });
+  assert.deepEqual(profileWhileRequestPending.body.articles, {
+    items: [],
+    nextCursor: null,
+  });
   const privateFollowersBeforeApproval = await request(
     `/api/v1/social/accounts/${personal.account.id}/followers`,
     { auth: commercial },
