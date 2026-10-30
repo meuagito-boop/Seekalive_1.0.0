@@ -9,12 +9,33 @@ export type AccountAgeEligibility =
 
 const DATE_OF_BIRTH_PATTERN =
   /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+const AGE_CALENDAR_TIME_ZONE = "America/Sao_Paulo";
+const AGE_CALENDAR_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: AGE_CALENDAR_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
-function createUtcCalendarDate(year: number, month: number, day: number) {
-  const date = new Date(0);
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(year, month - 1, day);
-  return date;
+function isLeapYear(year: number) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function daysInMonth(year: number, month: number) {
+  if (month === 2) return isLeapYear(year) ? 29 : 28;
+  return [4, 6, 9, 11].includes(month) ? 30 : 31;
+}
+
+function getCalendarDate(date: Date) {
+  const parts = AGE_CALENDAR_FORMATTER.formatToParts(date);
+  const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+
+  return {
+    year: valueFor("year"),
+    month: valueFor("month"),
+    day: valueFor("day"),
+  };
 }
 
 export function assessAccountAge(
@@ -27,29 +48,21 @@ export function assessAccountAge(
   }
 
   const [day, month, year] = dateOfBirth.split("/").map(Number);
-  const birthDate = createUtcCalendarDate(year, month, day);
-  if (
-    birthDate.getUTCFullYear() !== year ||
-    birthDate.getUTCMonth() !== month - 1 ||
-    birthDate.getUTCDate() !== day
-  ) {
+  if (day > daysInMonth(year, month)) {
     return { kind: "ineligible", reason: "invalid_date" };
   }
 
-  const today = createUtcCalendarDate(
-    referenceDate.getUTCFullYear(),
-    referenceDate.getUTCMonth() + 1,
-    referenceDate.getUTCDate(),
-  );
-  if (birthDate > today) {
+  const today = getCalendarDate(referenceDate);
+  const isBirthdayInFuture =
+    year > today.year ||
+    (year === today.year && month > today.month) ||
+    (year === today.year && month === today.month && day > today.day);
+  if (isBirthdayInFuture) {
     return { kind: "ineligible", reason: "invalid_date" };
   }
 
-  let age = today.getUTCFullYear() - year;
-  if (
-    today.getUTCMonth() < month - 1 ||
-    (today.getUTCMonth() === month - 1 && today.getUTCDate() < day)
-  ) {
+  let age = today.year - year;
+  if (today.month < month || (today.month === month && today.day < day)) {
     age -= 1;
   }
 

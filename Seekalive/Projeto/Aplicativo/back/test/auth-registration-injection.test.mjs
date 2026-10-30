@@ -173,22 +173,27 @@ test("registration calculates age on the server and blocks minors before persist
   assert.equal(writes.length, 0);
 });
 
-test("account age policy validates calendar dates and exact birthdays", () => {
-  const today = new Date("2026-10-29T12:00:00.000Z");
+test("account age policy uses Sao Paulo local date for exact birthday boundaries", () => {
+  const beforeSaoPauloMidnight = new Date("2026-10-29T23:59:59-03:00");
+  const atSaoPauloMidnight = new Date("2026-10-30T00:00:00-03:00");
 
-  assert.deepEqual(assessAccountAge("29/10/2008", today), {
+  assert.deepEqual(assessAccountAge("29/10/2008", beforeSaoPauloMidnight), {
     kind: "eligible",
     age: 18,
   });
-  assert.deepEqual(assessAccountAge("30/10/2008", today), {
+  assert.deepEqual(assessAccountAge("30/10/2008", beforeSaoPauloMidnight), {
     kind: "ineligible",
     reason: "underage",
   });
-  assert.deepEqual(assessAccountAge("31/02/2000", today), {
+  assert.deepEqual(assessAccountAge("30/10/2008", atSaoPauloMidnight), {
+    kind: "eligible",
+    age: 18,
+  });
+  assert.deepEqual(assessAccountAge("31/02/2000", atSaoPauloMidnight), {
     kind: "ineligible",
     reason: "invalid_date",
   });
-  assert.deepEqual(assessAccountAge("30/10/2026", today), {
+  assert.deepEqual(assessAccountAge("31/10/2026", atSaoPauloMidnight), {
     kind: "ineligible",
     reason: "invalid_date",
   });
