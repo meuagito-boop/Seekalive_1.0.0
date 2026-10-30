@@ -61,6 +61,21 @@ export async function listFollowingIds(accountId: string, limit: number, offset:
     .offset(offset);
 }
 
+export async function listAllFollowingIdsForFeed(accountId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: accountFollows.followedId })
+    .from(accountFollows)
+    .innerJoin(accounts, eq(accounts.id, accountFollows.followedId))
+    .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+    .where(and(
+      eq(accountFollows.followerId, accountId),
+      eq(accounts.status, "active"),
+      isNotNull(accountEmails.verifiedAt),
+    ))
+    .orderBy(asc(accountFollows.createdAt), asc(accountFollows.followedId));
+  return rows.map(({ id }) => id);
+}
+
 export async function listCircleIds(accountId: string, limit: number, offset: number) {
   return db
     .select({ id: accountFollows.followedId })

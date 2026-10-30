@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { accountViewsByIds } from "../../profiles/composition/publicApi";
+import { listFeedFollowingAccountIds } from "../../social/composition/feedIntegration";
 import { createPostCreator } from "../application/createPost";
 import { createPostDeleter } from "../application/deletePost";
 import { createPostReader } from "../application/readPost";
@@ -9,12 +10,14 @@ import { createPostRepostSetter } from "../application/setPostRepost";
 import { createPostBookmarkSetter } from "../application/setPostBookmark";
 import { createPostCommentCreator } from "../application/createPostComment";
 import { createPostCommentLister } from "../application/listPostComments";
+import { createGlobalFeedLister } from "../application/listGlobalFeed";
 import { createPostCommentDeleter } from "../application/deletePostComment";
 import { createCommentLikeSetter } from "../application/setCommentLike";
 import {
   deleteOwnedFeedPost,
   findFeedPostById,
   insertFeedPost,
+  listFeedPostsForTimeline,
 } from "../infrastructure/postRepository";
 import {
   createFeedPostComment,
@@ -45,6 +48,7 @@ import { createPostBookmarkRoutes } from "../presentation/postBookmarkRoutes";
 import { createPostCommentRoutes } from "../presentation/postCommentRoutes";
 import { createCommentDeleteRoutes } from "../presentation/commentDeleteRoutes";
 import { createCommentLikeRoutes } from "../presentation/commentLikeRoutes";
+import { createGlobalFeedRoutes } from "../presentation/globalFeedRoutes";
 import type { FeedCommentAuthor } from "../domain/postInteractions";
 
 async function findCommentAuthors(
@@ -69,6 +73,12 @@ const readPost = createPostReader(
 );
 const readArticle = createArticleReader(readPost);
 const listProfilePosts = createProfilePostListApi(accountViewsByIds);
+const listGlobalFeed = createGlobalFeedLister(
+  listFeedPostsForTimeline,
+  accountViewsByIds,
+  findPostInteractionSummaries,
+  listFeedFollowingAccountIds,
+);
 const setPostLike = createPostLikeSetter(readPost, setFeedPostLike);
 const setPostRepost = createPostRepostSetter(readPost, setFeedPostRepost);
 const setPostBookmark = createPostBookmarkSetter(readPost, setFeedPostBookmark);
@@ -95,6 +105,7 @@ const setCommentLike = createCommentLikeSetter({
 });
 
 const router: IRouter = Router();
+router.use(createGlobalFeedRoutes(listGlobalFeed));
 router.use(createArticleWriteRoutes(createPost));
 router.use(createArticleReadRoutes(readArticle));
 router.use(createPostReadRoutes(readPost));

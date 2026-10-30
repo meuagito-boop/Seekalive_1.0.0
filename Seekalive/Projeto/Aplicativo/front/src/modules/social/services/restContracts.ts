@@ -9,10 +9,12 @@ import {
 } from "@/modules/social/services/socialHttp";
 import { referenceSchema } from "@/modules/app/content/referenceSchema";
 import type { ContentReference } from "@/modules/app/content/contentReferences";
+import {
+  accountViewToUser,
+} from "@/modules/social/services/socialGraphApi";
+import type { AccountView } from "@workspace/api-client-react";
 
-// Proposal-only adapter; it is not wired into the app. Post/article reads and
-// post deletion exist, but feed listing, interactions, references, comments,
-// and user/tag search still need backend routes.
+// REST adapter for feed and post flows that are backed by the API.
 export interface Page<T> {
   items: T[];
   nextCursor?: string | null;
@@ -38,16 +40,54 @@ const page = <T extends z.ZodType>(schema: T) =>
     nextCursor: z.string().nullable(),
   });
 const idPath = (id: string) => `/api/v1/social/posts/${encodeURIComponent(id)}`;
+const relationshipSchema = z.object({
+  following: z.enum(["none", "pending", "accepted"]),
+  inCircle: z.boolean(),
+  blockedByMe: z.boolean(),
+  blockedByThem: z.boolean(),
+  mutedByMe: z.boolean(),
+});
+const accountViewSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  displayName: z.string(),
+  bio: z.string(),
+  avatarUrl: z.string().nullable(),
+  coverUrl: z.string().nullable(),
+  location: z.string().nullable(),
+  website: z.string().nullable(),
+  accountType: z.enum(["personal", "commercial"]),
+  isPrivate: z.boolean(),
+  joinedAt: z.string(),
+  relationship: relationshipSchema,
+  stats: z.object({
+    posts: z.number().nonnegative(),
+    followers: z.number().nonnegative(),
+    following: z.number().nonnegative(),
+    circles: z.number().nonnegative(),
+  }),
+  version: z.number().int().positive(),
+});
 
 export const restSocialApi = {
-  async feed(cursor?: string, tab = "for-you", limit = 20) {
+  async feed(
+    cursor?: string,
+    tab: "for-you" | "following" | "articles" = "for-you",
+    limit = 20,
+  ) {
     const query = new URLSearchParams({ tab, limit: String(limit) });
     if (cursor) query.set("cursor", cursor);
     const result = parseResponse(
-      page(postSchema),
+      page(z.object({ post: postSchema, author: accountViewSchema })),
       await apiRequest(`/api/v1/social/feed?${query}`),
     );
-    return { ...result, items: result.items.map((post) => parsePost(post)) };
+    return {
+      nextCursor: result.nextCursor,
+      items: result.items.map(({ post }) => parsePost(post)),
+      authors: result.items.map(({ author }) =>
+        accountViewToUser(author as AccountView),
+      ),
+    };
   },
   async post(id: string) {
     return parsePost(await apiRequest(idPath(id)));

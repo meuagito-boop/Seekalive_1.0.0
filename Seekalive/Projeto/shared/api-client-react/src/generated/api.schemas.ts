@@ -965,6 +965,17 @@ export interface ArticleCreate {
   article: ArticleCreateArticle;
 }
 
+export interface FeedItem {
+  post: Post;
+  author: AccountView;
+}
+
+export interface FeedPage {
+  items: FeedItem[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
 /**
  * Missing, expired, or unverified account session
  */
@@ -1085,6 +1096,28 @@ limit?: PageLimitParameter;
  */
 cursor?: PageCursorParameter;
 };
+
+export type GetSocialFeedParams = {
+tab?: GetSocialFeedTab;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: PageLimitParameter;
+/**
+ * @maxLength 32
+ */
+cursor?: PageCursorParameter;
+};
+
+export type GetSocialFeedTab = typeof GetSocialFeedTab[keyof typeof GetSocialFeedTab];
+
+
+export const GetSocialFeedTab = {
+  'for-you': 'for-you',
+  following: 'following',
+  articles: 'articles',
+} as const;
 
 export type GetSocialPostCommentsParams = {
 /**

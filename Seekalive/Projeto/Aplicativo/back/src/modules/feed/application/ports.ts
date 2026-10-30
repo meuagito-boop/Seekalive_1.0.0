@@ -26,6 +26,15 @@ export type ListFeedPostsByAuthor = (input: {
   limit: number;
 }) => Promise<FeedPost[]>;
 
+export type ListFeedPostsForTimeline = (input: {
+  authorIds: string[] | null;
+  format: FeedPostFormat | "all";
+  after: PostPosition | null;
+  limit: number;
+}) => Promise<FeedPost[]>;
+
+export type ListFeedFollowingIds = (accountId: string) => Promise<string[]>;
+
 export type FindFeedAuthors = (
   authorIds: string[],
   viewerId: string | null,

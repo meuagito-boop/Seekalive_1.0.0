@@ -1881,6 +1881,59 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   assert.equal(articleRead.response.status, 200);
 
+  const anonymousFeed = await request(
+    "/api/v1/social/feed?tab=for-you&limit=50",
+  );
+  assert.equal(anonymousFeed.response.status, 200);
+  assert(
+    anonymousFeed.body.items.some(
+      (item) => item.post.id === createdPublicPost.body.id,
+    ),
+  );
+  assert(
+    !anonymousFeed.body.items.some(
+      (item) =>
+        item.post.id === createdCirclePost.body.id ||
+        item.post.id === createdPrivatePost.body.id,
+    ),
+  );
+
+  const followingFeed = await request(
+    "/api/v1/social/feed?tab=following&limit=1",
+    { auth: commercial },
+  );
+  assert.equal(followingFeed.response.status, 200);
+  assert.equal(followingFeed.body.items.length, 1);
+  assert(followingFeed.body.nextCursor);
+  assert(
+    [createdPublicPost.body.id, createdCirclePost.body.id, createdArticle.body.id]
+      .includes(followingFeed.body.items[0].post.id),
+  );
+  const followingFeedNextPage = await request(
+    `/api/v1/social/feed?tab=following&limit=1&cursor=${encodeURIComponent(followingFeed.body.nextCursor)}`,
+    { auth: commercial },
+  );
+  assert.equal(followingFeedNextPage.response.status, 200);
+  assert.equal(followingFeedNextPage.body.items.length, 1);
+  assert.notEqual(
+    followingFeedNextPage.body.items[0].post.id,
+    followingFeed.body.items[0].post.id,
+  );
+
+  const articleFeed = await request(
+    "/api/v1/social/feed?tab=articles&limit=50",
+    { auth: commercial },
+  );
+  assert.equal(articleFeed.response.status, 200);
+  assert(
+    articleFeed.body.items.some(
+      (item) => item.post.id === createdArticle.body.id,
+    ),
+  );
+  assert(
+    articleFeed.body.items.every((item) => item.post.format === "article"),
+  );
+
   const likedPost = await request(
     `/api/v1/social/posts/${createdPublicPost.body.id}/like`,
     { method: "PUT", auth: commercial },

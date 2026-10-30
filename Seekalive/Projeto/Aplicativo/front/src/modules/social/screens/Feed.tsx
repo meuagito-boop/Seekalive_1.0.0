@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, Clock3, Play, BookOpenText } from "lucide-react";
@@ -15,10 +15,18 @@ import { canReadPost } from "@/modules/social/application/contentValidation";
 import { getPostMediaType } from "@/lib/postMedia";
 import { useToast } from "@/hooks/use-toast";
 import { handleTabKeyDown } from "@/lib/tabKeyboard";
+import { restSocialApi } from "@/modules/social/services/restContracts";
 
 const feedTabs = ["Para você", "Seguindo", "Artigos", "Vídeos"] as const;
 
 type FeedItem = { key: string; post: Post; repostedById?: string; at: string };
+type RemoteFeedState = {
+  tab: number;
+  items: FeedItem[];
+  nextCursor: string | null;
+  loading: boolean;
+  error: string | null;
+};
 
 
 function useVisibleFeed() {
@@ -129,7 +137,15 @@ function VideoFeedItem({ post }: { post: Post }) {
 
 export default function Feed() {
   const [activeTab, setActiveTab] = useState(0);
-  const { getUserById } = useSocial();
+  const [feedReload, setFeedReload] = useState(0);
+  const [remoteFeed, setRemoteFeed] = useState<RemoteFeedState>({
+    tab: 0,
+    items: [],
+    nextCursor: null,
+    loading: false,
+    error: null,
+  });
+  const { getUserById, isRemoteSocialSession, dispatch } = useSocial();
   const { items, visible } = useVisibleFeed();
 
   const followingItems = items.filter((i) => getUserById(i.post.authorId)?.isFollowing || (i.repostedById && getUserById(i.repostedById)?.isFollowing));
@@ -137,7 +153,168 @@ export default function Feed() {
   const videoPosts = visible.filter((p) => p.format !== "article" && (p.type === "video" || (p.mediaUrls?.length ?? 0) > 0));
 
   const list = (feed: FeedItem[]) => feed.map((i) => <PostCard key={i.key} post={i.post} repostedById={i.repostedById} />);
+  const remoteTab = activeTab === 0 ? "for-you" : activeTab === 1 ? "following" : "articles";
+
+  useEffect(() => {
+    if (!isRemoteSocialSession || activeTab === 3) return;
+    let cancelled = false;
+    setRemoteFeed({
+      tab: activeTab,
+      items: [],
+      nextCursor: null,
+      loading: true,
+      error: null,
+    });
+    void restSocialApi.feed(undefined, remoteTab).then((page) => {
+      if (cancelled) return;
+      page.authors.forEach((author) =>
+        dispatch({ type: "ADD_USER", user: { ...author, source: "server" } }),
+      );
+      page.items.forEach((post) => dispatch({ type: "UPSERT_POST", post }));
+      setRemoteFeed({
+        tab: activeTab,
+        items: page.items.map((post) => ({
+          key: post.id,
+          post,
+          at: post.createdAt,
+        })),
+        nextCursor: page.nextCursor,
+        loading: false,
+        error: null,
+      });
+    }).catch((error: unknown) => {
+      if (cancelled) return;
+      setRemoteFeed({
+        tab: activeTab,
+        items: [],
+        nextCursor: null,
+        loading: false,
+        error: error instanceof Error
+          ? error.message
+          : "Não foi possível carregar este feed.",
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, dispatch, feedReload, isRemoteSocialSession, remoteTab]);
+
+  async function loadMoreRemoteFeed() {
+    if (
+      remoteFeed.tab !== activeTab ||
+      !remoteFeed.nextCursor ||
+      remoteFeed.loading
+    ) return;
+    const requestedTab = activeTab;
+    setRemoteFeed((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const page = await restSocialApi.feed(
+        remoteFeed.nextCursor,
+        remoteTab,
+      );
+      page.authors.forEach((author) =>
+        dispatch({ type: "ADD_USER", user: { ...author, source: "server" } }),
+      );
+      page.items.forEach((post) => dispatch({ type: "UPSERT_POST", post }));
+      setRemoteFeed((current) =>
+        current.tab !== requestedTab
+          ? current
+          : {
+              ...current,
+              items: [
+                ...current.items,
+                ...page.items.map((post) => ({
+                  key: post.id,
+                  post,
+                  at: post.createdAt,
+                })),
+              ],
+              nextCursor: page.nextCursor,
+              loading: false,
+              error: null,
+            },
+      );
+    } catch (error) {
+      setRemoteFeed((current) =>
+        current.tab !== requestedTab
+          ? current
+          : {
+              ...current,
+              loading: false,
+              error: error instanceof Error
+                ? error.message
+                : "Não foi possível carregar mais publicações.",
+            },
+      );
+    }
+  }
+
   const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.15 } };
+
+  function renderFeedTab(index: number) {
+    const currentRemoteItems = remoteFeed.tab === index
+      ? remoteFeed.items
+      : [];
+    if (isRemoteSocialSession && index === 3) {
+      return (
+        <EmptyState
+          title="Vídeos ainda não disponíveis nesta conta"
+          description="O servidor ainda não recebe nem armazena arquivos de mídia. Esta aba não exibirá conteúdo demonstrativo como se fosse publicação persistida."
+        />
+      );
+    }
+    if (isRemoteSocialSession && remoteFeed.tab === index && remoteFeed.loading && remoteFeed.items.length === 0) {
+      return <div className="px-4 py-8 text-center text-sm text-muted-foreground" role="status">Carregando publicações…</div>;
+    }
+    if (
+      isRemoteSocialSession &&
+      remoteFeed.tab === index &&
+      remoteFeed.error &&
+      remoteFeed.items.length === 0
+    ) {
+      return (
+        <div className="space-y-3 px-4 py-8 text-center" role="alert">
+          <p className="text-sm text-destructive">{remoteFeed.error}</p>
+          <Button variant="outline" className="rounded-full" onClick={() => setFeedReload((value) => value + 1)}>Tentar novamente</Button>
+        </div>
+      );
+    }
+    if (index === 0) {
+      const feed = isRemoteSocialSession ? currentRemoteItems : items;
+      return (
+        <motion.div key="for-you" {...fade}>
+          {feed.length ? list(feed) : <EmptyState title="Nada por aqui ainda" description="Publique algo ou siga pessoas." />}
+        </motion.div>
+      );
+    }
+    if (index === 1) {
+      const feed = isRemoteSocialSession ? currentRemoteItems : followingItems;
+      return (
+        <motion.div key="following" {...fade}>
+          {feed.length === 0 ? (
+            <EmptyState title="Nenhuma publicação ainda" description="Siga pessoas para ver as publicações e repostagens delas aqui."
+              action={<Button asChild className="rounded-full"><Link href="/search">Descobrir pessoas</Link></Button>} />
+          ) : list(feed)}
+        </motion.div>
+      );
+    }
+    if (index === 2) {
+      const feed = isRemoteSocialSession ? currentRemoteItems.map((item) => item.post) : articles;
+      return (
+        <motion.div key="articles" {...fade}>
+          {feed.length ? feed.map((post) => <PostCard key={post.id} post={post} />) : (
+            <EmptyState title="Nenhum artigo ainda" description="Artigos são publicações longas, com título e comentários próprios."
+              action={<Button asChild className="rounded-full"><Link href="/article/create"><BookOpenText className="mr-2 h-4 w-4" />Escrever artigo</Link></Button>} />
+          )}
+        </motion.div>
+      );
+    }
+    return (
+      <motion.div key="videos" {...fade} data-testid="video-feed">
+        {videoPosts.length ? videoPosts.map((post) => <VideoFeedItem key={post.id} post={post} />) : <EmptyState title="Nenhum vídeo ainda" description="Vídeos publicados por quem você pode ver aparecem aqui." />}
+      </motion.div>
+    );
+  }
 
   return (
     <div className="relative min-h-[100dvh]">
@@ -159,30 +336,22 @@ export default function Feed() {
         {[0, 1, 2, 3].map((index) => (
           <div key={index} id={`feed-panel-${index}`} role="tabpanel" aria-labelledby={`feed-tab-${index}`}
             hidden={activeTab !== index} tabIndex={0}>
-            {activeTab === index && (
-              index === 0 ? (
-                <motion.div key="for-you" {...fade}>
-                  {items.length ? list(items) : <EmptyState title="Nada por aqui ainda" description="Publique algo ou siga pessoas." />}
-                </motion.div>
-              ) : index === 1 ? (
-                <motion.div key="following" {...fade}>
-                  {followingItems.length === 0 ? (
-                    <EmptyState title="Nenhuma publicação ainda" description="Siga pessoas para ver as publicações e repostagens delas aqui."
-                      action={<Button asChild className="rounded-full"><Link href="/search">Descobrir pessoas</Link></Button>} />
-                  ) : list(followingItems)}
-                </motion.div>
-              ) : index === 2 ? (
-                <motion.div key="articles" {...fade}>
-                  {articles.length ? articles.map((p) => <PostCard key={p.id} post={p} />) : (
-                    <EmptyState title="Nenhum artigo ainda" description="Artigos são publicações longas, com título e comentários próprios."
-                      action={<Button asChild className="rounded-full"><Link href="/article/create"><BookOpenText className="mr-2 h-4 w-4" />Escrever artigo</Link></Button>} />
-                  )}
-                </motion.div>
-              ) : (
-                <motion.div key="videos" {...fade} data-testid="video-feed">
-                  {videoPosts.length ? videoPosts.map((p) => <VideoFeedItem key={p.id} post={p} />) : <EmptyState title="Nenhum vídeo ainda" description="Vídeos publicados por quem você pode ver aparecem aqui." />}
-                </motion.div>
-              )
+            {activeTab === index && renderFeedTab(index)}
+            {isRemoteSocialSession &&
+              index !== 3 &&
+              remoteFeed.tab === index &&
+              remoteFeed.error &&
+              remoteFeed.items.length > 0 && (
+                <p className="px-4 py-3 text-center text-sm text-destructive" role="alert">
+                  {remoteFeed.error}
+                </p>
+              )}
+            {isRemoteSocialSession && index !== 3 && remoteFeed.tab === index && remoteFeed.nextCursor && (
+              <div className="flex justify-center px-4 py-5">
+                <Button variant="outline" className="rounded-full" disabled={remoteFeed.loading} onClick={() => void loadMoreRemoteFeed()}>
+                  {remoteFeed.loading ? "Carregando…" : "Carregar mais"}
+                </Button>
+              </div>
             )}
           </div>
         ))}

@@ -1241,6 +1241,44 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/social/feed:
+    get:
+      operationId: getSocialFeed
+      tags: [feed]
+      summary: List readable social feed posts
+      description: >
+        Results are ordered newest first with stable keyset pagination.
+        for-you and articles can be read anonymously but still respect account
+        visibility, Círculo membership, and bilateral blocks. following requires
+        an authenticated session and includes only accepted followed accounts.
+        This endpoint currently returns persisted text posts and articles;
+        media and video posts are not supported by the backend yet.
+      security:
+        - sessionCookie: []
+        - {}
+      parameters:
+        - name: tab
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [for-you, following, articles]
+            default: for-you
+        - $ref: "#/components/parameters/PageLimit"
+        - $ref: "#/components/parameters/PageCursor"
+      responses:
+        "200":
+          description: Paginated readable feed content with public author views
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/social/posts:
     post:
       operationId: createSocialPost
@@ -3062,6 +3100,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Post"
+        nextCursor:
+          type: [string, "null"]
+      required: [items, nextCursor]
+    FeedItem:
+      type: object
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        author:
+          $ref: "#/components/schemas/AccountView"
+      required: [post, author]
+    FeedPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedItem"
         nextCursor:
           type: [string, "null"]
       required: [items, nextCursor]

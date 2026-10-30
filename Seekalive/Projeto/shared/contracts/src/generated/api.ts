@@ -1596,6 +1596,106 @@ export const UnblockAccountResponse = zod.void()
 
 
 /**
+ * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. This endpoint currently returns persisted text posts and articles; media and video posts are not supported by the backend yet.
+ * @summary List readable social feed posts
+ */
+export const getSocialFeedQueryTabDefault = `for-you`;
+export const getSocialFeedQueryLimitDefault = 20;
+export const getSocialFeedQueryLimitMax = 100;
+
+export const getSocialFeedQueryCursorMax = 32;
+
+
+
+export const GetSocialFeedQueryParams = zod.object({
+  "tab": zod.enum(['for-you', 'following', 'articles']).default(getSocialFeedQueryTabDefault),
+  "limit": zod.coerce.number().int().min(1).max(getSocialFeedQueryLimitMax).default(getSocialFeedQueryLimitDefault),
+  "cursor": zod.coerce.string().max(getSocialFeedQueryCursorMax).optional()
+})
+
+export const getSocialFeedResponseItemsItemPostContentMax = 280;
+
+export const getSocialFeedResponseItemsItemPostArticleTitleMax = 160;
+
+export const getSocialFeedResponseItemsItemPostArticleBodyMax = 50000;
+
+export const getSocialFeedResponseItemsItemPostLikesMin = 0;
+
+export const getSocialFeedResponseItemsItemPostCommentsMin = 0;
+
+export const getSocialFeedResponseItemsItemPostRepostsMin = 0;
+
+export const getSocialFeedResponseItemsItemPostSharesMin = 0;
+
+export const getSocialFeedResponseItemsItemAuthorDisplayNameMax = 100;
+
+export const getSocialFeedResponseItemsItemAuthorWebsiteRegExp = new RegExp('^https?:/');
+export const getSocialFeedResponseItemsItemAuthorStatsPostsMin = 0;
+
+export const getSocialFeedResponseItemsItemAuthorStatsFollowersMin = 0;
+
+export const getSocialFeedResponseItemsItemAuthorStatsFollowingMin = 0;
+
+export const getSocialFeedResponseItemsItemAuthorStatsCirclesMin = 0;
+
+
+
+
+export const GetSocialFeedResponse = zod.object({
+  "items": zod.array(zod.object({
+  "post": zod.object({
+  "id": zod.uuid(),
+  "authorId": zod.uuid(),
+  "content": zod.string().max(getSocialFeedResponseItemsItemPostContentMax),
+  "createdAt": zod.coerce.date(),
+  "audience": zod.enum(['public', 'circles', 'private']),
+  "type": zod.literal("text"),
+  "format": zod.enum(['text', 'article']),
+  "article": zod.object({
+  "title": zod.string().max(getSocialFeedResponseItemsItemPostArticleTitleMax),
+  "body": zod.string().max(getSocialFeedResponseItemsItemPostArticleBodyMax)
+}).optional(),
+  "likes": zod.int().min(getSocialFeedResponseItemsItemPostLikesMin),
+  "comments": zod.int().min(getSocialFeedResponseItemsItemPostCommentsMin),
+  "reposts": zod.int().min(getSocialFeedResponseItemsItemPostRepostsMin),
+  "shares": zod.int().min(getSocialFeedResponseItemsItemPostSharesMin),
+  "isLiked": zod.boolean(),
+  "isReposted": zod.boolean(),
+  "isBookmarked": zod.boolean()
+}),
+  "author": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().max(getSocialFeedResponseItemsItemAuthorDisplayNameMax),
+  "bio": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "coverUrl": zod.string().nullable(),
+  "location": zod.string().nullable(),
+  "website": zod.url().regex(getSocialFeedResponseItemsItemAuthorWebsiteRegExp).nullable(),
+  "accountType": zod.enum(['personal', 'commercial']),
+  "isPrivate": zod.boolean(),
+  "joinedAt": zod.coerce.date(),
+  "relationship": zod.object({
+  "following": zod.enum(['none', 'pending', 'accepted']),
+  "inCircle": zod.boolean(),
+  "blockedByMe": zod.boolean(),
+  "blockedByThem": zod.boolean(),
+  "mutedByMe": zod.boolean()
+}),
+  "stats": zod.object({
+  "posts": zod.int().min(getSocialFeedResponseItemsItemAuthorStatsPostsMin),
+  "followers": zod.int().min(getSocialFeedResponseItemsItemAuthorStatsFollowersMin),
+  "following": zod.int().min(getSocialFeedResponseItemsItemAuthorStatsFollowingMin),
+  "circles": zod.int().min(getSocialFeedResponseItemsItemAuthorStatsCirclesMin)
+}),
+  "version": zod.int().min(1)
+})
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
  * The authenticated account is always the author. The optional authorId is accepted only for compatibility and must equal the session account. Media uploads are not enabled; media fields are rejected.
  * @summary Create a text publication
  */

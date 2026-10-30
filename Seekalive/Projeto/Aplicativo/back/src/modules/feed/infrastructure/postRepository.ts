@@ -90,3 +90,36 @@ export async function listFeedPostsByAuthor(input: {
     .limit(input.limit);
   return rows.map(toFeedPost);
 }
+
+export async function listFeedPostsForTimeline(input: {
+  authorIds: string[] | null;
+  format: FeedPostFormat | "all";
+  after: PostPosition | null;
+  limit: number;
+}): Promise<FeedPost[]> {
+  const authorIds = input.authorIds
+    ? [...new Set(input.authorIds)]
+    : null;
+  if (authorIds?.length === 0) return [];
+
+  const conditions = [
+    ...(authorIds ? [inArray(feedPosts.authorId, authorIds)] : []),
+    ...(input.format === "all" ? [] : [eq(feedPosts.format, input.format)]),
+  ];
+  if (input.after) {
+    const cursorCondition = or(
+      lt(feedPosts.createdAt, input.after.createdAt),
+      and(
+        eq(feedPosts.createdAt, input.after.createdAt),
+        lt(feedPosts.id, input.after.id),
+      ),
+    );
+    if (cursorCondition) conditions.push(cursorCondition);
+  }
+
+  const rows = await db.select().from(feedPosts)
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(feedPosts.createdAt), desc(feedPosts.id))
+    .limit(input.limit);
+  return rows.map(toFeedPost);
+}

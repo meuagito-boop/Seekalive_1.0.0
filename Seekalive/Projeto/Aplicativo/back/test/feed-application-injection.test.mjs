@@ -72,6 +72,7 @@ test("post read resolves the author before applying visibility", async () => {
       authorLookups.push(args);
       return [publicAuthor];
     },
+    async () => new Map(),
   );
 
   const result = await readPost(postId, viewerId);
@@ -86,6 +87,7 @@ test("post read resolves the author before applying visibility", async () => {
         relationship: { ...publicAuthor.relationship, blockedByThem: true },
       },
     ],
+    async () => new Map(),
   );
   assert.equal(await blockedRead(postId, viewerId), null);
 });
@@ -114,6 +116,7 @@ test("profile post listing injects the author lookup and storage query", async (
       authorLookups.push(args);
       return [publicAuthor];
     },
+    async () => new Map(),
   );
 
   const page = await listPosts(authorId, viewerId, 10, null, "all");

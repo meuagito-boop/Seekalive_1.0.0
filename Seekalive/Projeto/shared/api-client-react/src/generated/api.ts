@@ -63,6 +63,7 @@ import type {
   EmailVerificationConfirm,
   EmailVerificationConfirmation,
   EmailVerificationRequest,
+  FeedPage,
   FollowRequestPage,
   FollowState,
   ForbiddenResponse,
@@ -71,6 +72,7 @@ import type {
   GetFollowingParams,
   GetIncomingFollowRequestsParams,
   GetSocialAccountPostsParams,
+  GetSocialFeedParams,
   GetSocialPostCommentsParams,
   HealthStatus,
   InternalErrorResponse,
@@ -4386,6 +4388,115 @@ export const useUnblockAccount = <TError = ErrorType<UnauthorizedResponse | Forb
       > => {
       return useMutation(getUnblockAccountMutationOptions(options), queryClient);
     }
+
+export const getGetSocialFeedUrl = (params?: GetSocialFeedParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/social/feed?${stringifiedParams}` : `/api/v1/social/feed`
+}
+
+/**
+ * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. This endpoint currently returns persisted text posts and articles; media and video posts are not supported by the backend yet.
+ * @summary List readable social feed posts
+ */
+export const getSocialFeed = async (params?: GetSocialFeedParams, options?: Parameters<typeof customFetch>[1]): Promise<FeedPage> => {
+
+  return customFetch<FeedPage>(getGetSocialFeedUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialFeedQueryKey = (params?: GetSocialFeedParams,) => {
+    return [
+    `/api/v1/social/feed`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSocialFeedQueryOptions = <TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialFeedQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialFeed>>> = ({ signal }) => getSocialFeed(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialFeedQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialFeed>>>
+export type GetSocialFeedQueryError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>
+
+
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params: undefined |  GetSocialFeedParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List readable social feed posts
+ */
+
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | TooManyRequestsResponse>>(
+ params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialFeedQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getCreateSocialPostUrl = () => {
 

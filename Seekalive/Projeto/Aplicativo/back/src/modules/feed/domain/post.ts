@@ -1,6 +1,7 @@
 import type { PostAudience } from "@workspace/api-zod";
 
 export type FeedPostFormat = "text" | "article";
+export type SocialFeedTab = "for-you" | "following" | "articles";
 
 export type FeedPost = {
   id: string;
