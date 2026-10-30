@@ -1,9 +1,16 @@
 import { z } from "zod";
-import { apiRequest, commentSchema, parseResponse, postSchema } from "@/modules/social/services/socialHttp";
+import {
+  apiRequest,
+  commentSchema,
+  parseResponse,
+  postSchema,
+} from "@/modules/social/services/socialHttp";
 import { referenceSchema } from "@/modules/app/content/referenceSchema";
 import type { ContentReference } from "@/modules/app/content/contentReferences";
 
-// Proposed contracts ONLY. Nothing here is enabled until a backend is supplied.
+// Proposal-only adapter; it is not wired into the app. Post/article reads and
+// post deletion exist, but feed listing, interactions, references, comments,
+// and user/tag search still need backend routes.
 export interface Page<T> {
   items: T[];
   nextCursor?: string | null;
@@ -24,58 +31,87 @@ const referencePreviewSchema = referenceSchema.extend({
   entityLabel: z.string().optional(),
 });
 const page = <T extends z.ZodType>(schema: T) =>
-  z.object({ items: z.array(schema), nextCursor: z.string().nullable().optional() });
+  z.object({
+    items: z.array(schema),
+    nextCursor: z.string().nullable().optional(),
+  });
 const idPath = (id: string) => `/api/v1/social/posts/${encodeURIComponent(id)}`;
 
 export const restSocialApi = {
   async feed(cursor?: string, tab = "for-you", limit = 20) {
     const query = new URLSearchParams({ tab, limit: String(limit) });
     if (cursor) query.set("cursor", cursor);
-    return parseResponse(page(postSchema), await apiRequest(`/api/v1/social/feed?${query}`));
+    return parseResponse(
+      page(postSchema),
+      await apiRequest(`/api/v1/social/feed?${query}`),
+    );
   },
   async post(id: string) {
     return parseResponse(postSchema, await apiRequest(idPath(id)));
   },
   async article(id: string) {
-    return parseResponse(postSchema, await apiRequest(`/api/v1/social/articles/${encodeURIComponent(id)}`));
+    return parseResponse(
+      postSchema,
+      await apiRequest(`/api/v1/social/articles/${encodeURIComponent(id)}`),
+    );
   },
   async setLiked(id: string, liked: boolean) {
-    return apiRequest(`${idPath(id)}/like`, { method: liked ? "PUT" : "DELETE" });
+    return apiRequest(`${idPath(id)}/like`, {
+      method: liked ? "PUT" : "DELETE",
+    });
   },
   async comments(id: string, cursor?: string) {
     const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-    return parseResponse(page(commentSchema), await apiRequest(`${idPath(id)}/comments${query}`));
+    return parseResponse(
+      page(commentSchema),
+      await apiRequest(`${idPath(id)}/comments${query}`),
+    );
   },
   async setReposted(id: string, reposted: boolean) {
-    return apiRequest(`${idPath(id)}/repost`, { method: reposted ? "POST" : "DELETE" });
+    return apiRequest(`${idPath(id)}/repost`, {
+      method: reposted ? "POST" : "DELETE",
+    });
   },
   async removePost(id: string) {
     return apiRequest(idPath(id), { method: "DELETE" });
   },
   async removeComment(id: string) {
-    return apiRequest(`/api/v1/social/comments/${encodeURIComponent(id)}`, { method: "DELETE" });
+    return apiRequest(`/api/v1/social/comments/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
   },
   async reference(reference: ContentReference) {
     referenceSchema.parse(reference);
-    return parseResponse(referencePreviewSchema, await apiRequest(
-      `/api/v1/references/${reference.type}/${encodeURIComponent(reference.id)}`,
-    ));
+    return parseResponse(
+      referencePreviewSchema,
+      await apiRequest(
+        `/api/v1/references/${reference.type}/${encodeURIComponent(reference.id)}`,
+      ),
+    );
   },
   async searchUsers(query: string, signal?: AbortSignal) {
     return parseResponse(
-      z.array(z.object({
-        id: z.string(),
-        username: z.string(),
-        displayName: z.string(),
-        avatarUrl: z.string().optional(),
-      })),
-      await apiRequest(`/api/v1/social/users/search?q=${encodeURIComponent(query)}`, { signal }),
+      z.array(
+        z.object({
+          id: z.string(),
+          username: z.string(),
+          displayName: z.string(),
+          avatarUrl: z.string().optional(),
+        }),
+      ),
+      await apiRequest(
+        `/api/v1/social/users/search?q=${encodeURIComponent(query)}`,
+        { signal },
+      ),
     );
   },
   async searchTags(query: string, signal?: AbortSignal) {
     return parseResponse(
       z.array(z.string()),
-      await apiRequest(`/api/v1/social/tags/search?q=${encodeURIComponent(query)}`, { signal }),
+      await apiRequest(
+        `/api/v1/social/tags/search?q=${encodeURIComponent(query)}`,
+        { signal },
+      ),
     );
   },
 };

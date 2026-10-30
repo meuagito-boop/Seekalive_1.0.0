@@ -1,25 +1,53 @@
 import { Router, type IRouter } from "express";
-import { followerAccountViews } from "../composition/relationshipListServices";
+import type { createResolveRelationshipListTarget } from "../application/resolveRelationshipListTarget";
+import type { RelationshipListOperations } from "../application/relationshipListQueries";
 import { isAccountId, pageResult, parsePage, sendError } from "./routeSupport";
 import { requireVisibleRelationshipTarget } from "./relationshipListSupport";
 
-const router: IRouter = Router();
+export function createFollowerListRoutes(
+  followerAccountViews: RelationshipListOperations<{
+    id: string;
+  }>["followerAccountViews"],
+  resolveRelationshipListTarget: ReturnType<
+    typeof createResolveRelationshipListTarget
+  >,
+): IRouter {
+  const router: IRouter = Router();
 
-router.get("/accounts/:accountId/followers", async (request, response) => {
-  const accountId = typeof request.params.accountId === "string" ? request.params.accountId : "";
-  if (!isAccountId(accountId)) {
-    sendError(response, 404, "ACCOUNT_NOT_FOUND", "Esta conta não está disponível.");
-    return;
-  }
-  const target = await requireVisibleRelationshipTarget(request, response, accountId);
-  if (!target) return;
-  const page = parsePage(request);
-  if (!page) {
-    sendError(response, 400, "VALIDATION_ERROR", "O limite ou cursor da página é inválido.");
-    return;
-  }
-  const items = await followerAccountViews(accountId, target.viewerId, page);
-  response.json(pageResult(items, page.limit, page.offset));
-});
+  router.get("/accounts/:accountId/followers", async (request, response) => {
+    const accountId =
+      typeof request.params.accountId === "string"
+        ? request.params.accountId
+        : "";
+    if (!isAccountId(accountId)) {
+      sendError(
+        response,
+        404,
+        "ACCOUNT_NOT_FOUND",
+        "Esta conta não está disponível.",
+      );
+      return;
+    }
+    const target = await requireVisibleRelationshipTarget(
+      request,
+      response,
+      accountId,
+      resolveRelationshipListTarget,
+    );
+    if (!target) return;
+    const page = parsePage(request);
+    if (!page) {
+      sendError(
+        response,
+        400,
+        "VALIDATION_ERROR",
+        "O limite ou cursor da página é inválido.",
+      );
+      return;
+    }
+    const items = await followerAccountViews(accountId, target.viewerId, page);
+    response.json(pageResult(items, page.limit, page.offset));
+  });
 
-export default router;
+  return router;
+}

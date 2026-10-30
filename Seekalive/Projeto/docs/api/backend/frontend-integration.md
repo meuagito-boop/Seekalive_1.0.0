@@ -12,13 +12,13 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/feed` | Feed local: para você, seguindo, artigos, vídeos | `GET social/feed`, paginação, audiência, bloqueios, contadores e cache por visitante |
 | `/compose`, `/article/create` | `contentService` demo + mídias blob | Upload, criação transacional, validação, idempotência e publicação com referência |
 | `/post/:postId`, `/article/:postId` | Leitura e interação locais | Leitura autorizada, comentários/respostas, curtidas, reposts, remoção e edição proposta |
-| `/search` | Pessoas/publicações/tags e tendências locais | Busca paginada, índices, permissões e tendências calculadas |
-| `/profile`, `/profile/:username` | Perfil pessoal/comercial usa dados demonstrativos; API de conta/perfil está ativa, mas as telas ainda não a consomem. Posts/mídias/artigos seguem locais | Conectar `ProfileResponse`, incluindo `commercialProfile` somente quando visível; consumir paginação Social e, depois, galerias/avaliações dos domínios próprios |
+| `/search` | Pessoas usam `searchAccounts` em sessão remota; publicações, tags e tendências continuam locais | Busca de publicações/tags, índices, permissões e tendências calculadas |
+| `/profile`, `/profile/:username` | Apresentação pública ainda usa dados demonstrativos; a tela de edição consulta a conta do titular. Posts/mídias/artigos seguem locais | Conectar `ProfileResponse`, incluindo `commercialProfile` somente quando visível; consumir paginação Social e, depois, galerias/avaliações dos domínios próprios |
 | `/profile/edit` | Edição de apresentação do perfil ainda usa estado local | Conectar campos públicos de perfil quando a fatia de perfil público for autorizada; não duplicar os campos privados de cadastro |
 | `/settings/account` | API e telas integradas para ler/editar perfil, trocar e-mail e senha e solicitar exclusão da conta; idade é coletada no cadastro, usada pelo backend para a regra 18+ e nunca é retornada ou exibida após a criação | Exportação de dados não oferecida nesta versão; integração de produção ainda exige configuração e validação do provedor de e-mail |
-| `/profile/:username/followers`, `/profile/:username/following` | Listas locais; API paginada e permissões para perfis privados já estão ativas | Conectar as listas ao backend com estados de carregamento/erro |
+| `/profile/:username/followers`, `/profile/:username/following` | Sessões remotas usam as APIs paginadas; demonstração permanece local | Preservar estados de carregamento/erro e manter a demonstração isolada da sessão remota |
 | `/settings/privacy` | A API guarda privacidade, mensagens e confirmações de leitura; as telas ainda salvam no navegador. Pedidos são aceitos/recusados pela API | Conectar GET/PUT de privacidade e pedidos recebidos; apenas o dono decide |
-| `/profile/:username/circles`, `/circles` | Lista local; endpoint paginado de Círculo já ativo e derivado dos dois seguimentos aceitos | Conectar a listagem paginada; não criar convite, aceite, recusa ou remoção de Círculo |
+| `/profile/:username/circles`, `/circles` | Sessões remotas usam a API paginada de Círculo; demonstração permanece local | Preservar a derivação pelos dois seguimentos aceitos; não criar convite, aceite, recusa ou remoção de Círculo |
 | `/social/activity` | Histórico, salvos, curtidas, comentários e publicações | Consultas do ator autenticado; limpar histórico sem apagar conteúdo original |
 | `/social/suggestions` | Sugestões locais | Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis |
 | `/notifications` | Eventos e leitura locais | Destinatário no servidor, paginação, marcar lida, preferências e entrega |
@@ -26,7 +26,7 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/seek` | Localização, categorias, filtros, carrosséis, salvos e mocks | Descoberta por contas comerciais, busca, cidades, avaliações e eventos reais |
 | `/seek/event/:id` | Detalhe de demonstração; ingresso desabilitado | Evento real com organizador, interesse persistente, estado; ingressos são extensão |
 | `/shop`, `/shop/item/:id` | Catálogo ilustrativo, detalhe, favoritos; compra desabilitada | Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo |
-| `/settings/privacy`, `/settings/blocked` | Preferências e bloqueios são locais; bloquear remove follows e pedidos entre as duas contas, oculta conteúdo/interações nos dois sentidos e deixa desbloqueio só para o iniciador; mensagens antigas retornam após desbloquear | Persistir bloqueios no servidor e remover follows/pedidos em transação; aplicar a regra bilateral em leitura, busca, feed, conversas e ações; não restaurar relações ao desbloquear |
+| `/settings/privacy`, `/settings/blocked` | Preferências continuam locais; sessões remotas carregam bloqueios e ações de bloquear/desbloquear pela API; demonstração conserva estado local | Conectar preferências à API; manter remoção bilateral de follows/pedidos, ocultação mútua e desbloqueio sem restaurar relações; mensagens antigas retornam após desbloquear |
 | `/settings/notifications` | Defaults visuais desabilitados | Preferências reais e consentimento para push/e-mail |
 | `/settings/security` | Sessões e instalações confiáveis consultam a API e permitem revogação individual/em lote. Instalações identificadas por token de navegador/app, sem IP ou fingerprint | MFA geral e histórico de acessos seguem indisponíveis; E2E autenticado no navegador continua pendente. As tabelas necessárias foram encontradas por metadados em desenvolvimento |
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
@@ -44,7 +44,7 @@ O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`.
 
 O proxy Vite encaminha `/api` à API local durante o desenvolvimento. As telas continuam acessíveis pelo app, mas a criação de contas reais depende do envio de e-mail.
 
-Hoje a interface usa a API para autenticação, verificação e conclusão de interesses do onboarding. `contentService` ainda aponta para o adaptador de demonstração; telas de perfil, privacidade e relações ainda não consomem os novos endpoints ativos. As outras chamadas `/api/v1` ainda são contratos propostos.
+Em sessões remotas, a interface também usa o cliente Orval para busca de contas, seguidores/seguindo, solicitações recebidas, Círculo e operações de seguir/bloquear. A tela de edição lê a conta do titular. A demonstração mantém os seus dados locais; o Feed e `contentService` continuam locais. `restSocialApi` e `restContentAdapter` não estão conectados ao aplicativo: alguns caminhos de posts/artigos existem, mas Feed paginado, comentários, curtidas, reposts, referências e busca de tags ainda não têm rotas. As operações pendentes são propostas, não funcionalidades ativas.
 
 ## 2. Arquivos que precisam trocar de fonte
 

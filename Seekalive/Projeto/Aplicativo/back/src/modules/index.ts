@@ -4,7 +4,7 @@ import { checkDatabaseReadiness } from "./health/infrastructure/databaseReadines
 import { createHealthRouter } from "./health/presentation/routes";
 import onboardingRouter from "./onboarding/composition/router";
 import accountsRouter from "./profiles/composition/router";
-import relationsRouter from "./social/presentation/routes";
+import relationsRouter from "./social/composition/router";
 import feedRouter from "./feed/composition/router";
 
 const router: IRouter = Router();

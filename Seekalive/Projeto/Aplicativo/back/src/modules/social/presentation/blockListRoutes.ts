@@ -1,14 +1,20 @@
 import { Router, type IRouter } from "express";
-import { blockedAccountViews } from "../composition/relationshipListServices";
+import type { RelationshipListOperations } from "../application/relationshipListQueries";
 import { activeAccountId } from "./routeSupport";
 
-const router: IRouter = Router();
+export function createBlockListRoutes(
+  blockedAccountViews: RelationshipListOperations<{
+    id: string;
+  }>["blockedAccountViews"],
+): IRouter {
+  const router: IRouter = Router();
 
-router.get("/blocks", async (request, response) => {
-  const actorId = await activeAccountId(request, response);
-  if (!actorId) return;
-  const items = await blockedAccountViews(actorId);
-  response.json({ items, nextCursor: null });
-});
+  router.get("/blocks", async (request, response) => {
+    const actorId = await activeAccountId(request, response);
+    if (!actorId) return;
+    const items = await blockedAccountViews(actorId);
+    response.json({ items, nextCursor: null });
+  });
 
-export default router;
+  return router;
+}

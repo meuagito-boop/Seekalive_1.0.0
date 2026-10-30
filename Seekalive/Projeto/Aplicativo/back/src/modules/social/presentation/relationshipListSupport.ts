@@ -1,12 +1,15 @@
 import type { Request, Response } from "express";
 import { loadActiveSession } from "../../../security/activeSession";
-import { resolveRelationshipListTarget } from "../composition/relationshipListServices";
+import type { createResolveRelationshipListTarget } from "../application/resolveRelationshipListTarget";
 import { sendError } from "./routeSupport";
 
 export async function requireVisibleRelationshipTarget(
   request: Request,
   response: Response,
   accountId: string,
+  resolveRelationshipListTarget: ReturnType<
+    typeof createResolveRelationshipListTarget
+  >,
 ): Promise<{ viewerId: string | null } | null> {
   const session = await loadActiveSession(request);
   const result = await resolveRelationshipListTarget(
