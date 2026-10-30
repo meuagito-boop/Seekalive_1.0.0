@@ -10,7 +10,7 @@ import {
   accountFollows,
   accountFollowRequests,
 } from "./profiles/relationships";
-import { commercialProfiles } from "./seek/businessProfiles";
+import { commercialProfiles } from "./profiles/businessProfiles";
 import {
   authChallenges,
   passwordCredentials,

@@ -21,11 +21,11 @@ test("current Drizzle tables are registered under their owning logical schema", 
     "profiles.account_blocks",
     "profiles.account_follow_requests",
     "profiles.account_follows",
+    "profiles.business_profiles",
     "security.auth_challenges",
     "security.password_credentials",
     "security.sessions",
     "security.trusted_devices",
-    "seek.business_profiles",
   ]);
 });
 

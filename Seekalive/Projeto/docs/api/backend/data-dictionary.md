@@ -28,7 +28,7 @@ Esta lista representa o modelo no código, não uma afirmação de que todas as 
 | `account_emails` | E-mail normalizado e instante de confirmação. |
 | `account_username_reservations` | Reserva temporária de um @ liberado, com prazo e vínculo opcional à conta de origem. |
 | `password_credentials` | Hash Argon2id, versão da política de senha e instante de alteração. |
-| `business_profiles` | Extensão comercial vinculada 1:1 à mesma conta Social. |
+| `business_profiles` | Perfil comercial canônico vinculado 1:1 à mesma conta Social, pertencente ao domínio Profiles. Seek consome uma projeção de descoberta. |
 | `auth_challenges` | Desafios de e-mail, login em instalação nova e troca de senha. Código/token como hash; hash temporário da nova senha também fica no desafio até a confirmação. |
 | `sessions` | Sessões opacas com hashes do token de sessão e CSRF, associadas à instalação confiável. |
 | `trusted_devices` | Instalações de navegador/app reconhecidas por token revogável; somente hash é persistido, com primeiro/último acesso e revogação. Não armazena IP, user-agent ou fingerprint. |
@@ -45,7 +45,7 @@ Frontend DTOs use **camelCase**, SQL uses **snake_case**. Serializers, not accid
 | Frontend field or behavior | Proposed storage / response rule |
 | --- | --- |
 | `User.id`, `authorId`, demo IDs such as `u1` | Real UUIDs; demo IDs are not insertable production IDs or migration seeds. Derive actor from session, never trust supplied `authorId`. |
-| `accountType`, `commercialProfile` | `accounts.account_type` plus `business_profiles` and child tables. |
+| `accountType`, `commercialProfile` | `accounts.account_type` plus `profiles.business_profiles` and child tables; Seek receives a derived discovery projection. |
 | `displayName`, `joinedAt`, `location` | `display_name`, `created_at`, `location_label`; location text is not a coordinate. |
 | `avatarUrl`, `coverUrl`, `img`, `mediaUrls`, business `photos`/`videos` | Asset FKs or owner/purpose gallery query; return authorized asset URLs, never accept arbitrary external URLs as owned uploads. |
 | `cityId`, `cityName`, `cityState`, `serviceAreas` | Seven-digit IBGE ID strings and city joins; service-area city IDs, not arbitrary display names. Validate IDs against an authoritative IBGE import; regex alone proves only shape. |

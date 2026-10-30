@@ -20,8 +20,9 @@ As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módul
 - `@workspace/db` cria um único pool PostgreSQL e uma instância Drizzle para o runtime.
 - A composição de cadastro coordena adaptadores de Contas, Segurança e Profiles dentro da mesma transação, preservando atomicidade neste banco compartilhado.
 - Os arquivos de schema estão organizados por domínio em `infra/database/src/schema/`; as tabelas de relação pertencem a `profiles/relationships.ts`. O registry central apenas compõe as tabelas para Drizzle.
-- `business_profiles` permanece no schema lógico `seek`, pois representa a listagem comercial usada pela descoberta. O inicializador de cadastro está em Profiles. Essa distinção entre o perfil Social e os dados de listagem do Seek deve ser preservada; não mover a tabela nem alterar FKs sem uma decisão funcional e migration de dados revisada.
-- Os campos legados de apresentação e preferências que ainda ficam em `accounts.accounts` estão registrados em `database-domains.md`. A extração ocorrerá junto à implementação das APIs proprietárias, evitando fontes duplicadas.
+- `business_profiles` pertence ao schema lógico `profiles` e contém categoria, modalidade de descoberta e endereço. O nome e a bio comerciais ainda vêm de `accounts.accounts`; os campos pessoais de nome e bio também continuam nessa tabela. Essa extração para Profiles ainda não foi feita.
+- Seek é consumidor dos dados comerciais de Profiles e mantém somente projeções de descoberta próprias; não é fonte canônica nem dependência de leitura do perfil. A migration Profiles `0001_talented_clint_barton.sql` transfere a tabela comercial antiga de `seek` para `profiles` preservando a relação com a conta; ela está preparada, mas não foi aplicada ao banco de desenvolvimento.
+- Os demais campos legados de apresentação e preferências estão discriminados em `database-domains.md`. A transferência dos campos de perfil pessoal/comercial exige migração coordenada e preservação de contratos; não foi declarada como concluída.
 - A configuração não cria nem conecta bancos físicos separados, não escolhe provedor externo e não executa migrations.
 
 ## Fluxos e invariantes

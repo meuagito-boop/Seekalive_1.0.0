@@ -123,41 +123,20 @@ test("Profiles application and presentation delegate database access to infrastr
   assert.match(entrypoint, /profiles\/composition\/router/);
 });
 
-test("Profiles consumes Seek business data through the Seek module boundary", async () => {
-  const ownerRepository = await readFile(
-    path.join(profilesDirectory, "infrastructure/ownerProfileRepository.ts"),
-    "utf8",
-  );
+test("Profiles owns commercial profile data and has no dependency on Seek", async () => {
   const composition = await readFile(
     path.join(profilesDirectory, "composition/router.ts"),
     "utf8",
   );
-  const seekApplication = await readFile(
+  const profilesSchema = await readFile(
     path.resolve(
       profilesDirectory,
-      "../seek/application/commercialProfileDetails.ts",
+      "../../../../../infra/database/src/schema/profiles/businessProfiles.ts",
     ),
     "utf8",
   );
 
-  assert.doesNotMatch(
-    ownerRepository,
-    /\bcommercialProfiles\b/,
-    "Profiles infrastructure must not query the Seek-owned business table.",
-  );
-  assert.match(
-    composition,
-    /seek\/composition\/publicApi/,
-    "Profiles composition must depend on the Seek module's public API.",
-  );
-  assert.doesNotMatch(
-    composition,
-    /seek\/infrastructure\//,
-    "Profiles must not bypass the Seek application boundary.",
-  );
-  assert.doesNotMatch(
-    seekApplication,
-    /@workspace\/db|drizzle-orm|from\s*["']\.\.\/infrastructure\//,
-    "Seek application logic must not depend on persistence adapters.",
-  );
+  assert.match(profilesSchema, /profilesTable\("business_profiles"/);
+  assert.match(composition, /commercialProfileDetailsRepository/);
+  assert.doesNotMatch(composition, /(?:\.\.\/)+seek\//);
 });

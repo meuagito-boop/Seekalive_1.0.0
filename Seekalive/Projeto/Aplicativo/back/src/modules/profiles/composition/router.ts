@@ -21,8 +21,9 @@ import {
 } from "../application/publicProfile";
 import { createOwnerProfileUpdater } from "../application/updateOwnerProfile";
 import { createUsernameAvailabilityChecker } from "../application/usernameAvailability";
+import { createCommercialProfileDetailsReader } from "../application/commercialProfileDetails";
+import { findCommercialProfileDetailsByAccountId } from "../infrastructure/commercialProfileDetailsRepository";
 import { findOwnerProfileIdentity } from "../infrastructure/ownerProfileRepository";
-import { readCommercialProfileDetails } from "../../seek/composition/publicApi";
 import { persistOwnerProfileUpdate } from "../infrastructure/ownerProfileUpdateRepository";
 import {
   findPrivacySettings,
@@ -39,6 +40,9 @@ const loadOwnerProfileIdentity = createOwnerProfileIdentityLoader({
   findActiveAccountById,
   findOwnerProfileIdentity,
 });
+const readCommercialProfileDetails = createCommercialProfileDetailsReader(
+  findCommercialProfileDetailsByAccountId,
+);
 const loadCommercialProfile = createCommercialProfileLoader(
   readCommercialProfileDetails,
 );

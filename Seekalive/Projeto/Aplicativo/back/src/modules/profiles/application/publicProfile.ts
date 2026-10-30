@@ -8,7 +8,7 @@ import { usernameFormatSchema } from "@workspace/api-zod";
 import type {
   CommercialProfileDetails,
   CommercialProfileDetailsReader,
-} from "../../seek/application/commercialProfileDetails";
+} from "./commercialProfileDetails";
 
 const emptyPage = { items: [], nextCursor: null };
 type AccountViewReader = ReturnType<typeof createAccountViews>["accountView"];

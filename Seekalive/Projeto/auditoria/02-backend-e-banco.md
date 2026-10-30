@@ -35,11 +35,12 @@ Os schemas/tabelas Drizzle estão em `infra/database/src/schema/`:
 | ----------------- | ----------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `accounts`        | `accounts.ts`     | `accounts`, `account_emails`, `account_interests`, `account_username_reservations` | Identidade da conta, e-mail, interesses e reservas temporárias do @    |
 | `security`        | `security.ts`     | `password_credentials`, `auth_challenges`, `trusted_devices`, `sessions`           | Credenciais, desafios de confirmação, instalações confiáveis e sessões |
-| `profiles`        | `social.ts`       | `account_follows`, `account_follow_requests`, `account_blocks`                     | Relações entre contas, solicitações e bloqueios                        |
-| `seek`            | `seek.ts`         | `business_profiles`                                                                | Dados de perfil comercial do Seek                                      |
+| `profiles`        | `profiles/relationships.ts`, `profiles/businessProfiles.ts` | `account_follows`, `account_follow_requests`, `account_blocks`, `business_profiles` | Relações e extensão comercial; nomes/bio pessoais e comerciais ainda são lidos de `accounts.accounts` |
 | `feed`            | `feed.ts`         | `posts`                                                                            | Publicações                                                            |
 
-**Total do modelo fonte:** 13 tabelas em 5 schemas com tabelas. A configuração reconhece 12 schemas de domínio, além do schema `public` (13 no total); vários domínios ainda não possuem tabelas.
+**Modelo fonte atual:** 13 tabelas em 4 schemas com tabelas; `business_profiles` pertence a Profiles. Seek não possui tabela implementada no modelo fonte. Nomes e bios ainda não foram extraídos de `accounts.accounts`, então o ownership completo dos dados de perfil continua pendente. A configuração reconhece 12 schemas de domínio, além de `public`; vários domínios ainda não possuem tabelas.
+
+**Divergência de desenvolvimento ainda não aplicada:** o banco compartilhado observado na auditoria anterior mantém fisicamente `seek.business_profiles`. A migration `profiles/0001_talented_clint_barton.sql` transfere a tabela para `profiles` sem recriar ou apagar seus registros. Ela está preparada, mas não aplicada; por isso o estado físico anterior não deve ser confundido com a propriedade do modelo fonte atual.
 
 ### Migrações
 
@@ -62,8 +63,8 @@ O journal contém as seis entradas `0000`–`0005`. A coluna de migrations abaix
 |---|---:|---|---:|---|
 | `accounts` | 4 | `0000`–`0003` | 4 | Correspondência física das quatro tabelas. |
 | `security` | 4 | `0000`, `0002`–`0003` | 4 | Correspondência física das quatro tabelas. |
-| `profiles` | 3 | `0000`, `0003` | 3 | Correspondência física das três tabelas. |
-| `seek` | 1 | `0000`, `0003` | 1 | Correspondência física da tabela `business_profiles`. |
+| `profiles` | 4 | `profiles/0000`, `profiles/0001` | 3 na medição anterior | Código atual inclui `business_profiles`; a migration de transferência ainda não foi aplicada. |
+| `seek` | 0 | baseline `seek/0000` é legado; `0003` moveu a tabela histórica | 1 na medição anterior | Banco de desenvolvimento ainda contém a tabela legada até a migration Profiles `0001`. |
 | `feed` | 1 | `0004` cria o schema; `0005` cria `posts` | 0 | Divergência: `feed.posts` existe no modelo e migration, não no banco. |
 | `location` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |
 | `media` | 0 | `0004` cria o schema | 0 | Schema preparado; sem tabela no modelo atual ou no banco. |

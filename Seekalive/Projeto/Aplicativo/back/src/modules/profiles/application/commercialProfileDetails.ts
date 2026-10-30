@@ -37,7 +37,7 @@ export function createCommercialProfileDetailsReader(
       throw new Error("Commercial profile has an unsupported discovery kind.");
     }
 
-    const values = [
+    const requiredValues = [
       record.categoryKey,
       record.address,
       record.postalCode,
@@ -45,7 +45,7 @@ export function createCommercialProfileDetailsReader(
       record.stateName,
       record.countryName,
     ];
-    if (values.some((value) => value.trim().length === 0)) {
+    if (requiredValues.some((value) => value.trim().length === 0)) {
       throw new Error("Commercial profile is missing required public details.");
     }
 

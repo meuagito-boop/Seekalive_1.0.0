@@ -2,7 +2,7 @@ import {
   type OwnerProfileFailure,
   type OwnerProfileIdentity,
 } from "./ownerProfileCommon";
-import type { CommercialProfileDetailsReader } from "../../seek/application/commercialProfileDetails";
+import type { CommercialProfileDetailsReader } from "./commercialProfileDetails";
 
 export function createCommercialProfileLoader(
   findCommercialProfileDetails: CommercialProfileDetailsReader,

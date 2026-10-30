@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildAccountView } from "../src/modules/accounts/application/accountViewMapper.ts";
 import { canViewPrivateProfileContent } from "../src/modules/accounts/domain/accountVisibility.ts";
+import { createCommercialProfileDetailsReader } from "../src/modules/profiles/application/commercialProfileDetails.ts";
 import { getPublicProfileByUsername } from "../src/modules/profiles/application/publicProfile.ts";
 
 const account = {
@@ -31,6 +32,48 @@ const stats = {
   following: 4,
   circles: 1,
 };
+
+test("Profiles validates and returns canonical commercial profile details", async () => {
+  const details = {
+    categoryKey: "cafes",
+    discoveryKind: "place",
+    address: "Rua de Teste, 100",
+    postalCode: "01001000",
+    cityName: "São Paulo",
+    stateName: "SP",
+    countryName: "Brasil",
+  };
+  const readDetails = createCommercialProfileDetailsReader(async () => details);
+
+  assert.deepEqual(await readDetails("account"), details);
+});
+
+test("Profiles rejects incomplete or unsupported commercial profile details", async () => {
+  const invalidKind = createCommercialProfileDetailsReader(async () => ({
+    categoryKey: "cafes",
+    discoveryKind: "unknown",
+    address: "Rua de Teste, 100",
+    postalCode: "01001000",
+    cityName: "São Paulo",
+    stateName: "SP",
+    countryName: "Brasil",
+  }));
+  const incomplete = createCommercialProfileDetailsReader(async () => ({
+    categoryKey: "cafes",
+    discoveryKind: "place",
+    address: " ",
+    postalCode: "01001000",
+    cityName: "São Paulo",
+    stateName: "SP",
+    countryName: "Brasil",
+  }));
+
+  await assert.rejects(invalidKind("account"), /unsupported discovery kind/);
+  await assert.rejects(
+    incomplete("account"),
+    /missing required public details/,
+  );
+});
 
 test("public profiles remain visible to signed-out visitors", () => {
   assert.equal(

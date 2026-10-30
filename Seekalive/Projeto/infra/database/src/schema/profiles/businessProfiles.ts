@@ -1,8 +1,8 @@
 import { timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { accounts } from "../accounts/schema";
-import { seekTable } from "../config";
+import { profilesTable } from "../config";
 
-export const commercialProfiles = seekTable("business_profiles", {
+export const commercialProfiles = profilesTable("business_profiles", {
   accountId: uuid("account_id")
     .primaryKey()
     .references(() => accounts.id, { onDelete: "cascade" }),
