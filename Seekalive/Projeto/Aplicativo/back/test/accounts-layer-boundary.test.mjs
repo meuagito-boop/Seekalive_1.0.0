@@ -27,10 +27,21 @@ test("Accounts application depends on ports, not concrete persistence", async ()
   }
 });
 
-test("Accounts composition binds account repositories and Social views", async () => {
-  const source = await readFile(join(accountsRoot, "composition/publicApi.ts"), "utf8");
+test("Profiles composition owns the public profile view and its domain adapters", async () => {
+  const profilesRoot = fileURLToPath(
+    new URL("../src/modules/profiles/", import.meta.url),
+  );
+  const source = await readFile(
+    join(profilesRoot, "composition/publicApi.ts"),
+    "utf8",
+  );
 
   assert.match(source, /accountReadRepository/);
-  assert.match(source, /social\/composition\/publicApi/);
-  assert.match(source, /createAccountViews/);
+  assert.match(source, /profilePresentationRepository/);
+  assert.match(source, /social\/composition\/profileSocialViews/);
+  assert.match(source, /createProfileViews/);
+  await assert.rejects(
+    readFile(join(accountsRoot, "composition/publicApi.ts"), "utf8"),
+    { code: "ENOENT" },
+  );
 });

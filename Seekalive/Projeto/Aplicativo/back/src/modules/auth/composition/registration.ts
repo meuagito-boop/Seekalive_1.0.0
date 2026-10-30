@@ -1,5 +1,6 @@
 import { db } from "@workspace/db";
 import { createPendingAccountIdentity } from "../../accounts/infrastructure/accountRegistrationRepository";
+import { initializeAccountProfile } from "../../profiles/infrastructure/initializeAccountProfile";
 import { initializeCommercialProfile } from "../../profiles/infrastructure/initializeCommercialProfile";
 import { createInitialPasswordCredential } from "../infrastructure/passwordCredentialRegistrationRepository";
 import { createRegistrationAvailability } from "../application/registration/registrationAvailability";
@@ -11,6 +12,7 @@ const registrationAccountWriter = createRegistrationAccountCoordinator({
   runInTransaction: (work) => db.transaction(work),
   createPendingAccountIdentity,
   createInitialPasswordCredential,
+  initializeAccountProfile,
   initializeCommercialProfile,
 });
 

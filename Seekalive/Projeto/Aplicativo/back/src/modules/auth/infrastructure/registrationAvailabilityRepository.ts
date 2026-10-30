@@ -5,6 +5,7 @@ import {
   accounts,
   db,
 } from "@workspace/db";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 import type { RegistrationAvailabilityRepository } from "../application/registration/registrationAvailability";
 
 export const registrationAvailabilityRepository: RegistrationAvailabilityRepository =
@@ -41,13 +42,12 @@ export const registrationAvailabilityRepository: RegistrationAvailabilityReposit
       const [account] = await db
         .select({
           id: accounts.id,
-          displayName: accounts.displayName,
           status: accounts.status,
         })
         .from(accounts)
         .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
         .where(eq(accountEmails.emailNormalized, email))
         .limit(1);
-      return account ?? null;
+      return withProfileDisplayName(account);
     },
   };

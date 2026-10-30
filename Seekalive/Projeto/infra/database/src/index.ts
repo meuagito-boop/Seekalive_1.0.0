@@ -25,6 +25,7 @@ export {
   accountFollows,
   accountFollowRequests,
 } from "./schema/profiles/relationships";
+export { accountProfiles } from "./schema/profiles/accountProfiles";
 export { feedPosts } from "./schema/feed/posts";
 export { commercialProfiles } from "./schema/profiles/businessProfiles";
 export {

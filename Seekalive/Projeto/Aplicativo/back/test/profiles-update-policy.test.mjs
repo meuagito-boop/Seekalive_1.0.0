@@ -34,7 +34,7 @@ test("personal profile update derives display name from the first and last name"
   assert.equal(result.ok, true);
   assert.deepEqual(result.changes, {
     publicNameChanged: true,
-    accountFields: {
+    profileFields: {
       firstName: "Maria",
       lastName: "Souza",
       displayName: "Maria Souza",
@@ -50,7 +50,7 @@ test("commercial profile update accepts the establishment name without personal 
 
   assert.equal(result.ok, true);
   assert.equal(result.changes.publicNameChanged, true);
-  assert.deepEqual(result.changes.accountFields, { displayName: "Café do Centro" });
+  assert.deepEqual(result.changes.profileFields, { displayName: "Café do Centro" });
 });
 
 test("personal profile update rejects a display name that conflicts with the submitted names", () => {

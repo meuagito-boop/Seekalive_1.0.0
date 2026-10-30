@@ -12,13 +12,13 @@ import type {
   EmailVerificationTransaction,
 } from "../application/emailVerification/ports";
 import { createSessionWithLimit } from "./sessionCreationRepository";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export const emailVerificationRepository: EmailVerificationRepository = {
   async findResendAccountByEmail(email) {
     const [account] = await db
       .select({
         id: accounts.id,
-        displayName: accounts.displayName,
         status: accounts.status,
         verifiedAt: accountEmails.verifiedAt,
       })
@@ -26,7 +26,7 @@ export const emailVerificationRepository: EmailVerificationRepository = {
       .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
       .where(eq(accountEmails.emailNormalized, email))
       .limit(1);
-    return account ?? null;
+    return withProfileDisplayName(account);
   },
 
   async findConfirmationAccountByEmail(email) {
@@ -34,7 +34,6 @@ export const emailVerificationRepository: EmailVerificationRepository = {
       .select({
         id: accounts.id,
         username: accounts.username,
-        displayName: accounts.displayName,
         accountType: accounts.accountType,
         status: accounts.status,
         onboardingCompletedAt: accounts.onboardingCompletedAt,
@@ -50,7 +49,7 @@ export const emailVerificationRepository: EmailVerificationRepository = {
       )
       .where(eq(accountEmails.emailNormalized, email))
       .limit(1);
-    return account ?? null;
+    return withProfileDisplayName(account);
   },
 
   async replaceChallenge(input) {

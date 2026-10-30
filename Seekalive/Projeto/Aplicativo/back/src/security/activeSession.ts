@@ -2,6 +2,7 @@ import type { Request } from "express";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { PASSWORD_POLICY_VERSION } from "@workspace/api-zod";
 import { accountEmails, accounts, db, passwordCredentials, sessions, trustedDevices } from "@workspace/db";
+import { getProfileDisplayName } from "../modules/profiles/composition/profileDisplayName";
 import { SESSION_COOKIE } from "./sessionConfig";
 import { hashToken } from "./tokenHashing";
 
@@ -14,7 +15,6 @@ export async function loadActiveSession(request: Request) {
       sessionId: sessions.id,
       accountId: accounts.id,
       username: accounts.username,
-      displayName: accounts.displayName,
       accountType: accounts.accountType,
       accountStatus: accounts.status,
       securityLockedAt: accounts.securityLockedAt,
@@ -51,5 +51,8 @@ export async function loadActiveSession(request: Request) {
     || row.credentialPasswordPolicyVersion !== PASSWORD_POLICY_VERSION
     || row.sessionPasswordPolicyVersion !== PASSWORD_POLICY_VERSION
   ) return null;
-  return row;
+  return {
+    ...row,
+    displayName: await getProfileDisplayName(row.accountId),
+  };
 }

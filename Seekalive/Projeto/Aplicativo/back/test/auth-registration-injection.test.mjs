@@ -212,7 +212,6 @@ test("registration coordinator delegates each write to its owning module", async
       return {
         id: "created-account",
         username: input.username,
-        displayName: input.displayName,
       };
     },
     async createInitialPasswordCredential(
@@ -221,6 +220,9 @@ test("registration coordinator delegates each write to its owning module", async
       hash,
     ) {
       calls.push(["security", receivedTransaction, accountId, hash]);
+    },
+    async initializeAccountProfile(receivedTransaction, accountId, profile) {
+      calls.push(["account-profile", receivedTransaction, accountId, profile]);
     },
     async initializeCommercialProfile(receivedTransaction, accountId, profile) {
       calls.push(["profiles", receivedTransaction, accountId, profile]);
@@ -255,20 +257,27 @@ test("registration coordinator delegates each write to its owning module", async
   });
   assert.deepEqual(
     calls.map(([owner]) => owner),
-    ["transaction", "accounts", "security", "profiles"],
+    ["transaction", "accounts", "security", "account-profile", "profiles"],
   );
   assert.deepEqual(calls[1][2], {
     username: identity.username,
     email: identity.email,
     age: 41,
     acceptedTermsVersion: identity.acceptedTermsVersion,
-    displayName: "Mercado do Bairro",
     accountType: "commercial",
-    firstName: null,
-    lastName: null,
   });
   assert.equal(calls[2][1], transaction);
-  assert.equal(calls[3][1], transaction);
+  assert.deepEqual(calls[3], [
+    "account-profile",
+    transaction,
+    "created-account",
+    {
+      displayName: "Mercado do Bairro",
+      firstName: null,
+      lastName: null,
+    },
+  ]);
+  assert.equal(calls[4][1], transaction);
 });
 
 test("personal registration skips commercial profile persistence", async () => {
@@ -282,11 +291,13 @@ test("personal registration skips commercial profile persistence", async () => {
       return {
         id: "personal-account",
         username: input.username,
-        displayName: input.displayName,
       };
     },
     async createInitialPasswordCredential(_transaction, accountId) {
       calls.push(["security", accountId]);
+    },
+    async initializeAccountProfile(_transaction, accountId, profile) {
+      calls.push(["account-profile", accountId, profile]);
     },
     async initializeCommercialProfile() {
       calls.push(["profiles"]);
@@ -307,8 +318,17 @@ test("personal registration skips commercial profile persistence", async () => {
 
   assert.deepEqual(
     calls.map(([owner]) => owner),
-    ["accounts", "security"],
+    ["accounts", "security", "account-profile"],
   );
+  assert.deepEqual(calls[2], [
+    "account-profile",
+    "personal-account",
+    {
+      displayName: "Ana Silva",
+      firstName: "Ana",
+      lastName: "Silva",
+    },
+  ]);
 });
 
 test("registration coordinator does not create credentials when username is unavailable", async () => {

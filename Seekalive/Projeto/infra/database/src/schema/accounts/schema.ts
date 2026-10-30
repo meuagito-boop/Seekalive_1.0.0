@@ -6,7 +6,6 @@ import {
   integer,
   primaryKey,
   smallint,
-  text,
   timestamp,
   uniqueIndex,
   uuid,
@@ -19,8 +18,6 @@ export const accounts = accountsTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     username: varchar("username", { length: 20 }).notNull(),
-    firstName: varchar("first_name", { length: 80 }),
-    lastName: varchar("last_name", { length: 80 }),
     age: smallint("age").notNull(),
     acceptedTermsVersion: varchar("accepted_terms_version", {
       length: 50,
@@ -28,10 +25,6 @@ export const accounts = accountsTable(
     termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
-    displayName: varchar("display_name", { length: 100 }).notNull(),
-    bio: text("bio").default("").notNull(),
-    locationLabel: varchar("location_label", { length: 160 }),
-    websiteUrl: varchar("website_url", { length: 2048 }),
     accountType: varchar("account_type", { length: 16 }).notNull(),
     status: varchar("status", { length: 32 })
       .default("pending_verification")
@@ -46,11 +39,7 @@ export const accounts = accountsTable(
       withTimezone: true,
     }),
     securityLockedAt: timestamp("security_locked_at", { withTimezone: true }),
-    publicNameChangedAt: timestamp("public_name_changed_at", {
-      withTimezone: true,
-    }),
     usernameChangedAt: timestamp("username_changed_at", { withTimezone: true }),
-    isPrivate: boolean("is_private").default(false).notNull(),
     isVerified: boolean("is_verified").default(false).notNull(),
     messagesPolicy: varchar("messages_policy", { length: 16 })
       .default("everyone")

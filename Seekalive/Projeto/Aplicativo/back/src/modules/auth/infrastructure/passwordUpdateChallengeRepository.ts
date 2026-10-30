@@ -7,13 +7,14 @@ import {
   passwordCredentials,
 } from "@workspace/db";
 import type { PasswordUpdateChallengeWriter } from "../application/challenges/ports";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export const writePasswordUpdateChallenge: PasswordUpdateChallengeWriter =
   async (input) =>
     db.transaction(async (tx) => {
-      const [account] = await tx
+      const [accountRow] = await tx
         .select({
-          displayName: accounts.displayName,
+          id: accounts.id,
           email: accountEmails.emailNormalized,
           status: accounts.status,
           verifiedAt: accountEmails.verifiedAt,
@@ -29,6 +30,7 @@ export const writePasswordUpdateChallenge: PasswordUpdateChallengeWriter =
         .where(eq(accounts.id, input.accountId))
         .for("update")
         .limit(1);
+      const account = await withProfileDisplayName(accountRow);
       if (
         !account ||
         account.status !== "active" ||

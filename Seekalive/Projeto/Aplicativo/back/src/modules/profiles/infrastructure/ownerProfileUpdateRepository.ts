@@ -2,6 +2,7 @@ import { and, eq, gt, lte, ne, sql } from "drizzle-orm";
 import type { AccountPatchInput } from "@workspace/api-zod";
 import {
   accountUsernameReservations,
+  accountProfiles,
   accounts,
   commercialProfiles,
   db,
@@ -31,15 +32,11 @@ export async function persistOwnerProfileUpdate(
 ): Promise<ProfileUpdateResult> {
   try {
     return await db.transaction(async (tx): Promise<ProfileUpdateResult> => {
-      const [owner] = await tx
+      const [account] = await tx
         .select({
           accountType: accounts.accountType,
           username: accounts.username,
-          firstName: accounts.firstName,
-          lastName: accounts.lastName,
-          displayName: accounts.displayName,
           createdAt: accounts.createdAt,
-          publicNameChangedAt: accounts.publicNameChangedAt,
           usernameChangedAt: accounts.usernameChangedAt,
           version: accounts.version,
         })
@@ -47,8 +44,24 @@ export async function persistOwnerProfileUpdate(
         .where(and(eq(accounts.id, accountId), eq(accounts.status, "active")))
         .for("update")
         .limit(1);
-      if (!owner) return { kind: "account_not_found" };
-      if (owner.version !== patch.version) return { kind: "version_conflict" };
+      if (!account) return { kind: "account_not_found" };
+      if (account.version !== patch.version) return { kind: "version_conflict" };
+
+      const [profile] = await tx
+        .select({
+          firstName: accountProfiles.firstName,
+          lastName: accountProfiles.lastName,
+          displayName: accountProfiles.displayName,
+          publicNameChangedAt: accountProfiles.publicNameChangedAt,
+        })
+        .from(accountProfiles)
+        .where(eq(accountProfiles.accountId, accountId))
+        .for("update")
+        .limit(1);
+      if (!profile) {
+        throw new Error(`Account ${accountId} has no canonical profile record.`);
+      }
+      const owner = { ...account, ...profile };
 
       const now = new Date();
       const decision = evaluate(owner, now);
@@ -112,19 +125,6 @@ export async function persistOwnerProfileUpdate(
           ...(usernameChanged && patch.username
             ? { username: patch.username, usernameChangedAt: now }
             : {}),
-          ...profileChanges.accountFields,
-          ...(profileChanges.publicNameChanged
-            ? { publicNameChangedAt: now }
-            : {}),
-          ...(patch.bio === undefined ? {} : { bio: patch.bio }),
-          ...(patch.location === undefined
-            ? {}
-            : { locationLabel: patch.location }),
-          ...(owner.accountType === "commercial" && patch.commercialProfile
-            ? {
-                locationLabel: `${patch.commercialProfile.cityName}, ${patch.commercialProfile.stateName}`,
-              }
-            : {}),
           updatedAt: now,
           version: sql`${accounts.version} + 1`,
         })
@@ -138,6 +138,30 @@ export async function persistOwnerProfileUpdate(
         )
         .returning({ id: accounts.id });
       if (!updated) return { kind: "version_conflict" };
+
+      const [updatedProfile] = await tx
+        .update(accountProfiles)
+        .set({
+          ...profileChanges.profileFields,
+          ...(profileChanges.publicNameChanged
+            ? { publicNameChangedAt: now }
+            : {}),
+          ...(patch.bio === undefined ? {} : { bio: patch.bio }),
+          ...(patch.location === undefined
+            ? {}
+            : { locationLabel: patch.location }),
+          ...(owner.accountType === "commercial" && patch.commercialProfile
+            ? {
+                locationLabel: `${patch.commercialProfile.cityName}, ${patch.commercialProfile.stateName}`,
+              }
+            : {}),
+          updatedAt: now,
+        })
+        .where(eq(accountProfiles.accountId, accountId))
+        .returning({ accountId: accountProfiles.accountId });
+      if (!updatedProfile) {
+        throw new Error(`Account ${accountId} has no canonical profile record.`);
+      }
 
       if (owner.accountType === "commercial" && patch.commercialProfile) {
         await tx

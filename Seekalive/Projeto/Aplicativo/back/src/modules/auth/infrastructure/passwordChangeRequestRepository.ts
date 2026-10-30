@@ -7,6 +7,7 @@ import {
   passwordCredentials,
 } from "@workspace/db";
 import type { PasswordChangeRequestRepository } from "../application/passwordChange/requestPorts";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export const passwordChangeRequestRepository: PasswordChangeRequestRepository =
   {
@@ -14,13 +15,13 @@ export const passwordChangeRequestRepository: PasswordChangeRequestRepository =
       return db.transaction(async (tx) =>
         operation({
           async lockOwner(accountId) {
-            const [owner] = await tx
+            const [ownerRow] = await tx
               .select({
+                id: accounts.id,
                 status: accounts.status,
                 securityLockedAt: accounts.securityLockedAt,
                 email: accountEmails.emailNormalized,
                 emailVerifiedAt: accountEmails.verifiedAt,
-                displayName: accounts.displayName,
                 passwordHash: passwordCredentials.passwordHash,
               })
               .from(accounts)
@@ -35,7 +36,7 @@ export const passwordChangeRequestRepository: PasswordChangeRequestRepository =
               .where(eq(accounts.id, accountId))
               .for("update")
               .limit(1);
-            return owner ?? null;
+            return withProfileDisplayName(ownerRow);
           },
 
           async findRecentChallenges(input) {

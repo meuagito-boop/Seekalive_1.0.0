@@ -1,21 +1,16 @@
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { accountEmails, accounts, db } from "@workspace/db";
-import type { PublicAccountRow } from "../domain/publicAccount";
+import type { AccountIdentityRecord } from "../domain/accountIdentity";
 
 const publicAccountSelection = {
   id: accounts.id,
   username: accounts.username,
-  displayName: accounts.displayName,
-  bio: accounts.bio,
-  locationLabel: accounts.locationLabel,
-  websiteUrl: accounts.websiteUrl,
   accountType: accounts.accountType,
-  isPrivate: accounts.isPrivate,
   createdAt: accounts.createdAt,
   version: accounts.version,
 };
 
-export async function findActiveAccountById(id: string): Promise<PublicAccountRow | null> {
+export async function findActiveAccountById(id: string): Promise<AccountIdentityRecord | null> {
   const [row] = await db
     .select(publicAccountSelection)
     .from(accounts)
@@ -31,7 +26,7 @@ export async function findActiveAccountById(id: string): Promise<PublicAccountRo
 
 export async function findActiveAccountByUsername(
   username: string,
-): Promise<PublicAccountRow | null> {
+): Promise<AccountIdentityRecord | null> {
   const [row] = await db
     .select(publicAccountSelection)
     .from(accounts)
@@ -45,7 +40,7 @@ export async function findActiveAccountByUsername(
   return row ?? null;
 }
 
-export async function findActiveAccountsByIds(ids: string[]): Promise<PublicAccountRow[]> {
+export async function findActiveAccountsByIds(ids: string[]): Promise<AccountIdentityRecord[]> {
   if (ids.length === 0) return [];
   return db
     .select(publicAccountSelection)

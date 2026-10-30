@@ -28,6 +28,7 @@ configureIsolatedDatabaseEnvironment({
 const database = await import("@workspace/db");
 const {
   accountBlocks,
+  accountProfiles,
   accountEmails,
   accountFollows,
   accountFollowRequests,
@@ -54,6 +55,7 @@ function dateOfBirthForAge(age) {
 
 const modelTables = [
   accounts,
+  accountProfiles,
   accountEmails,
   passwordCredentials,
   commercialProfiles,
@@ -426,8 +428,8 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   const rejectedDatabaseInsert = await pool
     .query(
       `INSERT INTO ${quoteGeneratedSchema(schemaName)}.accounts
-      (username, age, accepted_terms_version, display_name, account_type)
-     VALUES ($1, 17, 'v1', 'Menor de idade', 'personal')`,
+      (username, age, accepted_terms_version, account_type)
+     VALUES ($1, 17, 'v1', 'personal')`,
       [`db_${suffix}`],
     )
     .then(
@@ -460,6 +462,19 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
 
   const personal = await confirmAccount(pendingPersonal, preAuth);
   assert.equal(personal.account.accountType, "personal");
+  const [personalProfile] = await db
+    .select({
+      firstName: accountProfiles.firstName,
+      lastName: accountProfiles.lastName,
+      displayName: accountProfiles.displayName,
+    })
+    .from(accountProfiles)
+    .where(eq(accountProfiles.accountId, personal.account.id));
+  assert.deepEqual(personalProfile, {
+    firstName: "Conta",
+    lastName: "Isolada",
+    displayName: "Conta Isolada",
+  });
   const [newPersonalCredential] = await db
     .select({
       passwordPolicyVersion: passwordCredentials.passwordPolicyVersion,
@@ -1081,6 +1096,19 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     cookie: cookieValue(commercialLogin.response, "__Host-seekalive_session"),
     csrfToken: commercialLogin.body.csrfToken,
   };
+  const [commercialProfile] = await db
+    .select({
+      firstName: accountProfiles.firstName,
+      lastName: accountProfiles.lastName,
+      displayName: accountProfiles.displayName,
+    })
+    .from(accountProfiles)
+    .where(eq(accountProfiles.accountId, commercial.account.id));
+  assert.deepEqual(commercialProfile, {
+    firstName: null,
+    lastName: null,
+    displayName: commercialRegistration.businessName,
+  });
   assert.equal(commercial.account.accountType, "commercial");
 
   const initialSessionPage = await request("/api/v1/auth/sessions", {

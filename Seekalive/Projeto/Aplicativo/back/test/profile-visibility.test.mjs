@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildAccountView } from "../src/modules/accounts/application/accountViewMapper.ts";
-import { canViewPrivateProfileContent } from "../src/modules/accounts/domain/accountVisibility.ts";
+import { buildProfileView } from "../src/modules/profiles/application/profileViewMapper.ts";
+import { canViewPrivateProfileContent } from "../src/modules/profiles/domain/profileVisibility.ts";
 import { createCommercialProfileDetailsReader } from "../src/modules/profiles/application/commercialProfileDetails.ts";
 import { getPublicProfileByUsername } from "../src/modules/profiles/application/publicProfile.ts";
 
@@ -101,8 +101,8 @@ test("private profile visibility is limited to the owner and accepted followers"
   );
 });
 
-test("account view mapper redacts private profile details from non-followers", () => {
-  const view = buildAccountView(account, null, relationship, stats);
+test("profile view mapper redacts private profile details from non-followers", () => {
+  const view = buildProfileView(account, null, relationship, stats);
 
   assert.equal(view.bio, "");
   assert.equal(view.location, null);
@@ -111,8 +111,8 @@ test("account view mapper redacts private profile details from non-followers", (
   assert.deepEqual(view.stats, stats);
 });
 
-test("account view mapper shows private profile details to the owner", () => {
-  const view = buildAccountView(account, "account", relationship, stats);
+test("profile view mapper shows private profile details to the owner", () => {
+  const view = buildProfileView(account, "account", relationship, stats);
 
   assert.equal(view.bio, "Private biography");
   assert.equal(view.location, "São Paulo");
@@ -149,7 +149,7 @@ test("public profile composition hides a blocked profile before loading its cont
 
 test("public profile composition delegates private-content access to the visibility policy", async () => {
   const result = await getPublicProfileByUsername("private_user", null, {
-    accountView: async () => ({ id: "account" }),
+    accountView: async () => ({ id: "account", isPrivate: true }),
     findActiveAccountById: async () => null,
     findActiveAccountByUsername: async () => ({ ...account, id: "account" }),
     readCommercialProfileDetails: async () => null,
@@ -175,7 +175,7 @@ test("visible commercial profiles include persisted business details", async () 
     countryName: "Brasil",
   };
   const result = await getPublicProfileByUsername("test_user", null, {
-    accountView: async () => ({ id: "account" }),
+    accountView: async () => ({ id: "account", isPrivate: false }),
     findActiveAccountById: async () => null,
     findActiveAccountByUsername: async () => ({
       ...account,
@@ -195,7 +195,7 @@ test("visible commercial profiles include persisted business details", async () 
 test("public personal profiles never read or expose commercial details", async () => {
   let commercialDetailsLookups = 0;
   const result = await getPublicProfileByUsername("personal_user", null, {
-    accountView: async () => ({ id: "personal-account" }),
+    accountView: async () => ({ id: "personal-account", isPrivate: false }),
     findActiveAccountById: async () => null,
     findActiveAccountByUsername: async () => ({
       ...account,
@@ -220,7 +220,7 @@ test("public personal profiles never read or expose commercial details", async (
 test("private commercial details stay hidden from an unapproved visitor", async () => {
   let detailsWereLoaded = false;
   const result = await getPublicProfileByUsername("test_user", null, {
-    accountView: async () => ({ id: "account" }),
+    accountView: async () => ({ id: "account", isPrivate: true }),
     findActiveAccountById: async () => null,
     findActiveAccountByUsername: async () => ({
       ...account,
@@ -252,7 +252,7 @@ test("an approved follower can view a private commercial profile's details", asy
     countryName: "Brasil",
   };
   const result = await getPublicProfileByUsername("test_user", "follower", {
-    accountView: async () => ({ id: "account" }),
+    accountView: async () => ({ id: "account", isPrivate: true }),
     findActiveAccountById: async () => null,
     findActiveAccountByUsername: async () => ({
       ...account,

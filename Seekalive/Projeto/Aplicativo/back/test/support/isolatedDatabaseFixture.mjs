@@ -8,6 +8,7 @@ export const isolatedDatabaseTableNames = Object.freeze([
   "account_follow_requests",
   "account_follows",
   "account_interests",
+  "account_profiles",
   "account_username_reservations",
   "accounts",
   "auth_challenges",

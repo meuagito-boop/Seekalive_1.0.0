@@ -4,7 +4,7 @@ import {
   accountViewsByIds,
   findActiveAccountById,
   findActiveAccountByUsername,
-} from "../../accounts/composition/publicApi";
+} from "./publicApi";
 import {
   isBlockedBetween,
   getRelationshipFor,

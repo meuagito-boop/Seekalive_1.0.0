@@ -13,16 +13,17 @@ import type {
   AccountDeletionCodeConfirmation,
   AccountDeletionCodeConfirmationResult,
 } from "../application/accountDeletion/deletionCodePorts";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export async function writeAccountDeletionChallenge(
   challenge: AccountDeletionCodeChallenge,
 ): Promise<{ email: string; displayName: string } | null> {
   return db.transaction(async (tx) => {
-    const [account] = await tx
+    const [accountRow] = await tx
       .select({
+        id: accounts.id,
         email: accountEmails.emailNormalized,
         emailVerifiedAt: accountEmails.verifiedAt,
-        displayName: accounts.displayName,
         status: accounts.status,
         securityLockedAt: accounts.securityLockedAt,
         deletionScheduledFor: accounts.deletionScheduledFor,
@@ -32,6 +33,7 @@ export async function writeAccountDeletionChallenge(
       .where(eq(accounts.id, challenge.accountId))
       .for("update")
       .limit(1);
+    const account = await withProfileDisplayName(accountRow);
 
     if (
       !account ||

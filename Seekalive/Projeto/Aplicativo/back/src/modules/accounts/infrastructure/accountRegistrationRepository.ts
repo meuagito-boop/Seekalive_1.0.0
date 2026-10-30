@@ -53,18 +53,14 @@ export async function createPendingAccountIdentity(
     .insert(accounts)
     .values({
       username: input.username,
-      firstName: input.firstName,
-      lastName: input.lastName,
       age: input.age,
       acceptedTermsVersion: input.acceptedTermsVersion,
-      displayName: input.displayName,
       accountType: input.accountType,
       status: "pending_verification",
     })
     .returning({
       id: accounts.id,
       username: accounts.username,
-      displayName: accounts.displayName,
     });
   if (!created) throw new Error("Account insert returned no row.");
 

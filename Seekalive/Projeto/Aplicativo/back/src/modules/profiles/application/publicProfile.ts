@@ -1,7 +1,7 @@
 import type { AccountReadPort } from "../../accounts/application/ports";
-import type { createAccountViews } from "../../accounts/application/accountViews";
-import type { PublicAccountRow } from "../../accounts/domain/publicAccount";
-import { canViewPrivateProfileContent } from "../../accounts/domain/accountVisibility";
+import type { createProfileViews } from "./profileViews";
+import type { AccountIdentityRecord } from "../../accounts/domain/accountIdentity";
+import { canViewPrivateProfileContent } from "../domain/profileVisibility";
 import type { ListProfilePosts } from "../../feed/application/listProfilePosts";
 import type { RelationshipView } from "../../social/domain/relationshipView";
 import { usernameFormatSchema } from "@workspace/api-zod";
@@ -11,7 +11,7 @@ import type {
 } from "./commercialProfileDetails";
 
 const emptyPage = { items: [], nextCursor: null };
-type AccountViewReader = ReturnType<typeof createAccountViews>["accountView"];
+type AccountViewReader = ReturnType<typeof createProfileViews>["accountView"];
 
 export type PublicProfileDependencies = {
   accountView: AccountViewReader;
@@ -48,7 +48,7 @@ export type PublicProfileData = {
 };
 
 async function composePublicProfile(
-  row: PublicAccountRow,
+  row: AccountIdentityRecord,
   viewerId: string | null,
   dependencies: PublicProfileDependencies,
 ): Promise<PublicProfileResult<PublicProfileData>> {
@@ -57,17 +57,17 @@ async function composePublicProfile(
   }
 
   const relationship = await dependencies.getRelationshipFor(viewerId, row.id);
-  const canViewPublicContent = canViewPrivateProfileContent(
-    row.isPrivate,
-    viewerId,
-    row.id,
-    relationship.following,
-  );
   const [account, posts, articles] = await Promise.all([
     dependencies.accountView(row, viewerId, relationship),
     dependencies.listProfilePosts(row.id, viewerId, 20, null, "text"),
     dependencies.listProfilePosts(row.id, viewerId, 20, null, "article"),
   ]);
+  const canViewPublicContent = canViewPrivateProfileContent(
+    account.isPrivate,
+    viewerId,
+    row.id,
+    relationship.following,
+  );
   let commercialProfile: CommercialProfileDetails | null = null;
   if (row.accountType === "commercial" && canViewPublicContent) {
     commercialProfile = await dependencies.readCommercialProfileDetails(row.id);

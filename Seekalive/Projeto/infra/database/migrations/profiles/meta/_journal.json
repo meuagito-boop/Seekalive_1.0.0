@@ -15,6 +15,13 @@
       "when": 1793360219414,
       "tag": "0001_talented_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793363813525,
+      "tag": "0002_charming_alice",
+      "breakpoints": true
     }
   ]
 }

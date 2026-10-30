@@ -21,6 +21,7 @@ import type {
   EmailChangeRepository,
   EmailChangeTransaction,
 } from "../application/emailChange/ports";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 function isPostgresUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
@@ -40,20 +41,20 @@ export const emailChangeRepository: EmailChangeRepository = {
     return db.transaction(async (tx) => {
       const transaction: EmailChangeTransaction = {
         async lockOwner(accountId) {
-          const [owner] = await tx
+          const [ownerRow] = await tx
             .select({
               id: accounts.id,
               status: accounts.status,
               securityLockedAt: accounts.securityLockedAt,
               email: accountEmails.emailNormalized,
               emailVerifiedAt: accountEmails.verifiedAt,
-              displayName: accounts.displayName,
             })
             .from(accounts)
             .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
             .where(eq(accounts.id, accountId))
             .for("update")
             .limit(1);
+          const owner = await withProfileDisplayName(ownerRow);
           if (!owner) return null;
 
           const [credential] = await tx

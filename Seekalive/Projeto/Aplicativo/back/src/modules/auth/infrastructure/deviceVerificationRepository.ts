@@ -13,6 +13,7 @@ import type {
   DeviceVerificationTransaction,
 } from "../application/deviceVerification/ports";
 import { createSessionWithLimit } from "./sessionCreationRepository";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export const deviceVerificationRepository: DeviceVerificationRepository = {
   async findAccountIdForChallenge(challengeId) {
@@ -39,7 +40,6 @@ export const deviceVerificationRepository: DeviceVerificationRepository = {
             .select({
               id: accounts.id,
               username: accounts.username,
-              displayName: accounts.displayName,
               accountType: accounts.accountType,
               status: accounts.status,
               securityLockedAt: accounts.securityLockedAt,
@@ -57,14 +57,13 @@ export const deviceVerificationRepository: DeviceVerificationRepository = {
             .where(eq(accounts.id, accountId))
             .for("update")
             .limit(1);
-          return account ?? null;
+          return withProfileDisplayName(account);
         },
 
         async lockResendAccount(accountId) {
           const [account] = await tx
             .select({
               id: accounts.id,
-              displayName: accounts.displayName,
               email: accountEmails.emailNormalized,
               status: accounts.status,
               verifiedAt: accountEmails.verifiedAt,
@@ -75,7 +74,7 @@ export const deviceVerificationRepository: DeviceVerificationRepository = {
             .where(eq(accounts.id, accountId))
             .for("update")
             .limit(1);
-          return account ?? null;
+          return withProfileDisplayName(account);
         },
 
         async lockConfirmationChallenge(input) {

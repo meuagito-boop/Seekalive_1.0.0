@@ -1,5 +1,6 @@
 import type { DatabaseTransaction } from "@workspace/db";
 import type { CommercialProfileRegistrationData } from "../../profiles/domain/commercialProfileRegistration";
+import type { AccountProfileRegistrationData } from "../../profiles/domain/accountProfileRegistration";
 import type {
   CreatedPendingAccountIdentity,
   PendingAccountIdentityInput,
@@ -23,6 +24,12 @@ type CommercialProfileInitializer = (
   profile: CommercialProfileRegistrationData,
 ) => Promise<void>;
 
+type AccountProfileInitializer = (
+  transaction: DatabaseTransaction,
+  accountId: string,
+  profile: AccountProfileRegistrationData,
+) => Promise<void>;
+
 type RegistrationTransactionRunner = <T>(
   work: (transaction: DatabaseTransaction) => Promise<T>,
 ) => Promise<T>;
@@ -31,6 +38,7 @@ export function createRegistrationAccountCoordinator(dependencies: {
   runInTransaction: RegistrationTransactionRunner;
   createPendingAccountIdentity: PendingAccountIdentityWriter;
   createInitialPasswordCredential: PasswordCredentialWriter;
+  initializeAccountProfile: AccountProfileInitializer;
   initializeCommercialProfile: CommercialProfileInitializer;
 }) {
   return {
@@ -43,10 +51,7 @@ export function createRegistrationAccountCoordinator(dependencies: {
             email: input.email,
             age: input.age,
             acceptedTermsVersion: input.acceptedTermsVersion,
-            displayName: input.displayName,
             accountType: input.accountType,
-            firstName: input.firstName,
-            lastName: input.lastName,
           },
         );
         if (!account) return null;
@@ -57,6 +62,12 @@ export function createRegistrationAccountCoordinator(dependencies: {
           input.passwordHash,
         );
 
+        await dependencies.initializeAccountProfile(transaction, account.id, {
+          displayName: input.displayName,
+          firstName: input.firstName,
+          lastName: input.lastName,
+        });
+
         if (input.accountType === "commercial") {
           await dependencies.initializeCommercialProfile(
             transaction,
@@ -65,7 +76,7 @@ export function createRegistrationAccountCoordinator(dependencies: {
           );
         }
 
-        return account;
+        return { ...account, displayName: input.displayName };
       });
     },
   };

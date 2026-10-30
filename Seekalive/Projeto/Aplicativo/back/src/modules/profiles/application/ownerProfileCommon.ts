@@ -1,10 +1,10 @@
 import type { ApiErrorKey, HttpStatusCode } from "@workspace/api-zod";
 import { nextIdentityChangeAt } from "../../accounts/domain/usernamePolicy";
 import type { AccountReadPort } from "../../accounts/application/ports";
-import type { createAccountViews } from "../../accounts/application/accountViews";
+import type { createProfileViews } from "./profileViews";
 import type { OwnerProfileIdentityReader } from "./ports";
 
-type AccountViewReader = ReturnType<typeof createAccountViews>["accountView"];
+type AccountViewReader = ReturnType<typeof createProfileViews>["accountView"];
 
 export type OwnerProfileIdentityDependencies = {
   accountView: AccountViewReader;

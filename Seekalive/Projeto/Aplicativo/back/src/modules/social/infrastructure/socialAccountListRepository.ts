@@ -4,6 +4,7 @@ import {
   accountEmails,
   accountFollowRequests,
   accountFollows,
+  accountProfiles,
   accounts,
   db,
 } from "@workspace/db";
@@ -14,10 +15,14 @@ export async function searchVerifiedAccountIds(query: string, limit: number, off
     .select({ id: accounts.id })
     .from(accounts)
     .innerJoin(accountEmails, eq(accountEmails.accountId, accounts.id))
+    .innerJoin(accountProfiles, eq(accountProfiles.accountId, accounts.id))
     .where(and(
       eq(accounts.status, "active"),
       isNotNull(accountEmails.verifiedAt),
-      or(ilike(accounts.username, pattern), ilike(accounts.displayName, pattern)),
+      or(
+        ilike(accounts.username, pattern),
+        ilike(accountProfiles.displayName, pattern),
+      ),
     ))
     .orderBy(asc(accounts.username), asc(accounts.id))
     .limit(limit + 1)

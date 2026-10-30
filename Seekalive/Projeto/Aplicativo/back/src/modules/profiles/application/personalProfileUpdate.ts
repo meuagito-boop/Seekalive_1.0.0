@@ -28,7 +28,7 @@ export function preparePersonalProfileUpdate(
     ok: true,
     changes: {
       publicNameChanged,
-      accountFields: personalDisplayName === undefined
+      profileFields: personalDisplayName === undefined
         ? {}
         : {
             firstName: patch.firstName,

@@ -16,7 +16,7 @@ export type ProfileUpdateOwner = Omit<ProfileUpdateOwnerSnapshot, "accountType">
 
 export type ProfileAccountChanges = {
   publicNameChanged: boolean;
-  accountFields: {
+  profileFields: {
     firstName?: string;
     lastName?: string;
     displayName?: string;

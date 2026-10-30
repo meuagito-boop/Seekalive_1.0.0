@@ -1,5 +1,11 @@
 import { and, eq, isNotNull, or } from "drizzle-orm";
-import { accountBlocks, accountEmails, accounts, db } from "@workspace/db";
+import {
+  accountBlocks,
+  accountEmails,
+  accountProfiles,
+  accounts,
+  db,
+} from "@workspace/db";
 
 export type SocialTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -17,12 +23,22 @@ export async function lockRelationshipAccounts(
   const locked: LockedRelationshipAccount[] = [];
   for (const id of [...new Set([firstId, secondId])].sort()) {
     const [account] = await tx
-      .select({ id: accounts.id, status: accounts.status, isPrivate: accounts.isPrivate })
+      .select({ id: accounts.id, status: accounts.status })
       .from(accounts)
       .where(eq(accounts.id, id))
       .for("update")
       .limit(1);
-    if (account) locked.push(account);
+    if (account) {
+      const [profile] = await tx
+        .select({ isPrivate: accountProfiles.isPrivate })
+        .from(accountProfiles)
+        .where(eq(accountProfiles.accountId, id))
+        .limit(1);
+      if (!profile) {
+        throw new Error(`Active account ${id} has no canonical profile record.`);
+      }
+      locked.push({ ...account, isPrivate: profile.isPrivate });
+    }
   }
   return locked;
 }

@@ -6,6 +6,7 @@ import {
   passwordCredentials,
 } from "@workspace/db";
 import type { PasswordUpdateRequestRepository } from "../application/passwordUpdate/requestPorts";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export const passwordUpdateRequestRepository: PasswordUpdateRequestRepository =
   {
@@ -24,7 +25,6 @@ export const passwordUpdateRequestRepository: PasswordUpdateRequestRepository =
           securityLockedAt: accounts.securityLockedAt,
           emailVerifiedAt: accountEmails.verifiedAt,
           email: accountEmails.emailNormalized,
-          displayName: accounts.displayName,
           passwordHash: passwordCredentials.passwordHash,
         })
         .from(accounts)
@@ -36,6 +36,6 @@ export const passwordUpdateRequestRepository: PasswordUpdateRequestRepository =
         .where(condition)
         .limit(1);
 
-      return account ?? null;
+      return withProfileDisplayName(account);
     },
   };

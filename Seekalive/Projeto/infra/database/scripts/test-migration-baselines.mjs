@@ -24,7 +24,7 @@ const tracks = ["accounts", "security", "profiles", "seek"];
 const expectedTablesAfterTransfer = {
   accounts: 4,
   security: 4,
-  profiles: 4,
+  profiles: 5,
   seek: 0,
 };
 const expectedBusinessProfileColumns = [
@@ -36,6 +36,19 @@ const expectedBusinessProfileColumns = [
   "city_name",
   "state_name",
   "country_name",
+  "created_at",
+  "updated_at",
+];
+const expectedAccountProfileColumns = [
+  "account_id",
+  "first_name",
+  "last_name",
+  "display_name",
+  "bio",
+  "location_label",
+  "website_url",
+  "public_name_changed_at",
+  "is_private",
   "created_at",
   "updated_at",
 ];
@@ -130,8 +143,12 @@ try {
   const seekSchema = quoteIdentifier(isolatedSchemas.seek);
   await client.query(
     `INSERT INTO ${accountsSchema}.accounts
-      (id, username, age, accepted_terms_version, display_name, account_type)
-     VALUES ($1, 'migration_test', 30, 'test-v1', 'Migration test', 'commercial')`,
+      (id, username, age, accepted_terms_version, first_name, last_name,
+       display_name, bio, location_label, website_url, public_name_changed_at,
+       is_private, account_type)
+     VALUES ($1, 'migration_test', 30, 'test-v1', 'Maria', 'Teste',
+       'Migration test', 'Profile biography', 'São Paulo',
+       'https://example.test', '2026-10-01T00:00:00Z', true, 'commercial')`,
     [businessAccountId],
   );
   await client.query(
@@ -157,6 +174,18 @@ try {
     isolatedSchemas,
   );
   await client.query(profileMigration);
+  const accountProfileMigrationPath = path.join(
+    packageDirectory,
+    "..",
+    "migrations",
+    "profiles",
+    "0002_charming_alice.sql",
+  );
+  const accountProfileMigration = rewriteDomainNames(
+    await readFile(accountProfileMigrationPath, "utf8"),
+    isolatedSchemas,
+  );
+  await client.query(accountProfileMigration);
 
   const tableRows = await client.query(
     `SELECT table_schema, count(*)::int AS table_count
@@ -190,8 +219,58 @@ try {
       address: "Rua de Teste, 10",
     },
   ]);
+  const movedAccountProfile = await client.query(
+    `SELECT account_id, first_name, last_name, display_name, bio,
+            location_label, website_url, public_name_changed_at, is_private
+     FROM ${quoteIdentifier(isolatedSchemas.profiles)}.account_profiles
+     WHERE account_id = $1`,
+    [businessAccountId],
+  );
+  assert.deepEqual(movedAccountProfile.rows, [
+    {
+      account_id: businessAccountId,
+      first_name: "Maria",
+      last_name: "Teste",
+      display_name: "Migration test",
+      bio: "Profile biography",
+      location_label: "São Paulo",
+      website_url: "https://example.test",
+      public_name_changed_at: new Date("2026-10-01T00:00:00.000Z"),
+      is_private: true,
+    },
+  ]);
+  const remainingLegacyProfileColumns = await client.query(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema = $1
+       AND table_name = 'accounts'
+       AND column_name = ANY($2::text[])`,
+    [
+      isolatedSchemas.accounts,
+      [
+        "first_name",
+        "last_name",
+        "display_name",
+        "bio",
+        "location_label",
+        "website_url",
+        "public_name_changed_at",
+        "is_private",
+      ],
+    ],
+  );
+  assert.deepEqual(remainingLegacyProfileColumns.rows, []);
   const metadataAfterTransfer = await readSchemaMetadata(client, schemaNames);
-  assert.deepEqual(metadataAfterTransfer, metadataBeforeTransfer);
+  assert.equal(metadataAfterTransfer.columns, metadataBeforeTransfer.columns + 3);
+  assert.equal(
+    metadataAfterTransfer.foreign_keys,
+    metadataBeforeTransfer.foreign_keys + 1,
+  );
+  assert.equal(
+    metadataAfterTransfer.indexes,
+    metadataBeforeTransfer.indexes + 1,
+  );
+  assert.equal(metadataAfterTransfer.check_constraints, metadataBeforeTransfer.check_constraints);
 
   const freshSchemas = {
     accounts: `seekalive_test_${schemaSuffix}_fresh_accounts`,
@@ -216,6 +295,12 @@ try {
   await client.query(
     rewriteDomainNames(
       await readFile(profileMigrationPath, "utf8"),
+      freshSchemas,
+    ),
+  );
+  await client.query(
+    rewriteDomainNames(
+      await readFile(accountProfileMigrationPath, "utf8"),
       freshSchemas,
     ),
   );
@@ -247,6 +332,17 @@ try {
     [freshSchemas.profiles],
   );
   assert.equal(freshBusinessProfileForeignKeys.rows[0]?.count, 1);
+  const freshAccountProfileColumns = await client.query(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema = $1 AND table_name = 'account_profiles'
+     ORDER BY ordinal_position`,
+    [freshSchemas.profiles],
+  );
+  assert.deepEqual(
+    freshAccountProfileColumns.rows.map((row) => row.column_name),
+    expectedAccountProfileColumns,
+  );
 
   for (const schemaName of [
     ...Object.values(isolatedSchemas),

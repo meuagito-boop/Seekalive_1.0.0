@@ -12,7 +12,7 @@ export function prepareCommercialProfileUpdate(
     ok: true,
     changes: {
       publicNameChanged: patch.displayName !== undefined && patch.displayName !== owner.displayName,
-      accountFields: patch.displayName === undefined ? {} : { displayName: patch.displayName },
+        profileFields: patch.displayName === undefined ? {} : { displayName: patch.displayName },
     },
   };
 }

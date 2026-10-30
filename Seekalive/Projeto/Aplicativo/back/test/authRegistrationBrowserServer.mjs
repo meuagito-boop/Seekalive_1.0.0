@@ -69,9 +69,6 @@ async function verifyRegistration(message) {
       username: tables.accounts.username,
       accountType: tables.accounts.accountType,
       status: tables.accounts.status,
-      displayName: tables.accounts.displayName,
-      firstName: tables.accounts.firstName,
-      lastName: tables.accounts.lastName,
       acceptedTermsVersion: tables.accounts.acceptedTermsVersion,
     })
     .from(tables.accounts)
@@ -109,11 +106,20 @@ async function verifyRegistration(message) {
     .where(eq(tables.sessions.accountId, account.id))
     .limit(1);
 
+  const [accountProfile] = await db
+    .select({
+      displayName: tables.accountProfiles.displayName,
+      firstName: tables.accountProfiles.firstName,
+      lastName: tables.accountProfiles.lastName,
+    })
+    .from(tables.accountProfiles)
+    .where(eq(tables.accountProfiles.accountId, account.id))
+    .limit(1);
   const expectedIdentityMatches =
     message.accountType === "personal"
-      ? account.firstName === message.firstName &&
-        account.lastName === message.lastName
-      : account.displayName === message.businessName;
+      ? accountProfile?.firstName === message.firstName &&
+        accountProfile?.lastName === message.lastName
+      : accountProfile?.displayName === message.businessName;
 
   let commercialProfileMatches = message.accountType === "personal";
   if (message.accountType === "commercial") {

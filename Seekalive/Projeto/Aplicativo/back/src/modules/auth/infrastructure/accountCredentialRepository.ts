@@ -5,15 +5,16 @@ import {
   db,
   passwordCredentials,
 } from "@workspace/db";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export async function findCurrentPasswordRecord(accountId: string) {
   const [record] = await db
     .select({
+      id: accounts.id,
       status: accounts.status,
       securityLockedAt: accounts.securityLockedAt,
       email: accountEmails.emailNormalized,
       emailVerifiedAt: accountEmails.verifiedAt,
-      displayName: accounts.displayName,
       passwordHash: passwordCredentials.passwordHash,
     })
     .from(accounts)
@@ -25,5 +26,5 @@ export async function findCurrentPasswordRecord(accountId: string) {
     .where(eq(accounts.id, accountId))
     .limit(1);
 
-  return record ?? null;
+  return withProfileDisplayName(record);
 }

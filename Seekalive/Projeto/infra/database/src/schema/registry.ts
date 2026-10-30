@@ -10,6 +10,7 @@ import {
   accountFollows,
   accountFollowRequests,
 } from "./profiles/relationships";
+import { accountProfiles } from "./profiles/accountProfiles";
 import { commercialProfiles } from "./profiles/businessProfiles";
 import {
   authChallenges,
@@ -33,6 +34,7 @@ export const databaseSchema = {
   accountFollowRequests,
   accountBlocks,
   feedPosts,
+  accountProfiles,
   commercialProfiles,
 };
 
@@ -41,6 +43,7 @@ export {
   accountInterests,
   accountUsernameReservations,
   accounts,
+  accountProfiles,
   authChallenges,
   commercialProfiles,
   accountBlocks,

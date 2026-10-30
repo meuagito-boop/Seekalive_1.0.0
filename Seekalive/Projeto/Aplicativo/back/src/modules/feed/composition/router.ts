@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { accountViewsByIds } from "../../accounts/composition/publicApi";
+import { accountViewsByIds } from "../../profiles/composition/publicApi";
 import { createPostCreator } from "../application/createPost";
 import { createPostDeleter } from "../application/deletePost";
 import { createPostReader } from "../application/readPost";

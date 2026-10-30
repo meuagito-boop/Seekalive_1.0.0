@@ -1,14 +1,15 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { accountEmails, accounts, authChallenges, db } from "@workspace/db";
 import type { DeviceLoginChallengeWriter } from "../application/challenges/ports";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export const writeDeviceLoginChallenge: DeviceLoginChallengeWriter = async (
   input,
 ) =>
   db.transaction(async (tx) => {
-    const [account] = await tx
+    const [accountRow] = await tx
       .select({
-        displayName: accounts.displayName,
+        id: accounts.id,
         email: accountEmails.emailNormalized,
         status: accounts.status,
         verifiedAt: accountEmails.verifiedAt,
@@ -19,6 +20,7 @@ export const writeDeviceLoginChallenge: DeviceLoginChallengeWriter = async (
       .where(eq(accounts.id, input.accountId))
       .for("update")
       .limit(1);
+    const account = await withProfileDisplayName(accountRow);
 
     if (
       !account ||

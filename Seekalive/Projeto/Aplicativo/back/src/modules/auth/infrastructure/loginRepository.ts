@@ -8,6 +8,7 @@ import {
 } from "@workspace/db";
 import type { LoginRepository } from "../application/login/ports";
 import { createSessionWithLimit } from "./sessionCreationRepository";
+import { withProfileDisplayName } from "../../profiles/composition/profileDisplayName";
 
 export const loginRepository: LoginRepository = {
   async findLoginAccount(input) {
@@ -15,7 +16,6 @@ export const loginRepository: LoginRepository = {
       .select({
         id: accounts.id,
         username: accounts.username,
-        displayName: accounts.displayName,
         accountType: accounts.accountType,
         accountStatus: accounts.status,
         securityLockedAt: accounts.securityLockedAt,
@@ -41,7 +41,7 @@ export const loginRepository: LoginRepository = {
             ),
       )
       .limit(1);
-    return row ?? null;
+    return withProfileDisplayName(row);
   },
 
   async withTransaction(operation) {

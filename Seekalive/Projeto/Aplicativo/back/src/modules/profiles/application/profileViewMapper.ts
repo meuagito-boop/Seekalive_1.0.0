@@ -1,10 +1,10 @@
 import type { AccountSocialStats } from "../../social/application/getAccountSocialStats";
 import type { RelationshipView } from "../../social/domain/relationshipView";
-import { canViewPrivateProfileContent } from "../domain/accountVisibility";
-import type { PublicAccountRow } from "../domain/publicAccount";
+import { canViewPrivateProfileContent } from "../domain/profileVisibility";
+import type { PublicProfileRecord } from "../domain/publicProfileRecord";
 
-export function buildAccountView(
-  row: PublicAccountRow,
+export function buildProfileView(
+  row: PublicProfileRecord,
   viewerId: string | null,
   relationship: RelationshipView,
   stats: AccountSocialStats,
