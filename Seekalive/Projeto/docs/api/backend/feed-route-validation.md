@@ -36,10 +36,14 @@
 - Exclusões validam o identificador, derivam o titular da sessão e retornam `404` quando a operação de domínio não encontra recurso que o titular possa excluir.
 - A extração das rotas e o teste de paridade verificam o registro e a correspondência do CSRF declarado. A análise de código não substitui teste HTTP autenticado nem prova comportamento da persistência.
 
-## Por que o teste HTTP não foi executado
+## Estado do teste HTTP autenticado
 
-O cenário de integração que cobre estas operações está em `Aplicativo/back/test/api-isolated-db.test.mjs`. Seu fixture executa `drizzle-kit push` e `DROP SCHEMA ... CASCADE` para preparar e remover schema. O Plano 1 proíbe executar `push`, migration ou DDL nesta revisão; por isso o teste foi deliberadamente excluído. Não foi substituído por um teste com banco falso nem por uma afirmação de aprovação.
+O cenário de integração que cobre estas operações está em `Aplicativo/back/test/api-isolated-db.test.mjs`. Seu fixture executa `drizzle-kit push` e `DROP SCHEMA ... CASCADE` para preparar e remover schema.
+
+Após autorização expressa para DDL somente no banco de desenvolvimento, tentei executar `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 pnpm --filter @workspace/scripts run test:api-isolated-db`. O teste parou na validação inicial, antes de conectar ao banco, porque o processo de shell não recebeu `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`. A presença de `DATABASE_URL` como variável gerenciada foi confirmada sem acessar seu valor, mas essa variável não está disponível ao processo de teste. Nenhum schema foi criado, nenhum `db push` ou `DROP SCHEMA` foi executado e nenhuma escrita ocorreu.
+
+O bloqueio atual é de ambiente de execução, não de autorização. Não foi substituído por um teste com banco falso nem por uma afirmação de aprovação.
 
 ## Conclusão
 
-As 11 operações estão **montadas** e sem divergência de método/caminho em relação ao OpenAPI. Nesta rodada, a lógica de aplicação das 11 operações (listagem, comentários, curtidas, reposts e exclusão) e as rejeições sem sessão/CSRF foram testadas. Os cenários HTTP autenticados existentes estão identificados, mas não foram executados sob a proibição de DDL. Portanto, não há evidência suficiente para afirmar os caminhos HTTP de sucesso, autorização de titular integrada ao banco e persistência ponta a ponta.
+As 11 operações estão **montadas** e sem divergência de método/caminho em relação ao OpenAPI. Nesta rodada, a lógica de aplicação das 11 operações (listagem, comentários, curtidas, reposts e exclusão) e as rejeições sem sessão/CSRF foram testadas. DDL para teste de desenvolvimento foi autorizada, mas a suíte integrada não passou da validação de ambiente porque a conexão gerenciada não foi injetada no processo. Portanto, não há evidência suficiente para afirmar os caminhos HTTP de sucesso, autorização de titular integrada ao banco e persistência ponta a ponta.
