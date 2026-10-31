@@ -3,6 +3,7 @@ import { accounts, db } from "@workspace/db";
 
 export async function purgeOneExpiredAccountRetention(
   now: Date,
+  purgeAccountMediaFiles: (accountId: string) => Promise<void>,
 ): Promise<{ accountId: string } | null> {
   return db.transaction(async (tx) => {
     const [account] = await tx
@@ -19,6 +20,8 @@ export async function purgeOneExpiredAccountRetention(
       .limit(1);
 
     if (!account) return null;
+
+    await purgeAccountMediaFiles(account.id);
 
     const [deleted] = await tx
       .delete(accounts)

@@ -47,7 +47,7 @@ export function MediaPickerButtons({
     <div className="flex gap-4">
       <input ref={imageRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple className="sr-only" tabIndex={-1} aria-label="Escolher fotos da galeria"
         onChange={(e) => { onAdd(e.currentTarget.files, "image"); e.currentTarget.value = ""; }} />
-      <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" multiple className="sr-only" tabIndex={-1} aria-label="Escolher vídeos da galeria"
+      <input ref={videoRef} type="file" accept="video/mp4,video/webm" multiple className="sr-only" tabIndex={-1} aria-label="Escolher vídeos da galeria"
         onChange={(e) => { onAdd(e.currentTarget.files, "video"); e.currentTarget.value = ""; }} />
       {(["image", "video"] as const).map((type) => (
         <DropdownMenu key={type} defaultOpen={initialType === type}>

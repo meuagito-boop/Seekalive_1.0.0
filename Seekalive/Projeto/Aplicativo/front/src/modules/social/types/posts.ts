@@ -11,6 +11,8 @@ export interface PublishPostInput {
   article?: { title: string; body: string };
   mediaUrls?: string[];
   mediaTypes?: MediaType[];
+  /** Browser files are transient upload inputs and are never serialized into post state. */
+  mediaFiles?: File[];
   reference?: ContentReference;
 }
 

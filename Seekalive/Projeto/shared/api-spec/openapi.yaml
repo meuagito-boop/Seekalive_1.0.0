@@ -1251,8 +1251,7 @@ paths:
         for-you and articles can be read anonymously but still respect account
         visibility, Círculo membership, and bilateral blocks. following requires
         an authenticated session and includes only accepted followed accounts.
-        This endpoint currently returns persisted text posts and articles;
-        media and video posts are not supported by the backend yet.
+        videos returns persisted media posts containing at least one video.
       security:
         - sessionCookie: []
         - {}
@@ -1262,7 +1261,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [for-you, following, articles]
+            enum: [for-you, following, articles, videos]
             default: for-you
         - $ref: "#/components/parameters/PageLimit"
         - $ref: "#/components/parameters/PageCursor"
@@ -1279,15 +1278,142 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/social/media:
+    post:
+      operationId: uploadSocialMedia
+      tags: [feed]
+      summary: Upload a photo or video for a social publication
+      description: >
+        Development-only local file storage. The server validates the file
+        signature and size; the original filename and client MIME type are not
+        used. The returned staged asset must be attached to a post within 24 hours.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: X-Seekalive-Media-Type
+          in: header
+          required: true
+          schema:
+            type: string
+            enum: [image, video]
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Staged media upload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaUpload"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/social/media/{assetId}:
+    get:
+      operationId: getSocialMedia
+      tags: [feed]
+      summary: Read media only while its owner or post is visible
+      security:
+        - sessionCookie: []
+        - {}
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+            pattern: "^bytes=\\d*-\\d*$"
+      responses:
+        "200":
+          description: Authorized media file
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/avif:
+              schema:
+                type: string
+                format: binary
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+            video/webm:
+              schema:
+                type: string
+                format: binary
+        "206":
+          description: Authorized partial video response
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "416":
+          $ref: "#/components/responses/RangeNotSatisfiable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    delete:
+      operationId: deleteStagedSocialMedia
+      tags: [feed]
+      summary: Delete an unattached media upload owned by the session
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Staged upload deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/social/posts:
     post:
       operationId: createSocialPost
       tags: [feed]
-      summary: Create a text publication
+      summary: Create a text or media publication
       description: >
         The authenticated account is always the author. The optional authorId
         is accepted only for compatibility and must equal the session account.
-        Media uploads are not enabled; media fields are rejected.
+        Media is supplied only through staged server uploads; external URLs are rejected.
       security:
         - sessionCookie: []
           csrfToken: []
@@ -1590,7 +1716,7 @@ paths:
     post:
       operationId: createSocialArticle
       tags: [feed]
-      summary: Create a text-only article
+      summary: Create an article with optional uploaded media
       security:
         - sessionCookie: []
           csrfToken: []
@@ -1781,6 +1907,30 @@ components:
           description: Number of seconds before another request may be accepted.
           schema:
             type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    PayloadTooLarge:
+      description: Request body exceeds the configured upload limit.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    UnsupportedMediaType:
+      description: Uploaded bytes do not match a supported media signature.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    ServiceUnavailable:
+      description: The development-only local media store is not available.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    RangeNotSatisfiable:
+      description: Requested byte range does not match the media file.
       content:
         application/json:
           schema:
@@ -2907,10 +3057,22 @@ components:
           enum: [public, circles, private]
         type:
           type: string
-          const: text
+          enum: [text, video]
         format:
           type: string
-          enum: [text, article]
+          enum: [text, media, article]
+        mediaUrls:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            format: uri-reference
+        mediaTypes:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            enum: [image, video]
         article:
           type: object
           properties:
@@ -3042,7 +3204,7 @@ components:
       required: [items, nextCursor]
     PostCreate:
       type: object
-      description: Text-only post. Media fields and third-party URLs are not accepted.
+      description: Text or media post. Media must reference staged uploads; arbitrary URLs are not accepted.
       properties:
         authorId:
           type: string
@@ -3050,19 +3212,25 @@ components:
           description: Optional compatibility field; must match the authenticated account.
         content:
           type: string
-          minLength: 1
           maxLength: 280
         audience:
           type: string
           enum: [public, circles, private]
         format:
           type: string
-          enum: [text]
-      required: [content, audience]
+          enum: [text, media]
+        mediaAssetIds:
+          type: array
+          maxItems: 8
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+      required: [audience]
       additionalProperties: false
     ArticleCreate:
       type: object
-      description: Text-only article. Media and external reference previews are not enabled in this slice.
+      description: Article with optional staged media assets.
       properties:
         authorId:
           type: string
@@ -3091,7 +3259,37 @@ components:
               maxLength: 50000
           required: [title, body]
           additionalProperties: false
+        mediaAssetIds:
+          type: array
+          maxItems: 8
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
       required: [audience, article]
+      additionalProperties: false
+    MediaUpload:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [image, video]
+        contentType:
+          type: string
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 104857600
+        url:
+          type: string
+          format: uri-reference
+        expiresAt:
+          type: string
+          format: date-time
+      required: [id, type, contentType, sizeBytes, url, expiresAt]
       additionalProperties: false
     PostPage:
       type: object

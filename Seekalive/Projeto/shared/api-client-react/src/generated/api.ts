@@ -78,6 +78,7 @@ import type {
   InternalErrorResponse,
   ListAuthSessionsParams,
   LoginRequest,
+  MediaUpload,
   MyAccountResponse,
   NotFoundResponse,
   OtherDevicesRevoked,
@@ -90,17 +91,21 @@ import type {
   PasswordResetRequested,
   PasswordUpdateChallenge,
   PasswordUpdated,
+  PayloadTooLargeResponse,
   Post,
   PostCreate,
   PostPage,
   PrivacySettings,
   PrivacySettingsWrite,
   ProfileResponse,
+  RangeNotSatisfiableResponse,
   RegisterRequest,
   SearchAccountsParams,
+  ServiceUnavailableResponse,
   TooManyRequestsResponse,
   TrustedDevicePage,
   UnauthorizedResponse,
+  UnsupportedMediaTypeResponse,
   ValidationErrorResponse,
   VerificationRequired
 } from './api.schemas';
@@ -4405,7 +4410,7 @@ export const getGetSocialFeedUrl = (params?: GetSocialFeedParams,) => {
 }
 
 /**
- * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. This endpoint currently returns persisted text posts and articles; media and video posts are not supported by the backend yet.
+ * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. videos returns persisted media posts containing at least one video.
  * @summary List readable social feed posts
  */
 export const getSocialFeed = async (params?: GetSocialFeedParams, options?: Parameters<typeof customFetch>[1]): Promise<FeedPage> => {
@@ -4498,6 +4503,270 @@ export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed
 
 
 
+export const getUploadSocialMediaUrl = () => {
+
+
+
+
+  return `/api/v1/social/media`
+}
+
+/**
+ * Development-only local file storage. The server validates the file signature and size; the original filename and client MIME type are not used. The returned staged asset must be attached to a post within 24 hours.
+ * @summary Upload a photo or video for a social publication
+ */
+export const uploadSocialMedia = async (uploadSocialMediaBody: Blob, options?: Parameters<typeof customFetch>[1]): Promise<MediaUpload> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MediaUpload>(getUploadSocialMediaUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', ...getHeaders(options?.headers) },
+    body: uploadSocialMediaBody
+  }
+);}
+
+
+
+
+
+export const getUploadSocialMediaMutationKey = () => ['uploadSocialMedia'] as const;
+
+export const getUploadSocialMediaMutationOptions = <TError = ErrorType<UnauthorizedResponse | PayloadTooLargeResponse | UnsupportedMediaTypeResponse | TooManyRequestsResponse | ServiceUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSocialMedia>>, TError,UploadSocialMediaMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadSocialMedia>>, TError,UploadSocialMediaMutationVariables, TContext> => {
+
+const mutationKey = getUploadSocialMediaMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadSocialMedia>>, UploadSocialMediaMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadSocialMedia(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadSocialMediaMutationResult = NonNullable<Awaited<ReturnType<typeof uploadSocialMedia>>>
+    export type UploadSocialMediaMutationBody = BodyType<Blob>
+    export type UploadSocialMediaMutationError = ErrorType<UnauthorizedResponse | PayloadTooLargeResponse | UnsupportedMediaTypeResponse | TooManyRequestsResponse | ServiceUnavailableResponse>
+    export type UploadSocialMediaMutationVariables = {data: BodyType<Blob>}
+
+    /**
+ * @summary Upload a photo or video for a social publication
+ */
+export const useUploadSocialMedia = <TError = ErrorType<UnauthorizedResponse | PayloadTooLargeResponse | UnsupportedMediaTypeResponse | TooManyRequestsResponse | ServiceUnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSocialMedia>>, TError,UploadSocialMediaMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof uploadSocialMedia>>,
+        TError,
+        UploadSocialMediaMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUploadSocialMediaMutationOptions(options), queryClient);
+    }
+
+export const getGetSocialMediaUrl = (assetId: string,) => {
+
+
+
+
+  return `/api/v1/social/media/${assetId}`
+}
+
+/**
+ * @summary Read media only while its owner or post is visible
+ */
+export const getSocialMedia = async (assetId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob | void> => {
+
+  return customFetch<Blob | void>(getGetSocialMediaUrl(assetId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialMediaQueryKey = (assetId: string,) => {
+    return [
+    `/api/v1/social/media/${assetId}`
+    ] as const;
+    }
+
+
+export const getGetSocialMediaQueryOptions = <TData = Awaited<ReturnType<typeof getSocialMedia>>, TError = ErrorType<NotFoundResponse | RangeNotSatisfiableResponse | TooManyRequestsResponse>>(assetId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialMediaQueryKey(assetId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialMedia>>> = ({ signal }) => getSocialMedia(assetId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: assetId !== null && assetId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialMedia>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialMediaQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialMedia>>>
+export type GetSocialMediaQueryError = ErrorType<NotFoundResponse | RangeNotSatisfiableResponse | TooManyRequestsResponse>
+
+
+export function useGetSocialMedia<TData = Awaited<ReturnType<typeof getSocialMedia>>, TError = ErrorType<NotFoundResponse | RangeNotSatisfiableResponse | TooManyRequestsResponse>>(
+ assetId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialMedia>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialMedia<TData = Awaited<ReturnType<typeof getSocialMedia>>, TError = ErrorType<NotFoundResponse | RangeNotSatisfiableResponse | TooManyRequestsResponse>>(
+ assetId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialMedia>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialMedia<TData = Awaited<ReturnType<typeof getSocialMedia>>, TError = ErrorType<NotFoundResponse | RangeNotSatisfiableResponse | TooManyRequestsResponse>>(
+ assetId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read media only while its owner or post is visible
+ */
+
+export function useGetSocialMedia<TData = Awaited<ReturnType<typeof getSocialMedia>>, TError = ErrorType<NotFoundResponse | RangeNotSatisfiableResponse | TooManyRequestsResponse>>(
+ assetId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialMediaQueryOptions(assetId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeleteStagedSocialMediaUrl = (assetId: string,) => {
+
+
+
+
+  return `/api/v1/social/media/${assetId}`
+}
+
+/**
+ * @summary Delete an unattached media upload owned by the session
+ */
+export const deleteStagedSocialMedia = async (assetId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteStagedSocialMediaUrl(assetId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteStagedSocialMediaMutationKey = () => ['deleteStagedSocialMedia'] as const;
+
+export const getDeleteStagedSocialMediaMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStagedSocialMedia>>, TError,DeleteStagedSocialMediaMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteStagedSocialMedia>>, TError,DeleteStagedSocialMediaMutationVariables, TContext> => {
+
+const mutationKey = getDeleteStagedSocialMediaMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStagedSocialMedia>>, DeleteStagedSocialMediaMutationVariables> = (props) => {
+          const {assetId} = props ?? {};
+
+          return  deleteStagedSocialMedia(assetId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteStagedSocialMediaMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStagedSocialMedia>>>
+
+    export type DeleteStagedSocialMediaMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type DeleteStagedSocialMediaMutationVariables = {assetId: string}
+
+    /**
+ * @summary Delete an unattached media upload owned by the session
+ */
+export const useDeleteStagedSocialMedia = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStagedSocialMedia>>, TError,DeleteStagedSocialMediaMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteStagedSocialMedia>>,
+        TError,
+        DeleteStagedSocialMediaMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteStagedSocialMediaMutationOptions(options), queryClient);
+    }
+
 export const getCreateSocialPostUrl = () => {
 
 
@@ -4507,8 +4776,8 @@ export const getCreateSocialPostUrl = () => {
 }
 
 /**
- * The authenticated account is always the author. The optional authorId is accepted only for compatibility and must equal the session account. Media uploads are not enabled; media fields are rejected.
- * @summary Create a text publication
+ * The authenticated account is always the author. The optional authorId is accepted only for compatibility and must equal the session account. Media is supplied only through staged server uploads; external URLs are rejected.
+ * @summary Create a text or media publication
  */
 export const createSocialPost = async (postCreate: PostCreate, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
 
@@ -4574,7 +4843,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateSocialPostMutationVariables = {data: BodyType<PostCreate>}
 
     /**
- * @summary Create a text publication
+ * @summary Create a text or media publication
  */
 export const useCreateSocialPost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialPost>>, TError,CreateSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -5651,7 +5920,7 @@ export const getCreateSocialArticleUrl = () => {
 }
 
 /**
- * @summary Create a text-only article
+ * @summary Create an article with optional uploaded media
  */
 export const createSocialArticle = async (articleCreate: ArticleCreate, options?: Parameters<typeof customFetch>[1]): Promise<Post> => {
 
@@ -5717,7 +5986,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateSocialArticleMutationVariables = {data: BodyType<ArticleCreate>}
 
     /**
- * @summary Create a text-only article
+ * @summary Create an article with optional uploaded media
  */
 export const useCreateSocialArticle = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | ValidationErrorResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialArticle>>, TError,CreateSocialArticleMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

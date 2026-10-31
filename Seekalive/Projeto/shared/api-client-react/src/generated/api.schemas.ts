@@ -647,12 +647,29 @@ export const PostAudience = {
   private: 'private',
 } as const;
 
+export type PostType = typeof PostType[keyof typeof PostType];
+
+
+export const PostType = {
+  text: 'text',
+  video: 'video',
+} as const;
+
 export type PostFormat = typeof PostFormat[keyof typeof PostFormat];
 
 
 export const PostFormat = {
   text: 'text',
+  media: 'media',
   article: 'article',
+} as const;
+
+export type PostMediaTypesItem = typeof PostMediaTypesItem[keyof typeof PostMediaTypesItem];
+
+
+export const PostMediaTypesItem = {
+  image: 'image',
+  video: 'video',
 } as const;
 
 export type PostArticle = {
@@ -669,8 +686,12 @@ export interface Post {
   content: string;
   createdAt: string;
   audience: PostAudience;
-  type: 'text';
+  type: PostType;
   format: PostFormat;
+  /** @maxItems 8 */
+  mediaUrls?: string[];
+  /** @maxItems 8 */
+  mediaTypes?: PostMediaTypesItem[];
   article?: PostArticle;
   /** @minimum 0 */
   likes: number;
@@ -913,21 +934,21 @@ export type PostCreateFormat = typeof PostCreateFormat[keyof typeof PostCreateFo
 
 export const PostCreateFormat = {
   text: 'text',
+  media: 'media',
 } as const;
 
 /**
- * Text-only post. Media fields and third-party URLs are not accepted.
+ * Text or media post. Media must reference staged uploads; arbitrary URLs are not accepted.
  */
 export interface PostCreate {
   /** Optional compatibility field; must match the authenticated account. */
   authorId?: string;
-  /**
-     * @minLength 1
-     * @maxLength 280
-     */
-  content: string;
+  /** @maxLength 280 */
+  content?: string;
   audience: PostCreateAudience;
   format?: PostCreateFormat;
+  /** @maxItems 8 */
+  mediaAssetIds?: string[];
 }
 
 export type ArticleCreateAudience = typeof ArticleCreateAudience[keyof typeof ArticleCreateAudience];
@@ -953,7 +974,7 @@ export type ArticleCreateArticle = {
 };
 
 /**
- * Text-only article. Media and external reference previews are not enabled in this slice.
+ * Article with optional staged media assets.
  */
 export interface ArticleCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -963,6 +984,29 @@ export interface ArticleCreate {
   audience: ArticleCreateAudience;
   format?: 'article';
   article: ArticleCreateArticle;
+  /** @maxItems 8 */
+  mediaAssetIds?: string[];
+}
+
+export type MediaUploadType = typeof MediaUploadType[keyof typeof MediaUploadType];
+
+
+export const MediaUploadType = {
+  image: 'image',
+  video: 'video',
+} as const;
+
+export interface MediaUpload {
+  id: string;
+  type: MediaUploadType;
+  contentType: string;
+  /**
+     * @minimum 1
+     * @maximum 104857600
+     */
+  sizeBytes: number;
+  url: string;
+  expiresAt: string;
 }
 
 export interface FeedItem {
@@ -1010,6 +1054,26 @@ export type ConflictResponse = ApiError;
  * Request limit exceeded; retry after the interval in Retry-After.
  */
 export type TooManyRequestsResponse = ApiError;
+
+/**
+ * Request body exceeds the configured upload limit.
+ */
+export type PayloadTooLargeResponse = ApiError;
+
+/**
+ * Uploaded bytes do not match a supported media signature.
+ */
+export type UnsupportedMediaTypeResponse = ApiError;
+
+/**
+ * The development-only local media store is not available.
+ */
+export type ServiceUnavailableResponse = ApiError;
+
+/**
+ * Requested byte range does not match the media file.
+ */
+export type RangeNotSatisfiableResponse = ApiError;
 
 /**
  * The configured e-mail provider is unavailable.
@@ -1117,6 +1181,7 @@ export const GetSocialFeedTab = {
   'for-you': 'for-you',
   following: 'following',
   articles: 'articles',
+  videos: 'videos',
 } as const;
 
 export type GetSocialPostCommentsParams = {

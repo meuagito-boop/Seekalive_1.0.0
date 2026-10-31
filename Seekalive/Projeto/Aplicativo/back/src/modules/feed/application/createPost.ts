@@ -1,9 +1,14 @@
-import type { NewFeedPost } from "../domain/post";
-import type { InsertFeedPost } from "./ports";
+import type { FeedPost, NewFeedPost } from "../domain/post";
 
-export function createPostCreator(insertPost: InsertFeedPost) {
-  return async function createPost(command: NewFeedPost) {
-    return insertPost(command);
+export type CreatePostCommand = NewFeedPost & {
+  mediaAssetIds?: string[];
+};
+
+export function createPostCreator(
+  persistPost: (command: CreatePostCommand) => Promise<FeedPost>,
+) {
+  return async function createPost(command: CreatePostCommand) {
+    return persistPost(command);
   };
 }
 

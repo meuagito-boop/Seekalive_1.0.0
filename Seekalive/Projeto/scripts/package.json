@@ -13,7 +13,8 @@
     "test:accounts-deletion-schema": "tsx --test ../Aplicativo/back/test/account-deletion-schema.test.mjs",
     "test:accounts-deletion-policy": "tsx --test ../Aplicativo/back/test/account-deletion-policy.test.mjs",
     "test:feed-global": "tsx --test ../Aplicativo/back/test/feed-global-listing.test.mjs",
-    "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:db-domain-registry && pnpm run test:api-runtime && pnpm run test:feed-global",
+    "test:media-storage": "tsx --test ../Aplicativo/back/test/media-file-store.test.mjs",
+    "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:db-domain-registry && pnpm run test:api-runtime && pnpm run test:feed-global && pnpm run test:media-storage",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

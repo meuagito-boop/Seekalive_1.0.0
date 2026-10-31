@@ -1,5 +1,5 @@
 import { logger } from "../../../common/logger";
-import { finalizeDueAccountDeletions } from "./accountDeletionFinalizerRepository";
+import { finalizeDueAccountDeletions } from "../composition/accountDeletionFinalization";
 import { isAccountDeletionSchemaReady } from "./accountDeletionSchemaStatus";
 
 const INTERVAL_MS = 60_000;

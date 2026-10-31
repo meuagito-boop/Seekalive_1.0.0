@@ -27,7 +27,7 @@ export default function Compose() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { currentUser } = useAppContext();
-  const { publishPost } = useSocial();
+  const { publishPost, isRemoteSocialSession } = useSocial();
   const initialReference = useMemo(() => readReferenceFromSearch(search), [search]);
 
   const [content, setContent] = useState("");
@@ -70,9 +70,10 @@ export default function Compose() {
         format: draft.media.length ? "media" : "text",
         mediaUrls: draft.media.map((m) => m.url),
         mediaTypes: draft.media.map((m) => m.type),
+        mediaFiles: draft.media.map((m) => m.file),
         reference: reference ?? undefined,
       });
-      draft.handOff();
+      if (!isRemoteSocialSession) draft.handOff();
       setLocation(postPath(post));
     } catch (error) {
       setStatus("error");

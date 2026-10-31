@@ -17,6 +17,7 @@ const makePost = (id, postAuthorId = authorId, audience = "public") => ({
   format: "text",
   articleTitle: null,
   articleBody: null,
+  media: [],
   createdAt: new Date("2026-10-27T10:00:00.000Z"),
   updatedAt: new Date("2026-10-27T10:00:00.000Z"),
   version: 1,
@@ -90,6 +91,38 @@ test("following feed scopes repository candidates and requires an accepted relat
   });
   assert.deepEqual(listedInput.authorIds, [authorId, otherAuthorId]);
   assert.deepEqual(page.items.map(({ post }) => post.id), [followedPost.id]);
+});
+
+test("videos feed requests only video media and returns video post views", async () => {
+  const videoPost = {
+    ...makePost("77777777-7777-4777-8777-777777777777"),
+    format: "media",
+    media: [{
+      id: "88888888-8888-4888-8888-888888888888",
+      type: "video",
+    }],
+  };
+  let listedInput;
+  const listFeed = createGlobalFeedLister(
+    async (input) => {
+      listedInput = input;
+      return [videoPost];
+    },
+    async (ids) => ids.map((id) => makeAuthor(id)),
+    async () => new Map(),
+    async () => [],
+  );
+
+  const page = await listFeed({
+    tab: "videos",
+    viewerId,
+    limit: 20,
+    cursor: null,
+  });
+
+  assert.equal(listedInput.format, "media");
+  assert.equal(listedInput.videoOnly, true);
+  assert.equal(page.items[0].post.type, "video");
 });
 
 test("global feed cursors are bound to tab and viewer", () => {

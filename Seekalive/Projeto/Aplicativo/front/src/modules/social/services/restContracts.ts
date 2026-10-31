@@ -72,7 +72,7 @@ const accountViewSchema = z.object({
 export const restSocialApi = {
   async feed(
     cursor?: string,
-    tab: "for-you" | "following" | "articles" = "for-you",
+    tab: "for-you" | "following" | "articles" | "videos" = "for-you",
     limit = 20,
   ) {
     const query = new URLSearchParams({ tab, limit: String(limit) });

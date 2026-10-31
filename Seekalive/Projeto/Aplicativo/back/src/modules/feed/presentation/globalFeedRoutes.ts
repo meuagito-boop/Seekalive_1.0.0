@@ -9,6 +9,7 @@ const feedTabs = new Set<SocialFeedTab>([
   "for-you",
   "following",
   "articles",
+  "videos",
 ]);
 
 type ListGlobalFeed = (input: {

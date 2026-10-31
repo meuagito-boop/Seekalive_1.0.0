@@ -153,10 +153,16 @@ export default function Feed() {
   const videoPosts = visible.filter((p) => p.format !== "article" && (p.type === "video" || (p.mediaUrls?.length ?? 0) > 0));
 
   const list = (feed: FeedItem[]) => feed.map((i) => <PostCard key={i.key} post={i.post} repostedById={i.repostedById} />);
-  const remoteTab = activeTab === 0 ? "for-you" : activeTab === 1 ? "following" : "articles";
+  const remoteTab = activeTab === 0
+    ? "for-you"
+    : activeTab === 1
+      ? "following"
+      : activeTab === 2
+        ? "articles"
+        : "videos";
 
   useEffect(() => {
-    if (!isRemoteSocialSession || activeTab === 3) return;
+    if (!isRemoteSocialSession) return;
     let cancelled = false;
     setRemoteFeed({
       tab: activeTab,
@@ -255,14 +261,6 @@ export default function Feed() {
     const currentRemoteItems = remoteFeed.tab === index
       ? remoteFeed.items
       : [];
-    if (isRemoteSocialSession && index === 3) {
-      return (
-        <EmptyState
-          title="Vídeos ainda não disponíveis nesta conta"
-          description="O servidor ainda não recebe nem armazena arquivos de mídia. Esta aba não exibirá conteúdo demonstrativo como se fosse publicação persistida."
-        />
-      );
-    }
     if (isRemoteSocialSession && remoteFeed.tab === index && remoteFeed.loading && remoteFeed.items.length === 0) {
       return <div className="px-4 py-8 text-center text-sm text-muted-foreground" role="status">Carregando publicações…</div>;
     }
@@ -311,7 +309,13 @@ export default function Feed() {
     }
     return (
       <motion.div key="videos" {...fade} data-testid="video-feed">
-        {videoPosts.length ? videoPosts.map((post) => <VideoFeedItem key={post.id} post={post} />) : <EmptyState title="Nenhum vídeo ainda" description="Vídeos publicados por quem você pode ver aparecem aqui." />}
+        {(isRemoteSocialSession
+          ? currentRemoteItems.map((item) => item.post)
+          : videoPosts).length
+          ? (isRemoteSocialSession
+              ? currentRemoteItems.map((item) => item.post)
+              : videoPosts).map((post) => <VideoFeedItem key={post.id} post={post} />)
+          : <EmptyState title="Nenhum vídeo ainda" description="Vídeos publicados por quem você pode ver aparecem aqui." />}
       </motion.div>
     );
   }
@@ -338,7 +342,6 @@ export default function Feed() {
             hidden={activeTab !== index} tabIndex={0}>
             {activeTab === index && renderFeedTab(index)}
             {isRemoteSocialSession &&
-              index !== 3 &&
               remoteFeed.tab === index &&
               remoteFeed.error &&
               remoteFeed.items.length > 0 && (
@@ -346,7 +349,7 @@ export default function Feed() {
                   {remoteFeed.error}
                 </p>
               )}
-            {isRemoteSocialSession && index !== 3 && remoteFeed.tab === index && remoteFeed.nextCursor && (
+            {isRemoteSocialSession && remoteFeed.tab === index && remoteFeed.nextCursor && (
               <div className="flex justify-center px-4 py-5">
                 <Button variant="outline" className="rounded-full" disabled={remoteFeed.loading} onClick={() => void loadMoreRemoteFeed()}>
                   {remoteFeed.loading ? "Carregando…" : "Carregar mais"}

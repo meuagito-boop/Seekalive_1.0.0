@@ -11,4 +11,5 @@ export type PostCreateFormat = typeof PostCreateFormat[keyof typeof PostCreateFo
 
 export const PostCreateFormat = {
   text: 'text',
+  media: 'media',
 } as const;

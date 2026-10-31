@@ -5,6 +5,8 @@ export interface PreparedMedia {
   url: string;
   type: MediaType;
   name: string;
+  sizeBytes: number;
+  file: File;
 }
 
 export interface MediaService {
@@ -20,7 +22,7 @@ export const MEDIA_LIMITS = {
 
 const formats = {
   image: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"],
-  video: ["video/mp4", "video/webm", "video/quicktime", "video/ogg"],
+  video: ["video/mp4", "video/webm"],
 };
 
 export function validateMediaFiles(files: File[], type: MediaType) {
@@ -29,7 +31,7 @@ export function validateMediaFiles(files: File[], type: MediaType) {
     if (!formats[type].includes(file.type)) {
       throw new ContentServiceError(type === "image"
         ? "Formato de foto não suportado. Use JPEG, PNG, WebP, GIF ou AVIF."
-        : "Formato de vídeo não suportado. Use MP4, WebM, MOV ou OGG.", 422);
+        : "Formato de vídeo não suportado. Use MP4 ou WebM.", 422);
     }
     if (!file.size) throw new ContentServiceError("O arquivo está vazio. Escolha outro arquivo.", 422);
     if (file.size > (type === "image" ? MEDIA_LIMITS.imageBytes : MEDIA_LIMITS.videoBytes)) {
@@ -74,7 +76,13 @@ export const mediaService: MediaService = {
     try {
       for (const file of files) {
         const url = URL.createObjectURL(file);
-        prepared.push({ url, name: file.name, type });
+        prepared.push({
+          url,
+          name: file.name,
+          type,
+          sizeBytes: file.size,
+          file,
+        });
         await verifyReadable(url, type);
       }
       return prepared;

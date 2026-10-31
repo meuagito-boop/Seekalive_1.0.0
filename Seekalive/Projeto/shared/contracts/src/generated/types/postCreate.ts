@@ -9,16 +9,15 @@ import type { PostCreateAudience } from './postCreateAudience';
 import type { PostCreateFormat } from './postCreateFormat';
 
 /**
- * Text-only post. Media fields and third-party URLs are not accepted.
+ * Text or media post. Media must reference staged uploads; arbitrary URLs are not accepted.
  */
 export interface PostCreate {
   /** Optional compatibility field; must match the authenticated account. */
   authorId?: string;
-  /**
-     * @minLength 1
-     * @maxLength 280
-     */
-  content: string;
+  /** @maxLength 280 */
+  content?: string;
   audience: PostCreateAudience;
   format?: PostCreateFormat;
+  /** @maxItems 8 */
+  mediaAssetIds?: string[];
 }

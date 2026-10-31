@@ -1,6 +1,8 @@
 # Seekalive core data dictionary
 
-**Status reconfirmado em 29/10/2026 (somente leitura no banco permanente; validações mutáveis em schemas temporários de desenvolvimento):** o modelo Drizzle declara 13 tabelas em cinco schemas (`accounts`, `security`, `profiles`, `seek`, `feed`). O PostgreSQL `heliumdb` contém 12 schemas lógicos de domínio, além de `public`; há 12 tabelas físicas em `accounts` (4), `security` (4), `profiles` (3) e `seek` (1). O schema `feed` existe, mas `feed.posts` não está fisicamente presente. O journal registra seis migrations locais (`0000`–`0005`), porém não foi localizada tabela de histórico com nome contendo `drizzle` ou `migration`; portanto, não se afirma qual sequência de comandos aplicou os objetos existentes. `drizzle-kit check` passou. O SQL versionado `0005` e a suíte `test:api-isolated-db` passaram em namespace temporário; o fingerprint das colunas, constraints, índices e views consultados antes/depois da migration permaneceu idêntico e a consulta final não encontrou schemas temporários. Nenhuma linha das tabelas foi consultada e produção não foi acessada. `schema-core.sql` permanece uma proposta, não uma migration.
+**Registro histórico de 29/10/2026:** a leitura somente de metadados daquele dia encontrou 12 tabelas físicas e `feed.posts` ausente; a validação de `0005` foi feita em schemas temporários, sem alteração do schema principal. Esse estado foi substituído pela aplicação autorizada abaixo.
+
+**Estado de desenvolvimento em 30/10/2026:** os schemas têm `accounts` (4 tabelas), `security` (4), `profiles` (5), `feed` (6) e `media` (1). `feed.posts` e `media.assets` estão aplicados em tracks independentes. A coluna `feed.posts.media` armazena referências tipadas para ativos; os binários de teste são locais ao desenvolvimento. A aplicação e a consulta posterior verificaram nomes/colunas e ledgers de Feed/Mídias; nenhuma operação foi feita em produção. Replay automatizado de baselines em schemas temporários não foi executado pelo shell porque faltam `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`.
 
 ## Sources and boundaries
 
@@ -36,9 +38,10 @@ Esta lista representa o modelo no código, não uma afirmação de que todas as 
 | `account_follows` | Seguimentos aceitos; Círculo é calculado pela presença das duas direções. |
 | `account_follow_requests` | Pedidos pendentes direcionados a perfis privados; a aprovação cria o follow aceito. |
 | `account_blocks` | Bloqueio iniciado por uma conta; bloquear remove follows e pedidos pendentes em ambas as direções. |
-| `feed.posts` | Texto/artigo com audiência, autoria, estado de versão, constraints, FK e índices; está no modelo e na migration `0005`, mas ausente no banco de desenvolvimento. |
+| `feed.posts` | Publicações de texto/artigo/mídia com audiência, autoria, estado de versão, referências tipadas a ativos, constraints, FK e índices. |
+| `media.assets` | Metadados de foto/vídeo, titular, publicação, tipo, tamanho, estado e chave de armazenamento local temporário; uploads podem ser anexados por 24 horas e expirados são limpos no próximo upload, sem worker periódico. Binários só são aceitos em desenvolvimento. |
 
-O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Além de `feed.posts`, campos de avatar/capa por mídia, galeria, avaliações, serviços comerciais completos, conversas, mensagens, busca e moderação ainda não têm armazenamento/API ativa.
+O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; armazenamento permanente, galeria comercial, campos de avatar/capa, avaliações, serviços comerciais completos, conversas, mensagens, busca e moderação ainda não têm implementação completa.
 
 Frontend DTOs use **camelCase**, SQL uses **snake_case**. Serializers, not accidental ORM field exposure, must bridge them:
 
@@ -140,7 +143,7 @@ As tabelas e colunas abaixo descrevem o modelo-alvo/proposto e incluem entidades
 
 The commercial-only invariant does **not** depend on an unchecked comment: `business_profiles.account_type` is constrained to `commercial`, and `(account_id, account_type)` references the unique pair in `accounts`. The ordinary `account_id` PK/FK is also present. This is a declarative alternative to a constraint trigger; changing an account back to personal while a business profile remains is rejected. Seller/organizer/review target FKs refer to `business_profiles`, transitively enforcing commercial identity. Creating a commercial account/profile together, changing types safely, and requiring every active commercial account to have a profile are application transaction responsibilities. The schema allows a commercial account before profile completion.
 
-Na autenticação própria, a API armazena senha com Argon2id, emite sessão opaca em cookie **Secure, HttpOnly, SameSite**, protege escritas com CSRF e limita tentativas. Tokens de verificação/recuperação são armazenados como hash; nunca colocar senha ou token de sessão em `localStorage`. A diferença entre o modelo Drizzle e a presença física de `feed.posts` está descrita no status e na matriz do relatório de auditoria; `schema-core.sql` permanece apenas como referência dos domínios futuros.
+Na autenticação própria, a API armazena senha com Argon2id, emite sessão opaca em cookie **Secure, HttpOnly, SameSite**, protege escritas com CSRF e limita tentativas. Tokens de verificação/recuperação são armazenados como hash; nunca colocar senha ou token de sessão em `localStorage`. `schema-core.sql` permanece apenas como referência dos domínios futuros.
 
 ### Required authorization transactions
 
@@ -201,4 +204,4 @@ These snippets are **future design only**, cannot run against the core without a
 
 The core currently contains **43 proposed tables**, including custom email, password-credential, challenge, and session structures. The count describes this documentation draft only; no migration, live rows, or runtime validation are asserted.
 
-The larger SQL design in `schema-core.sql` remains a reference proposal and was not run. The current Drizzle source defines 13 tables; 12 are physically present in development and `feed.posts` is absent. The local journal passes `drizzle-kit check`, which does not prove migrations were applied to the database. Before adopting proposed domains, review their migrations and test CHECK/unique/FK rejection paths, concurrent authorization races, deletion ordering, Unicode limits, transaction rollback, and privacy behavior under real authenticated requests.
+The larger SQL design in `schema-core.sql` remains a reference proposal and was not run. In the 30/10/2026 development state, the active schemas contain 20 tables across Accounts, Security, Profiles, Feed and Media; `feed.posts` and `media.assets` are applied. Feed and Media use independent migration ledgers. Local media binaries are development-only. Production was not accessed; baseline replay and account-deletion database integration tests remain unverified in this shell because the required development connection variables are unavailable.

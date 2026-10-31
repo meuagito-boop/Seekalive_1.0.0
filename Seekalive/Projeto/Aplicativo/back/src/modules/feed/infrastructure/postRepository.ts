@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { postAudienceSchema } from "@workspace/api-zod";
 import { db, feedPosts } from "@workspace/db";
 import type {
@@ -8,13 +8,28 @@ import type {
   PostPosition,
 } from "../domain/post";
 
-function toFeedPost(row: typeof feedPosts.$inferSelect): FeedPost {
+export function toFeedPost(row: typeof feedPosts.$inferSelect): FeedPost {
   const audience = postAudienceSchema.safeParse(row.audience);
   if (!audience.success) {
     throw new Error("Invalid feed post audience stored in database");
   }
-  if (row.format !== "text" && row.format !== "article") {
+  if (
+    row.format !== "text" &&
+    row.format !== "media" &&
+    row.format !== "article"
+  ) {
     throw new Error("Invalid feed post format stored in database");
+  }
+  if (
+    !Array.isArray(row.media) ||
+    row.media.some(
+      (item) =>
+        !item ||
+        typeof item.id !== "string" ||
+        (item.type !== "image" && item.type !== "video"),
+    )
+  ) {
+    throw new Error("Invalid feed post media stored in database");
   }
   return {
     ...row,
@@ -29,6 +44,7 @@ export async function insertFeedPost(input: NewFeedPost): Promise<FeedPost> {
     content: input.content,
     audience: input.audience,
     format: input.format,
+    media: input.media ?? [],
     articleTitle: input.articleTitle ?? null,
     articleBody: input.articleBody ?? null,
   }).returning();
@@ -94,6 +110,7 @@ export async function listFeedPostsByAuthor(input: {
 export async function listFeedPostsForTimeline(input: {
   authorIds: string[] | null;
   format: FeedPostFormat | "all";
+  videoOnly?: boolean;
   after: PostPosition | null;
   limit: number;
 }): Promise<FeedPost[]> {
@@ -105,6 +122,9 @@ export async function listFeedPostsForTimeline(input: {
   const conditions = [
     ...(authorIds ? [inArray(feedPosts.authorId, authorIds)] : []),
     ...(input.format === "all" ? [] : [eq(feedPosts.format, input.format)]),
+    ...(input.videoOnly
+      ? [sql`${feedPosts.media} @> '[{"type":"video"}]'::jsonb`]
+      : []),
   ];
   if (input.after) {
     const cursorCondition = or(

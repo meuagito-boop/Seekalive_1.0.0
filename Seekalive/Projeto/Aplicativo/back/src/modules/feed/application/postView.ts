@@ -14,8 +14,18 @@ export function toPostView(
     content: post.content,
     createdAt: post.createdAt.toISOString(),
     audience: post.audience,
-    type: "text" as const,
+    type: post.media.some((media) => media.type === "video")
+      ? "video" as const
+      : "text" as const,
     format: post.format,
+    ...(post.media.length > 0
+      ? {
+          mediaUrls: post.media.map(
+            (media) => `/api/v1/social/media/${encodeURIComponent(media.id)}`,
+          ),
+          mediaTypes: post.media.map((media) => media.type),
+        }
+      : {}),
     ...(post.format === "article" && post.articleTitle && post.articleBody
       ? { article: { title: post.articleTitle, body: post.articleBody } }
       : {}),

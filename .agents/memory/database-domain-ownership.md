@@ -15,11 +15,19 @@ Confiança e Segurança de Conteúdo é um domínio lógico separado por atraves
 
 **How to apply:** Ao alterar schemas, migrations ou fluxos, manter ownership no código e tracks SQL separados por domínio na instância PostgreSQL de desenvolvimento do Replit; selecionar explicitamente alvo e track. Não tocar em produção, provisionar banco físico por domínio, criar tabelas/rotas Shop ou implementar Trust/Safety sem escopo aprovado.
 
+## Armazenamento de mídia no desenvolvimento
+
+**Regra:** fotos e vídeos de teste usam armazenamento local somente no ambiente de desenvolvimento. Isso não define armazenamento de produção nem autoriza selecionar um provedor externo.
+
+**Why:** Em 30/10/2026, o usuário escolheu armazenamento local para testar fotos e vídeos e deixou integrações/provedores para depois.
+
+**How to apply:** manter o adaptador local limitado a desenvolvimento, fora do Git e do deploy; não habilitar upload em produção nem escolher um provedor permanente sem decisão posterior.
+
 ## Reconciliação do histórico de migrations
 
-Cada domínio ativo mantém seu próprio track SQL, journal e ledger em `drizzle`: `accounts`, `security`, `profiles` e `seek`. O pacote exige um track explícito para gerar/aplicar migrations; a aplicação inicial em banco vazio segue Accounts antes dos domínios com FK para Accounts. A sequência histórica combinada `0000`–`0006` é somente registro e não é executável pelo fluxo do pacote. Feed não tem track ativo e Shop permanece fora do escopo atual.
+Cada domínio ativo mantém seu próprio track SQL, journal e ledger em `drizzle`: `accounts`, `security`, `profiles`, `seek`, `feed` e `media`. Seek mantém o track, mas ainda não tem tabelas de negócio ativas; Shop permanece fora do escopo atual. O pacote exige um track explícito para gerar/aplicar migrations; a aplicação inicial em banco vazio segue Accounts antes dos domínios com FK para Accounts. A sequência histórica combinada `0000`–`0006` é somente registro e não é executável pelo fluxo do pacote.
 
-**Why:** O histórico combinado misturava objetos físicos de `0000`–`0004` e `0006` com a tabela `feed.posts` de `0005` ausente. Um único timestamp global faria o Drizzle pular uma lacuna ou tentar reaplicar DDL já existente. Os baselines isolados permitem representar o estado atual sem afirmar que Feed foi aplicado.
+**Why:** O histórico combinado misturava objetos físicos de `0000`–`0004` e `0006` com partes de Feed ausentes, e não representa a execução independente por domínio. Tracks isolados evitam que uma linha global de migration faça o Drizzle pular lacunas ou reaplicar DDL.
 
 **How to apply:** Antes de cada aplicação, confirmar ambiente e track, revisar SQL e dependências, validar o journal e consultar o ledger correspondente. Nunca usar o histórico combinado, executar `push` no banco principal ou inserir ledger para SQL não aplicado. Para bancos vazios, usar somente a sequência de tracks ativos documentada; produção continua fora da fase atual.
 

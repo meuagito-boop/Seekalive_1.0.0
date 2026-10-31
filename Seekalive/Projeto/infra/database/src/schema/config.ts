@@ -37,6 +37,9 @@ export const profilesTable: typeof pgTable = profilesNamespace.table.bind(
 export const feedTable: typeof pgTable = feedNamespace.table.bind(
   feedNamespace,
 ) as unknown as typeof pgTable;
+export const mediaTable: typeof pgTable = mediaNamespace.table.bind(
+  mediaNamespace,
+) as unknown as typeof pgTable;
 export const seekTable: typeof pgTable = seekNamespace.table.bind(
   seekNamespace,
 ) as unknown as typeof pgTable;

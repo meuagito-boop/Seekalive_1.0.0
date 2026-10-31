@@ -1,9 +1,12 @@
-import type { PostPosition } from "../domain/post";
+import type { FeedPostFormat, PostPosition } from "../domain/post";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type PostCursor = PostPosition;
-export type PostCursorScope = { authorId: string; format: "all" | "text" | "article" };
+export type PostCursorScope = {
+  authorId: string;
+  format: FeedPostFormat | "all";
+};
 
 export function parsePostCursor(
   value: unknown,

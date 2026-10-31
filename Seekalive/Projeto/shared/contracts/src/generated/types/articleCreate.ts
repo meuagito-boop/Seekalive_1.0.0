@@ -9,7 +9,7 @@ import type { ArticleCreateArticle } from './articleCreateArticle';
 import type { ArticleCreateAudience } from './articleCreateAudience';
 
 /**
- * Text-only article. Media and external reference previews are not enabled in this slice.
+ * Article with optional staged media assets.
  */
 export interface ArticleCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -19,4 +19,6 @@ export interface ArticleCreate {
   audience: ArticleCreateAudience;
   format?: 'article';
   article: ArticleCreateArticle;
+  /** @maxItems 8 */
+  mediaAssetIds?: string[];
 }

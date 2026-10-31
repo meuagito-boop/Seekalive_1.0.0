@@ -979,6 +979,10 @@ export const getProfileByUsernameResponseCommercialProfileOneCountryNameMax = 10
 
 export const getProfileByUsernameResponsePostsItemsItemContentMax = 280;
 
+export const getProfileByUsernameResponsePostsItemsItemMediaUrlsMax = 8;
+
+export const getProfileByUsernameResponsePostsItemsItemMediaTypesMax = 8;
+
 export const getProfileByUsernameResponsePostsItemsItemArticleTitleMax = 160;
 
 export const getProfileByUsernameResponsePostsItemsItemArticleBodyMax = 50000;
@@ -992,6 +996,10 @@ export const getProfileByUsernameResponsePostsItemsItemRepostsMin = 0;
 export const getProfileByUsernameResponsePostsItemsItemSharesMin = 0;
 
 export const getProfileByUsernameResponseArticlesItemsItemContentMax = 280;
+
+export const getProfileByUsernameResponseArticlesItemsItemMediaUrlsMax = 8;
+
+export const getProfileByUsernameResponseArticlesItemsItemMediaTypesMax = 8;
 
 export const getProfileByUsernameResponseArticlesItemsItemArticleTitleMax = 160;
 
@@ -1055,8 +1063,10 @@ export const GetProfileByUsernameResponse = zod.object({
   "content": zod.string().max(getProfileByUsernameResponsePostsItemsItemContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(getProfileByUsernameResponsePostsItemsItemMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(getProfileByUsernameResponsePostsItemsItemMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(getProfileByUsernameResponsePostsItemsItemArticleTitleMax),
   "body": zod.string().max(getProfileByUsernameResponsePostsItemsItemArticleBodyMax)
@@ -1078,8 +1088,10 @@ export const GetProfileByUsernameResponse = zod.object({
   "content": zod.string().max(getProfileByUsernameResponseArticlesItemsItemContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(getProfileByUsernameResponseArticlesItemsItemMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(getProfileByUsernameResponseArticlesItemsItemMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(getProfileByUsernameResponseArticlesItemsItemArticleTitleMax),
   "body": zod.string().max(getProfileByUsernameResponseArticlesItemsItemArticleBodyMax)
@@ -1596,7 +1608,7 @@ export const UnblockAccountResponse = zod.void()
 
 
 /**
- * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. This endpoint currently returns persisted text posts and articles; media and video posts are not supported by the backend yet.
+ * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. videos returns persisted media posts containing at least one video.
  * @summary List readable social feed posts
  */
 export const getSocialFeedQueryTabDefault = `for-you`;
@@ -1608,12 +1620,16 @@ export const getSocialFeedQueryCursorMax = 32;
 
 
 export const GetSocialFeedQueryParams = zod.object({
-  "tab": zod.enum(['for-you', 'following', 'articles']).default(getSocialFeedQueryTabDefault),
+  "tab": zod.enum(['for-you', 'following', 'articles', 'videos']).default(getSocialFeedQueryTabDefault),
   "limit": zod.coerce.number().int().min(1).max(getSocialFeedQueryLimitMax).default(getSocialFeedQueryLimitDefault),
   "cursor": zod.coerce.string().max(getSocialFeedQueryCursorMax).optional()
 })
 
 export const getSocialFeedResponseItemsItemPostContentMax = 280;
+
+export const getSocialFeedResponseItemsItemPostMediaUrlsMax = 8;
+
+export const getSocialFeedResponseItemsItemPostMediaTypesMax = 8;
 
 export const getSocialFeedResponseItemsItemPostArticleTitleMax = 160;
 
@@ -1649,8 +1665,10 @@ export const GetSocialFeedResponse = zod.object({
   "content": zod.string().max(getSocialFeedResponseItemsItemPostContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(getSocialFeedResponseItemsItemPostMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(getSocialFeedResponseItemsItemPostMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(getSocialFeedResponseItemsItemPostArticleTitleMax),
   "body": zod.string().max(getSocialFeedResponseItemsItemPostArticleBodyMax)
@@ -1696,21 +1714,77 @@ export const GetSocialFeedResponse = zod.object({
 
 
 /**
- * The authenticated account is always the author. The optional authorId is accepted only for compatibility and must equal the session account. Media uploads are not enabled; media fields are rejected.
- * @summary Create a text publication
+ * Development-only local file storage. The server validates the file signature and size; the original filename and client MIME type are not used. The returned staged asset must be attached to a post within 24 hours.
+ * @summary Upload a photo or video for a social publication
+ */
+export const UploadSocialMediaHeader = zod.object({
+  "X-Seekalive-Media-Type": zod.enum(['image', 'video'])
+})
+
+export const uploadSocialMediaResponseSizeBytesMax = 104857600;
+
+
+
+export const UploadSocialMediaResponse = zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['image', 'video']),
+  "contentType": zod.string(),
+  "sizeBytes": zod.int().min(1).max(uploadSocialMediaResponseSizeBytesMax),
+  "url": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Read media only while its owner or post is visible
+ */
+export const GetSocialMediaParams = zod.object({
+  "assetId": zod.uuid()
+})
+
+export const getSocialMediaHeaderRangeRegExp = new RegExp('^bytes=\\d*-\\d*$');
+
+
+export const GetSocialMediaHeader = zod.object({
+  "Range": zod.string().regex(getSocialMediaHeaderRangeRegExp).optional()
+})
+
+export const GetSocialMediaResponse = zod.unknown()
+
+
+/**
+ * @summary Delete an unattached media upload owned by the session
+ */
+export const DeleteStagedSocialMediaParams = zod.object({
+  "assetId": zod.uuid()
+})
+
+export const DeleteStagedSocialMediaResponse = zod.void()
+
+
+/**
+ * The authenticated account is always the author. The optional authorId is accepted only for compatibility and must equal the session account. Media is supplied only through staged server uploads; external URLs are rejected.
+ * @summary Create a text or media publication
  */
 export const createSocialPostBodyContentMax = 280;
+
+export const createSocialPostBodyMediaAssetIdsMax = 8;
 
 
 
 export const CreateSocialPostBody = zod.object({
   "authorId": zod.uuid().optional().describe('Optional compatibility field; must match the authenticated account.'),
-  "content": zod.string().min(1).max(createSocialPostBodyContentMax),
+  "content": zod.string().max(createSocialPostBodyContentMax).optional(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "format": zod.enum(['text']).optional()
-}).describe('Text-only post. Media fields and third-party URLs are not accepted.')
+  "format": zod.enum(['text', 'media']).optional(),
+  "mediaAssetIds": zod.array(zod.uuid()).max(createSocialPostBodyMediaAssetIdsMax).optional()
+}).describe('Text or media post. Media must reference staged uploads; arbitrary URLs are not accepted.')
 
 export const createSocialPostResponseContentMax = 280;
+
+export const createSocialPostResponseMediaUrlsMax = 8;
+
+export const createSocialPostResponseMediaTypesMax = 8;
 
 export const createSocialPostResponseArticleTitleMax = 160;
 
@@ -1732,8 +1806,10 @@ export const CreateSocialPostResponse = zod.object({
   "content": zod.string().max(createSocialPostResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(createSocialPostResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(createSocialPostResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(createSocialPostResponseArticleTitleMax),
   "body": zod.string().max(createSocialPostResponseArticleBodyMax)
@@ -1757,6 +1833,10 @@ export const GetSocialPostParams = zod.object({
 
 export const getSocialPostResponseContentMax = 280;
 
+export const getSocialPostResponseMediaUrlsMax = 8;
+
+export const getSocialPostResponseMediaTypesMax = 8;
+
 export const getSocialPostResponseArticleTitleMax = 160;
 
 export const getSocialPostResponseArticleBodyMax = 50000;
@@ -1777,8 +1857,10 @@ export const GetSocialPostResponse = zod.object({
   "content": zod.string().max(getSocialPostResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(getSocialPostResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(getSocialPostResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(getSocialPostResponseArticleTitleMax),
   "body": zod.string().max(getSocialPostResponseArticleBodyMax)
@@ -1812,6 +1894,10 @@ export const LikeSocialPostParams = zod.object({
 
 export const likeSocialPostResponseContentMax = 280;
 
+export const likeSocialPostResponseMediaUrlsMax = 8;
+
+export const likeSocialPostResponseMediaTypesMax = 8;
+
 export const likeSocialPostResponseArticleTitleMax = 160;
 
 export const likeSocialPostResponseArticleBodyMax = 50000;
@@ -1832,8 +1918,10 @@ export const LikeSocialPostResponse = zod.object({
   "content": zod.string().max(likeSocialPostResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(likeSocialPostResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(likeSocialPostResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(likeSocialPostResponseArticleTitleMax),
   "body": zod.string().max(likeSocialPostResponseArticleBodyMax)
@@ -1857,6 +1945,10 @@ export const UnlikeSocialPostParams = zod.object({
 
 export const unlikeSocialPostResponseContentMax = 280;
 
+export const unlikeSocialPostResponseMediaUrlsMax = 8;
+
+export const unlikeSocialPostResponseMediaTypesMax = 8;
+
 export const unlikeSocialPostResponseArticleTitleMax = 160;
 
 export const unlikeSocialPostResponseArticleBodyMax = 50000;
@@ -1877,8 +1969,10 @@ export const UnlikeSocialPostResponse = zod.object({
   "content": zod.string().max(unlikeSocialPostResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(unlikeSocialPostResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(unlikeSocialPostResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(unlikeSocialPostResponseArticleTitleMax),
   "body": zod.string().max(unlikeSocialPostResponseArticleBodyMax)
@@ -1902,6 +1996,10 @@ export const RepostSocialPostParams = zod.object({
 
 export const repostSocialPostResponseContentMax = 280;
 
+export const repostSocialPostResponseMediaUrlsMax = 8;
+
+export const repostSocialPostResponseMediaTypesMax = 8;
+
 export const repostSocialPostResponseArticleTitleMax = 160;
 
 export const repostSocialPostResponseArticleBodyMax = 50000;
@@ -1922,8 +2020,10 @@ export const RepostSocialPostResponse = zod.object({
   "content": zod.string().max(repostSocialPostResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(repostSocialPostResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(repostSocialPostResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(repostSocialPostResponseArticleTitleMax),
   "body": zod.string().max(repostSocialPostResponseArticleBodyMax)
@@ -1947,6 +2047,10 @@ export const RemoveSocialPostRepostParams = zod.object({
 
 export const removeSocialPostRepostResponseContentMax = 280;
 
+export const removeSocialPostRepostResponseMediaUrlsMax = 8;
+
+export const removeSocialPostRepostResponseMediaTypesMax = 8;
+
 export const removeSocialPostRepostResponseArticleTitleMax = 160;
 
 export const removeSocialPostRepostResponseArticleBodyMax = 50000;
@@ -1967,8 +2071,10 @@ export const RemoveSocialPostRepostResponse = zod.object({
   "content": zod.string().max(removeSocialPostRepostResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(removeSocialPostRepostResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(removeSocialPostRepostResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(removeSocialPostRepostResponseArticleTitleMax),
   "body": zod.string().max(removeSocialPostRepostResponseArticleBodyMax)
@@ -1992,6 +2098,10 @@ export const BookmarkSocialPostParams = zod.object({
 
 export const bookmarkSocialPostResponseContentMax = 280;
 
+export const bookmarkSocialPostResponseMediaUrlsMax = 8;
+
+export const bookmarkSocialPostResponseMediaTypesMax = 8;
+
 export const bookmarkSocialPostResponseArticleTitleMax = 160;
 
 export const bookmarkSocialPostResponseArticleBodyMax = 50000;
@@ -2012,8 +2122,10 @@ export const BookmarkSocialPostResponse = zod.object({
   "content": zod.string().max(bookmarkSocialPostResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(bookmarkSocialPostResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(bookmarkSocialPostResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(bookmarkSocialPostResponseArticleTitleMax),
   "body": zod.string().max(bookmarkSocialPostResponseArticleBodyMax)
@@ -2037,6 +2149,10 @@ export const RemoveSocialPostBookmarkParams = zod.object({
 
 export const removeSocialPostBookmarkResponseContentMax = 280;
 
+export const removeSocialPostBookmarkResponseMediaUrlsMax = 8;
+
+export const removeSocialPostBookmarkResponseMediaTypesMax = 8;
+
 export const removeSocialPostBookmarkResponseArticleTitleMax = 160;
 
 export const removeSocialPostBookmarkResponseArticleBodyMax = 50000;
@@ -2057,8 +2173,10 @@ export const RemoveSocialPostBookmarkResponse = zod.object({
   "content": zod.string().max(removeSocialPostBookmarkResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(removeSocialPostBookmarkResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(removeSocialPostBookmarkResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(removeSocialPostBookmarkResponseArticleTitleMax),
   "body": zod.string().max(removeSocialPostBookmarkResponseArticleBodyMax)
@@ -2246,7 +2364,7 @@ export const UnlikeSocialCommentResponse = zod.object({
 
 
 /**
- * @summary Create a text-only article
+ * @summary Create an article with optional uploaded media
  */
 export const createSocialArticleBodyContentDefault = ``;
 export const createSocialArticleBodyContentMax = 280;
@@ -2254,6 +2372,8 @@ export const createSocialArticleBodyContentMax = 280;
 export const createSocialArticleBodyArticleTitleMax = 160;
 
 export const createSocialArticleBodyArticleBodyMax = 50000;
+
+export const createSocialArticleBodyMediaAssetIdsMax = 8;
 
 
 
@@ -2265,10 +2385,15 @@ export const CreateSocialArticleBody = zod.object({
   "article": zod.object({
   "title": zod.string().min(1).max(createSocialArticleBodyArticleTitleMax),
   "body": zod.string().min(1).max(createSocialArticleBodyArticleBodyMax)
-})
-}).describe('Text-only article. Media and external reference previews are not enabled in this slice.')
+}),
+  "mediaAssetIds": zod.array(zod.uuid()).max(createSocialArticleBodyMediaAssetIdsMax).optional()
+}).describe('Article with optional staged media assets.')
 
 export const createSocialArticleResponseContentMax = 280;
+
+export const createSocialArticleResponseMediaUrlsMax = 8;
+
+export const createSocialArticleResponseMediaTypesMax = 8;
 
 export const createSocialArticleResponseArticleTitleMax = 160;
 
@@ -2290,8 +2415,10 @@ export const CreateSocialArticleResponse = zod.object({
   "content": zod.string().max(createSocialArticleResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(createSocialArticleResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(createSocialArticleResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(createSocialArticleResponseArticleTitleMax),
   "body": zod.string().max(createSocialArticleResponseArticleBodyMax)
@@ -2315,6 +2442,10 @@ export const GetSocialArticleParams = zod.object({
 
 export const getSocialArticleResponseContentMax = 280;
 
+export const getSocialArticleResponseMediaUrlsMax = 8;
+
+export const getSocialArticleResponseMediaTypesMax = 8;
+
 export const getSocialArticleResponseArticleTitleMax = 160;
 
 export const getSocialArticleResponseArticleBodyMax = 50000;
@@ -2335,8 +2466,10 @@ export const GetSocialArticleResponse = zod.object({
   "content": zod.string().max(getSocialArticleResponseContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(getSocialArticleResponseMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(getSocialArticleResponseMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(getSocialArticleResponseArticleTitleMax),
   "body": zod.string().max(getSocialArticleResponseArticleBodyMax)
@@ -2374,6 +2507,10 @@ export const GetSocialAccountPostsQueryParams = zod.object({
 
 export const getSocialAccountPostsResponseItemsItemContentMax = 280;
 
+export const getSocialAccountPostsResponseItemsItemMediaUrlsMax = 8;
+
+export const getSocialAccountPostsResponseItemsItemMediaTypesMax = 8;
+
 export const getSocialAccountPostsResponseItemsItemArticleTitleMax = 160;
 
 export const getSocialAccountPostsResponseItemsItemArticleBodyMax = 50000;
@@ -2395,8 +2532,10 @@ export const GetSocialAccountPostsResponse = zod.object({
   "content": zod.string().max(getSocialAccountPostsResponseItemsItemContentMax),
   "createdAt": zod.coerce.date(),
   "audience": zod.enum(['public', 'circles', 'private']),
-  "type": zod.literal("text"),
-  "format": zod.enum(['text', 'article']),
+  "type": zod.enum(['text', 'video']),
+  "format": zod.enum(['text', 'media', 'article']),
+  "mediaUrls": zod.array(zod.string()).max(getSocialAccountPostsResponseItemsItemMediaUrlsMax).optional(),
+  "mediaTypes": zod.array(zod.enum(['image', 'video'])).max(getSocialAccountPostsResponseItemsItemMediaTypesMax).optional(),
   "article": zod.object({
   "title": zod.string().max(getSocialAccountPostsResponseItemsItemArticleTitleMax),
   "body": zod.string().max(getSocialAccountPostsResponseItemsItemArticleBodyMax)

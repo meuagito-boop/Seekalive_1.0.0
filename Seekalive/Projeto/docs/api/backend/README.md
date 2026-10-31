@@ -1,8 +1,8 @@
 # Seekalive — documentação do aplicativo e especificação do backend
 
-**Atualizado:** 29/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
+**Atualizado:** 30/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
 
-> Implementados no código de desenvolvimento: sessão, CSRF, cadastro/login/verificação, troca e recuperação de senha, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil básico, privacidade, seguimento, pedidos privados, Círculo derivado e bloqueios. Em reconferência read-only de metadados em 29/10/2026, o PostgreSQL de desenvolvimento `heliumdb` apresentou 12 schemas lógicos de domínio e `public`; há 12 tabelas físicas em `accounts`, `security`, `profiles` e `seek`. O modelo Drizzle declara 13 tabelas, incluindo `feed.posts`, que está ausente fisicamente. O journal local contém seis migrations; não foi localizada tabela de histórico com nome contendo `drizzle` ou `migration`, portanto não se afirma quais migrations foram aplicadas historicamente. O pós-merge configura `drizzle-kit push` em desenvolvimento. A migration `0005` e a suíte `test:api-isolated-db` passaram em schema temporário; o catálogo permanente permaneceu inalterado e não restou schema de teste. Nenhuma linha de usuário foi consultada e produção não foi consultada, alterada ou publicada nesta verificação. Resend foi testado em desenvolvimento, mas E2E completo e habilitação de produção continuam pendentes. O Feed tem operações iniciais de texto/artigo no código, mas sua tabela ainda não existe no banco; interações completas, mídias, avaliações, mensagens e outros domínios ainda precisam de implementação.
+> Estado atual de desenvolvimento: sessão, CSRF, cadastro/login/verificação, recuperação/troca de senha, instalações confiáveis, sessões, onboarding, perfis, relações, Feed e upload de fotos/vídeos estão implementados em fatias. O PostgreSQL de desenvolvimento tem tabelas nos schemas `accounts` (4), `security` (4), `profiles` (5), `feed` (6) e `media` (1); `feed.posts` e `media.assets` existem. Referências de mídia do Feed apontam para ativos do domínio Mídias; os arquivos binários ficam em disco local apenas em desenvolvimento, fora do Git e do deploy. Upload temporário pode ser anexado por até 24 horas; a limpeza de expirados é oportunística no próximo upload, sem worker periódico. As migrations Feed e Mídias possuem trilhas independentes e foram aplicadas/verificadas somente no banco de desenvolvimento. Nenhuma alteração foi feita em produção. A suíte de testes, typecheck, build, geração de contratos e verificações locais de migration passaram; replay de baseline e teste integrado de purga de conta com banco não puderam ser executados pelo shell porque faltam `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`. Processamento de mídia e armazenamento permanente não estão implementados.
 
 ## Como utilizar este pacote
 
@@ -10,12 +10,12 @@
 2. Ler `analysis-of-reference-documents.md`: comparação dos PDFs com o produto atual e decisões que ainda precisam de aprovação.
 3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
 4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
-5. Usar `endpoints.md` e `openapi.json`: catálogo de métodos, permissões, corpos, respostas e erros.
+5. Usar `shared/api-spec/openapi.yaml` como fonte de verdade dos contratos ativos da API. `endpoints.md` e `openapi.json` neste pacote descrevem o catálogo técnico mais amplo do produto e incluem propostas que ainda não estão ligadas.
 6. Revisar `data-dictionary.md`, as migrations em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o modelo Drizzle, o journal local, a presença física no banco e o modelo futuro. O `drizzle-kit check` valida somente os arquivos locais; não prova aplicação. **Não executar `push`, `migrate` ou DDL no banco principal sem apresentar antes o diff, impacto, recuperação e obter aprovação explícita para a alteração específica.**
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, o mapa de domínios de dados, OpenAPI, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere o HTML depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. O OpenAPI aqui é **separado** de `shared/api-spec/openapi.yaml`, que permanece intacto e descreve a API pública do App.
+O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, o mapa de domínios de dados, o catálogo técnico, o OpenAPI compartilhado da API ativa, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere o HTML depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. `docs/api/backend/openapi.json` é um catálogo separado de referência/propostas; para paths e schemas implementados, use `shared/api-spec/openapi.yaml`, inclusive para upload e leitura de mídia.
 
 ## 1. Produto
 
@@ -38,14 +38,14 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Área | Situação auditada |
 |---|---|
 | Servidor | Express/TypeScript em `Aplicativo/back`; saúde, autenticação, onboarding, perfis e relações estão implementados |
-| Banco | Metadados de desenvolvimento confirmam as tabelas de identidade, perfil básico, privacidade e relações; journal local e estado físico são registrados separadamente. `feed.posts` está ausente; produção não foi consultada nem alterada |
+| Banco | Em desenvolvimento, Feed e Mídias têm schemas e ledgers independentes; `feed.posts` e `media.assets` estão aplicados. Produção não foi consultada nem alterada |
 | Especificação | `shared/api-spec/openapi.yaml` mantém o contrato público existente; `docs/api/backend/openapi.json` distingue endpoints ativos dos propostos |
 | Login | API própria com Argon2id, CSRF, e-mail confirmado e versão de política; contas legadas precisam validar ou atualizar a senha antes de receber sessão |
 | Regra de senha | 8–128 caracteres, ao menos uma maiúscula, uma minúscula, um número e um caractere especial; credenciais legadas são migradas no login sem tentar inferir o conteúdo do hash |
 | Cadastro | Rota de cadastro/verificação implementada; o teste direto de envio Resend foi recebido em desenvolvimento. O fluxo completo ainda requer validação E2E; nenhuma conta sem confirmação recebe sessão |
 | Recuperação/verificação | Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria |
-| Publicações/comentários | `contentService` seleciona `demoContentAdapter`; existe adaptador REST proposto, mas desativado |
-| Fotos/vídeos | `URL.createObjectURL`, memória e URLs `blob:`. Não são uploads e deixam de funcionar após recarga |
+| Publicações/comentários | Publicação remota de texto/artigo e publicação com ativos de mídia; curtidas, comentários, reposts, referências e parte da experiência ainda permanecem locais ou não implementados |
+| Fotos/vídeos | Envio autenticado de arquivos para armazenamento local de desenvolvimento; metadados são persistidos em `media.assets` e IDs são associados a publicações em `feed.posts`. Não é armazenamento de produção |
 | Contas/avaliações | Dados de exemplo e registros no `localStorage`; não são dados compartilhados entre dispositivos |
 | Perfil e relações | API ativa para leitura/edição básica do perfil, privacidade, seguir, pedidos privados, Círculo derivado e bloquear/desbloquear; as telas ainda não consomem essa API |
 | Mensagens | Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio |

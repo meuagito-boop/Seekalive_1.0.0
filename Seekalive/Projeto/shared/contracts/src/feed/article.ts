@@ -8,6 +8,7 @@ export const createArticleSchema = z.object({
   content: z.string().trim().max(280).default(""),
   audience: postAudienceSchema,
   format: z.literal("article").optional(),
+  mediaAssetIds: z.array(z.string().uuid()).max(8).optional(),
   article: z.object({
     title: z.string().trim().min(1).max(160),
     body: z.string().trim().min(1).max(50_000),

@@ -32,6 +32,7 @@ export { feedPostReposts } from "./schema/feed/postReposts";
 export { feedPostBookmarks } from "./schema/feed/postBookmarks";
 export { feedPostComments } from "./schema/feed/postComments";
 export { feedCommentLikes } from "./schema/feed/commentLikes";
+export { mediaAssets } from "./schema/media/assets";
 export { commercialProfiles } from "./schema/profiles/businessProfiles";
 export {
   authChallenges,

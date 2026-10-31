@@ -10,6 +10,7 @@ import { feedPostReposts } from "./feed/postReposts";
 import { feedPostBookmarks } from "./feed/postBookmarks";
 import { feedPostComments } from "./feed/postComments";
 import { feedCommentLikes } from "./feed/commentLikes";
+import { mediaAssets } from "./media/assets";
 import {
   accountBlocks,
   accountFollows,
@@ -44,6 +45,7 @@ export const databaseSchema = {
   feedPostBookmarks,
   feedPostComments,
   feedCommentLikes,
+  mediaAssets,
   accountProfiles,
   commercialProfiles,
 };
@@ -65,6 +67,7 @@ export {
   feedPostBookmarks,
   feedPostComments,
   feedCommentLikes,
+  mediaAssets,
   passwordCredentials,
   sessions,
   trustedDevices,

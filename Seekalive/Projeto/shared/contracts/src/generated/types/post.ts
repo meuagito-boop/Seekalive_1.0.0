@@ -8,6 +8,8 @@
 import type { PostArticle } from './postArticle';
 import type { PostAudience } from './postAudience';
 import type { PostFormat } from './postFormat';
+import type { PostMediaTypesItem } from './postMediaTypesItem';
+import type { PostType } from './postType';
 
 export interface Post {
   id: string;
@@ -16,8 +18,12 @@ export interface Post {
   content: string;
   createdAt: Date;
   audience: PostAudience;
-  type: 'text';
+  type: PostType;
   format: PostFormat;
+  /** @maxItems 8 */
+  mediaUrls?: string[];
+  /** @maxItems 8 */
+  mediaTypes?: PostMediaTypesItem[];
   article?: PostArticle;
   /** @minimum 0 */
   likes: number;

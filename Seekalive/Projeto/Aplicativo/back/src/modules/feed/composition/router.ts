@@ -14,9 +14,7 @@ import { createGlobalFeedLister } from "../application/listGlobalFeed";
 import { createPostCommentDeleter } from "../application/deletePostComment";
 import { createCommentLikeSetter } from "../application/setCommentLike";
 import {
-  deleteOwnedFeedPost,
   findFeedPostById,
-  insertFeedPost,
   listFeedPostsForTimeline,
 } from "../infrastructure/postRepository";
 import {
@@ -50,6 +48,10 @@ import { createCommentDeleteRoutes } from "../presentation/commentDeleteRoutes";
 import { createCommentLikeRoutes } from "../presentation/commentLikeRoutes";
 import { createGlobalFeedRoutes } from "../presentation/globalFeedRoutes";
 import type { FeedCommentAuthor } from "../domain/postInteractions";
+import {
+  deleteFeedPostWithMedia,
+  persistFeedPost,
+} from "./postPersistence";
 
 async function findCommentAuthors(
   ids: string[],
@@ -64,13 +66,14 @@ async function findCommentAuthors(
   }));
 }
 
-const createPost = createPostCreator(insertFeedPost);
-const deletePost = createPostDeleter(deleteOwnedFeedPost);
-const readPost = createPostReader(
+const createPost = createPostCreator(persistFeedPost);
+const deletePost = createPostDeleter(deleteFeedPostWithMedia);
+export const readFeedPost = createPostReader(
   findFeedPostById,
   accountViewsByIds,
   findPostInteractionSummaries,
 );
+const readPost = readFeedPost;
 const readArticle = createArticleReader(readPost);
 const listProfilePosts = createProfilePostListApi(accountViewsByIds);
 const listGlobalFeed = createGlobalFeedLister(

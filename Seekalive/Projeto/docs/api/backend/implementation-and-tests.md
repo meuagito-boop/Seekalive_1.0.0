@@ -1,12 +1,12 @@
 # Plano de implementação e testes
 
-Este documento registra a implementação existente e organiza as próximas fatias do backend. O PostgreSQL gerenciado da Replit é a escolha atual para desenvolvimento e produção, em instâncias separadas por ambiente. Em desenvolvimento, os 12 domínios já têm schemas lógicos; Contas, Segurança, Perfis/Relações e Seek contêm as 12 tabelas implementadas, e os outros schemas estão vazios até as próximas etapas. Isso não é lançamento: produção não foi alterada nem publicada.
+Este documento registra a implementação existente e organiza as próximas fatias do backend. O PostgreSQL gerenciado da Replit é usado apenas no desenvolvimento atual; nenhum provedor ou instância de produção foi escolhido, configurado ou publicado. Os schemas lógicos são separados por domínio. No estado de desenvolvimento de 30/10/2026, Accounts tem 4 tabelas, Security 4, Profiles 5, Feed 6 e Media 1; os outros domínios sem tabelas ativas permanecem preparados. Isso não é lançamento.
 
 ## Antes de implementar
 
 1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail, recuperação, troca de senha confirmada por e-mail, gestão de sessões e instalações confiáveis. Conta só recebe sessão após e-mail confirmado e política de senha vigente. Uma instalação sem token ativo recebe código por e-mail antes da sessão; IP não é identidade do dispositivo. Troca/reset de senha revoga todas as sessões e instalações e exige novo login/código. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
 2. A base PostgreSQL de desenvolvimento está ativa. Definir e testar backup, retenção e restauração antes de lançar; a base de produção permanece separada e recebe schema pelo fluxo Publish somente quando o sistema estiver pronto.
-3. Confirmar armazenamento de mídia, limites, formatos e retenção.
+3. Para testes de desenvolvimento, fotos/vídeos usam arquivo local com limites e assinatura validados. Antes de lançamento, decidir armazenamento permanente, processamento, limites operacionais e retenção de produção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.
 5. Revisar `schema-core.sql`, constraints, migrações, termos de privacidade e matriz de autorização.
 6. Aprovar e versionar o contrato OpenAPI proposto sem substituir o contrato atual até haver migração testada.
@@ -15,7 +15,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 ### Fase 1 — Infraestrutura segura e identidade (núcleo implementado)
 
-- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política e onboarding estão implementados no código. A inspeção de metadados de 29/10/2026 encontrou as 12 tabelas físicas atuais em seus schemas de domínio e confirmou os schemas preparados sem tabelas; ela não permite afirmar qual comando criou/moveu cada objeto nem se há registros. `feed.posts` continua ausente. Produção não foi consultada nem alterada.
+- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política, onboarding, Feed e upload local de mídia estão implementados em fatias. Em 30/10/2026, as trilhas Feed e Mídias foram aplicadas no banco de desenvolvimento e verificadas; `feed.posts` e `media.assets` existem. Os binários são mantidos localmente apenas em desenvolvimento. Produção não foi escolhida, consultada, alterada ou publicada.
 - O teste direto do Resend foi recebido em desenvolvimento, mas a suíte de API usa e-mail em memória; o fluxo E2E de cadastro via Resend deve ser validado separadamente. Produção não é presumida nem habilitada.
 - A política definida é 8–128 caracteres, com uma maiúscula, minúscula, número e caractere especial; o hash usa Argon2id. A recuperação por código de e-mail está implementada: somente contas ativas e verificadas são elegíveis; resposta anti-enumeração; HMAC-SHA256; expiração em 10 minutos; cinco tentativas; uso único; limites de IP e conta; redefinição, consumo do desafio e revogação de sessões em transação.
 - A recuperação não cria sessão após a troca. A entrega é iniciada depois da resposta HTTP e não tem outbox persistente; em falha de envio o código é invalidado, e a pessoa pode solicitar outro após o intervalo de segurança. O envio Resend foi testado em desenvolvimento, mas produção permanece desativada até configuração própria.
@@ -85,7 +85,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL gerenciado da Replit é o banco ativo de desenvolvimento; produção permanece separada. O pós-merge configura Drizzle `push` somente no banco de desenvolvimento. As migrations `0003` e `0004` descrevem a movimentação das tabelas e a criação dos schemas vazios no histórico versionado; o catálogo atual não comprova que comandos específicos as tenham aplicado. Não foi encontrada tabela de histórico de migrations, portanto a sequência histórica não é afirmada. A conferência de 29/10/2026 encontrou 12 tabelas permanentes e `feed.posts` ausente. `generate` cria SQL versionado sem conexão. Não executar `migrate`, `push` ou DDL no schema principal sem apresentar antes diff, impacto, recuperação e obter aprovação específica; não sobrescrever `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Produção não foi consultada nem alterada.
+O PostgreSQL gerenciado da Replit é o banco ativo de desenvolvimento; hospedagem e banco de produção não foram escolhidos nem configurados. Feed e Mídias possuem migrations e ledgers independentes; as migrations aplicadas no desenvolvimento criaram/ajustaram `feed.posts` e `media.assets`. A consulta posterior confirmou os objetos e os registros dos ledgers. `generate` cria SQL versionado sem conexão. Não executar alterações de schema sem revisar o diff, impacto e recuperação, confirmar explicitamente o ambiente e obter autorização específica; não sobrescrever `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Nenhuma operação foi feita em produção.
 
 #### Seleção de conexão
 

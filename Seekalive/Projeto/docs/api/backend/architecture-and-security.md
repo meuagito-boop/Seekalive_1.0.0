@@ -2,9 +2,9 @@
 
 ## Escopo atualmente implementado
 
-A API Express com PostgreSQL/Drizzle implementa autenticação, recuperação de senha, gestão de sessões, onboarding, leitura/edição do próprio perfil, consulta pública de perfil, verificação de username, privacidade, seguimentos, pedidos de seguimento para perfil privado, Círculo derivado e bloqueios. A primeira fatia de publicações textuais e artigos também está implementada no código e no contrato OpenAPI. As rotas usam sessão verificada e CSRF nas escritas. A reconferência de metadados em 29/10/2026 encontrou no banco de desenvolvimento as tabelas de Conta, mas não `feed.posts`; o histórico de comandos que produziu os objetos não é comprovável pelo catálogo consultado. O frontend continua em modo de demonstração/local para vários desses recursos; a presença de um endpoint não significa que todas as telas já o consumam.
+A API Express com PostgreSQL/Drizzle implementa autenticação, recuperação de senha, gestão de sessões, onboarding, leitura/edição do próprio perfil, consulta pública de perfil, privacidade, relações e bloqueios. Feed persiste publicações e aceita fotos/vídeos enviados pelo titular por meio do domínio Mídias. Escritas exigem sessão verificada e CSRF. Em 30/10/2026, `feed.posts` e `media.assets` foram verificados no banco de desenvolvimento. Os binários usam disco local restrito a desenvolvimento; isso não configura armazenamento de produção. O frontend mantém demonstração local em parte das experiências; a presença de um endpoint não significa que todas as telas autenticadas foram verificadas visualmente.
 
-Permanecem incompletos: comentários/respostas, curtidas, reposts, salvos, referências e feed principal; a publicação de fotos/vídeos segue bloqueada até haver armazenamento aprovado. Avaliações, perfil comercial completo/Seek, mensagens, notificações, silenciamentos, busca e moderação ainda são propostas. O Resend está habilitado somente em desenvolvimento; produção continua desativada e sem configuração.
+Permanecem incompletos: comentários/respostas, curtidas, reposts, salvos, referências e ranking do feed. Upload de mídia funciona no desenvolvimento, mas armazenamento permanente, processamento/transcodificação, thumbnails e reconciliação de arquivos órfãos ainda não estão implementados. Avaliações, perfil comercial completo/Seek, mensagens, notificações, silenciamentos, busca e moderação continuam fora desta fatia.
 
 ## 1. Arquitetura de referência
 
@@ -189,7 +189,7 @@ Não guardar GPS físico por padrão. Histórico de busca/visitas deve ser opt-i
 
 Exclusão deve tratar conta, identidade, sessões, mídia, busca, caches, notificações, mensagens, avaliações, jobs e backups. Mensagens/conteúdo de interação podem exigir anonimização ou tombstone em vez de cascade cego; a política deve ser documentada e testada.
 
-## Estado da primeira fatia de Feed — 25/10/2026
+## Estado da primeira fatia de Feed — registro histórico de 25/10/2026
 
 - Schema lógico `feed.posts` modelado com chave da conta autora, audiência, tipo texto/artigo, conteúdo, timestamps, versão, checks e índices cronológicos. A migração versionada `0005_mushy_centennial.sql` foi gerada sem conexão ao banco; **não foi aplicada nesta etapa**.
 - Rotas: `POST /v1/social/posts`, `POST /v1/social/articles`, `GET /v1/social/posts/{postId}`, `GET /v1/social/articles/{postId}`, `DELETE /v1/social/posts/{postId}` e `GET /v1/social/accounts/{accountId}/posts`. Perfil público agora recebe páginas separadas de posts e artigos do domínio Feed.

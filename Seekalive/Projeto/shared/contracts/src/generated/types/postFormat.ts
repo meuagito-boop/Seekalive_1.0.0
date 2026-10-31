@@ -11,5 +11,6 @@ export type PostFormat = typeof PostFormat[keyof typeof PostFormat];
 
 export const PostFormat = {
   text: 'text',
+  media: 'media',
   article: 'article',
 } as const;

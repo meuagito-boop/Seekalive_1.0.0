@@ -35,7 +35,11 @@ export function createGlobalFeedLister<TAuthor extends FeedAuthorAccessView>(
         ? await listFollowingIds(input.viewerId)
         : null;
     const format: FeedPostFormat | "all" =
-      input.tab === "articles" ? "article" : "all";
+      input.tab === "articles"
+        ? "article"
+        : input.tab === "videos"
+          ? "media"
+          : "all";
     const scope: GlobalFeedCursorScope = {
       tab: input.tab,
       viewerId: input.viewerId,
@@ -61,6 +65,7 @@ export function createGlobalFeedLister<TAuthor extends FeedAuthorAccessView>(
       const rows = await listPosts({
         authorIds: followingIds,
         format,
+        videoOnly: input.tab === "videos",
         after: position,
         limit: batchSize,
       });

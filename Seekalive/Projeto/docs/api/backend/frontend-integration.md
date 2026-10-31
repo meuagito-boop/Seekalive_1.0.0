@@ -32,7 +32,7 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 
-O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador não guarda credenciais. Metadados de desenvolvimento confirmam as tabelas de autenticação, perfil básico e relações; `feed.posts` continua ausente e a sequência histórica de migrations não pode ser comprovada pelo catálogo. Registro não cria sessão; só a confirmação do e-mail ativa a conta. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; sem configuração de envio, o cadastro responde `503` sem criar conta. O E2E completo do fluxo no navegador e a configuração de produção continuam pendentes.
+O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador não guarda credenciais. No desenvolvimento de 30/10/2026, Feed e Mídias têm schemas separados e `feed.posts`/`media.assets` aplicados. Publicações com fotos/vídeos enviam arquivos autenticados para armazenamento local de desenvolvimento; a leitura volta a verificar a visibilidade do post. Registro não cria sessão; só a confirmação do e-mail ativa a conta. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; sem configuração de envio, o cadastro responde `503` sem criar conta. O E2E autenticado no navegador e armazenamento de produção permanecem pendentes.
 
 ### Fluxo de acesso proposto
 
@@ -55,7 +55,7 @@ Em sessões remotas, a interface também usa o cliente Orval para busca de conta
 | `services/contentService.ts` | Migrar payload de mídia/autor; ativar REST somente após teste real; não fallback para demo em erro |
 | `services/restContracts.ts` | Completar operações, erros, paginação e validações; manter formatos existentes documentados |
 | `services/contentValidation.ts` | Compartilhar regras com servidor sem confundir validação de UI com segurança |
-| `services/mediaService.ts`, `hooks/use-draft-media.ts` | Upload real, estado de processamento, progresso/cancelamento; blob somente para preview temporário |
+| `services/mediaService.ts`, `hooks/use-draft-media.ts` | Seleção e preview local; no envio remoto, upload autenticado via API para disco local em desenvolvimento. Estado de processamento, progresso/cancelamento e armazenamento permanente ainda não existem |
 | `services/referenceResolver.ts`, `lib/contentLinks.ts` | Resolver no servidor respeitando audiência e destino original, incluindo `event:` |
 | `lib/postMedia.ts` | Galeria derivada de publicações e mídias autorizadas; não expor ativo oculto por outro caminho |
 | `data/accountStorage.ts`, `data/reviewStorage.ts` | Retirar como persistência principal; importação, se houver, explícita e validada |

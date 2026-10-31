@@ -4,6 +4,7 @@ import { createAuthRateLimit } from "../../../security/rateLimit";
 import { requireCsrf } from "../../../security/csrf";
 import type { CreatePost } from "../application/createPost";
 import { toPostView } from "../application/postView";
+import { FeedMediaAssetsUnavailableError } from "../domain/feedMediaAssets";
 import { requiredActorId, sendFeedError } from "./feedHttp";
 
 export function createPostCreateRoutes(createPost: CreatePost): IRouter {
@@ -16,23 +17,6 @@ export function createPostCreateRoutes(createPost: CreatePost): IRouter {
     async (request, response) => {
       const actorId = await requiredActorId(request, response);
       if (!actorId) return;
-
-      const body = request.body as Record<string, unknown> | null;
-      if (
-        body &&
-        typeof body === "object" &&
-        (body.format === "media" ||
-          (Array.isArray(body.mediaUrls) && body.mediaUrls.length > 0) ||
-          (Array.isArray(body.mediaTypes) && body.mediaTypes.length > 0))
-      ) {
-        sendFeedError(
-          response,
-          422,
-          "CONTENT_MEDIA_NOT_READY",
-          "Publicação com mídia ficará disponível após a integração segura de armazenamento.",
-        );
-        return;
-      }
 
       const parsed = createTextPostSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -54,12 +38,25 @@ export function createPostCreateRoutes(createPost: CreatePost): IRouter {
         return;
       }
 
-      const post = await createPost({
-        authorId: actorId,
-        content: parsed.data.content,
-        audience: parsed.data.audience,
-        format: "text",
-      });
+      let post;
+      try {
+        post = await createPost({
+          authorId: actorId,
+          content: parsed.data.content,
+          audience: parsed.data.audience,
+          format: parsed.data.format ?? "text",
+          mediaAssetIds: parsed.data.mediaAssetIds,
+        });
+      } catch (error) {
+        if (!(error instanceof FeedMediaAssetsUnavailableError)) throw error;
+        sendFeedError(
+          response,
+          422,
+          "CONTENT_VALIDATION_FAILED",
+          "Uma ou mais mídias não estão disponíveis. Envie-as novamente.",
+        );
+        return;
+      }
       response.status(201).json(toPostView(post));
     },
   );

@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   text,
   timestamp,
   uuid,
@@ -21,6 +22,10 @@ export const feedPosts = feedTable(
     content: varchar("content", { length: 280 }).default("").notNull(),
     audience: varchar("audience", { length: 16 }).notNull(),
     format: varchar("format", { length: 16 }).notNull(),
+    media: jsonb("media")
+      .$type<{ id: string; type: "image" | "video" }[]>()
+      .default([])
+      .notNull(),
     articleTitle: varchar("article_title", { length: 160 }),
     articleBody: text("article_body"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -38,17 +43,23 @@ export const feedPosts = feedTable(
     ),
     check(
       "feed_posts_format_valid",
-      sql.raw(`"format" in ('text', 'article')`),
+      sql.raw(`"format" in ('text', 'media', 'article')`),
     ),
     check(
       "feed_posts_content_valid",
       sql.raw(`(
         ("format" = 'text' and char_length(btrim("content")) between 1 and 280
-          and "article_title" is null and "article_body" is null)
+          and "article_title" is null and "article_body" is null
+          and jsonb_typeof("media") = 'array' and jsonb_array_length("media") = 0)
+        or
+        ("format" = 'media' and char_length("content") <= 280
+          and "article_title" is null and "article_body" is null
+          and jsonb_typeof("media") = 'array' and jsonb_array_length("media") between 1 and 8)
         or
         ("format" = 'article' and char_length("content") <= 280
           and "article_title" is not null and char_length(btrim("article_title")) between 1 and 160
-          and "article_body" is not null and char_length(btrim("article_body")) between 1 and 50000)
+          and "article_body" is not null and char_length(btrim("article_body")) between 1 and 50000
+          and jsonb_typeof("media") = 'array' and jsonb_array_length("media") <= 8)
       )`),
     ),
     check("feed_posts_version_positive", sql.raw(`"version" > 0`)),

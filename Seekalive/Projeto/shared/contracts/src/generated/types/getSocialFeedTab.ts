@@ -13,4 +13,5 @@ export const GetSocialFeedTab = {
   'for-you': 'for-you',
   following: 'following',
   articles: 'articles',
+  videos: 'videos',
 } as const;

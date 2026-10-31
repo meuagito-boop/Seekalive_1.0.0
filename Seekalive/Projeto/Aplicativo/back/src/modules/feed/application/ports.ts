@@ -29,6 +29,7 @@ export type ListFeedPostsByAuthor = (input: {
 export type ListFeedPostsForTimeline = (input: {
   authorIds: string[] | null;
   format: FeedPostFormat | "all";
+  videoOnly?: boolean;
   after: PostPosition | null;
   limit: number;
 }) => Promise<FeedPost[]>;

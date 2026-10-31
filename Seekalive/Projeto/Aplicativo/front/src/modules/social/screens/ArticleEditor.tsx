@@ -25,7 +25,7 @@ export default function ArticleEditor() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { currentUser } = useAppContext();
-  const { publishPost } = useSocial();
+  const { publishPost, isRemoteSocialSession } = useSocial();
   const initialReference = useMemo(() => readReferenceFromSearch(search), [search]);
 
   const [title, setTitle] = useState("");
@@ -71,9 +71,10 @@ export default function ArticleEditor() {
         article: { title: title.trim(), body: body.trim() },
         mediaUrls: draft.media.map((m) => m.url),
         mediaTypes: draft.media.map((m) => m.type),
+        mediaFiles: draft.media.map((m) => m.file),
         reference: reference ?? undefined,
       });
-      draft.handOff();
+      if (!isRemoteSocialSession) draft.handOff();
       setLocation(`/article/${post.id}`);
     } catch (error) {
       setStatus("error");
