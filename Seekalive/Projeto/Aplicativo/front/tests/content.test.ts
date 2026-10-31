@@ -30,7 +30,7 @@ import { mockUsers, currentUser } from "../src/data/mockData";
 import { formatCount, formatTimeAgo } from "../src/lib/formatters";
 import type { PublishPostInput } from "../src/types/content";
 import { validateMediaFiles } from "../src/modules/social/services/mediaService";
-import { saveStoredSeekReviews } from "../src/modules/seek/data/reviewStorage";
+import { saveStoredBusinessProfileReviews } from "../src/modules/profile/commercial-profile/data/businessProfileReviewStorage";
 import { myAccountToUser } from "../src/modules/social/services/socialGraphApi";
 import type { MyAccountResponse } from "@workspace/api-client-react";
 import {
@@ -192,7 +192,7 @@ test("sessão remota ignora dados sociais do navegador sem apagá-los", () => {
         createdAt: "2026-10-27T12:00:00.000Z",
       },
     ]);
-    saveStoredSeekReviews([
+    saveStoredBusinessProfileReviews([
       {
         id: "local-review",
         businessAccountId: "local-business",
@@ -336,7 +336,7 @@ test("falha de armazenamento de avaliação não simula sucesso", () => {
   });
   try {
     assert.throws(
-      () => saveStoredSeekReviews([]),
+      () => saveStoredBusinessProfileReviews([]),
       /Não foi possível salvar a avaliação/,
     );
   } finally {

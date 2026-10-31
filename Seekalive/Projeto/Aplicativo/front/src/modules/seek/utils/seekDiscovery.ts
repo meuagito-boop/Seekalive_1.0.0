@@ -1,4 +1,4 @@
-import type { SeekReview } from "@/modules/seek/types/review";
+import type { BusinessProfileReview } from "@/modules/profile/commercial-profile/types/businessProfileReview";
 import type { User } from "@/modules/profile/types/user";
 import type { SeekEvent } from "@/modules/seek/types/event";
 import type { SeekDiscoveryItem } from "@/modules/seek/types/discovery";
@@ -18,7 +18,7 @@ export function discoveryImage(value?: string): string | undefined {
 
 export function buildSeekItems(
   users: User[],
-  reviews: SeekReview[],
+  reviews: BusinessProfileReview[],
   events: (SeekEvent & { isExample?: boolean })[],
   exampleIds: ReadonlySet<string> = new Set(),
 ): SeekDiscoveryItem[] {

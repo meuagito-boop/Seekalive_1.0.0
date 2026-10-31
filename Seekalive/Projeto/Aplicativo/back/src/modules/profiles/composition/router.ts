@@ -22,7 +22,9 @@ import {
 import { createOwnerProfileUpdater } from "../application/updateOwnerProfile";
 import { createUsernameAvailabilityChecker } from "../application/usernameAvailability";
 import { createCommercialProfileDetailsReader } from "../application/commercialProfileDetails";
+import { createBusinessProfileReviewService } from "../application/businessProfileReviews";
 import { findCommercialProfileDetailsByAccountId } from "../infrastructure/commercialProfileDetailsRepository";
+import { businessProfileReviewStore } from "../infrastructure/businessProfileReviewRepository";
 import { findOwnerProfileIdentity } from "../infrastructure/ownerProfileRepository";
 import { persistOwnerProfileUpdate } from "../infrastructure/ownerProfileUpdateRepository";
 import {
@@ -34,6 +36,8 @@ import { createAccountAvailabilityRouter } from "../presentation/accountAvailabi
 import { createOwnerProfileRouter } from "../presentation/ownerProfileRoutes";
 import { createPrivacyRouter } from "../presentation/privacyRoutes";
 import { createPublicProfileRouter } from "../presentation/publicProfileRoutes";
+import { createBusinessProfileReviewRouter } from "../presentation/businessProfileReviewRoutes";
+import { decodeBusinessProfileReviewCursor } from "../application/businessProfileReviewCursor";
 
 const loadOwnerProfileIdentity = createOwnerProfileIdentityLoader({
   accountView,
@@ -59,6 +63,15 @@ const privacySettings = createPrivacySettingsService({
   savePrivacySettings,
 });
 const listProfilePosts = createProfilePostListApi(accountViewsByIds);
+const businessProfileReviews = createBusinessProfileReviewService({
+  store: businessProfileReviewStore,
+  findActiveAccountById,
+  findActiveAccountByUsername,
+  accountViewsByIds,
+  getRelationshipFor,
+  isBlockedBetween,
+  readCommercialProfileDetails,
+});
 
 const publicProfileDependencies: PublicProfileDependencies = {
   accountView,
@@ -74,6 +87,12 @@ const router: IRouter = Router();
 router.use(createAccountAvailabilityRouter(checkUsernameAvailability));
 router.use(createOwnerProfileRouter(loadOwnerProfile, updateOwnerProfile));
 router.use(createPrivacyRouter(privacySettings));
+router.use(
+  createBusinessProfileReviewRouter(
+    businessProfileReviews,
+    decodeBusinessProfileReviewCursor,
+  ),
+);
 router.use(
   createPublicProfileRouter(
     (username, viewerId) =>

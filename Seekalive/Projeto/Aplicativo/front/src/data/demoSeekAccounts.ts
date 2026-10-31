@@ -1,4 +1,4 @@
-import type { SeekReview } from "@/modules/seek/types/review";
+import type { BusinessProfileReview } from "@/modules/profile/commercial-profile/types/businessProfileReview";
 import type { User } from "@/modules/profile/types/user";
 
 /** Fictional profiles for frontend preview only; photography is illustrative, not of these businesses. */
@@ -53,7 +53,7 @@ export function withDemoSeekMedia(user: User): User {
   };
 }
 
-export const demoSeekReviews: SeekReview[] = demoSeekAccounts.flatMap((account, index) =>
+export const demoBusinessProfileReviews: BusinessProfileReview[] = demoSeekAccounts.flatMap((account, index) =>
   [5, index % 2 ? 4 : 5].map((rating, number) => ({
     id: `demo_seek_review_${index}_${number}`, businessAccountId: account.id,
     reviewerId: number ? "u2" : "u1", rating: rating as 4 | 5,

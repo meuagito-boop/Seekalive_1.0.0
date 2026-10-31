@@ -1,6 +1,8 @@
 # Plano de implementação e testes
 
-Este documento registra a implementação existente e organiza as próximas fatias do backend. O PostgreSQL gerenciado da Replit é usado apenas no desenvolvimento atual; nenhum provedor ou instância de produção foi escolhido, configurado ou publicado. Os schemas lógicos são separados por domínio. No estado de desenvolvimento de 30/10/2026, Accounts tem 4 tabelas, Security 4, Profiles 5, Feed 6 e Media 1; os outros domínios sem tabelas ativas permanecem preparados. Isso não é lançamento.
+Este documento registra a implementação existente e organiza as próximas fatias do backend. O PostgreSQL gerenciado da Replit é usado apenas no desenvolvimento atual; nenhum provedor ou instância de produção foi escolhido, configurado ou publicado. Os schemas lógicos são separados por domínio. No banco de desenvolvimento aplicado em 31/10/2026, Accounts tem 4 tabelas, Security 4, Profiles 5, Feed 7 e Media 1. O código Drizzle de Profiles tem agora uma sexta tabela planejada, `business_profile_reviews`; sua migration 0003 está gerada, mas não aplicada. Isso não é lançamento.
+
+**Fatia atual — avaliações de perfil comercial:** contrato OpenAPI, rotas de Profiles, persistência Drizzle/repositório, regras de acesso e interface do perfil foram implementados. O Seek deixou de oferecer criação/resposta de avaliações; sua eventual nota é somente uma projeção de leitura derivada. O banco de desenvolvimento ainda não possui a nova tabela, pois a migration `profiles/0003` aguarda autorização de aplicação. Não há alteração em produção.
 
 ## Antes de implementar
 
@@ -28,7 +30,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 - Perfil básico, privacidade, seguir, pedidos de perfis privados, Círculo derivado e bloquear/desbloquear já têm endpoints e tabelas próprias. O frontend ainda mantém vários desses controles no estado local da demonstração.
 - Endpoints ativos de conta: `GET/PATCH /v1/accounts/me`, `GET /v1/accounts/availability`, `GET /v1/accounts/{accountId}`, `GET /v1/profiles/{username}` e `GET/PUT /v1/accounts/me/privacy`. Auth implementa `POST /v1/auth/account/email/change/request`, `/v1/auth/account/email/change/confirm-current`, `/v1/auth/account/email/change/confirm-new`, `/v1/auth/account/password/change/request`, `/v1/auth/account/password/change/confirm`, `/v1/auth/account/deletion/code`, `/v1/auth/account/deletion/confirm`, `/v1/auth/account/deletion/restore/code` e `/v1/auth/account/deletion/restore/confirm`. Social implementa listas de seguidores/seguindo, seguir/deixar de seguir, pedidos privados, Círculos e bloqueios.
 - A edição de dados da conta usa uma única identidade Social e diferencia o formulário por tipo: conta pessoal (nome e sobrenome) e conta comercial (nome comercial e endereço comercial completo). A idade é coletada somente no cadastro, mantida no servidor para a regra de 18+ e nunca retornada ao cliente após a criação; não aparece nem em Configurações. E-mail verificado é retornado somente no DTO owner-only. A edição de endereço e conta é atômica; não foi necessária migração de schema.
-- O endpoint de perfil público compõe a identidade canônica da conta com os dados comerciais persistidos, respeitando privacidade e bloqueios. Horários, serviços, avaliações, galeria real e integração de descoberta do Seek ainda dependem dos respectivos domínios; não são fabricados nem tratados como já implementados.
+- O endpoint de perfil público compõe a identidade canônica da conta com os dados comerciais persistidos, respeitando privacidade e bloqueios. Avaliações e respostas pertencem a Profiles e já têm contrato, repositório, aplicação e interface em código; a tabela depende da migration `profiles/0003`. Horários, serviços, galeria real e integração de descoberta do Seek ainda não estão implementados.
 - Regras: Círculo só existe com dois seguimentos aceitos em sentidos opostos; pedido pendente não dá acesso; após aprovação, o seguidor pode ver conteúdo público do perfil privado; conteúdo do Círculo continua exigindo mutualidade; bloqueio remove follows/pedidos em ambas as direções; só o iniciador remove o próprio bloqueio.
 - Mensagens antigas ainda não podem ser ocultadas/restauradas pela API, pois o domínio de mensagens não foi implementado. Posts e outras leituras também precisarão aplicar a autorização quando entrarem no backend.
 
@@ -49,8 +51,8 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 - Cadastrar catálogo IBGE e categorias aprovadas; descobrir e organizar somente contas comerciais Social elegíveis por localização/categoria.
 - Manter dados comerciais, serviços e horários na experiência e nos contratos do perfil comercial; Seek apenas consome uma projeção pública necessária à descoberta.
-- Exibir/criar/responder avaliações na experiência do perfil comercial, nunca como fluxo de avaliação do Seek. Definir ownership persistente e contrato de avaliações antes de ativá-los; os endpoints `/v1/seek/.../reviews` listados em documentação gerada são propostas antigas, não APIs ativas ou aprovadas.
-- Aceite: perfil pessoal não aparece como comércio; Seek não cria nem edita cadastro/perfil/avaliação; comerciante só edita dados da própria conta; município resolve pelo código IBGE; eventual cartão de descoberta pode exibir apenas agregados derivados e autorizados do perfil comercial.
+- Exibir, criar e responder avaliações na experiência do perfil comercial. A API de avaliações pertence a Profiles; Seek não grava nem edita avaliações e pode consumir apenas o agregado derivado e autorizado.
+- Aceite: perfil pessoal não aparece como comércio; Seek não cria nem edita cadastro/perfil/avaliação; comerciante só edita dados da própria conta; município resolve pelo código IBGE; a nota nos resultados de descoberta deriva das avaliações do perfil e não expõe conteúdo privado.
 
 ### Fase 5 — Shop (catálogo, sem checkout)
 
@@ -70,18 +72,18 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 ## Estratégia de teste
 
-| Camada | Cobertura obrigatória |
-|---|---|
-| Validação/contratos | DTO Zod/OpenAPI, limites, enum, códigos e respostas; gerar spec reproduzível |
-| Unidade | Políticas de leitura/ação, normalização username, status, audiência, transições de evento e tipos de conta |
-| PostgreSQL | O workflow pós-merge configura Drizzle `push` para desenvolvimento; o estado físico deve ser confirmado por metadados, sem inferir histórico. Para testes com escrita, usar schema isolado, FKs, unicidade concorrente, constraints e isolamento transacional. Produção permanece separada e fora deste gate. |
-| Integração HTTP | Sessão anônima/autenticada, CSRF, paginação, idempotência, erros, rate limits e ACL por recurso |
-| Segurança | IDOR entre contas, perfil privado, bloqueio mútuo, mídia privada, brute force e enumeração, XSS/links, SSRF em URLs, upload poliglota e CSRF |
-| Concorrência | Duas avaliações simultâneas, like/repost repetidos, edição com versão antiga, upload duplicado e outbox reprocessada |
-| Dados | Seed de municípios determinístico; usuários e conteúdos sintéticos apenas em ambiente local; nunca importar contas mock como usuários reais |
-| Frontend | Fluxos de perfil Social/comercial, abas de perfil, galeria, publicação/mídia, Seek e estados de erro sem regressão da navegação |
-| Frontend por conta | Likes, salvos, leituras, bloqueios, notificações e recomendações precisam ser isolados por ator; fixtures não podem entrar no build/estado de produção |
-| Operação | Health/readiness, logs sem PII/segredos, backup/restauração, job retry/failure queue e alertas |
+| Camada              | Cobertura obrigatória                                                                                                                                                                                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Validação/contratos | DTO Zod/OpenAPI, limites, enum, códigos e respostas; gerar spec reproduzível                                                                                                                                                                                                                                  |
+| Unidade             | Políticas de leitura/ação, normalização username, status, audiência, transições de evento e tipos de conta                                                                                                                                                                                                    |
+| PostgreSQL          | O workflow pós-merge configura Drizzle `push` para desenvolvimento; o estado físico deve ser confirmado por metadados, sem inferir histórico. Para testes com escrita, usar schema isolado, FKs, unicidade concorrente, constraints e isolamento transacional. Produção permanece separada e fora deste gate. |
+| Integração HTTP     | Sessão anônima/autenticada, CSRF, paginação, idempotência, erros, rate limits e ACL por recurso                                                                                                                                                                                                               |
+| Segurança           | IDOR entre contas, perfil privado, bloqueio mútuo, mídia privada, brute force e enumeração, XSS/links, SSRF em URLs, upload poliglota e CSRF                                                                                                                                                                  |
+| Concorrência        | Duas avaliações simultâneas, like/repost repetidos, edição com versão antiga, upload duplicado e outbox reprocessada                                                                                                                                                                                          |
+| Dados               | Seed de municípios determinístico; usuários e conteúdos sintéticos apenas em ambiente local; nunca importar contas mock como usuários reais                                                                                                                                                                   |
+| Frontend            | Fluxos de perfil Social/comercial, abas de perfil, galeria, publicação/mídia, Seek e estados de erro sem regressão da navegação                                                                                                                                                                               |
+| Frontend por conta  | Likes, salvos, leituras, bloqueios, notificações e recomendações precisam ser isolados por ator; fixtures não podem entrar no build/estado de produção                                                                                                                                                        |
+| Operação            | Health/readiness, logs sem PII/segredos, backup/restauração, job retry/failure queue e alertas                                                                                                                                                                                                                |
 
 ### Fluxo de schema neste projeto
 

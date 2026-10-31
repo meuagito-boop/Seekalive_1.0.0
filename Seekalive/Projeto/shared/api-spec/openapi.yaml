@@ -964,6 +964,136 @@ paths:
                 $ref: "#/components/schemas/ProfileResponse"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/profiles/{username}/reviews:
+    parameters:
+      - $ref: "#/components/parameters/Username"
+    get:
+      operationId: listBusinessProfileReviews
+      tags: [profiles]
+      summary: List reviews on a commercial profile
+      description: >
+        Reviews belong to the commercial profile in Social. Reads are
+        authenticated optionally and follow profile visibility and block rules.
+        The aggregate is read-only and may be displayed by Seek discovery.
+      security:
+        - sessionCookie: []
+        - {}
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "200":
+          description: Review page and its profile-owned summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessProfileReviewPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createBusinessProfileReview
+      tags: [profiles]
+      summary: Publish a review on a commercial profile
+      description: >
+        Requires a verified personal account. A reviewer may have one active
+        review per commercial profile; published reviews cannot be edited, but
+        the author may delete and publish a new one. Self-reviews are rejected.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessProfileReviewCreate"
+      responses:
+        "201":
+          description: Review published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessProfileReviewCreated"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/profiles/{username}/reviews/me:
+    parameters:
+      - $ref: "#/components/parameters/Username"
+    delete:
+      operationId: deleteMyBusinessProfileReview
+      tags: [profiles]
+      summary: Delete the authenticated person's review
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Review deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessProfileReviewDeleted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/profiles/{username}/reviews/{reviewId}/reply:
+    parameters:
+      - $ref: "#/components/parameters/Username"
+      - name: reviewId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: replyToBusinessProfileReview
+      tags: [profiles]
+      summary: Publish or update the commercial profile's reply
+      description: Only the owner of the commercial account may reply.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessProfileReviewReply"
+      responses:
+        "200":
+          description: Business reply saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessProfileReviewReplyResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /v1/accounts/{accountId}:
     parameters:
       - $ref: "#/components/parameters/AccountId"
@@ -2894,6 +3024,159 @@ components:
         media:
           $ref: "#/components/schemas/ProfileContentPage"
       required: [account, commercialProfile, visibility, posts, articles, media]
+    BusinessProfileReviewCreate:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+      required: [rating, comment]
+      additionalProperties: false
+    BusinessProfileReviewReply:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 3
+          maxLength: 500
+      required: [content]
+      additionalProperties: false
+    BusinessProfileReview:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        businessAccountId:
+          type: string
+          format: uuid
+        reviewer:
+          $ref: "#/components/schemas/CommentAuthor"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 500
+        createdAt:
+          type: string
+          format: date-time
+        businessReply:
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                content:
+                  type: string
+                  maxLength: 500
+                createdAt:
+                  type: string
+                  format: date-time
+              required: [content, createdAt]
+              additionalProperties: false
+      required:
+        [
+          id,
+          businessAccountId,
+          reviewer,
+          rating,
+          comment,
+          createdAt,
+          businessReply,
+        ]
+      additionalProperties: false
+    BusinessProfileReviewSummary:
+      type: object
+      properties:
+        averageRating:
+          type: [number, "null"]
+          minimum: 1
+          maximum: 5
+        total:
+          type: integer
+          minimum: 0
+        distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              rating:
+                type: integer
+                minimum: 1
+                maximum: 5
+              count:
+                type: integer
+                minimum: 0
+            required: [rating, count]
+            additionalProperties: false
+          minItems: 5
+          maxItems: 5
+      required: [averageRating, total, distribution]
+      additionalProperties: false
+    BusinessProfileReviewPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BusinessProfileReview"
+        summary:
+          $ref: "#/components/schemas/BusinessProfileReviewSummary"
+        viewerReviewId:
+          type: [string, "null"]
+          format: uuid
+        nextCursor:
+          type: [string, "null"]
+      required: [items, summary, viewerReviewId, nextCursor]
+      additionalProperties: false
+    BusinessProfileReviewCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        businessAccountId:
+          type: string
+          format: uuid
+        reviewerAccountId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, businessAccountId, reviewerAccountId, createdAt]
+      additionalProperties: false
+    BusinessProfileReviewDeleted:
+      type: object
+      properties:
+        deleted:
+          type: boolean
+          const: true
+      required: [deleted]
+      additionalProperties: false
+    BusinessProfileReviewReplyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        businessAccountId:
+          type: string
+          format: uuid
+        businessReply:
+          type: string
+          maxLength: 500
+        businessRepliedAt:
+          type: [string, "null"]
+          format: date-time
+      required: [id, businessAccountId, businessReply, businessRepliedAt]
+      additionalProperties: false
     AccountPatch:
       type: object
       description: >

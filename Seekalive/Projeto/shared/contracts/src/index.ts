@@ -6,3 +6,4 @@ export * from "./social";
 export * from "./feed";
 export * from "./errorCodes";
 export * from "./username";
+export * from "./businessProfileReviews";

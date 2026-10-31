@@ -45,6 +45,12 @@ import type {
   ArticleCreate,
   AuthResult,
   AuthSessionPage,
+  BusinessProfileReviewCreate,
+  BusinessProfileReviewCreated,
+  BusinessProfileReviewDeleted,
+  BusinessProfileReviewPage,
+  BusinessProfileReviewReply,
+  BusinessProfileReviewReplyResponse,
   ChallengeConfirmInput,
   ChallengeResendInput,
   CirclePage,
@@ -77,6 +83,7 @@ import type {
   HealthStatus,
   InternalErrorResponse,
   ListAuthSessionsParams,
+  ListBusinessProfileReviewsParams,
   LoginRequest,
   MediaUpload,
   MyAccountResponse,
@@ -3186,6 +3193,379 @@ export function useGetProfileByUsername<TData = Awaited<ReturnType<typeof getPro
 
 
 
+
+export const getListBusinessProfileReviewsUrl = (username: string,
+    params?: ListBusinessProfileReviewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/profiles/${username}/reviews?${stringifiedParams}` : `/api/v1/profiles/${username}/reviews`
+}
+
+/**
+ * Reviews belong to the commercial profile in Social. Reads are authenticated optionally and follow profile visibility and block rules. The aggregate is read-only and may be displayed by Seek discovery.
+ * @summary List reviews on a commercial profile
+ */
+export const listBusinessProfileReviews = async (username: string,
+    params?: ListBusinessProfileReviewsParams, options?: Parameters<typeof customFetch>[1]): Promise<BusinessProfileReviewPage> => {
+
+  return customFetch<BusinessProfileReviewPage>(getListBusinessProfileReviewsUrl(username,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBusinessProfileReviewsQueryKey = (username: string,
+    params?: ListBusinessProfileReviewsParams,) => {
+    return [
+    `/api/v1/profiles/${username}/reviews`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListBusinessProfileReviewsQueryOptions = <TData = Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(username: string,
+    params?: ListBusinessProfileReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBusinessProfileReviewsQueryKey(username,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBusinessProfileReviews>>> = ({ signal }) => listBusinessProfileReviews(username,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: username !== null && username !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListBusinessProfileReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof listBusinessProfileReviews>>>
+export type ListBusinessProfileReviewsQueryError = ErrorType<ValidationErrorResponse | NotFoundResponse>
+
+
+export function useListBusinessProfileReviews<TData = Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ username: string,
+    params: undefined |  ListBusinessProfileReviewsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listBusinessProfileReviews>>,
+          TError,
+          Awaited<ReturnType<typeof listBusinessProfileReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListBusinessProfileReviews<TData = Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ username: string,
+    params?: ListBusinessProfileReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listBusinessProfileReviews>>,
+          TError,
+          Awaited<ReturnType<typeof listBusinessProfileReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListBusinessProfileReviews<TData = Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ username: string,
+    params?: ListBusinessProfileReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List reviews on a commercial profile
+ */
+
+export function useListBusinessProfileReviews<TData = Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError = ErrorType<ValidationErrorResponse | NotFoundResponse>>(
+ username: string,
+    params?: ListBusinessProfileReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBusinessProfileReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListBusinessProfileReviewsQueryOptions(username,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBusinessProfileReviewUrl = (username: string,) => {
+
+
+
+
+  return `/api/v1/profiles/${username}/reviews`
+}
+
+/**
+ * Requires a verified personal account. A reviewer may have one active review per commercial profile; published reviews cannot be edited, but the author may delete and publish a new one. Self-reviews are rejected.
+ * @summary Publish a review on a commercial profile
+ */
+export const createBusinessProfileReview = async (username: string,
+    businessProfileReviewCreate: BusinessProfileReviewCreate, options?: Parameters<typeof customFetch>[1]): Promise<BusinessProfileReviewCreated> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<BusinessProfileReviewCreated>(getCreateBusinessProfileReviewUrl(username),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(businessProfileReviewCreate)
+  }
+);}
+
+
+
+
+
+export const getCreateBusinessProfileReviewMutationKey = () => ['createBusinessProfileReview'] as const;
+
+export const getCreateBusinessProfileReviewMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBusinessProfileReview>>, TError,CreateBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBusinessProfileReview>>, TError,CreateBusinessProfileReviewMutationVariables, TContext> => {
+
+const mutationKey = getCreateBusinessProfileReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBusinessProfileReview>>, CreateBusinessProfileReviewMutationVariables> = (props) => {
+          const {username,data} = props ?? {};
+
+          return  createBusinessProfileReview(username,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBusinessProfileReviewMutationResult = NonNullable<Awaited<ReturnType<typeof createBusinessProfileReview>>>
+    export type CreateBusinessProfileReviewMutationBody = BodyType<BusinessProfileReviewCreate>
+    export type CreateBusinessProfileReviewMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>
+    export type CreateBusinessProfileReviewMutationVariables = {username: string;data: BodyType<BusinessProfileReviewCreate>}
+
+    /**
+ * @summary Publish a review on a commercial profile
+ */
+export const useCreateBusinessProfileReview = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBusinessProfileReview>>, TError,CreateBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createBusinessProfileReview>>,
+        TError,
+        CreateBusinessProfileReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateBusinessProfileReviewMutationOptions(options), queryClient);
+    }
+
+export const getDeleteMyBusinessProfileReviewUrl = (username: string,) => {
+
+
+
+
+  return `/api/v1/profiles/${username}/reviews/me`
+}
+
+/**
+ * @summary Delete the authenticated person's review
+ */
+export const deleteMyBusinessProfileReview = async (username: string, options?: Parameters<typeof customFetch>[1]): Promise<BusinessProfileReviewDeleted> => {
+
+  return customFetch<BusinessProfileReviewDeleted>(getDeleteMyBusinessProfileReviewUrl(username),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteMyBusinessProfileReviewMutationKey = () => ['deleteMyBusinessProfileReview'] as const;
+
+export const getDeleteMyBusinessProfileReviewMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>, TError,DeleteMyBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>, TError,DeleteMyBusinessProfileReviewMutationVariables, TContext> => {
+
+const mutationKey = getDeleteMyBusinessProfileReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>, DeleteMyBusinessProfileReviewMutationVariables> = (props) => {
+          const {username} = props ?? {};
+
+          return  deleteMyBusinessProfileReview(username,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMyBusinessProfileReviewMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>>
+
+    export type DeleteMyBusinessProfileReviewMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type DeleteMyBusinessProfileReviewMutationVariables = {username: string}
+
+    /**
+ * @summary Delete the authenticated person's review
+ */
+export const useDeleteMyBusinessProfileReview = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>, TError,DeleteMyBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>,
+        TError,
+        DeleteMyBusinessProfileReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteMyBusinessProfileReviewMutationOptions(options), queryClient);
+    }
+
+export const getReplyToBusinessProfileReviewUrl = (username: string,
+    reviewId: string,) => {
+
+
+
+
+  return `/api/v1/profiles/${username}/reviews/${reviewId}/reply`
+}
+
+/**
+ * Only the owner of the commercial account may reply.
+ * @summary Publish or update the commercial profile's reply
+ */
+export const replyToBusinessProfileReview = async (username: string,
+    reviewId: string,
+    businessProfileReviewReply: BusinessProfileReviewReply, options?: Parameters<typeof customFetch>[1]): Promise<BusinessProfileReviewReplyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<BusinessProfileReviewReplyResponse>(getReplyToBusinessProfileReviewUrl(username,reviewId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(businessProfileReviewReply)
+  }
+);}
+
+
+
+
+
+export const getReplyToBusinessProfileReviewMutationKey = () => ['replyToBusinessProfileReview'] as const;
+
+export const getReplyToBusinessProfileReviewMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToBusinessProfileReview>>, TError,ReplyToBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replyToBusinessProfileReview>>, TError,ReplyToBusinessProfileReviewMutationVariables, TContext> => {
+
+const mutationKey = getReplyToBusinessProfileReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replyToBusinessProfileReview>>, ReplyToBusinessProfileReviewMutationVariables> = (props) => {
+          const {username,reviewId,data} = props ?? {};
+
+          return  replyToBusinessProfileReview(username,reviewId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplyToBusinessProfileReviewMutationResult = NonNullable<Awaited<ReturnType<typeof replyToBusinessProfileReview>>>
+    export type ReplyToBusinessProfileReviewMutationBody = BodyType<BusinessProfileReviewReply>
+    export type ReplyToBusinessProfileReviewMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type ReplyToBusinessProfileReviewMutationVariables = {username: string;reviewId: string;data: BodyType<BusinessProfileReviewReply>}
+
+    /**
+ * @summary Publish or update the commercial profile's reply
+ */
+export const useReplyToBusinessProfileReview = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToBusinessProfileReview>>, TError,ReplyToBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof replyToBusinessProfileReview>>,
+        TError,
+        ReplyToBusinessProfileReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReplyToBusinessProfileReviewMutationOptions(options), queryClient);
+    }
 
 export const getGetProfileByAccountIdUrl = (accountId: string,) => {
 

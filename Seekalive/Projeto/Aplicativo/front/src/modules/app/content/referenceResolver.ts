@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Post } from "@/modules/social/types/post";
-import type { SeekReview } from "@/modules/seek/types/review";
+import type { BusinessProfileReview } from "@/modules/profile/commercial-profile/types/businessProfileReview";
 import type { User } from "@/modules/profile/types/user";
 import type { ContentReference, ReferencePreview } from "@/modules/app/content/contentReferences";
 import { canReadPost } from "@/modules/social/application/contentValidation";
@@ -26,7 +26,7 @@ const referencePreviewSchema = referenceSchema.extend({
 export interface ReferenceSnapshot {
   users: User[];
   posts: Post[];
-  reviews: SeekReview[];
+  reviews: BusinessProfileReview[];
   viewerId?: string;
 }
 

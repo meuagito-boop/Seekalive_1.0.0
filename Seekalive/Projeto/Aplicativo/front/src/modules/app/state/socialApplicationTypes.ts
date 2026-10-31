@@ -5,7 +5,7 @@ import type {
 import type { FollowRequest } from "@/modules/social/types/followRequest";
 import type { Message } from "@/modules/messages/types/message";
 import type { Post } from "@/modules/social/types/post";
-import type { SeekReview } from "@/modules/seek/types/review";
+import type { BusinessProfileReview } from "@/modules/profile/commercial-profile/types/businessProfileReview";
 import type { User } from "@/modules/profile/types/user";
 import type { SocialComment, SocialRepost, PublishPostInput } from "@/modules/social/types/posts";
 import type { SocialAction, SocialState } from "@/modules/app/state/socialApplicationState";
@@ -64,6 +64,7 @@ export interface SocialContextType extends SocialState {
   markNotificationRead: (id: string) => void;
   markConversationRead: (convId: string) => void;
   sendMessage: (convId: string, content: string) => void;
-  upsertSeekReview: (review: SeekReview) => void;
-  replyToSeekReview: (reviewId: string, businessAccountId: string, content: string) => void;
+  publishBusinessProfileReview: (review: BusinessProfileReview) => void;
+  deleteBusinessProfileReview: (businessAccountId: string) => void;
+  replyToBusinessProfileReview: (reviewId: string, businessAccountId: string, content: string) => void;
 }

@@ -1128,6 +1128,174 @@ export const GetProfileByUsernameResponse = zod.object({
 
 
 /**
+ * Reviews belong to the commercial profile in Social. Reads are authenticated optionally and follow profile visibility and block rules. The aggregate is read-only and may be displayed by Seek discovery.
+ * @summary List reviews on a commercial profile
+ */
+export const listBusinessProfileReviewsPathUsernameMin = 3;
+export const listBusinessProfileReviewsPathUsernameMax = 20;
+
+
+export const listBusinessProfileReviewsPathUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
+
+
+export const ListBusinessProfileReviewsParams = zod.object({
+  "username": zod.coerce.string().min(listBusinessProfileReviewsPathUsernameMin).max(listBusinessProfileReviewsPathUsernameMax).regex(listBusinessProfileReviewsPathUsernameRegExp)
+})
+
+export const listBusinessProfileReviewsQueryLimitDefault = 20;
+export const listBusinessProfileReviewsQueryLimitMax = 50;
+
+export const listBusinessProfileReviewsQueryCursorMax = 256;
+
+
+
+export const ListBusinessProfileReviewsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(listBusinessProfileReviewsQueryLimitMax).default(listBusinessProfileReviewsQueryLimitDefault),
+  "cursor": zod.coerce.string().max(listBusinessProfileReviewsQueryCursorMax).optional()
+})
+
+export const listBusinessProfileReviewsResponseItemsItemRatingMax = 5;
+
+export const listBusinessProfileReviewsResponseItemsItemCommentMax = 500;
+
+export const listBusinessProfileReviewsResponseItemsItemBusinessReplyTwoContentMax = 500;
+
+export const listBusinessProfileReviewsResponseSummaryAverageRatingMax = 5;
+
+export const listBusinessProfileReviewsResponseSummaryTotalMin = 0;
+
+export const listBusinessProfileReviewsResponseSummaryDistributionItemRatingMax = 5;
+
+export const listBusinessProfileReviewsResponseSummaryDistributionItemCountMin = 0;
+
+export const listBusinessProfileReviewsResponseSummaryDistributionMin = 5;
+export const listBusinessProfileReviewsResponseSummaryDistributionMax = 5;
+
+
+
+export const ListBusinessProfileReviewsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "businessAccountId": zod.uuid(),
+  "reviewer": zod.object({
+  "id": zod.uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.url().nullable()
+}),
+  "rating": zod.int().min(1).max(listBusinessProfileReviewsResponseItemsItemRatingMax),
+  "comment": zod.string().max(listBusinessProfileReviewsResponseItemsItemCommentMax),
+  "createdAt": zod.coerce.date(),
+  "businessReply": zod.union([zod.null(),zod.object({
+  "content": zod.string().max(listBusinessProfileReviewsResponseItemsItemBusinessReplyTwoContentMax),
+  "createdAt": zod.coerce.date()
+})])
+})),
+  "summary": zod.object({
+  "averageRating": zod.number().min(1).max(listBusinessProfileReviewsResponseSummaryAverageRatingMax).nullable(),
+  "total": zod.int().min(listBusinessProfileReviewsResponseSummaryTotalMin),
+  "distribution": zod.array(zod.object({
+  "rating": zod.int().min(1).max(listBusinessProfileReviewsResponseSummaryDistributionItemRatingMax),
+  "count": zod.int().min(listBusinessProfileReviewsResponseSummaryDistributionItemCountMin)
+})).min(listBusinessProfileReviewsResponseSummaryDistributionMin).max(listBusinessProfileReviewsResponseSummaryDistributionMax)
+}),
+  "viewerReviewId": zod.uuid().nullable(),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * Requires a verified personal account. A reviewer may have one active review per commercial profile; published reviews cannot be edited, but the author may delete and publish a new one. Self-reviews are rejected.
+ * @summary Publish a review on a commercial profile
+ */
+export const createBusinessProfileReviewPathUsernameMin = 3;
+export const createBusinessProfileReviewPathUsernameMax = 20;
+
+
+export const createBusinessProfileReviewPathUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
+
+
+export const CreateBusinessProfileReviewParams = zod.object({
+  "username": zod.coerce.string().min(createBusinessProfileReviewPathUsernameMin).max(createBusinessProfileReviewPathUsernameMax).regex(createBusinessProfileReviewPathUsernameRegExp)
+})
+
+export const createBusinessProfileReviewBodyRatingMax = 5;
+
+export const createBusinessProfileReviewBodyCommentMin = 10;
+export const createBusinessProfileReviewBodyCommentMax = 500;
+
+
+
+export const CreateBusinessProfileReviewBody = zod.object({
+  "rating": zod.int().min(1).max(createBusinessProfileReviewBodyRatingMax),
+  "comment": zod.string().min(createBusinessProfileReviewBodyCommentMin).max(createBusinessProfileReviewBodyCommentMax)
+})
+
+export const CreateBusinessProfileReviewResponse = zod.object({
+  "id": zod.uuid(),
+  "businessAccountId": zod.uuid(),
+  "reviewerAccountId": zod.uuid(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete the authenticated person's review
+ */
+export const deleteMyBusinessProfileReviewPathUsernameMin = 3;
+export const deleteMyBusinessProfileReviewPathUsernameMax = 20;
+
+
+export const deleteMyBusinessProfileReviewPathUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
+
+
+export const DeleteMyBusinessProfileReviewParams = zod.object({
+  "username": zod.coerce.string().min(deleteMyBusinessProfileReviewPathUsernameMin).max(deleteMyBusinessProfileReviewPathUsernameMax).regex(deleteMyBusinessProfileReviewPathUsernameRegExp)
+})
+
+export const DeleteMyBusinessProfileReviewResponse = zod.object({
+  "deleted": zod.literal(true)
+})
+
+
+/**
+ * Only the owner of the commercial account may reply.
+ * @summary Publish or update the commercial profile's reply
+ */
+export const replyToBusinessProfileReviewPathUsernameMin = 3;
+export const replyToBusinessProfileReviewPathUsernameMax = 20;
+
+
+export const replyToBusinessProfileReviewPathUsernameRegExp = new RegExp('^[A-Za-z0-9_-]{3,20}$');
+
+
+export const ReplyToBusinessProfileReviewParams = zod.object({
+  "username": zod.coerce.string().min(replyToBusinessProfileReviewPathUsernameMin).max(replyToBusinessProfileReviewPathUsernameMax).regex(replyToBusinessProfileReviewPathUsernameRegExp),
+  "reviewId": zod.uuid()
+})
+
+export const replyToBusinessProfileReviewBodyContentMin = 3;
+export const replyToBusinessProfileReviewBodyContentMax = 500;
+
+
+
+export const ReplyToBusinessProfileReviewBody = zod.object({
+  "content": zod.string().min(replyToBusinessProfileReviewBodyContentMin).max(replyToBusinessProfileReviewBodyContentMax)
+})
+
+export const replyToBusinessProfileReviewResponseBusinessReplyMax = 500;
+
+
+
+export const ReplyToBusinessProfileReviewResponse = zod.object({
+  "id": zod.uuid(),
+  "businessAccountId": zod.uuid(),
+  "businessReply": zod.string().max(replyToBusinessProfileReviewResponseBusinessReplyMax),
+  "businessRepliedAt": zod.coerce.date().nullable()
+})
+
+
+/**
  * Authentication is optional. Blocked accounts are not disclosed.
  * @summary Get a visible profile by account ID
  */

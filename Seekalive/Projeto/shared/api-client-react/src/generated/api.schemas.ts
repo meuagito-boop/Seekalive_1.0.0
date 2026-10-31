@@ -730,6 +730,112 @@ export interface ProfileResponse {
   media: ProfileContentPage;
 }
 
+export interface BusinessProfileReviewCreate {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /**
+     * @minLength 10
+     * @maxLength 500
+     */
+  comment: string;
+}
+
+export interface BusinessProfileReviewReply {
+  /**
+     * @minLength 3
+     * @maxLength 500
+     */
+  content: string;
+}
+
+export type BusinessProfileReviewBusinessReply = {
+  /** @maxLength 500 */
+  content: string;
+  createdAt: string;
+} | null;
+
+export interface CommentAuthor {
+  id: string;
+  username: string;
+  displayName: string;
+  /** @nullable */
+  avatarUrl: string | null;
+}
+
+export interface BusinessProfileReview {
+  id: string;
+  businessAccountId: string;
+  reviewer: CommentAuthor;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /** @maxLength 500 */
+  comment: string;
+  createdAt: string;
+  businessReply: BusinessProfileReviewBusinessReply;
+}
+
+export type BusinessProfileReviewSummaryDistributionItem = {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /** @minimum 0 */
+  count: number;
+};
+
+export interface BusinessProfileReviewSummary {
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  averageRating: number | null;
+  /** @minimum 0 */
+  total: number;
+  /**
+     * @minItems 5
+     * @maxItems 5
+     */
+  distribution: BusinessProfileReviewSummaryDistributionItem[];
+}
+
+export interface BusinessProfileReviewPage {
+  items: BusinessProfileReview[];
+  summary: BusinessProfileReviewSummary;
+  /** @nullable */
+  viewerReviewId: string | null;
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface BusinessProfileReviewCreated {
+  id: string;
+  businessAccountId: string;
+  reviewerAccountId: string;
+  createdAt: string;
+}
+
+export const BusinessProfileReviewDeletedValue = {
+  deleted: true,
+} as const;
+export type BusinessProfileReviewDeleted = typeof BusinessProfileReviewDeletedValue;
+
+export interface BusinessProfileReviewReplyResponse {
+  id: string;
+  businessAccountId: string;
+  /** @maxLength 500 */
+  businessReply: string;
+  /** @nullable */
+  businessRepliedAt: string | null;
+}
+
 /**
  * Full owner-editable commercial address. Only accepted for commercial accounts.
  */
@@ -910,14 +1016,6 @@ export interface CommentCreate {
   authorId?: string;
   /** @nullable */
   replyToCommentId?: string | null;
-}
-
-export interface CommentAuthor {
-  id: string;
-  username: string;
-  displayName: string;
-  /** @nullable */
-  avatarUrl: string | null;
 }
 
 export interface Comment {
@@ -1115,6 +1213,18 @@ export type PageCursorParameter = string;
 export type ListAuthSessionsParams = {
 /**
  * @maxLength 16
+ */
+cursor?: string;
+};
+
+export type ListBusinessProfileReviewsParams = {
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+/**
+ * @maxLength 256
  */
 cursor?: string;
 };

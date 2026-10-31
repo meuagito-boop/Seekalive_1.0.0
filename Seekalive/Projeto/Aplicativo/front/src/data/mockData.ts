@@ -1,7 +1,7 @@
 import type { User } from "@/modules/profile/types/user";
 import type { FollowRequest } from "@/modules/social/types/followRequest";
 import type { CommercialProfile } from "@/modules/profile/commercial-profile/types/commercialProfile";
-import type { SeekReview } from "@/modules/seek/types/review";
+import type { BusinessProfileReview } from "@/modules/profile/commercial-profile/types/businessProfileReview";
 import type { Post } from "@/modules/social/types/post";
 import type { Notification } from "@/modules/notifications/types/notification";
 import type { Message } from "@/modules/messages/types/message";
@@ -333,7 +333,7 @@ export const mockUsers: User[] = [
   },
 ];
 
-export const mockSeekReviews: SeekReview[] = [
+export const mockBusinessProfileReviews: BusinessProfileReview[] = [
   {
     id: "review-biz1-u1",
     businessAccountId: "biz1",

@@ -257,14 +257,14 @@ content_type = "text/markdown"
 id = "3LEqI133eyG8DCGOxXCqr"
 uri = "file://Seekalive/Projeto/docs/api/backend/index.html"
 type = "html"
-title = "Seekalive — documentação técnica atualizada"
-description = "Leitura autônoma com arquitetura por domínio, APIs, dicionário de dados, estado de desenvolvimento e plano de implementação."
+title = "Documentação do backend Seekalive"
+description = "Versão HTML atualizada com as rotas de avaliações em Profiles, a separação de responsabilidades do Seek e o estado pendente da migration de desenvolvimento."
 logical_id = "8086b733-6777-4248-8d1e-80ff4899654e"
-content_hash = "sha256:728c8a881cbf8528c162879ed19ba3757ad1d1a5ad0072dd48589fb8a3691fca"
-size = 201289
-mtime_ms = 1792914469593
-storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/8086b733-6777-4248-8d1e-80ff4899654e/92820e1b-9698-4bdd-b23b-4e13a987475b"
-storage_version_token = "1792914530620540"
+content_hash = "sha256:69f294a023d45b62235aee25e72879aa72b07964b9c1c22a2f6473a7ebe728bd"
+size = 222344
+mtime_ms = 1793425122155
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:f2c61db6-01e8-44c2-951f-dc7ec3ef122c/8086b733-6777-4248-8d1e-80ff4899654e/f56ac663-2e28-4197-8607-9bb026a0d5c4"
+storage_version_token = "1793425184190546"
 content_type = "text/html"
 
 [[outputs]]

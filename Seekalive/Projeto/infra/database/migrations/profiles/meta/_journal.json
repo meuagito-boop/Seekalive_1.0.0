@@ -22,6 +22,13 @@
       "when": 1793363813525,
       "tag": "0002_charming_alice",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793423622598,
+      "tag": "0003_misty_rhodey",
+      "breakpoints": true
     }
   ]
 }

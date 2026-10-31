@@ -10,11 +10,10 @@ interface Props {
   item: SeekDiscoveryItem;
   saved: boolean;
   onToggleSave: () => void;
-  onOpenReviews?: () => void;
   variant?: "carousel" | "list";
 }
 
-export function DiscoveryCard({ item, saved, onToggleSave, onOpenReviews, variant = "carousel" }: Props) {
+export function DiscoveryCard({ item, saved, onToggleSave, variant = "carousel" }: Props) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const hasImage = !!item.image && failedImage !== item.image;
   const Icon = KIND_ICON[item.kind];
@@ -75,20 +74,15 @@ export function DiscoveryCard({ item, saved, onToggleSave, onOpenReviews, varian
             {item.dateLabel && <p className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-primary" aria-hidden />{item.dateLabel}</p>}
             {item.priceLabel && <p className="font-semibold text-foreground">{item.free ? "Gratuito" : item.priceLabel}</p>}
           </div>
-        ) : onOpenReviews ? (
-          <button type="button" onClick={onOpenReviews}
-            aria-label={item.rating === undefined ? `Sem avaliações. Avaliar ${item.name}` : `Nota ${item.rating.toFixed(1)}, ${item.reviewCount} avaliações de ${item.name}`}
-            className="relative z-10 -mx-1 flex min-h-11 w-fit items-center gap-1 rounded-lg px-1 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-            {item.rating !== undefined ? (
-              <>
-                <Star className="h-3.5 w-3.5 fill-primary text-primary" aria-hidden />
-                <span className="font-bold text-foreground">{item.rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
-                <span className="text-muted-foreground">({item.reviewCount})</span>
-              </>
-            ) : (
-              <span className="text-muted-foreground">Sem avaliações · <span className="font-semibold text-primary">Avaliar</span></span>
-            )}
-          </button>
+        ) : item.rating !== undefined ? (
+          <div
+            aria-label={`Nota ${item.rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}, ${item.reviewCount} avaliações`}
+            className="flex min-h-11 w-fit items-center gap-1 px-1 text-xs"
+          >
+            <Star className="h-3.5 w-3.5 fill-primary text-primary" aria-hidden />
+            <span className="font-bold text-foreground">{item.rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+            <span className="text-muted-foreground">({item.reviewCount})</span>
+          </div>
         ) : null}
 
         <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">

@@ -1,6 +1,6 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **147 operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **146 operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
 > **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A integração HTTP isolada da fatia de referências não foi executada porque o runner não recebeu `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; a limitação está registrada no roadmap. Produção não foi consultada, alterada ou publicada.
 
@@ -79,6 +79,15 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | PUT | `/v1/accounts/me/privacy` | Sessão autenticada | `PrivacyWrite` | `Privacy` | **ATIVA** |
 | GET | `/v1/accounts/me/privacy` | Sessão autenticada | — | `Privacy` | **ATIVA** |
 
+## Profiles
+
+| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
+|---|---|---|---|---|---|
+| GET | `/v1/profiles/{username}/reviews` | Público/sessão; ACL no servidor | — | `BusinessProfileReviewPage` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
+| POST | `/v1/profiles/{username}/reviews` | Sessão autenticada | `BusinessProfileReviewCreate` | `BusinessProfileReviewCreated` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
+| DELETE | `/v1/profiles/{username}/reviews/me` | Sessão autenticada | — | `BusinessProfileReviewDeleted` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
+| PUT | `/v1/profiles/{username}/reviews/{reviewId}/reply` | Sessão autenticada | `BusinessProfileReviewReply` | `BusinessProfileReviewReplyResponse` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
+
 ## Social
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
@@ -151,11 +160,6 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | GET | `/v1/seek/categories` | Público/sessão; ACL no servidor | — | `PageCategory` | **PROPOSTA** |
 | GET | `/v1/seek/discover` | Público/sessão; ACL no servidor | — | `PageDiscovery` | **PROPOSTA** |
 | GET | `/v1/seek/businesses/{accountId}` | Público/sessão; ACL no servidor | — | `BusinessProfile` | **PROPOSTA** |
-| GET | `/v1/seek/businesses/{accountId}/reviews` | Público/sessão; ACL no servidor | — | `PageReview` | **PROPOSTA** |
-| PUT | `/v1/seek/businesses/{accountId}/reviews/me` | Sessão autenticada | `ReviewWrite` | `Review` | **PROPOSTA** |
-| DELETE | `/v1/seek/businesses/{accountId}/reviews/me` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/seek/businesses/{accountId}/reviews/{reviewId}/reply` | Sessão autenticada | `ReviewReplyWrite` | `Review` | **PROPOSTA** |
-| DELETE | `/v1/seek/businesses/{accountId}/reviews/{reviewId}/reply` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | GET | `/v1/seek/events` | Público/sessão; ACL no servidor | — | `PageEvent` | **PROPOSTA** |
 | POST | `/v1/seek/events` | Sessão autenticada | `EventCreate` | `Event` | **PROPOSTA** |
 | GET | `/v1/seek/events/{eventId}` | Público/sessão; ACL no servidor | — | `Event` | **PROPOSTA** |

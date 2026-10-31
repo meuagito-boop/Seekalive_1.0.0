@@ -21,11 +21,11 @@ O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, o 
 
 Seekalive reúne três módulos conectados por uma identidade única:
 
-| Módulo | Objetivo | Entidades centrais |
-|---|---|---|
+| Módulo | Objetivo                                             | Entidades centrais                                                      |
+| ------ | ---------------------------------------------------- | ----------------------------------------------------------------------- |
 | Social | Publicar, interagir, manter perfis e relacionamentos | Conta, publicação, artigo, mídia, comentário, repost, Círculo, conversa |
-| Seek | Descobrir comércios, profissionais e eventos | A própria conta comercial, dados comerciais, cidade, avaliação, evento |
-| Shop | Descobrir produtos, ofertas e serviços | Item, vendedor comercial, catálogo e salvos |
+| Seek   | Descobrir comércios, profissionais e eventos         | A própria conta comercial, dados comerciais, cidade, avaliação, evento  |
+| Shop   | Descobrir produtos, ofertas e serviços               | Item, vendedor comercial, catálogo e salvos                             |
 
 **Regra estrutural:** uma conta é pessoal ou comercial. Uma conta comercial continua sendo uma conta Social; sua extensão comercial alimenta o Seek. Não criar um cadastro independente de estabelecimentos. Para o Shop real, a proposta é vincular cada vendedor a uma conta comercial existente — os vendedores fictícios atuais ainda não possuem esse vínculo consistente.
 
@@ -35,24 +35,24 @@ Seekalive reúne três módulos conectados por uma identidade única:
 
 ## 2. O que existe de verdade hoje
 
-| Área | Situação auditada |
-|---|---|
-| Servidor | Express/TypeScript em `Aplicativo/back`; saúde, autenticação, onboarding, perfis e relações estão implementados |
-| Banco | Em desenvolvimento, Feed e Mídias têm schemas e ledgers independentes; `feed.posts` e `media.assets` estão aplicados. Produção não foi consultada nem alterada |
-| Especificação | `shared/api-spec/openapi.yaml` mantém o contrato público existente; `docs/api/backend/openapi.json` distingue endpoints ativos dos propostos |
-| Login | API própria com Argon2id, CSRF, e-mail confirmado e versão de política; contas legadas precisam validar ou atualizar a senha antes de receber sessão |
-| Regra de senha | 8–128 caracteres, ao menos uma maiúscula, uma minúscula, um número e um caractere especial; credenciais legadas são migradas no login sem tentar inferir o conteúdo do hash |
-| Cadastro | Rota de cadastro/verificação implementada; o teste direto de envio Resend foi recebido em desenvolvimento. O fluxo completo ainda requer validação E2E; nenhuma conta sem confirmação recebe sessão |
-| Recuperação/verificação | Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria |
-| Publicações/comentários | Publicação remota de texto/artigo e publicação com ativos de mídia; curtidas, comentários, reposts, referências e parte da experiência ainda permanecem locais ou não implementados |
-| Fotos/vídeos | Envio autenticado de arquivos para armazenamento local de desenvolvimento; metadados são persistidos em `media.assets` e IDs são associados a publicações em `feed.posts`. Não é armazenamento de produção |
-| Contas/avaliações | Dados de exemplo e registros no `localStorage`; não são dados compartilhados entre dispositivos |
-| Perfil e relações | API ativa para leitura/edição básica do perfil, privacidade, seguir, pedidos privados, Círculo derivado e bloquear/desbloquear; as telas ainda não consomem essa API |
-| Mensagens | Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio |
-| Seek | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância |
-| Dados demonstrativos | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API |
-| Shop | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real |
-| Configurações | A API já persiste privacidade básica e bloqueios; preferências restantes e a interface ainda usam estado local. Bloquear remove seguimentos/pedidos nas duas direções e só quem iniciou desbloqueia |
+| Área                    | Situação auditada                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Servidor                | Express/TypeScript em `Aplicativo/back`; saúde, autenticação, onboarding, perfis e relações estão implementados                                                                                               |
+| Banco                   | Em desenvolvimento, Feed e Mídias têm schemas e ledgers independentes; `feed.posts` e `media.assets` estão aplicados. Produção não foi consultada nem alterada                                                |
+| Especificação           | `shared/api-spec/openapi.yaml` mantém o contrato público existente; `docs/api/backend/openapi.json` distingue endpoints ativos dos propostos                                                                  |
+| Login                   | API própria com Argon2id, CSRF, e-mail confirmado e versão de política; contas legadas precisam validar ou atualizar a senha antes de receber sessão                                                          |
+| Regra de senha          | 8–128 caracteres, ao menos uma maiúscula, uma minúscula, um número e um caractere especial; credenciais legadas são migradas no login sem tentar inferir o conteúdo do hash                                   |
+| Cadastro                | Rota de cadastro/verificação implementada; o teste direto de envio Resend foi recebido em desenvolvimento. O fluxo completo ainda requer validação E2E; nenhuma conta sem confirmação recebe sessão           |
+| Recuperação/verificação | Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria         |
+| Publicações/comentários | Publicação remota de texto/artigo e publicação com ativos de mídia; curtidas, comentários, reposts, referências e parte da experiência ainda permanecem locais ou não implementados                           |
+| Fotos/vídeos            | Envio autenticado de arquivos para armazenamento local de desenvolvimento; metadados são persistidos em `media.assets` e IDs são associados a publicações em `feed.posts`. Não é armazenamento de produção    |
+| Contas/avaliações       | A avaliação de perfil comercial usa a API de Profiles em sessão real; somente a prévia demonstrativa persiste avaliações em `localStorage`, sem sincronização entre dispositivos                              |
+| Perfil e relações       | API ativa para leitura/edição básica do perfil, privacidade, seguir, pedidos privados, Círculo derivado, bloqueio e avaliações comerciais; outras telas de perfil e relações ainda não consomem toda essa API |
+| Mensagens               | Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio                                                                                       |
+| Seek                    | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância                                                                       |
+| Dados demonstrativos    | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API                                 |
+| Shop                    | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real                                                                                      |
+| Configurações           | A API já persiste privacidade básica e bloqueios; preferências restantes e a interface ainda usam estado local. Bloquear remove seguimentos/pedidos nas duas direções e só quem iniciou desbloqueia           |
 
 O frontend e a API têm processos separados. A autenticação está conectada à API; as telas de perfil e relações ainda não. Antes de conectá-las, validar roteamento de mesma origem e manter a separação entre sessão real e demonstração de desenvolvimento.
 

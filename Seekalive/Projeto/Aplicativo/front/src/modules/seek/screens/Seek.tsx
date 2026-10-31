@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, Info, MapPin, Search, SlidersHorizontal, WifiOff, X } from "lucide-react";
 import { useSeekDiscovery } from "@/modules/seek/hooks/useSeekDiscovery";
 import type { DiscoveryFilters, SeekDiscoveryItem } from "@/modules/seek/types/discovery";
-import { BusinessReviewsDialog } from "@/modules/seek/components/BusinessReviewsDialog";
 import { DiscoveryCard } from "@/modules/seek/components/DiscoveryCard";
 import { DiscoveryCarousel, DiscoveryCarouselItem } from "@/modules/seek/components/DiscoveryCarousel";
 import { DiscoveryCategories } from "@/modules/seek/components/DiscoveryCategories";
@@ -59,7 +58,6 @@ export default function Seek() {
       variant={variant}
       saved={d.savedIds.includes(it.id)}
       onToggleSave={() => d.toggleSaved(it.id)}
-      onOpenReviews={it.kind !== "event" && it.accountId && !it.isExample ? () => d.openReviews(it.accountId!) : undefined}
     />
   );
 
@@ -203,7 +201,6 @@ export default function Seek() {
       </div>
 
       <DiscoveryLocationDialog open={d.locationOpen} onOpenChange={d.setLocationOpen} current={d.location} onSelect={d.selectLocation} offline={d.offline} />
-      <BusinessReviewsDialog business={d.reviewBusiness} open={!!d.reviewBusiness} onOpenChange={(o) => { if (!o) d.closeReviews(); }} />
     </div>
   );
 }

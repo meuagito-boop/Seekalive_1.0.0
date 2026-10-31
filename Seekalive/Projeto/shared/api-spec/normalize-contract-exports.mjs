@@ -21,6 +21,7 @@ const allowedPackageExports = new Set([
   'export * from "./feed";',
   'export * from "./errorCodes";',
   'export * from "./username";',
+  'export * from "./businessProfileReviews";',
   'export * as GeneratedTypes from "./generated/types";',
 ]);
 const existingLines = (await readFile(indexPath, "utf8"))
@@ -56,6 +57,7 @@ const exports = [
   'export * from "./feed";',
   'export * from "./errorCodes";',
   'export * from "./username";',
+  'export * from "./businessProfileReviews";',
   "",
 ].join("\n");
 

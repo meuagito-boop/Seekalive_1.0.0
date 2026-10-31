@@ -50,7 +50,6 @@ export function useSeekDiscovery() {
   });
   const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const [notice, setNotice] = useState<string | null>(null);
-  const [reviewBusinessId, setReviewBusinessId] = useState<string | null>(null);
   const examplesAvailable = import.meta.env.DEV && developmentFixtures !== null;
   const exampleIds = useMemo(
     () => new Set(developmentFixtures?.developmentExampleAccountIds ?? []),
@@ -152,8 +151,6 @@ export function useSeekDiscovery() {
       setState({ ...defaultDiscoveryFilters });
       setLocationSnapshot({ accountId: actorId, value: null });
     },
-    reviewBusiness: users.find(user => user.id === reviewBusinessId && user.accountType === "commercial") ?? null,
-    openReviews: setReviewBusinessId, closeReviews: () => setReviewBusinessId(null),
     locationNotice: notice ?? (location?.source === "device"
       ? "A posição do dispositivo foi obtida, mas ainda não há geocodificação reversa nem coordenadas nos cadastros para consultar opções próximas. Selecione uma cidade manualmente. Suas coordenadas não foram enviadas a terceiros nem armazenadas."
       : queryHasCity ? "Citar outra cidade na busca não muda sua região de exploração. Use o seletor de localização para confirmar a mudança." : null),

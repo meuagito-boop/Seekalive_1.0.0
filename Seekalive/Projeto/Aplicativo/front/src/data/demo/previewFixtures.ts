@@ -4,11 +4,11 @@ import {
   mockMessages,
   mockNotifications,
   mockPosts,
-  mockSeekReviews,
+  mockBusinessProfileReviews,
   mockUsers,
 } from "../mockData";
 import { demoIntegrationPosts } from "../demoIntegrationPosts";
-import { demoSeekAccounts, demoSeekReviews, withDemoSeekMedia } from "../demoSeekAccounts";
+import { demoSeekAccounts, demoBusinessProfileReviews, withDemoSeekMedia } from "../demoSeekAccounts";
 import { demoSeekEvents } from "@/modules/seek/data/demoSeekEvents";
 import { demoShopItems, demoStores } from "@/modules/shop/data/demoCatalog";
 import type { SocialState } from "@/modules/app/state/socialApplicationState";
@@ -34,7 +34,7 @@ export function createDevelopmentPreviewState(): SocialState {
     notifications: [...mockNotifications],
     conversations: [...mockConversations],
     messages: [...mockMessages],
-    reviews: [...mockSeekReviews, ...demoSeekReviews],
+    reviews: [...mockBusinessProfileReviews, ...demoBusinessProfileReviews],
     postComments: [],
     repostEntries: [],
     followRequests: [],

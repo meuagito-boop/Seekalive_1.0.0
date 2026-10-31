@@ -1,7 +1,4 @@
-import {
-  GetAuthCsrfTokenResponse,
-  type ApiErrorKey,
-} from "@workspace/api-zod";
+import { GetAuthCsrfTokenResponse, type ApiErrorKey } from "@workspace/api-zod";
 import { readApiError } from "@/modules/app/api/apiErrors";
 
 export type ApiResponseContract = Record<
@@ -28,7 +25,9 @@ export class ApiRequestError extends Error {
 
 export class ApiResponseContractError extends Error {
   constructor(readonly status: number) {
-    super("A resposta recebida do servidor está incompatível. Tente novamente.");
+    super(
+      "A resposta recebida do servidor está incompatível. Tente novamente.",
+    );
     this.name = "ApiResponseContractError";
   }
 }
@@ -101,6 +100,25 @@ export async function postJson<T>(
       "X-CSRF-Token": csrfToken,
     },
     body: body === undefined ? "{}" : JSON.stringify(body),
+  });
+  return parseResponse<T>(response, contract);
+}
+
+export async function putJson<T>(
+  path: string,
+  body: unknown,
+  contract?: ApiResponseContract,
+): Promise<T> {
+  const csrfToken = await getCsrfToken();
+  const response = await fetch(`/api/v1${path}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify(body),
   });
   return parseResponse<T>(response, contract);
 }

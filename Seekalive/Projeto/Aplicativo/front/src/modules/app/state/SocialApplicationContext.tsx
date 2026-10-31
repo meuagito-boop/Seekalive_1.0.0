@@ -37,7 +37,7 @@ import type { AccountActivity } from "@/modules/app/persistence/accountActivityS
 import { createSocialRelationshipActions } from "@/modules/social/application/relationshipActions";
 import { createSocialPostActions } from "@/modules/social/application/postActions";
 import { createPostAccessPolicy } from "@/modules/social/application/postAccessPolicy";
-import { createSeekReviewActions } from "@/modules/seek/application/reviewActions";
+import { createBusinessProfileReviewActions } from "@/modules/profile/commercial-profile/application/businessProfileReviewActions";
 import { createMarkConversationReadAction } from "@/modules/messages/application/markConversationRead";
 import { createSendMessageAction } from "@/modules/messages/application/sendMessage";
 import { createNotificationActions } from "@/modules/notifications/application/notificationActions";
@@ -308,7 +308,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     assertReadable,
     isRemoteSocialSession,
   });
-  const reviewActions = createSeekReviewActions({
+  const reviewActions = createBusinessProfileReviewActions({
     state,
     currentUser,
     dispatch,

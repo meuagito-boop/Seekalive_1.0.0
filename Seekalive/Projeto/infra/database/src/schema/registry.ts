@@ -20,6 +20,7 @@ import {
 } from "./profiles/relationships";
 import { accountProfiles } from "./profiles/accountProfiles";
 import { commercialProfiles } from "./profiles/businessProfiles";
+import { businessProfileReviews } from "./profiles/businessProfileReviews";
 import {
   authChallenges,
   passwordCredentials,
@@ -52,6 +53,7 @@ export const databaseSchema = {
   mediaAssets,
   accountProfiles,
   commercialProfiles,
+  businessProfileReviews,
 };
 
 export {
@@ -62,6 +64,7 @@ export {
   accountProfiles,
   authChallenges,
   commercialProfiles,
+  businessProfileReviews,
   accountBlocks,
   accountFollows,
   accountFollowRequests,

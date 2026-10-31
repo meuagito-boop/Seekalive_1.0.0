@@ -36,6 +36,7 @@ export { feedPostComments } from "./schema/feed/postComments";
 export { feedCommentLikes } from "./schema/feed/commentLikes";
 export { mediaAssets } from "./schema/media/assets";
 export { commercialProfiles } from "./schema/profiles/businessProfiles";
+export { businessProfileReviews } from "./schema/profiles/businessProfileReviews";
 export {
   authChallenges,
   passwordCredentials,

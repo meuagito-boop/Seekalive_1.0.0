@@ -1,6 +1,6 @@
 import { getStoredAccounts } from "@/modules/profile/data/accountStorage";
 import { getStoredFollowRequests } from "@/modules/social/data/followRequestStorage";
-import { getStoredSeekReviews } from "@/modules/seek/data/reviewStorage";
+import { getStoredBusinessProfileReviews } from "@/modules/profile/commercial-profile/data/businessProfileReviewStorage";
 import type { SocialComment, SocialRepost } from "@/modules/social/types/posts";
 import {
   socialContentReducer,
@@ -13,10 +13,10 @@ import {
   type SocialGraphState,
 } from "@/modules/social/state/relationshipReducer";
 import {
-  seekReviewReducer,
-  type SeekReviewAction,
-  type SeekReviewState,
-} from "@/modules/seek/state/reviewReducer";
+  businessProfileReviewReducer,
+  type BusinessProfileReviewAction,
+  type BusinessProfileReviewState,
+} from "@/modules/profile/commercial-profile/state/businessProfileReviewReducer";
 import type { NotificationState } from "@/modules/notifications/types/notification";
 import {
   messageReducer,
@@ -28,14 +28,14 @@ export interface SocialState
   extends
     SocialContentState,
     SocialGraphState,
-    SeekReviewState,
+    BusinessProfileReviewState,
     NotificationState,
     MessageState {}
 
 export type SocialAction =
   | SocialContentAction
   | SocialGraphAction
-  | SeekReviewAction
+  | BusinessProfileReviewAction
   | MessageAction
   | { type: "HYDRATE_DEVELOPMENT_PREVIEW"; preview: SocialState };
 
@@ -99,9 +99,10 @@ export function socialReducer(
     case "ADD_FOLLOW_REQUEST":
     case "REMOVE_FOLLOW_REQUEST":
       return { ...state, ...socialGraphReducer(state, action) };
-    case "UPSERT_SEEK_REVIEW":
-    case "REPLY_TO_SEEK_REVIEW":
-      return { ...state, ...seekReviewReducer(state, action) };
+    case "PUBLISH_BUSINESS_PROFILE_REVIEW":
+    case "DELETE_BUSINESS_PROFILE_REVIEW":
+    case "REPLY_TO_BUSINESS_PROFILE_REVIEW":
+      return { ...state, ...businessProfileReviewReducer(state, action) };
     case "MARK_CONVERSATION_READ":
     case "SEND_MESSAGE":
       return { ...state, ...messageReducer(state, action) };
@@ -127,7 +128,7 @@ export function createInitialState(includeBrowserState = true): SocialState {
 
   const usersById = new Map(getStoredAccounts().map((user) => [user.id, user]));
   const reviewsById = new Map(
-    getStoredSeekReviews().map((review) => [review.id, review]),
+    getStoredBusinessProfileReviews().map((review) => [review.id, review]),
   );
   return {
     ...initialState,
