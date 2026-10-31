@@ -5,3 +5,4 @@
 - [Jornadas browser de Auth](auth-browser-tests.md) — testes visuais de conta ficam restritos a loopback e API simulada; integrações reais exigem ambiente isolado.
 - [Regras de Accounts/Auth](accounts-auth-rules.md) — cadastro, privacidade, @, sessões revogáveis e exclusão com retenção adicional de 90 dias.
 - [Regra de hashtags do Feed](feed-hashtag-policy.md) — no máximo dez tags distintas e busca por prefixo que ignora acentos e caixa.
+- [Arquivamento de planos](plan-archive-rule.md) — guardar o prompt original e o plano correspondente juntos em Markdown dentro de `docs/`.
