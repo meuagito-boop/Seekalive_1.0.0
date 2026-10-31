@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-31  
 **Revisão:** v2, incorporando o aditivo técnico do proprietário.
-**Status:** aguardando aprovação explícita desta versão consolidada. A aprovação anterior foi cancelada; o aditivo autoriza revisar o plano, não implementar.
+**Status:** execução autorizada por instrução posterior do proprietário. Os critérios documentais e de paridade foram concluídos e revistos; as limitações de validação de integração estão registradas como pendências explícitas, sem alegar comportamento não comprovado.
 
 Este documento preserva no mesmo arquivo o prompt original do usuário e o plano apresentado pelo agente.
 
@@ -288,31 +288,41 @@ A implementação foi limitada à instrumentação de inventário, contratos ger
 - `Aplicativo/back/src/security/rateLimit.ts`: expõe metadados imutáveis do limitador para documentação. Limites, chaves e respostas de rate limit não foram alterados.
 - `shared/api-spec/openapi.yaml`: adiciona `GET /readyz`, `GET /v1/accounts/availability` e `POST /v1/onboarding/interests`; corrige `/v1/social/accounts/{accountId}/posts` para GET e alinha parâmetros, esquemas e respostas aos handlers.
 - Código cliente e schemas gerados via Orval; `shared/contracts/src/auth.ts` reutiliza o schema gerado de onboarding sem remover as validações de domínio.
-- `docs/api/backend/routes.generated.md` e `endpoints.md` passam a ser gerados do inventário real. As 11 rotas que estavam rotuladas como propostas aparecem como ativas em código.
-- Catálogo estático de planejamento movido para `docs/roadmap/seekalive-operation-catalog.json` e `.md`, marcado como não normativo; `docs/api/backend/openapi.json` foi removido.
+- `docs/api/backend/routes.generated.md` e `endpoints.md` passam a ser gerados do inventário real. As rotas ficam rotuladas como **MONTADA EM CÓDIGO**, sem confundir registro com funcionalidade validada.
+- Catálogo estático de planejamento movido para `docs/roadmap/seekalive-operation-catalog.json` e `.md`, marcado como não normativo; caminhos vigentes de mídia e salvos são explicitados para distinguir propostas históricas; `docs/api/backend/openapi.json` foi removido.
 - `docs/api/backend/queries/development-database-catalog.sql` fornece consulta somente leitura para o catálogo físico. O estado atual do banco não é afirmado nos documentos.
-- `render-docs.mjs` ganhou modo `--check`; HTML e Markdown consolidados foram regenerados. O ZIP técnico foi atualizado.
-- Documentação vigente e relatórios históricos foram ajustados para refletir as regras atuais: `private` inclui titular e seguidores aprovados do perfil privado; campos de apresentação e avaliações pertencem a Profiles; Seek apenas consome projeções autorizadas; estados físicos dependem da consulta de catálogo.
+- `docs/api/backend/feed-route-validation.md` registra, uma a uma, as 11 operações do Feed, os testes existentes, a evidência obtida e os limites de validação.
+- `Aplicativo/back/test/feed-interactions-application.test.mjs` e `scripts/package.json` adicionam testes sem banco para criação/listagem/exclusão de comentários, curtidas e reposts, incluindo autorização de leitura antes da mutação.
+- `render-docs.mjs` ganhou modo `--check`; HTML e Markdown consolidados foram regenerados. O ZIP técnico foi atualizado com a documentação atual.
+- Documentação vigente e relatórios históricos foram ajustados para refletir as regras atuais: `private` inclui titular e seguidores aprovados do perfil privado; campos de apresentação e avaliações pertencem a Profiles; Seek apenas consome projeções autorizadas; estados físicos dependem da consulta de catálogo. `docs/architecture/database-domains.md` e `docs/api/backend/data-dictionary.md` não afirmam existência/ausência física sem evidência.
 
 ### Evidência
 
 - `pnpm --filter @workspace/api-spec run codegen`: passou; Orval 8.44.0 regenerou os clientes e o typecheck de bibliotecas passou.
 - `pnpm -w run typecheck`: passou para os pacotes do workspace.
-- `pnpm -w run test`: terminou com sucesso.
-- `pnpm --filter @workspace/scripts run test:backend`: passou em todos os grupos, incluindo segurança, conexão/configuração de banco sem conexão física, runtime de API, paridade de rotas, Feed, mídia e avaliações de Profiles.
+- `pnpm --filter @workspace/scripts run test:backend`: 67 testes passaram em todos os grupos, incluindo segurança, conexão/configuração de banco sem conexão física, runtime de API, paridade de rotas, Feed, mídia e avaliações de Profiles.
 - `pnpm --filter @workspace/scripts run test:api-route-contract`: passou; 76 rotas e zero divergências de método/caminho/CSRF. O comando também verifica arquivos gerados desatualizados.
 - `pnpm audit --prod=false`: nenhuma vulnerabilidade conhecida.
-- A geração do catálogo, inventário e documentos consolidados foi executada duas vezes; os hashes dos seis artefatos gerados foram idênticos.
-- `git diff --check`: sem erros de whitespace.
+- Testes negativos sintéticos confirmam que a paridade falha quando método/caminho diverge e que o verificador documental rejeita artefatos ausentes ou desatualizados.
+- A suíte de Feed passou com 10 testes de listagem/política e 18 testes de visibilidade e aplicação; os 11 comportamentos da matriz têm evidência de unidade/aplicação ou de rejeição HTTP sem sessão/CSRF.
+- A geração das rotas, catálogo e documentos consolidados foi repetida duas vezes; os hashes dos seis artefatos gerados permaneceram idênticos.
+- `git diff --check` e a busca de whitespace nos novos arquivos passaram. Busca final não encontrou as afirmações obsoletas nem rótulos `ATIVA` nos inventários atuais; relatórios históricos datados foram preservados.
+- Uma checagem intermediária falhou corretamente porque o consolidado ainda não havia sido regenerado após a edição da matriz. Após regenerar HTML/Markdown, a verificação final de staleness passou.
 - Uma repetição intermediária revelou erro de sintaxe no wrapper do rate limit; foi corrigido preservando a função arrow original. A repetição final do typecheck e da suíte passou.
 
 ### Não verificado
 
 - A consulta de catálogo não foi executada; presença física atual de tabelas, índices, constraints e ações referenciais permanece não verificada.
-- Não foi feita validação E2E autenticada de cada handler nem teste visual de browser. Paridade de rotas não prova persistência ou comportamento completo.
-- O modo `--check` foi executado com documentos atuais; não foi induzido um arquivo propositalmente desatualizado em fixture temporária para exercitar o caminho de falha.
+- Não foi feita validação HTTP autenticada ponta a ponta das 11 operações; os testes positivos existentes usam fixture que cria schema, executa `push` e `DROP SCHEMA`.
 - Os testes que criam schemas ou executam DDL (`test:api-isolated-db`) foram deliberadamente excluídos.
 
 ### Restrições respeitadas
 
-Nenhum push, migration, DDL, escrita de banco, consulta de dados de negócio, acesso à produção ou leitura/exposição de segredos ocorreu. Não houve mudança de regra de negócio nem atualização de Zod/Orval.
+Nenhum push, migration, DDL, escrita de banco, consulta de dados de negócio, acesso à produção ou leitura/exposição de segredos ocorreu. A execução de `test:backend` chamou `GET /readyz`, cujo health check executa apenas `SELECT 1` no banco configurado; isso verifica disponibilidade, sem consultar dados de negócio. Não houve mudança de regra de negócio nem atualização de Zod/Orval.
+
+## Pendências registradas
+
+| Item | Status | Motivo/bloqueio | Próxima ação | Critério de encerramento |
+|---|---|---|---|---|
+| Fluxos HTTP autenticados e persistência das 11 operações do Feed | Bloqueado pelas restrições deste plano | O único fixture de integração disponível executa `push` e DDL; este plano proíbe ambos. Testes de unidade/aplicação e rejeições sem sessão/CSRF não provam o sucesso HTTP nem a persistência. | Em etapa autorizada para integração, usar banco/schema de teste descartável previamente isolado ou revisar o fixture para não executar DDL implicitamente; executar a suíte sem tocar produção. | As 11 operações passam em chamadas HTTP autenticadas, incluindo autorização por titular, validação/CSRF, persistência, idempotência e exclusões/cascatas pertinentes; a execução demonstra isolamento do banco de desenvolvimento e não usa produção. |
+| Estado físico atual dos schemas e constraints | Não consultado nesta etapa | A documentação agora aponta para uma consulta de catálogo somente leitura e não declara contagens físicas. A consulta não foi executada nesta revisão. | Executar `docs/api/backend/queries/development-database-catalog.sql` em ambiente de desenvolvimento autorizado e atualizar o relatório de estado, preservando ausência de dados de negócio. | Resultado datado identifica o ambiente e lista somente metadados do catálogo; os documentos vigentes não afirmam estado físico sem essa evidência. |

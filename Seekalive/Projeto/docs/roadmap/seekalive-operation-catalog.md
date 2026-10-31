@@ -1,8 +1,9 @@
 # Catálogo de operações de referência
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. Este registro histórico de planejamento contém **146 operações** e não é o inventário de rotas ativas nem o contrato da API. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. Este registro de planejamento contém **146 operações** e não é o inventário de rotas montadas nem o contrato da API. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
-> **Não normativo:** os estados e descrições deste catálogo são o snapshot original do planejamento. Para rotas realmente montadas, use `docs/api/backend/endpoints.md`; para o contrato HTTP, use `shared/api-spec/openapi.yaml`. Este arquivo não prova testes, persistência ou implantação.
+> **Não normativo:** os estados e descrições deste catálogo são rótulos de planejamento e não classificam comportamento como ativo/validado. Para rotas realmente montadas, use `docs/api/backend/endpoints.md`; para o contrato HTTP, use `shared/api-spec/openapi.yaml`. Este arquivo não prova testes, persistência ou implantação.
+> **Caminhos vigentes:** mídia usa `/v1/social/media` e `/v1/social/media/{assetId}`; salvar/remover publicação usa `/v1/social/posts/{postId}/bookmark`. Outros caminhos com estado `PROPOSTA` abaixo são ideias do roadmap, não contratos nem rotas atuais.
 > **Regras vigentes que substituem qualquer conflito neste snapshot:** audiência `private` = titular e seguidores aprovados de perfil privado; Círculo exige seguimento mútuo; campos de apresentação e avaliações pertencem a Profiles; Seek apenas consome projeções públicas autorizadas e não cria nem edita avaliações.
 
 ## Respostas, paginação e autenticação
@@ -11,63 +12,63 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. Este registro histór
 - Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.
 - Erro: `{error:{code,message,requestId,details?,supportEmail?,retryAfterSeconds?,attemptsRemaining?,resendAvailableAt?}}`. Nunca serializar stack trace.
 - Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.
-- Não use os estados registrados abaixo para decidir se uma rota está ativa. Essa informação é regenerada a partir do Express e do OpenAPI.
+- Não use os estados registrados abaixo para decidir se uma rota está montada ou funcionalmente validada. Essa informação é regenerada a partir do Express e do OpenAPI.
 
 ## Health
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/healthz` | Público | — | `Health` | **ATIVA** |
-| GET | `/readyz` | Público | — | `Readiness` | **ATIVA** |
+| GET | `/healthz` | Público | — | `Health` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/readyz` | Público | — | `Readiness` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 
 ## Auth
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **ATIVA** |
-| GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **ATIVA** |
-| POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/login` | Público | `LoginRequest` | AuthResult (200) / DeviceVerificationRequired (202) | **ATIVA** |
-| POST | `/v1/auth/device-verification/confirm` | Público | `ChallengeConfirmRequest` | `AuthResult` | **ATIVA** |
-| POST | `/v1/auth/device-verification/resend` | Público | `ChallengeResendRequest` | `DeviceVerificationResent` | **ATIVA** |
-| POST | `/v1/auth/password/update` | Público | `PasswordPolicyUpdateRequest` | `PasswordUpdateChallenge` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/password/update/confirm` | Público | `ChallengeConfirmRequest` | `PasswordUpdated` | **ATIVA** |
-| GET | `/v1/auth/devices` | Sessão autenticada | — | `TrustedDeviceList` | **ATIVA** |
-| DELETE | `/v1/auth/devices/others` | Sessão autenticada | — | `OtherDevicesRevoked` | **ATIVA** |
-| DELETE | `/v1/auth/devices/{deviceId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **ATIVA** |
-| DELETE | `/v1/auth/sessions/others` | Sessão autenticada | — | `OtherSessionsRevoked` | **ATIVA** |
-| DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| POST | `/v1/auth/password/reset/request` | Público | `PasswordResetRequest` | `PasswordResetRequested` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/password/reset/confirm` | Público | `PasswordResetConfirm` | `PasswordResetComplete` | **ATIVA** |
-| POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `VerificationConfirmation` | **ATIVA** |
-| POST | `/v1/auth/account/email/change/request` | Sessão autenticada | `AccountEmailChangeRequest` | `EmailChangeCurrentCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/email/change/confirm-current` | Sessão autenticada | `ChallengeConfirmInput` | `EmailChangeNewCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/email/change/confirm-new` | Sessão autenticada | `ChallengeConfirmInput` | `AccountEmailChangeResult` | **ATIVA** |
-| POST | `/v1/auth/account/password/change/request` | Sessão autenticada | `AccountPasswordChangeRequest` | `PasswordChangeCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/password/change/confirm` | Sessão autenticada | `ChallengeConfirmInput` | `AccountPasswordChangeResult` | **ATIVA** |
-| POST | `/v1/auth/account/deletion/code` | Sessão autenticada | `AccountDeletionCodeRequest` | `AccountDeletionCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/deletion/confirm` | Sessão autenticada | `AccountDeletionConfirmation` | `AccountDeletionScheduled` | **ATIVA** |
-| POST | `/v1/auth/account/deletion/restore/code` | Cookie de pré-autenticação | `LoginRequest` | `AccountDeletionCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/deletion/restore/confirm` | Cookie de pré-autenticação | `AccountRestorationConfirmation` | `AccountRestoredResponse` | **ATIVA** |
+| GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/login` | Público | `LoginRequest` | AuthResult (200) / DeviceVerificationRequired (202) | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/device-verification/confirm` | Público | `ChallengeConfirmRequest` | `AuthResult` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/device-verification/resend` | Público | `ChallengeResendRequest` | `DeviceVerificationResent` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/password/update` | Público | `PasswordPolicyUpdateRequest` | `PasswordUpdateChallenge` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/password/update/confirm` | Público | `ChallengeConfirmRequest` | `PasswordUpdated` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/auth/devices` | Sessão autenticada | — | `TrustedDeviceList` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| DELETE | `/v1/auth/devices/others` | Sessão autenticada | — | `OtherDevicesRevoked` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| DELETE | `/v1/auth/devices/{deviceId}` | Sessão autenticada | — | `Empty` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| DELETE | `/v1/auth/sessions/others` | Sessão autenticada | — | `OtherSessionsRevoked` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/password/reset/request` | Público | `PasswordResetRequest` | `PasswordResetRequested` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/password/reset/confirm` | Público | `PasswordResetConfirm` | `PasswordResetComplete` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `VerificationConfirmation` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/account/email/change/request` | Sessão autenticada | `AccountEmailChangeRequest` | `EmailChangeCurrentCodeResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/account/email/change/confirm-current` | Sessão autenticada | `ChallengeConfirmInput` | `EmailChangeNewCodeResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/account/email/change/confirm-new` | Sessão autenticada | `ChallengeConfirmInput` | `AccountEmailChangeResult` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/account/password/change/request` | Sessão autenticada | `AccountPasswordChangeRequest` | `PasswordChangeCodeResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/account/password/change/confirm` | Sessão autenticada | `ChallengeConfirmInput` | `AccountPasswordChangeResult` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/account/deletion/code` | Sessão autenticada | `AccountDeletionCodeRequest` | `AccountDeletionCodeResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/account/deletion/confirm` | Sessão autenticada | `AccountDeletionConfirmation` | `AccountDeletionScheduled` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/auth/account/deletion/restore/code` | Cookie de pré-autenticação | `LoginRequest` | `AccountDeletionCodeResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO**; assíncrona |
+| POST | `/v1/auth/account/deletion/restore/confirm` | Cookie de pré-autenticação | `AccountRestorationConfirmation` | `AccountRestoredResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 
 ## Onboarding
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| POST | `/v1/onboarding/interests` | Sessão autenticada | `OnboardingCompletionRequest` | `OnboardingCompletionResult` | **ATIVA** |
+| POST | `/v1/onboarding/interests` | Sessão autenticada | `OnboardingCompletionRequest` | `OnboardingCompletionResult` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 
 ## Accounts
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/accounts/me` | Sessão autenticada | — | `MyAccountResponse` | **ATIVA** |
-| PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `MyAccountResponse` | **ATIVA** |
-| GET | `/v1/accounts/availability` | Público | — | `Availability` | **ATIVA** |
-| GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **ATIVA** |
-| GET | `/v1/profiles/{username}` | Público/sessão; ACL no servidor | — | `Profile` | **ATIVA** |
+| GET | `/v1/accounts/me` | Sessão autenticada | — | `MyAccountResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `MyAccountResponse` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/accounts/availability` | Público | — | `Availability` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/profiles/{username}` | Público/sessão; ACL no servidor | — | `Profile` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 | PUT | `/v1/accounts/me/preferences` | Sessão autenticada | `Preferences` | `Preferences` | **PROPOSTA** |
 | GET | `/v1/accounts/me/preferences` | Sessão autenticada | — | `Preferences` | **PROPOSTA** |
 | PUT | `/v1/accounts/me/onboarding` | Sessão autenticada | `Interests` | `Empty` | **PROPOSTA** |
@@ -77,8 +78,8 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. Este registro histór
 | GET | `/v1/accounts/{accountId}/business` | Público/sessão; ACL no servidor | — | `BusinessProfile` | **PROPOSTA** |
 | PUT | `/v1/accounts/me/business` | Sessão autenticada | `BusinessWrite` | `BusinessProfile` | **PROPOSTA** |
 | DELETE | `/v1/accounts/me/business` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/accounts/me/privacy` | Sessão autenticada | `PrivacyWrite` | `Privacy` | **ATIVA** |
-| GET | `/v1/accounts/me/privacy` | Sessão autenticada | — | `Privacy` | **ATIVA** |
+| PUT | `/v1/accounts/me/privacy` | Sessão autenticada | `PrivacyWrite` | `Privacy` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/accounts/me/privacy` | Sessão autenticada | — | `Privacy` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 
 ## Profiles
 
@@ -94,13 +95,13 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. Este registro histór
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
 | GET | `/v1/social/feed` | Sessão autenticada | — | `PagePost` | **PROPOSTA** |
-| POST | `/v1/social/posts` | Sessão autenticada | `PostCreate` | `Post` | **ATIVA** |
-| GET | `/v1/social/posts/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **ATIVA** |
+| POST | `/v1/social/posts` | Sessão autenticada | `PostCreate` | `Post` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/social/posts/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 | PATCH | `/v1/social/posts/{postId}` | Sessão autenticada | `PostPatch` | `Post` | **PROPOSTA** |
 | DELETE | `/v1/social/posts/{postId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/social/articles` | Sessão autenticada | `ArticleCreate` | `Post` | **ATIVA** |
-| GET | `/v1/social/articles/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **ATIVA** |
-| GET | `/v1/social/posts/{postId}/reference` | Público/sessão; ACL no servidor | — | `SocialPostReferencePreview` | **ATIVA** |
+| POST | `/v1/social/articles` | Sessão autenticada | `ArticleCreate` | `Post` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/social/articles/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/social/posts/{postId}/reference` | Público/sessão; ACL no servidor | — | `SocialPostReferencePreview` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 | GET | `/v1/social/posts/{postId}/comments` | Sessão autenticada | — | `PageComment` | **PROPOSTA** |
 | POST | `/v1/social/posts/{postId}/comments` | Sessão autenticada | `CommentCreate` | `Comment` | **PROPOSTA** |
 | PATCH | `/v1/social/comments/{commentId}` | Sessão autenticada | `CommentPatch` | `Comment` | **PROPOSTA** |
@@ -124,17 +125,17 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. Este registro histór
 
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
-| GET | `/v1/social/accounts/{accountId}/followers` | Público/sessão; ACL no servidor | — | `PageAccount` | **ATIVA** |
-| GET | `/v1/social/accounts/{accountId}/following` | Público/sessão; ACL no servidor | — | `PageAccount` | **ATIVA** |
-| PUT | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | `Empty` | `Follow` | **ATIVA** |
-| DELETE | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/social/follow-requests` | Sessão autenticada | — | `PageFollow` | **ATIVA** |
-| POST | `/v1/social/follow-requests/{accountId}/accept` | Sessão autenticada | — | `Follow` | **ATIVA** |
-| POST | `/v1/social/follow-requests/{accountId}/decline` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/social/circles` | Sessão autenticada | — | `PageCircle` | **ATIVA** |
-| GET | `/v1/social/blocks` | Sessão autenticada | — | `PageAccount` | **ATIVA** |
-| PUT | `/v1/social/blocks/{accountId}` | Sessão autenticada | `Empty` | `Empty` | **ATIVA** |
-| DELETE | `/v1/social/blocks/{accountId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
+| GET | `/v1/social/accounts/{accountId}/followers` | Público/sessão; ACL no servidor | — | `PageAccount` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/social/accounts/{accountId}/following` | Público/sessão; ACL no servidor | — | `PageAccount` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| PUT | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | `Empty` | `Follow` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| DELETE | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | — | `Empty` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/social/follow-requests` | Sessão autenticada | — | `PageFollow` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/social/follow-requests/{accountId}/accept` | Sessão autenticada | — | `Follow` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| POST | `/v1/social/follow-requests/{accountId}/decline` | Sessão autenticada | — | `Empty` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/social/circles` | Sessão autenticada | — | `PageCircle` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| GET | `/v1/social/blocks` | Sessão autenticada | — | `PageAccount` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| PUT | `/v1/social/blocks/{accountId}` | Sessão autenticada | `Empty` | `Empty` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
+| DELETE | `/v1/social/blocks/{accountId}` | Sessão autenticada | — | `Empty` | **MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO** |
 | GET | `/v1/social/mutes` | Sessão autenticada | — | `PageAccount` | **PROPOSTA** |
 | PUT | `/v1/social/mutes/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
 | DELETE | `/v1/social/mutes/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |

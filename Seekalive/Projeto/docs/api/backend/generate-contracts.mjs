@@ -12,7 +12,8 @@ const dir = dirname(fileURLToPath(import.meta.url));
 const roadmapDir = resolve(dir, "../../roadmap");
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
 // tag, method, path, summary, request schema, response schema, behavior
-// "live" is reserved for endpoints verified in Aplicativo/back.
+// "live" is a legacy planning-catalog flag for routes found in backend code.
+// It does not mean the operation has passed an authenticated functional test.
 const R = [];
 const add = (tag, method, path, summary, request, response, extra = {}) =>
   R.push({ tag, method, path, summary, request, response, ...extra });
@@ -614,7 +615,7 @@ post(
     successCode: "201",
     status: "implemented",
     contractDescription:
-      "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Exige conta pessoal ativa e verificada. Permite uma avaliação ativa por pessoa e perfil comercial; o titular não pode avaliar a própria conta. A nota é de 1 a 5 e o comentário tem de 10 a 500 caracteres.",
+      "Handler implementado em código. A presença física da migration/tabela deve ser verificada pela consulta de catálogo; este catálogo não afirma que ela foi aplicada. O fluxo HTTP não foi validado nesta revisão. Exige conta pessoal ativa e verificada. Permite uma avaliação ativa por pessoa e perfil comercial; o titular não pode avaliar a própria conta. A nota é de 1 a 5 e o comentário tem de 10 a 500 caracteres.",
   },
 );
 del(
@@ -628,7 +629,7 @@ del(
     successCode: "200",
     status: "implemented",
     contractDescription:
-      "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Exclui somente a avaliação da conta autenticada. Depois da exclusão, o autor pode publicar outra avaliação para o perfil.",
+      "Handler implementado em código. A presença física da migration/tabela deve ser verificada pela consulta de catálogo; este catálogo não afirma que ela foi aplicada. O fluxo HTTP não foi validado nesta revisão. Exclui somente a avaliação da conta autenticada. Depois da exclusão, o autor pode publicar outra avaliação para o perfil.",
   },
 );
 put(
@@ -643,7 +644,7 @@ put(
     status: "implemented",
     successCode: "200",
     contractDescription:
-      "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Somente o titular da conta comercial ativa e verificada pode responder. A resposta tem de 3 a 500 caracteres; uma resposta existente pode ser substituída.",
+      "Handler implementado em código. A presença física da migration/tabela deve ser verificada pela consulta de catálogo; este catálogo não afirma que ela foi aplicada. O fluxo HTTP não foi validado nesta revisão. Somente o titular da conta comercial ativa e verificada pode responder. A resposta tem de 3 a 500 caracteres; uma resposta existente pode ser substituída.",
   },
 );
 put(
@@ -3129,7 +3130,7 @@ for (const route of R) {
         : {
             description:
               route.status === "live"
-                ? "Endpoint implementado e observado no servidor atual."
+                ? "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação."
                 : route.status === "implemented"
                   ? "Handler implementado; depende da migration e da validação HTTP."
                   : "Contrato proposto; handler ainda não existe.",
@@ -3182,7 +3183,7 @@ for (const route of R) {
     description:
       route.contractDescription ??
       (route.status === "live"
-        ? "LIVE on the audited API server."
+        ? "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted."
         : route.status === "implemented"
       ? "Planning-catalog entry only; do not infer physical migration or mounted-route status from this snapshot."
           : `PROPOSED ONLY; not currently implemented.${route.accepted ? " Async job and request ID; no synchronous-success simulation." : ""}`),
@@ -3259,7 +3260,7 @@ const spec = {
     title: "Seekalive API",
     version: "0.3.1-device-security",
     description:
-      "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados no desenvolvimento. O PostgreSQL gerenciado da Replit contém os schemas ativos de desenvolvimento; produção não foi publicada nem alterada. O envio Resend foi testado em desenvolvimento, mas não está habilitado para produção; os demais contratos seguem como proposta.",
+      "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados em código no desenvolvimento. O estado físico atual do banco deve ser consultado em docs/api/backend/queries/development-database-catalog.sql; este catálogo não presume schemas aplicados. Produção não foi acessada nem alterada nesta revisão. O envio Resend foi testado em desenvolvimento, mas não está habilitado para produção; os demais contratos seguem como proposta.",
     contact: { name: "Seekalive API" },
   },
   servers: [
@@ -3344,9 +3345,10 @@ await writeFile(
 const lines = [
   "# Catálogo de operações de referência",
   "",
-  `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. Este registro histórico de planejamento contém **${R.length} operações** e não é o inventário de rotas ativas nem o contrato da API. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
+  `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. Este registro de planejamento contém **${R.length} operações** e não é o inventário de rotas montadas nem o contrato da API. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
   "",
-  "> **Não normativo:** os estados e descrições deste catálogo são o snapshot original do planejamento. Para rotas realmente montadas, use `docs/api/backend/endpoints.md`; para o contrato HTTP, use `shared/api-spec/openapi.yaml`. Este arquivo não prova testes, persistência ou implantação.",
+  "> **Não normativo:** os estados e descrições deste catálogo são rótulos de planejamento e não classificam comportamento como ativo/validado. Para rotas realmente montadas, use `docs/api/backend/endpoints.md`; para o contrato HTTP, use `shared/api-spec/openapi.yaml`. Este arquivo não prova testes, persistência ou implantação.",
+  "> **Caminhos vigentes:** mídia usa `/v1/social/media` e `/v1/social/media/{assetId}`; salvar/remover publicação usa `/v1/social/posts/{postId}/bookmark`. Outros caminhos com estado `PROPOSTA` abaixo são ideias do roadmap, não contratos nem rotas atuais.",
   "> **Regras vigentes que substituem qualquer conflito neste snapshot:** audiência `private` = titular e seguidores aprovados de perfil privado; Círculo exige seguimento mútuo; campos de apresentação e avaliações pertencem a Profiles; Seek apenas consome projeções públicas autorizadas e não cria nem edita avaliações.",
   "",
   "## Respostas, paginação e autenticação",
@@ -3355,7 +3357,7 @@ const lines = [
   "- Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.",
   "- Erro: `{error:{code,message,requestId,details?,supportEmail?,retryAfterSeconds?,attemptsRemaining?,resendAvailableAt?}}`. Nunca serializar stack trace.",
   "- Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.",
-  "- Não use os estados registrados abaixo para decidir se uma rota está ativa. Essa informação é regenerada a partir do Express e do OpenAPI.",
+  "- Não use os estados registrados abaixo para decidir se uma rota está montada ou funcionalmente validada. Essa informação é regenerada a partir do Express e do OpenAPI.",
   "",
 ];
 for (const tag of [...new Set(R.map((r) => r.tag))]) {
@@ -3376,7 +3378,7 @@ for (const tag of [...new Set(R.map((r) => r.tag))]) {
             : "Sessão autenticada";
     const state =
       r.status === "live"
-        ? "ATIVA"
+        ? "MONTADA EM CÓDIGO; COMPORTAMENTO NÃO VALIDADO"
         : r.status === "implemented"
         ? "IMPLEMENTADA EM CÓDIGO; ESTADO FÍSICO DO BANCO NÃO ASSERTADO"
           : "PROPOSTA";

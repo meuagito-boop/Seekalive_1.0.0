@@ -82,6 +82,47 @@ test("CSRF rejections use the same traceable error contract", async () => {
   assertRequestId(response, body);
 });
 
+test("Feed comments require a session and all Feed mutations reject missing CSRF", async () => {
+  const postId = "00000000-0000-4000-8000-000000000001";
+  const commentId = "00000000-0000-4000-8000-000000000002";
+  const comments = await fetch(
+    `${baseUrl}/api/v1/social/posts/${postId}/comments?limit=20`,
+  );
+  assert.equal(comments.status, 401);
+  const commentsBody = await comments.json();
+  assert.equal(commentsBody.error.key, "UNAUTHENTICATED");
+  assertRequestId(comments, commentsBody);
+
+  const mutationRequests = [
+    {
+      method: "POST",
+      path: `/api/v1/social/posts/${postId}/comments`,
+      body: { text: "teste de segurança" },
+    },
+    { method: "DELETE", path: `/api/v1/social/comments/${commentId}` },
+    { method: "PUT", path: `/api/v1/social/posts/${postId}/like` },
+    { method: "DELETE", path: `/api/v1/social/posts/${postId}/like` },
+    { method: "POST", path: `/api/v1/social/posts/${postId}/repost` },
+    { method: "DELETE", path: `/api/v1/social/posts/${postId}/repost` },
+    { method: "PUT", path: `/api/v1/social/comments/${commentId}/like` },
+    { method: "DELETE", path: `/api/v1/social/comments/${commentId}/like` },
+    { method: "DELETE", path: `/api/v1/social/posts/${postId}` },
+  ];
+
+  for (const request of mutationRequests) {
+    const response = await fetch(`${baseUrl}${request.path}`, {
+      method: request.method,
+      headers: request.body ? { "content-type": "application/json" } : {},
+      ...(request.body ? { body: JSON.stringify(request.body) } : {}),
+    });
+    assert.equal(response.status, 403, `${request.method} ${request.path}`);
+    const body = await response.json();
+    assert.equal(body.error.key, "CSRF_REJECTED");
+    assert.equal(body.error.code, 1106);
+    assertRequestId(response, body);
+  }
+});
+
 test("article requests allow the declared article length while other JSON bodies retain the 32 KB cap", async () => {
   const largeArticle = await fetch(`${baseUrl}/api/v1/social/articles`, {
     method: "POST",

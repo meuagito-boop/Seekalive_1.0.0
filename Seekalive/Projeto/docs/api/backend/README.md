@@ -125,9 +125,10 @@ A descoberta do Seek consome perfis comerciais públicos do Social e exclui cont
 ## 5. Links e versões
 
 - Rotas da interface estão em `frontend-integration.md`; métodos e caminhos registrados estão em `endpoints.md` e `routes.generated.md`.
+- A validação individual das 11 operações do Feed, com o que foi e não foi exercitado, está em `feed-route-validation.md`.
 - A análise e os bloqueios verificados no frontend estão em `frontend-readiness-audit.md`.
 - Links oficiais das integrações estão em `external-services-and-operations.md`.
 - URL pública definitiva do app/API: **não definida por esta auditoria**. Não inferir domínio de produção a partir do endereço de desenvolvimento.
 - Base proposta de mesma origem: `/api/v1`; liveness: `/api/healthz`; readiness do banco: `/api/readyz`.
-- O PostgreSQL gerenciado usa `drizzle-kit push` apenas no desenvolvimento pelo pós-merge; mudanças de produção seguem o fluxo oficial de publicação da Replit. O journal `0000`–`0005` não comprova aplicação física e não foi encontrada tabela de histórico por nome contendo `drizzle` ou `migration`. Não usar `push-force` nem DDL no startup.
+- A configuração de pós-merge pode executar `drizzle-kit push` apenas no desenvolvimento; isso não prova o estado físico atual do banco. Consulte `queries/development-database-catalog.sql` para confirmar catálogo e migrations. Não usar `push-force` nem DDL no startup.
 - Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.

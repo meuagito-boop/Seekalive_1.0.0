@@ -7,7 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "test:security-boundaries": "tsx --test ./src/security-boundaries.test.mjs",
     "test:api-runtime": "tsx --test ./src/api-runtime.test.mjs",
-    "test:api-route-contract": "tsx --test ./src/api-route-contract.test.mjs && pnpm run check:api-docs",
+    "test:api-route-contract": "tsx --test ./src/api-route-contract.test.mjs ./src/generated-files-check.test.mjs && pnpm run check:api-docs",
     "docs:api-routes": "tsx ./src/generate-api-route-docs.mjs",
     "check:api-route-docs": "tsx ./src/generate-api-route-docs.mjs --check",
     "check:api-docs": "pnpm run check:api-route-docs && node ../docs/api/backend/render-docs.mjs --check",
@@ -17,9 +17,10 @@
     "test:accounts-deletion-schema": "tsx --test ../Aplicativo/back/test/account-deletion-schema.test.mjs",
     "test:accounts-deletion-policy": "tsx --test ../Aplicativo/back/test/account-deletion-policy.test.mjs",
     "test:feed-global": "tsx --test ../Aplicativo/back/test/feed-global-listing.test.mjs ../Aplicativo/back/test/feed-hashtag-policy.test.mjs",
+    "test:feed-application": "tsx --test ../Aplicativo/back/test/feed-application-injection.test.mjs ../Aplicativo/back/test/feed-visibility.test.mjs ../Aplicativo/back/test/feed-interactions-application.test.mjs",
     "test:media-storage": "tsx --test ../Aplicativo/back/test/media-file-store.test.mjs",
     "test:profiles-reviews": "tsx --test ../Aplicativo/back/test/business-profile-reviews-application.test.mjs",
-    "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:db-domain-registry && pnpm run test:api-runtime && pnpm run test:api-route-contract && pnpm run test:feed-global && pnpm run test:media-storage && pnpm run test:profiles-reviews",
+    "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:db-domain-registry && pnpm run test:api-runtime && pnpm run test:api-route-contract && pnpm run test:feed-global && pnpm run test:feed-application && pnpm run test:media-storage && pnpm run test:profiles-reviews",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

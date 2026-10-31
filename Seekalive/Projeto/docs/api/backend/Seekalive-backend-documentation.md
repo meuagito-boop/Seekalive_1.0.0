@@ -9,10 +9,11 @@ Edição consolidada das fontes Markdown listadas abaixo. Regenere este arquivo 
 - [Arquitetura e segurança](#secao-4) — `architecture-and-security.md`
 - [Integração do frontend](#secao-5) — `frontend-integration.md`
 - [Endpoints](#secao-6) — `endpoints.md`
-- [Rotas montadas](#secao-7) — `routes.generated.md`
-- [Dicionário de dados](#secao-8) — `data-dictionary.md`
-- [Serviços externos e operação](#secao-9) — `external-services-and-operations.md`
-- [Implementação e testes](#secao-10) — `implementation-and-tests.md`
+- [Auditoria das rotas do Feed](#secao-7) — `feed-route-validation.md`
+- [Rotas montadas](#secao-8) — `routes.generated.md`
+- [Dicionário de dados](#secao-9) — `data-dictionary.md`
+- [Serviços externos e operação](#secao-10) — `external-services-and-operations.md`
+- [Implementação e testes](#secao-11) — `implementation-and-tests.md`
 
 ---
 
@@ -146,11 +147,12 @@ A descoberta do Seek consome perfis comerciais públicos do Social e exclui cont
 ## 5. Links e versões
 
 - Rotas da interface estão em `frontend-integration.md`; métodos e caminhos registrados estão em `endpoints.md` e `routes.generated.md`.
+- A validação individual das 11 operações do Feed, com o que foi e não foi exercitado, está em `feed-route-validation.md`.
 - A análise e os bloqueios verificados no frontend estão em `frontend-readiness-audit.md`.
 - Links oficiais das integrações estão em `external-services-and-operations.md`.
 - URL pública definitiva do app/API: **não definida por esta auditoria**. Não inferir domínio de produção a partir do endereço de desenvolvimento.
 - Base proposta de mesma origem: `/api/v1`; liveness: `/api/healthz`; readiness do banco: `/api/readyz`.
-- O PostgreSQL gerenciado usa `drizzle-kit push` apenas no desenvolvimento pelo pós-merge; mudanças de produção seguem o fluxo oficial de publicação da Replit. O journal `0000`–`0005` não comprova aplicação física e não foi encontrada tabela de histórico por nome contendo `drizzle` ou `migration`. Não usar `push-force` nem DDL no startup.
+- A configuração de pós-merge pode executar `drizzle-kit push` apenas no desenvolvimento; isso não prova o estado físico atual do banco. Consulte `queries/development-database-catalog.sql` para confirmar catálogo e migrations. Não usar `push-force` nem DDL no startup.
 - Não copiar dados pessoais, tokens ou segredos para este pacote. Exemplos de payload usam valores fictícios e não são credenciais.
 
 ---
@@ -524,7 +526,7 @@ Status principais: `200`, `201`, `202` para tarefa realmente aceita, `204` sem c
 
 ## 3. Autenticação e ciclo de conta
 
-**Estado implementado em desenvolvimento (25/10/2026):** autenticação própria na API cobre cadastro, confirmação de e-mail, login, recuperação, troca de senha, sessões e reconhecimento revogável de instalações. O PostgreSQL gerenciado da Replit contém os schemas ativos de desenvolvimento; produção permanece separada e não foi publicada nem alterada. O envio Resend foi testado em desenvolvimento; a suíte isolada usa um coletor de e-mail falso. Isso não prova E2E no navegador nem habilita o envio em produção.
+**Evidência de implementação em desenvolvimento (25/10/2026):** autenticação própria na API cobre cadastro, confirmação de e-mail, login, recuperação, troca de senha, sessões e reconhecimento revogável de instalações. Essa evidência de código/testes não declara a presença física atual de schemas no banco; consulte `queries/development-database-catalog.sql`. Produção não foi acessada nem alterada nesta revisão. O envio Resend foi testado em desenvolvimento; a suíte isolada usa um coletor de e-mail falso. Isso não prova E2E no navegador nem habilita o envio em produção.
 
 1. `POST /v1/auth/register` valida cadastro pessoal/comercial e idade autodeclarada mínima de 18 anos. A senha exige 8–128 caracteres, uma maiúscula, uma minúscula, um número e um caractere especial. Cria identidade Social pendente e, para conta comercial, a extensão na mesma transação. Sem envio de e-mail configurado, responde `503` sem criar conta. Senha e confirmação são entrada transitória; confirmação nunca é armazenada.
 2. `POST /v1/auth/login` aceita username ou e-mail e senha; só prossegue com e-mail confirmado, conta ativa e política atual. Senhas legadas compatíveis sobem de versão no login; as demais recebem `403 PASSWORD_UPDATE_REQUIRED`. Credenciais pendentes recebem `403 EMAIL_NOT_VERIFIED`, sem sessão.
@@ -816,95 +818,146 @@ O GET devolve página por cursor, nota média, total, distribuição 1–5 e o I
 
 Fonte: [`endpoints.md`](endpoints.md).
 
-Este inventário é gerado a partir do grafo de routers Express realmente montado e comparado com `shared/api-spec/openapi.yaml`. `ATIVA EM CÓDIGO` significa que o método HTTP foi registrado na aplicação; não afirma que todos os fluxos foram exercitados ou que há implantação em produção.
+Este inventário é gerado a partir do grafo de routers Express realmente montado e comparado com `shared/api-spec/openapi.yaml`. `MONTADA EM CÓDIGO` informa apenas que o método/caminho foi registrado; não classifica o comportamento como funcionalmente validado nem afirma implantação em produção. Consulte a matriz de validação do Feed para a avaliação individual das 11 operações.
 
 Rotas montadas: **76**. Rotas sem contrato: **0**. Contratos sem rota montada: **0**. Divergências de CSRF: **0**.
 
 | Método | Endpoint | Acesso declarado | Entrada | Saída | Estado |
 |---|---|---|---|---|---|
-| DELETE | `/v1/auth/devices/{deviceId}` | __Host-seekalive_session + X-CSRF-Token | deviceId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/auth/devices/others` | __Host-seekalive_session + X-CSRF-Token | — | 200 (application/json: OtherDevicesRevoked) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/auth/sessions/{sessionId}` | __Host-seekalive_session + X-CSRF-Token | sessionId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/auth/sessions/others` | __Host-seekalive_session + X-CSRF-Token | — | 200 (application/json: OtherSessionsRevoked) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/profiles/{username}/reviews/me` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: BusinessProfileReviewDeleted) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/comments/{commentId}` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/media/{assetId}` | __Host-seekalive_session + X-CSRF-Token | assetId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/posts/{postId}` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
-| DELETE | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
-| GET | `/healthz` | Não declarado | — | 200 (application/json: HealthStatus) | ATIVA EM CÓDIGO |
-| GET | `/readyz` | Não declarado | — | 200 (application/json: ReadinessStatus) | ATIVA EM CÓDIGO |
-| GET | `/v1/accounts/{accountId}` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)) | 200 (application/json: AccountView) | ATIVA EM CÓDIGO |
-| GET | `/v1/accounts/availability` | Não declarado | username (query obrigatório; string, mín. 3, máx. 21) | 200 (application/json: AccountUsernameAvailability) | ATIVA EM CÓDIGO |
-| GET | `/v1/accounts/me` | __Host-seekalive_session | — | 200 (application/json: MyAccountResponse) | ATIVA EM CÓDIGO |
-| GET | `/v1/accounts/me/privacy` | __Host-seekalive_session | — | 200 (application/json: PrivacySettings) | ATIVA EM CÓDIGO |
-| GET | `/v1/auth/csrf` | Não declarado | — | 200 (application/json: CsrfToken) | ATIVA EM CÓDIGO |
-| GET | `/v1/auth/devices` | __Host-seekalive_session | — | 200 (application/json: TrustedDevicePage) | ATIVA EM CÓDIGO |
-| GET | `/v1/auth/session` | __Host-seekalive_session ou visitante | — | 200 (application/json: CurrentSession) | ATIVA EM CÓDIGO |
-| GET | `/v1/auth/sessions` | __Host-seekalive_session | cursor (query; string, máx. 16) | 200 (application/json: AuthSessionPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/profiles/{username}` | __Host-seekalive_session ou visitante | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: ProfileResponse) | ATIVA EM CÓDIGO |
-| GET | `/v1/profiles/{username}/reviews` | __Host-seekalive_session ou visitante | username (path obrigatório; string, mín. 3, máx. 20); limit (query; integer, min 1, max 50); cursor (query; string, máx. 256) | 200 (application/json: BusinessProfileReviewPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/accounts` | __Host-seekalive_session | q (query obrigatório; string, mín. 2, máx. 80); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/accounts/{accountId}/followers` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/accounts/{accountId}/following` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/accounts/{accountId}/posts` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); format (query; string) | 200 (application/json: PostPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/articles/{postId}` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/blocks` | __Host-seekalive_session | — | 200 (application/json: AccountList) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/circles` | __Host-seekalive_session | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: CirclePage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/feed` | __Host-seekalive_session ou visitante | tab (query; string); q (query; string, mín. 2, máx. 120); limit (query; integer, min 1, max 50); cursor (query; string, máx. 512) | 200 (application/json: FeedPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/follow-requests` | __Host-seekalive_session | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: FollowRequestPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/media/{assetId}` | __Host-seekalive_session ou visitante | assetId (path obrigatório; string (uuid)); Range (header; string) | 200 (image/jpeg: string (binary); image/png: string (binary); image/gif: string (binary); image/webp: string (binary); image/avif: string (binary); video/mp4: string (binary); video/webm: string (binary)); 206 (sem corpo) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/posts/{postId}` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512) | 200 (application/json: CommentPage) | ATIVA EM CÓDIGO |
-| GET | `/v1/social/posts/{postId}/reference` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: ReferencePreview) | ATIVA EM CÓDIGO |
-| PATCH | `/v1/accounts/me` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountPatch | 200 (application/json: MyAccountResponse) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/deletion/code` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountDeletionCodeRequest | 202 (application/json: AccountDeletionCodeResponse) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/deletion/confirm` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountDeletionConfirmation | 200 (application/json: AccountDeletionScheduled) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/deletion/restore/code` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: LoginRequest | 202 (application/json: AccountDeletionCodeResponse) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/deletion/restore/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: AccountRestorationConfirmation | 200 (application/json: AccountRestoredResponse) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/email/change/confirm-current` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 202 (application/json: EmailChangeNewCodeResponse) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/email/change/confirm-new` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AccountEmailChangeResult) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/email/change/request` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountEmailChangeRequest | 202 (application/json: EmailChangeCurrentCodeResponse) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/password/change/confirm` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AccountPasswordChangeResult) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/account/password/change/request` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountPasswordChangeRequest | 202 (application/json: PasswordChangeCodeResponse) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/device-verification/confirm` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AuthResult) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/device-verification/resend` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | application/json: ChallengeResendInput | 200 (application/json: DeviceVerificationResent) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/login` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: LoginRequest | 200 (application/json: AuthResult); 202 (application/json: oneOf(DeviceVerificationRequired\|AccountDeletionPendingResponse)) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/logout` | __Host-seekalive_session + X-CSRF-Token ou __Host-seekalive_pre_auth + X-CSRF-Token | — | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/password/reset/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordResetConfirm | 200 (application/json: PasswordResetComplete) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/password/reset/request` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordResetRequest | 202 (application/json: PasswordResetRequested) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/password/update` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordPolicyUpdateRequest | 202 (application/json: PasswordUpdateChallenge) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/password/update/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: PasswordUpdated) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/register` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: RegisterRequest | 202 (application/json: VerificationRequired) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/verification` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: EmailVerificationRequest | 202 (application/json: VerificationRequired) | ATIVA EM CÓDIGO |
-| POST | `/v1/auth/verification/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: EmailVerificationConfirm | 200 (application/json: EmailVerificationConfirmation) | ATIVA EM CÓDIGO |
-| POST | `/v1/onboarding/interests` | __Host-seekalive_session + X-CSRF-Token | application/json: OnboardingInterestsRequest | 200 (application/json: OnboardingCompletionResult) | ATIVA EM CÓDIGO |
-| POST | `/v1/profiles/{username}/reviews` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20); application/json: BusinessProfileReviewCreate | 201 (application/json: BusinessProfileReviewCreated) | ATIVA EM CÓDIGO |
-| POST | `/v1/social/articles` | __Host-seekalive_session + X-CSRF-Token | application/json: ArticleCreate | 201 (application/json: Post) | ATIVA EM CÓDIGO |
-| POST | `/v1/social/follow-requests/{accountId}/accept` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | ATIVA EM CÓDIGO |
-| POST | `/v1/social/follow-requests/{accountId}/decline` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| POST | `/v1/social/media` | __Host-seekalive_session + X-CSRF-Token | X-Seekalive-Media-Type (header obrigatório; string); application/octet-stream: string (binary) | 201 (application/json: MediaUpload) | ATIVA EM CÓDIGO |
-| POST | `/v1/social/posts` | __Host-seekalive_session + X-CSRF-Token | application/json: PostCreate | 201 (application/json: Post) | ATIVA EM CÓDIGO |
-| POST | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); application/json: CommentCreate | 201 (application/json: Comment) | ATIVA EM CÓDIGO |
-| POST | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
-| PUT | `/v1/accounts/me/privacy` | __Host-seekalive_session + X-CSRF-Token | application/json: PrivacySettingsWrite | 200 (application/json: PrivacySettings) | ATIVA EM CÓDIGO |
-| PUT | `/v1/profiles/{username}/reviews/{reviewId}/reply` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20); reviewId (path obrigatório; string (uuid)); application/json: BusinessProfileReviewReply | 200 (application/json: BusinessProfileReviewReplyResponse) | ATIVA EM CÓDIGO |
-| PUT | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | ATIVA EM CÓDIGO |
-| PUT | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
-| PUT | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | ATIVA EM CÓDIGO |
-| PUT | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
-| PUT | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/auth/devices/{deviceId}` | __Host-seekalive_session + X-CSRF-Token | deviceId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/auth/devices/others` | __Host-seekalive_session + X-CSRF-Token | — | 200 (application/json: OtherDevicesRevoked) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/auth/sessions/{sessionId}` | __Host-seekalive_session + X-CSRF-Token | sessionId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/auth/sessions/others` | __Host-seekalive_session + X-CSRF-Token | — | 200 (application/json: OtherSessionsRevoked) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/profiles/{username}/reviews/me` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: BusinessProfileReviewDeleted) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/comments/{commentId}` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/media/{assetId}` | __Host-seekalive_session + X-CSRF-Token | assetId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
+| GET | `/healthz` | Não declarado | — | 200 (application/json: HealthStatus) | MONTADA EM CÓDIGO |
+| GET | `/readyz` | Não declarado | — | 200 (application/json: ReadinessStatus) | MONTADA EM CÓDIGO |
+| GET | `/v1/accounts/{accountId}` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)) | 200 (application/json: AccountView) | MONTADA EM CÓDIGO |
+| GET | `/v1/accounts/availability` | Não declarado | username (query obrigatório; string, mín. 3, máx. 21) | 200 (application/json: AccountUsernameAvailability) | MONTADA EM CÓDIGO |
+| GET | `/v1/accounts/me` | __Host-seekalive_session | — | 200 (application/json: MyAccountResponse) | MONTADA EM CÓDIGO |
+| GET | `/v1/accounts/me/privacy` | __Host-seekalive_session | — | 200 (application/json: PrivacySettings) | MONTADA EM CÓDIGO |
+| GET | `/v1/auth/csrf` | Não declarado | — | 200 (application/json: CsrfToken) | MONTADA EM CÓDIGO |
+| GET | `/v1/auth/devices` | __Host-seekalive_session | — | 200 (application/json: TrustedDevicePage) | MONTADA EM CÓDIGO |
+| GET | `/v1/auth/session` | __Host-seekalive_session ou visitante | — | 200 (application/json: CurrentSession) | MONTADA EM CÓDIGO |
+| GET | `/v1/auth/sessions` | __Host-seekalive_session | cursor (query; string, máx. 16) | 200 (application/json: AuthSessionPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/profiles/{username}` | __Host-seekalive_session ou visitante | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: ProfileResponse) | MONTADA EM CÓDIGO |
+| GET | `/v1/profiles/{username}/reviews` | __Host-seekalive_session ou visitante | username (path obrigatório; string, mín. 3, máx. 20); limit (query; integer, min 1, max 50); cursor (query; string, máx. 256) | 200 (application/json: BusinessProfileReviewPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/accounts` | __Host-seekalive_session | q (query obrigatório; string, mín. 2, máx. 80); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/accounts/{accountId}/followers` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/accounts/{accountId}/following` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/accounts/{accountId}/posts` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); format (query; string) | 200 (application/json: PostPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/articles/{postId}` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/blocks` | __Host-seekalive_session | — | 200 (application/json: AccountList) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/circles` | __Host-seekalive_session | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: CirclePage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/feed` | __Host-seekalive_session ou visitante | tab (query; string); q (query; string, mín. 2, máx. 120); limit (query; integer, min 1, max 50); cursor (query; string, máx. 512) | 200 (application/json: FeedPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/follow-requests` | __Host-seekalive_session | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: FollowRequestPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/media/{assetId}` | __Host-seekalive_session ou visitante | assetId (path obrigatório; string (uuid)); Range (header; string) | 200 (image/jpeg: string (binary); image/png: string (binary); image/gif: string (binary); image/webp: string (binary); image/avif: string (binary); video/mp4: string (binary); video/webm: string (binary)); 206 (sem corpo) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/posts/{postId}` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512) | 200 (application/json: CommentPage) | MONTADA EM CÓDIGO |
+| GET | `/v1/social/posts/{postId}/reference` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: ReferencePreview) | MONTADA EM CÓDIGO |
+| PATCH | `/v1/accounts/me` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountPatch | 200 (application/json: MyAccountResponse) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/code` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountDeletionCodeRequest | 202 (application/json: AccountDeletionCodeResponse) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/confirm` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountDeletionConfirmation | 200 (application/json: AccountDeletionScheduled) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/restore/code` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: LoginRequest | 202 (application/json: AccountDeletionCodeResponse) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/restore/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: AccountRestorationConfirmation | 200 (application/json: AccountRestoredResponse) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/email/change/confirm-current` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 202 (application/json: EmailChangeNewCodeResponse) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/email/change/confirm-new` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AccountEmailChangeResult) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/email/change/request` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountEmailChangeRequest | 202 (application/json: EmailChangeCurrentCodeResponse) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/password/change/confirm` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AccountPasswordChangeResult) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/account/password/change/request` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountPasswordChangeRequest | 202 (application/json: PasswordChangeCodeResponse) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/device-verification/confirm` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AuthResult) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/device-verification/resend` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | application/json: ChallengeResendInput | 200 (application/json: DeviceVerificationResent) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/login` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: LoginRequest | 200 (application/json: AuthResult); 202 (application/json: oneOf(DeviceVerificationRequired\|AccountDeletionPendingResponse)) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/logout` | __Host-seekalive_session + X-CSRF-Token ou __Host-seekalive_pre_auth + X-CSRF-Token | — | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/password/reset/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordResetConfirm | 200 (application/json: PasswordResetComplete) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/password/reset/request` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordResetRequest | 202 (application/json: PasswordResetRequested) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/password/update` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordPolicyUpdateRequest | 202 (application/json: PasswordUpdateChallenge) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/password/update/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: PasswordUpdated) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/register` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: RegisterRequest | 202 (application/json: VerificationRequired) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/verification` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: EmailVerificationRequest | 202 (application/json: VerificationRequired) | MONTADA EM CÓDIGO |
+| POST | `/v1/auth/verification/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: EmailVerificationConfirm | 200 (application/json: EmailVerificationConfirmation) | MONTADA EM CÓDIGO |
+| POST | `/v1/onboarding/interests` | __Host-seekalive_session + X-CSRF-Token | application/json: OnboardingInterestsRequest | 200 (application/json: OnboardingCompletionResult) | MONTADA EM CÓDIGO |
+| POST | `/v1/profiles/{username}/reviews` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20); application/json: BusinessProfileReviewCreate | 201 (application/json: BusinessProfileReviewCreated) | MONTADA EM CÓDIGO |
+| POST | `/v1/social/articles` | __Host-seekalive_session + X-CSRF-Token | application/json: ArticleCreate | 201 (application/json: Post) | MONTADA EM CÓDIGO |
+| POST | `/v1/social/follow-requests/{accountId}/accept` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | MONTADA EM CÓDIGO |
+| POST | `/v1/social/follow-requests/{accountId}/decline` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| POST | `/v1/social/media` | __Host-seekalive_session + X-CSRF-Token | X-Seekalive-Media-Type (header obrigatório; string); application/octet-stream: string (binary) | 201 (application/json: MediaUpload) | MONTADA EM CÓDIGO |
+| POST | `/v1/social/posts` | __Host-seekalive_session + X-CSRF-Token | application/json: PostCreate | 201 (application/json: Post) | MONTADA EM CÓDIGO |
+| POST | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); application/json: CommentCreate | 201 (application/json: Comment) | MONTADA EM CÓDIGO |
+| POST | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
+| PUT | `/v1/accounts/me/privacy` | __Host-seekalive_session + X-CSRF-Token | application/json: PrivacySettingsWrite | 200 (application/json: PrivacySettings) | MONTADA EM CÓDIGO |
+| PUT | `/v1/profiles/{username}/reviews/{reviewId}/reply` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20); reviewId (path obrigatório; string (uuid)); application/json: BusinessProfileReviewReply | 200 (application/json: BusinessProfileReviewReplyResponse) | MONTADA EM CÓDIGO |
+| PUT | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | MONTADA EM CÓDIGO |
+| PUT | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | MONTADA EM CÓDIGO |
+| PUT | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | MONTADA EM CÓDIGO |
+| PUT | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
+| PUT | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | MONTADA EM CÓDIGO |
 
 O teste `pnpm --filter @workspace/scripts run test:api-route-contract` falha se houver método/caminho registrado sem operação OpenAPI, operação OpenAPI sem registro Express, registro duplicado ou diferença entre middleware CSRF e declaração `csrfToken`.
 
 ---
 
 <a id="secao-7"></a>
-## 7. Rotas montadas
+## 7. Auditoria das rotas do Feed
+
+Fonte: [`feed-route-validation.md`](feed-route-validation.md).
+
+**Data da revisão:** 2026-10-31
+**Ambiente:** desenvolvimento. Não acessa produção nem executa migrations, `push`, DDL ou escritas. A suíte exercita `GET /readyz`, cujo health check executa `SELECT 1`; nenhum dado de negócio é consultado.
+**Escopo:** operações Feed explicitamente destacadas no Plano 1; análise individual do handler, contrato, dependências e evidência de teste.
+
+## Critério de status
+
+- **Montada:** método e caminho constam no grafo Express e no contrato OpenAPI.
+- **Lógica de aplicação testada:** existe teste unitário da lógica de aplicação e ele foi executado nesta rodada.
+- **HTTP/persistência validados:** exige executar a operação no servidor com autenticação, CSRF e persistência real; não foi declarado quando essa evidência não foi executada.
+
+`Montada` não significa que uma operação foi exercitada ponta a ponta. Nenhuma das 11 operações recebe aqui o status “funcionalmente validada” apenas por aparecer no roteador.
+
+## Matriz operação por operação
+
+| Método e endpoint | Handler / camada de aplicação | Evidência disponível | Resultado desta revisão |
+|---|---|---|---|
+| `GET /v1/social/feed` | `presentation/globalFeedRoutes.ts` → `application/listGlobalFeed.ts` | `feed-global-listing.test.mjs` cobre visibilidade, feed Following, busca normalizada, cursor e aba de vídeos. O teste HTTP correspondente existe em `api-isolated-db.test.mjs`. | **Montada; lógica de aplicação testada.** A execução HTTP com sessão e persistência não foi feita nesta revisão. |
+| `GET /v1/social/posts/{postId}/comments` | `presentation/postCommentRoutes.ts` → leitura de publicação e `application/listPostComments.ts` | `feed-interactions-application.test.mjs` cobre visibilidade, paginação e enriquecimento da página. O teste runtime sem sessão retorna `401`. | **Montada; lógica de aplicação e rejeição sem sessão testadas.** Sucesso autenticado e persistência não verificados nesta revisão. |
+| `POST /v1/social/posts/{postId}/comments` | `presentation/postCommentRoutes.ts` → `application/createPostComment.ts` | `feed-interactions-application.test.mjs` cobre autorização do post/resposta, texto, chave de idempotência e DTO. O teste runtime sem CSRF retorna `403`; o E2E existente cobre replay conflitante, mas não foi executado. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+| `DELETE /v1/social/comments/{commentId}` | `presentation/commentDeleteRoutes.ts` → `application/deletePostComment.ts` | `feed-interactions-application.test.mjs` cobre a delegação de ID e titular. O teste runtime sem CSRF retorna `403`; o E2E existente cobre cascata, mas não foi executado. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Autorização HTTP e persistência não verificadas nesta revisão. |
+| `PUT /v1/social/posts/{postId}/like` | `presentation/postLikeRoutes.ts` → `application/setPostLike.ts` | `feed-interactions-application.test.mjs` cobre leitura autorizada antes da mutação, ativação e retorno da publicação atualizada. O teste runtime sem CSRF retorna `403`. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+| `DELETE /v1/social/posts/{postId}/like` | `presentation/postLikeRoutes.ts` → `application/setPostLike.ts` | `feed-interactions-application.test.mjs` cobre a solicitação de remoção (`liked=false`) e a releitura. O teste runtime sem CSRF retorna `403`. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+| `POST /v1/social/posts/{postId}/repost` | `presentation/postRepostRoutes.ts` → `application/setPostRepost.ts` | `feed-interactions-application.test.mjs` cobre leitura autorizada antes da mutação, criação e retorno da publicação atualizada. O teste runtime sem CSRF retorna `403`. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+| `DELETE /v1/social/posts/{postId}/repost` | `presentation/postRepostRoutes.ts` → `application/setPostRepost.ts` | `feed-interactions-application.test.mjs` cobre a solicitação de remoção (`reposted=false`) e a releitura. O teste runtime sem CSRF retorna `403`. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+| `PUT /v1/social/comments/{commentId}/like` | `presentation/commentLikeRoutes.ts` → `application/setCommentLike.ts` | `feed-interactions-application.test.mjs` cobre autorização pela leitura do post pai, ativação e retorno do estado atualizado. O teste runtime sem CSRF retorna `403`. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+| `DELETE /v1/social/comments/{commentId}/like` | `presentation/commentLikeRoutes.ts` → `application/setCommentLike.ts` | `feed-interactions-application.test.mjs` cobre remoção (`liked=false`) e retorno do estado atualizado. O teste runtime sem CSRF retorna `403`. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+| `DELETE /v1/social/posts/{postId}` | `presentation/postDeleteRoutes.ts` → `application/deletePost.ts` | `feed-application-injection.test.mjs` cobre a delegação de exclusão na aplicação. O cenário HTTP existente cobre remoção do post, comentários e autorização do titular; não foi executado. O teste runtime sem CSRF retorna `403`. | **Montada; lógica de aplicação e rejeição sem CSRF testadas.** Sucesso HTTP autenticado e persistência não verificados nesta revisão. |
+
+## Segurança observada no código
+
+- As nove operações de escrita registram autenticação obrigatória, CSRF e limite de taxa; os detalhes de contrato e middleware por rota estão em `routes.generated.md`.
+- A listagem de comentários exige sessão e verifica a leitura da publicação antes de retornar seus comentários.
+- A rota de criação de comentário valida o corpo, não aceita autoria escolhida pelo cliente, normaliza o texto e encaminha chave de idempotência e vínculo de resposta à aplicação.
+- Exclusões validam o identificador, derivam o titular da sessão e retornam `404` quando a operação de domínio não encontra recurso que o titular possa excluir.
+- A extração das rotas e o teste de paridade verificam o registro e a correspondência do CSRF declarado. A análise de código não substitui teste HTTP autenticado nem prova comportamento da persistência.
+
+## Por que o teste HTTP não foi executado
+
+O cenário de integração que cobre estas operações está em `Aplicativo/back/test/api-isolated-db.test.mjs`. Seu fixture executa `drizzle-kit push` e `DROP SCHEMA ... CASCADE` para preparar e remover schema. O Plano 1 proíbe executar `push`, migration ou DDL nesta revisão; por isso o teste foi deliberadamente excluído. Não foi substituído por um teste com banco falso nem por uma afirmação de aprovação.
+
+## Conclusão
+
+As 11 operações estão **montadas** e sem divergência de método/caminho em relação ao OpenAPI. Nesta rodada, a lógica de aplicação das 11 operações (listagem, comentários, curtidas, reposts e exclusão) e as rejeições sem sessão/CSRF foram testadas. Os cenários HTTP autenticados existentes estão identificados, mas não foram executados sob a proibição de DDL. Portanto, não há evidência suficiente para afirmar os caminhos HTTP de sucesso, autorização de titular integrada ao banco e persistência ponta a ponta.
+
+---
+
+<a id="secao-8"></a>
+## 8. Rotas montadas
 
 Fonte: [`routes.generated.md`](routes.generated.md).
 
@@ -995,8 +1048,8 @@ Este arquivo comprova o registro das rotas e documenta o contrato declarado. Nã
 
 ---
 
-<a id="secao-8"></a>
-## 8. Dicionário de dados
+<a id="secao-9"></a>
+## 9. Dicionário de dados
 
 Fonte: [`data-dictionary.md`](data-dictionary.md).
 
@@ -1022,7 +1075,7 @@ All bare `id` columns are UUID primary keys generated by `gen_random_uuid()` (pg
 
 ## Tabelas implementadas no Drizzle
 
-Esta lista representa o modelo no código, não uma afirmação de que todas as tabelas existam fisicamente no banco. Consulte a matriz de estado deste documento e `../../auditoria/02-backend-e-banco.md`.
+Esta lista representa o modelo no código, não uma afirmação de que todas as tabelas existam fisicamente no banco. Para o estado físico atual do banco de desenvolvimento, execute a consulta de catálogo em `queries/development-database-catalog.sql`; este documento não fixa esse estado.
 
 | Tabela                          | Uso atual                                                                                                                                                                                                                                                          |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -1042,7 +1095,7 @@ Esta lista representa o modelo no código, não uma afirmação de que todas as 
 | `feed.post_references`          | Até uma publicação Social referenciada por publicação de origem; guarda o UUID original e uma FK anulável que é removida ao excluir o alvo, para deixar a prévia indisponível sem reter metadados do conteúdo apagado.                                             |
 | `media.assets`                  | Metadados de foto/vídeo, titular, publicação, tipo, tamanho, estado e chave de armazenamento local temporário; uploads podem ser anexados por 24 horas e expirados são limpos no próximo upload, sem worker periódico. Binários só são aceitos em desenvolvimento. |
 
-O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; referências no Feed aceitam somente `social_post` nesta etapa e revalidam a leitura do alvo em cada prévia. Referências para Seek, Shop ou eventos permanecem no modelo futuro, sem rotas ativas. A API e a interface de avaliações comerciais já estão implementadas em Profiles; a tabela correspondente ainda não foi aplicada no banco de desenvolvimento. Armazenamento permanente, galeria comercial, campos de avatar/capa, serviços comerciais completos, conversas, mensagens e moderação ainda não têm implementação completa.
+O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; referências no Feed aceitam somente `social_post` nesta etapa e revalidam a leitura do alvo em cada prévia. Referências para Seek, Shop ou eventos permanecem no modelo futuro, sem rotas ativas. A API e a interface de avaliações comerciais estão implementadas em Profiles; **a presença física da tabela no banco de desenvolvimento não foi verificada nesta revisão** e deve ser consultada em `queries/development-database-catalog.sql`. Armazenamento permanente, galeria comercial, campos de avatar/capa, serviços comerciais completos, conversas, mensagens e moderação ainda não têm implementação completa.
 
 Frontend DTOs use **camelCase**, SQL uses **snake_case**. Serializers, not accidental ORM field exposure, must bridge them:
 
@@ -1073,7 +1126,7 @@ No balance or wallet exists in core. Any future balance, ledger, fee, refund, or
 
 ## Dicionário do modelo proposto
 
-As tabelas e colunas abaixo descrevem o modelo-alvo/proposto e incluem entidades que ainda não estão no schema Drizzle atual nem no banco de desenvolvimento. Elas não devem ser lidas como inventário de implantação; a lista do modelo efetivo está na seção anterior e a comparação física está em `auditoria/02-backend-e-banco.md`. As políticas de acesso são requisitos de servidor, não grants/RLS implementados por este documento. “Public” sempre significa filtrado por estado, privacidade e bloqueios. PK e UNIQUE criam índices automaticamente; nem toda FK tem índice próprio.
+As tabelas e colunas abaixo descrevem o modelo-alvo/proposto e incluem entidades que ainda não estão no schema Drizzle atual. A presença física desses objetos no banco de desenvolvimento não é afirmada aqui: consulte `queries/development-database-catalog.sql`. Este modelo não deve ser lido como inventário de implantação; a lista do modelo efetivo está na seção anterior. As políticas de acesso são requisitos de servidor, não grants/RLS implementados por este documento. “Public” sempre significa filtrado por estado, privacidade e bloqueios. PK e UNIQUE criam índices automaticamente; nem toda FK tem índice próprio.
 
 ### Identity, preferences and discovery
 
@@ -1213,8 +1266,8 @@ The larger SQL design in `schema-core.sql` remains a reference proposal and was 
 
 ---
 
-<a id="secao-9"></a>
-## 9. Serviços externos e operação
+<a id="secao-10"></a>
+## 10. Serviços externos e operação
 
 Fonte: [`external-services-and-operations.md`](external-services-and-operations.md).
 
@@ -1270,8 +1323,8 @@ Mais referências de plataforma: [Storage e bancos no Replit](https://docs.repli
 
 ---
 
-<a id="secao-10"></a>
-## 10. Implementação e testes
+<a id="secao-11"></a>
+## 11. Implementação e testes
 
 Fonte: [`implementation-and-tests.md`](implementation-and-tests.md).
 
@@ -1303,7 +1356,7 @@ Este documento registra etapas de implementação e testes do ambiente de desenv
 ### Fase 2 — Conta única, perfil e relacionamentos (API essencial implementada; frontend parcial)
 
 - Perfil básico, privacidade, seguir, pedidos de perfis privados, Círculo derivado e bloquear/desbloquear já têm endpoints e tabelas próprias. O frontend ainda mantém vários desses controles no estado local da demonstração.
-- Endpoints ativos de conta: `GET/PATCH /v1/accounts/me`, `GET /v1/accounts/availability`, `GET /v1/accounts/{accountId}`, `GET /v1/profiles/{username}` e `GET/PUT /v1/accounts/me/privacy`. Auth implementa `POST /v1/auth/account/email/change/request`, `/v1/auth/account/email/change/confirm-current`, `/v1/auth/account/email/change/confirm-new`, `/v1/auth/account/password/change/request`, `/v1/auth/account/password/change/confirm`, `/v1/auth/account/deletion/code`, `/v1/auth/account/deletion/confirm`, `/v1/auth/account/deletion/restore/code` e `/v1/auth/account/deletion/restore/confirm`. Social implementa listas de seguidores/seguindo, seguir/deixar de seguir, pedidos privados, Círculos e bloqueios.
+- Rotas de conta/Auth/Social registradas no backend incluem `GET/PATCH /v1/accounts/me`, `GET /v1/accounts/availability`, `GET /v1/accounts/{accountId}`, `GET /v1/profiles/{username}`, `GET/PUT /v1/accounts/me/privacy`, `POST /v1/auth/account/email/change/request`, `/v1/auth/account/email/change/confirm-current`, `/v1/auth/account/email/change/confirm-new`, `/v1/auth/account/password/change/request`, `/v1/auth/account/password/change/confirm`, `/v1/auth/account/deletion/code`, `/v1/auth/account/deletion/confirm`, `/v1/auth/account/deletion/restore/code` e `/v1/auth/account/deletion/restore/confirm`, além das rotas de relações. Registro e contrato não significam que cada fluxo foi exercitado; use `endpoints.md` para o inventário e os testes específicos para evidência comportamental.
 - A edição de dados da conta usa uma única identidade Social e diferencia o formulário por tipo: conta pessoal (nome e sobrenome) e conta comercial (nome comercial e endereço comercial completo). A idade é coletada somente no cadastro, mantida no servidor para a regra de 18+ e nunca retornada ao cliente após a criação; não aparece nem em Configurações. E-mail verificado é retornado somente no DTO owner-only. A edição de endereço e conta é atômica; não foi necessária migração de schema.
 - O endpoint de perfil público compõe a identidade canônica da conta com os dados comerciais, respeitando privacidade e bloqueios. Avaliações e respostas pertencem a Profiles, não a Seek. O estado do banco deve ser verificado pela query de catálogo. Horários, serviços, galeria real e integração de descoberta do Seek ainda não estão completos.
 - Regras: Círculo só existe com dois seguimentos aceitos em sentidos opostos; pedido pendente não dá acesso; após aprovação, o seguidor pode ver conteúdo público do perfil privado; conteúdo do Círculo continua exigindo mutualidade; bloqueio remove follows/pedidos em ambas as direções; só o iniciador remove o próprio bloqueio.

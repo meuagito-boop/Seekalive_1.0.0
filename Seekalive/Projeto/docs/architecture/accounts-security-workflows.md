@@ -10,7 +10,7 @@
 | Contas (`accounts`)          | UUID canônico, `@`, tipo/status, idade e termos privados, e-mail, interesses e ciclo de vida da identidade.                                      |
 | Segurança (`security`)       | Hashes Argon2id, desafios/códigos, sessões, CSRF, instalações confiáveis, tentativas e revogações.                                               |
 | Perfis/Relações (`profiles`) | Relações sociais, pedidos de seguimento e bloqueios. O perfil comercial público precisa manter uma fronteira própria, sem criar nova identidade. |
-| Seek (`seek`)                | Dados da listagem comercial e descoberta: categoria, endereço principal e dados comerciais próprios do Seek.                                     |
+| Seek (`seek`)                | Projeções públicas autorizadas, indexação e descoberta por localização/categoria; não é dono dos dados canônicos do perfil ou das avaliações. Profiles é a origem dos dados comerciais; Social é a origem das contas e relações. |
 | Auth                         | Coordena casos de uso e ordem das operações; não é proprietário das tabelas acima.                                                               |
 
 As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módulos ainda devem acessar dados por operações/composição explícitas; compartilhar um PostgreSQL não autoriza qualquer módulo a gravar diretamente em qualquer tabela.
@@ -21,7 +21,7 @@ As FKs entre schemas são válidas na infraestrutura compartilhada atual. Módul
 - A composição de cadastro coordena adaptadores de Contas, Segurança e Profiles dentro da mesma transação, preservando atomicidade neste banco compartilhado.
 - Os arquivos de schema estão organizados por domínio em `infra/database/src/schema/`; as tabelas de relação pertencem a `profiles/relationships.ts`. O registry central apenas compõe as tabelas para Drizzle.
 - `business_profiles` pertence ao schema lógico `profiles` e contém categoria, modalidade de descoberta e endereço. O nome e a bio comerciais ainda vêm de `accounts.accounts`; os campos pessoais de nome e bio também continuam nessa tabela. Essa extração para Profiles ainda não foi feita.
-- Seek é consumidor dos dados comerciais de Profiles e mantém somente projeções de descoberta próprias; não é fonte canônica nem dependência de leitura do perfil. A migration Profiles `0001_talented_clint_barton.sql` transfere a tabela comercial antiga de `seek` para `profiles` preservando a relação com a conta; ela está preparada, mas não foi aplicada ao banco de desenvolvimento.
+- Seek é consumidor dos dados comerciais de Profiles e mantém somente projeções de descoberta próprias; não é fonte canônica nem dependência de leitura do perfil. A migration Profiles `0001_talented_clint_barton.sql` descreve a transferência da tabela comercial antiga de `seek` para `profiles`, preservando a relação com a conta. A presença física atual dessa migration/tabela não foi verificada nesta revisão; consulte `docs/api/backend/queries/development-database-catalog.sql`.
 - Os demais campos legados de apresentação e preferências estão discriminados em `database-domains.md`. A transferência dos campos de perfil pessoal/comercial exige migração coordenada e preservação de contratos; não foi declarada como concluída.
 - A configuração não cria nem conecta bancos físicos separados, não escolhe provedor externo e não executa migrations.
 

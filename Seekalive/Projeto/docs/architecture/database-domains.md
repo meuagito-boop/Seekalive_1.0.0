@@ -100,7 +100,7 @@ flowchart LR
 
 ## Mapeamento das tabelas atuais
 
-O mapeamento abaixo representa a propriedade no modelo de código. A unidade comercial e as relações estão em `profiles`; a tabela `seek.business_profiles` legada não consta entre as tabelas ativas confirmadas no banco de desenvolvimento.
+O mapeamento abaixo representa a propriedade no modelo de código. A unidade comercial e as relações pertencem a `profiles`; a existência física da tabela legada `seek.business_profiles` não é afirmada aqui. Consulte o [catálogo do banco de desenvolvimento](../api/backend/queries/development-database-catalog.sql) para confirmar objetos físicos.
 
 | Tabela atual                    | Schema lógico proprietário no modelo atual                                | Situação e próxima separação                                                                                                                                                                                                                                                                          |
 | ------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -148,7 +148,7 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL, inclusive entidades 
 - **Notificações:** `notifications`, `push_subscriptions`.
 - **Localização:** `cities` e novas tabelas geográficas com PostGIS; a proposta SQL atual não contém PostGIS nem coordenadas.
 - **Pesquisa:** documentos e checkpoints derivados precisam de um schema futuro; a proposta não contém índice/search tables.
-- **Confiança e Segurança:** `reports` e `moderation_actions` pertencem ao schema lógico `trust_safety`; alvos são referências tipadas a recursos de outros domínios. Não há tabelas ativas ainda.
+- **Confiança e Segurança:** `reports` e `moderation_actions` pertencem ao domínio lógico reservado `trust_safety`; alvos são referências tipadas a recursos de outros domínios. O modelo de código atual não atribui tabelas a esse domínio; isso não afirma a presença ou ausência de objetos físicos. Consulte o [catálogo do banco de desenvolvimento](../api/backend/queries/development-database-catalog.sql).
 - **Operacional ainda a detalhar:** `audit_logs` ficam com o domínio que registra o fato (autenticação em Segurança); `privacy_requests` são coordenados por Contas e executados nos domínios donos; `outbox_events` e `idempotency_keys` ficam localmente com a transação que os exige; `webhook_receipts` pertencem ao domínio integrador. `account_settings` precisa ser dividido por responsabilidade. Não há um banco genérico para esses elementos.
 
 ## Fluxos entre domínios: fonte de verdade e consistência

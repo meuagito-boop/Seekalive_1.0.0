@@ -3,7 +3,7 @@
   "info": {
     "title": "Seekalive API",
     "version": "0.3.1-device-security",
-    "description": "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados no desenvolvimento. O PostgreSQL gerenciado da Replit contém os schemas ativos de desenvolvimento; produção não foi publicada nem alterada. O envio Resend foi testado em desenvolvimento, mas não está habilitado para produção; os demais contratos seguem como proposta.",
+    "description": "Autenticação, confirmação de e-mail, instalações confiáveis revogáveis, gestão de sessões, onboarding, perfil de conta, privacidade e relações sociais essenciais estão implementados em código no desenvolvimento. O estado físico atual do banco deve ser consultado em docs/api/backend/queries/development-database-catalog.sql; este catálogo não presume schemas aplicados. Produção não foi acessada nem alterada nesta revisão. O envio Resend foi testado em desenvolvimento, mas não está habilitado para produção; os demais contratos seguem como proposta.",
     "contact": {
       "name": "Seekalive API"
     }
@@ -63,11 +63,11 @@
           "health"
         ],
         "summary": "Verificar servidor (rota existente)",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "security": [],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -230,7 +230,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -389,7 +389,7 @@
           "auth"
         ],
         "summary": "Consultar sessão atual sem revelar credenciais",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "security": [
           {
             "SessionCookie": []
@@ -398,7 +398,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -566,7 +566,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -752,7 +752,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -930,7 +930,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1134,7 +1134,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1320,7 +1320,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1498,7 +1498,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1676,7 +1676,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1851,7 +1851,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2019,7 +2019,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2198,7 +2198,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2357,7 +2357,7 @@
           "auth"
         ],
         "summary": "Encerrar e revogar a sessão atual",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "security": [
           {
             "SessionCookie": [],
@@ -2366,7 +2366,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2551,7 +2551,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2719,7 +2719,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2898,7 +2898,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3076,7 +3076,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3254,7 +3254,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3444,7 +3444,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3622,7 +3622,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3808,7 +3808,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3986,7 +3986,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4164,7 +4164,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4342,7 +4342,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4520,7 +4520,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4706,7 +4706,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4884,7 +4884,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5070,7 +5070,7 @@
         },
         "responses": {
           "202": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5248,7 +5248,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5426,7 +5426,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5588,7 +5588,7 @@
         "description": "Retorna dados de cadastro e e-mail verificado somente para a sessão ativa da própria conta. E-mail, idade, nomes pessoais e endereço comercial não aparecem em perfis públicos.",
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5764,7 +5764,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5923,7 +5923,7 @@
           "accounts"
         ],
         "summary": "Verificar disponibilidade pública de username",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "username",
@@ -5937,7 +5937,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6096,7 +6096,7 @@
           "accounts"
         ],
         "summary": "Consultar perfil por identificador respeitando privacidade e bloqueios",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "accountId",
@@ -6116,7 +6116,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6294,7 +6294,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6648,7 +6648,7 @@
           "profiles"
         ],
         "summary": "Publicar avaliação em perfil comercial",
-        "description": "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Exige conta pessoal ativa e verificada. Permite uma avaliação ativa por pessoa e perfil comercial; o titular não pode avaliar a própria conta. A nota é de 1 a 5 e o comentário tem de 10 a 500 caracteres.",
+        "description": "Handler implementado em código. A presença física da migration/tabela deve ser verificada pela consulta de catálogo; este catálogo não afirma que ela foi aplicada. O fluxo HTTP não foi validado nesta revisão. Exige conta pessoal ativa e verificada. Permite uma avaliação ativa por pessoa e perfil comercial; o titular não pode avaliar a própria conta. A nota é de 1 a 5 e o comentário tem de 10 a 500 caracteres.",
         "parameters": [
           {
             "name": "username",
@@ -6836,7 +6836,7 @@
           "profiles"
         ],
         "summary": "Excluir a avaliação própria",
-        "description": "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Exclui somente a avaliação da conta autenticada. Depois da exclusão, o autor pode publicar outra avaliação para o perfil.",
+        "description": "Handler implementado em código. A presença física da migration/tabela deve ser verificada pela consulta de catálogo; este catálogo não afirma que ela foi aplicada. O fluxo HTTP não foi validado nesta revisão. Exclui somente a avaliação da conta autenticada. Depois da exclusão, o autor pode publicar outra avaliação para o perfil.",
         "parameters": [
           {
             "name": "username",
@@ -7014,7 +7014,7 @@
           "profiles"
         ],
         "summary": "Publicar ou substituir resposta comercial à avaliação",
-        "description": "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Somente o titular da conta comercial ativa e verificada pode responder. A resposta tem de 3 a 500 caracteres; uma resposta existente pode ser substituída.",
+        "description": "Handler implementado em código. A presença física da migration/tabela deve ser verificada pela consulta de catálogo; este catálogo não afirma que ela foi aplicada. O fluxo HTTP não foi validado nesta revisão. Somente o titular da conta comercial ativa e verificada pode responder. A resposta tem de 3 a 500 caracteres; uma resposta existente pode ser substituída.",
         "parameters": [
           {
             "name": "username",
@@ -8790,7 +8790,7 @@
           "accounts"
         ],
         "summary": "Atualizar nível de privacidade, mensagens e confirmações de leitura",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "security": [
           {
             "SessionCookie": [],
@@ -8809,7 +8809,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8966,10 +8966,10 @@
           "accounts"
         ],
         "summary": "Consultar permissões e privacidade próprias",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9324,7 +9324,7 @@
           "social"
         ],
         "summary": "Publicar texto ou mídia por IDs de uploads prontos",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "security": [
           {
             "SessionCookie": [],
@@ -9343,7 +9343,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9502,7 +9502,7 @@
           "social"
         ],
         "summary": "Ler publicação aplicando audiência e bloqueios",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "postId",
@@ -9522,7 +9522,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10045,7 +10045,7 @@
           "social"
         ],
         "summary": "Publicar artigo longo como publicação",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "security": [
           {
             "SessionCookie": [],
@@ -10064,7 +10064,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10223,7 +10223,7 @@
           "social"
         ],
         "summary": "Ler artigo como publicação",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "postId",
@@ -10243,7 +10243,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10402,7 +10402,7 @@
           "social"
         ],
         "summary": "Resolver prévia de publicação Social reaplicando audiência e bloqueios",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "postId",
@@ -10422,7 +10422,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -13916,7 +13916,7 @@
           "relations"
         ],
         "summary": "Listar seguidores visíveis",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "accountId",
@@ -13955,7 +13955,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14114,7 +14114,7 @@
           "relations"
         ],
         "summary": "Listar contas seguidas visíveis",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "accountId",
@@ -14153,7 +14153,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14312,7 +14312,7 @@
           "relations"
         ],
         "summary": "Seguir ou pedir para seguir um perfil privado",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "accountId",
@@ -14342,7 +14342,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14499,7 +14499,7 @@
           "relations"
         ],
         "summary": "Deixar de seguir ou cancelar pedido",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "accountId",
@@ -14519,7 +14519,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14678,10 +14678,10 @@
           "relations"
         ],
         "summary": "Listar pedidos recebidos próprios",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14840,7 +14840,7 @@
           "relations"
         ],
         "summary": "Aceitar pedido de seguimento recebido",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "accountId",
@@ -14860,7 +14860,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15019,7 +15019,7 @@
           "relations"
         ],
         "summary": "Recusar pedido de seguimento recebido",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "accountId",
@@ -15039,7 +15039,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15198,7 +15198,7 @@
           "relations"
         ],
         "summary": "Listar contas seguidas mutuamente; Círculo é derivado, sem convite próprio",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "parameters": [
           {
             "name": "cursor",
@@ -15222,7 +15222,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15381,10 +15381,10 @@
           "relations"
         ],
         "summary": "Listar bloqueios próprios",
-        "description": "LIVE on the audited API server.",
+        "description": "Route present in the reviewed code snapshot; authenticated behavior and persistence are not asserted.",
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15573,7 +15573,7 @@
         },
         "responses": {
           "200": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15750,7 +15750,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Endpoint implementado e observado no servidor atual.",
+            "description": "Rota registrada no código observado. Isso não comprova fluxo autenticado, persistência ou implantação.",
             "content": {
               "application/json": {
                 "schema": {

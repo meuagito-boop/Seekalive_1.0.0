@@ -1,26 +1,18 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
+  assertApiRouteInventoryMatchesContract,
   buildApiRouteInventory,
   renderEndpointsMarkdown,
   renderRoutesGeneratedMarkdown,
 } from "./api-route-inventory.mjs";
+import { assertGeneratedFilesCurrent } from "./generated-files-check.mjs";
 
 const projectRoot = resolve(import.meta.dirname, "../..");
 const docsDirectory = resolve(projectRoot, "docs/api/backend");
 const checkOnly = process.argv.includes("--check");
 const inventory = await buildApiRouteInventory();
-
-if (
-  inventory.diff.missingFromContract.length > 0 ||
-  inventory.diff.withoutRuntimeRoute.length > 0 ||
-  inventory.diff.duplicateRuntimeRoutes.length > 0 ||
-  inventory.diff.csrfContractMismatches.length > 0
-) {
-  throw new Error(
-    `OpenAPI route mismatch: ${JSON.stringify(inventory.diff, null, 2)}`,
-  );
-}
+assertApiRouteInventoryMatchesContract(inventory);
 
 const outputs = [
   {
@@ -34,14 +26,7 @@ const outputs = [
 ];
 
 if (checkOnly) {
-  for (const output of outputs) {
-    const current = await readFile(output.path, "utf8");
-    if (current !== output.content) {
-      throw new Error(
-        `Generated API documentation is stale: ${output.path}. Run docs:api-routes.`,
-      );
-    }
-  }
+  await assertGeneratedFilesCurrent(outputs);
 } else {
   await Promise.all(
     outputs.map(({ path, content }) => writeFile(path, content)),

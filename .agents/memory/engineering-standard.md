@@ -30,3 +30,11 @@ Toda pendência encontrada que não seja resolvida no escopo atual deve ser regi
 **Why:** o usuário designou o prompt como padrão contínuo, pediu releitura a cada atividade e determinou que não quer arquivos cuja única função seja reexportar código. Também espera execução clara e aconselhamento técnico nos momentos relevantes, com rigor alto e prestação de contas verificável. A revisão dobrada dos gates foi solicitada para evitar declarar etapas concluídas sem revalidar critérios, evidências, regressões e documentação.
 
 **How to apply:** antes de criar um barrel ou fachada, conferir se há composição real, validação ou comportamento próprio. Se for só reexportação, remover o arquivo e atualizar os consumidores para o módulo proprietário; manter acoplamentos restantes explícitos. No começo de cada tarefa, reler o prompt integral antes de explorar ou editar; antes de cada alteração, verificar escopo, dependências, impacto e critérios de validação. Após executar um gate, realizar uma segunda revisão independente mais rigorosa, reconciliar evidências e documentação, atualizar o plano e só então fechar/avançar. Validar com comandos reais, relatar limitações sem mascarar falhas e manter qualquer pendência não resolvida no plano com motivo, próxima ação e critério de fechamento.
+
+## Evidência de rotas e comportamento
+
+**Regra:** documentação deve separar rota registrada, contrato OpenAPI, middleware aplicado, lógica de aplicação testada e fluxo HTTP/persistência validado. “Montada em código” não significa “funcionalmente ativa”; usar estado de validação somente com evidência do nível correspondente.
+
+**Why:** a paridade entre router e OpenAPI prova método/caminho, não prova autorização de titular, comportamento dos casos de uso ou persistência. O proprietário pediu explicitamente avaliações rota a rota e rejeitou declarar operações ativas apenas por estarem montadas.
+
+**How to apply:** em inventários gerados e relatórios, nomear o nível de evidência, ligar a testes concretos e manter o nível não verificado e sua ação de fechamento no plano.

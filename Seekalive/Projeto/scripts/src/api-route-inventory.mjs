@@ -23,6 +23,19 @@ const HTTP_METHODS = [
 ];
 const EXPRESS_ROUTE_METHODS = [...HTTP_METHODS, "all"];
 
+export function assertApiRouteInventoryMatchesContract(inventory) {
+  const differences = Object.entries(inventory.diff).filter(
+    ([, entries]) => entries.length > 0,
+  );
+  if (differences.length > 0) {
+    throw new Error(
+      `Express/OpenAPI route drift: ${differences
+        .map(([name, entries]) => `${name}=${entries.length}`)
+        .join(", ")}`,
+    );
+  }
+}
+
 function isPathArgument(value) {
   if (typeof value === "string" || value instanceof RegExp) return true;
   return (
@@ -460,7 +473,7 @@ export function renderEndpointsMarkdown(inventory) {
   const lines = [
     "# Endpoints da API",
     "",
-    "Este inventário é gerado a partir do grafo de routers Express realmente montado e comparado com `shared/api-spec/openapi.yaml`. `ATIVA EM CÓDIGO` significa que o método HTTP foi registrado na aplicação; não afirma que todos os fluxos foram exercitados ou que há implantação em produção.",
+    "Este inventário é gerado a partir do grafo de routers Express realmente montado e comparado com `shared/api-spec/openapi.yaml`. `MONTADA EM CÓDIGO` informa apenas que o método/caminho foi registrado; não classifica o comportamento como funcionalmente validado nem afirma implantação em produção. Consulte a matriz de validação do Feed para a avaliação individual das 11 operações.",
     "",
     `Rotas montadas: **${inventory.routes.length}**. Rotas sem contrato: **${inventory.diff.missingFromContract.length}**. Contratos sem rota montada: **${inventory.diff.withoutRuntimeRoute.length}**. Divergências de CSRF: **${inventory.diff.csrfContractMismatches.length}**.`,
     "",
@@ -471,7 +484,7 @@ export function renderEndpointsMarkdown(inventory) {
   for (const route of inventory.routes) {
     const contract = route.contract;
     lines.push(
-      `| ${route.method} | \`${route.path}\` | ${markdownCell(contract?.auth ?? "SEM CONTRATO")} | ${markdownCell(contract?.input.join("; ") || "—")} | ${markdownCell(contract?.output.join("; ") || "—")} | ${contract ? "ATIVA EM CÓDIGO" : "SEM CONTRATO"} |`,
+      `| ${route.method} | \`${route.path}\` | ${markdownCell(contract?.auth ?? "SEM CONTRATO")} | ${markdownCell(contract?.input.join("; ") || "—")} | ${markdownCell(contract?.output.join("; ") || "—")} | ${contract ? "MONTADA EM CÓDIGO" : "SEM CONTRATO"} |`,
     );
   }
   lines.push(
