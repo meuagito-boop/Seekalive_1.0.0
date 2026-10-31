@@ -1,4 +1,6 @@
-# 12 — Documentos, contratos e decisões registradas
+# Apêndice A2 — Documentos, contratos e decisões registradas
+
+> Material suplementar do dossiê, não é o bloco oficial 12. O bloco 12 é [12-frontend-integracao-api.md](12-frontend-integracao-api.md). Este apêndice é incluído uma única vez no consolidado e seus achados contam no total geral.
 
 ## Escopo e método
 
@@ -6,7 +8,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 ## Achados
 
-### 12-001 — O README identifica corretamente a especificação ativa e o catálogo futuro
+### A2-001 — O README identifica corretamente a especificação ativa e o catálogo futuro
 
 **Veredito:** CONFIRMADO  
 **Prioridade:** Informativa
@@ -15,7 +17,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Trecho:** `shared/api-spec/openapi.yaml` é “a fonte de verdade dos contratos ativos”; `docs/api/backend/openapi.json` é “catálogo separado de referência/propostas”.
 
-### 12-002 — A propriedade das avaliações comerciais está contraditória entre documentos
+### A2-002 — A propriedade das avaliações comerciais está contraditória entre documentos
 
 **Veredito:** CONTRADITO  
 **Prioridade:** Alta
@@ -26,7 +28,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Impacto:** a documentação principal do backend pode induzir uma implementação incorreta e deve ser corrigida para que Seek consuma apenas projeção/agregado autorizado do perfil comercial.
 
-### 12-003 — Há duas regras incompatíveis para publicação com audiência privada
+### A2-003 — Há duas regras incompatíveis para publicação com audiência privada
 
 **Veredito:** CONTRADITO  
 **Prioridade:** Alta
@@ -37,7 +39,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Impacto:** a regra de negócio já aprovada e o código apontam para seguidores aprovados; a documentação de segurança precisa deixar claro o significado de “audiência privada” versus “perfil privado”, sem alterar a regra durante esta auditoria.
 
-### 12-004 — Os documentos de migrations não refletem a configuração executável atual
+### A2-004 — Os documentos de migrations não refletem a configuração executável atual
 
 **Veredito:** CONTRADITO  
 **Prioridade:** Alta
@@ -48,7 +50,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Impacto:** antes de qualquer aplicação futura, os documentos de migração precisam ser harmonizados com a configuração que efetivamente permite gerar/aplicar cada track. Este dossiê não executou geração ou migration.
 
-### 12-005 — A auditoria histórica de contratos tem contagens obsoletas
+### A2-005 — A auditoria histórica de contratos tem contagens obsoletas
 
 **Veredito:** CONTRADITO  
 **Prioridade:** Média
@@ -57,7 +59,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Trecho:** relatório histórico: `49 operações` e `138 operações candidatas`; bloco 02: `74`, `146` e `76`, respectivamente, com método de contagem e fonte explicitados.
 
-### 12-006 — O mapa de módulos documentado não lista todos os módulos executáveis
+### A2-006 — O mapa de módulos documentado não lista todos os módulos executáveis
 
 **Veredito:** PARCIAL  
 **Prioridade:** Média
@@ -68,7 +70,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Impacto:** a página pode servir como mapa de módulos de produto, mas não como inventário técnico completo do backend. O dossiê é o inventário verificado para este corte.
 
-### 12-007 — A extração dos campos de apresentação de Accounts para Profiles está declarada como pendente
+### A2-007 — A extração dos campos de apresentação de Accounts para Profiles está declarada como pendente
 
 **Veredito:** CONFIRMADO  
 **Prioridade:** Alta
@@ -79,7 +81,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Impacto:** o ownership desejado está documentado, mas não está integralmente refletido no armazenamento atual nem na camada cliente. É uma correção estrutural necessária antes de declarar Accounts/Profiles alinhados.
 
-### 12-008 — As afirmações históricas de testes no README não foram reproduzidas nesta auditoria
+### A2-008 — As afirmações históricas de testes no README não foram reproduzidas nesta auditoria
 
 **Veredito:** NÃO VERIFICADO  
 **Prioridade:** Média
@@ -90,7 +92,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Impacto:** conservar como afirmações históricas atribuídas às fontes, não como validação executada neste dossiê. O bloco 14 listará a evidência que falta para uma aprovação de release.
 
-### 12-009 — As três cópias anexadas da arquitetura de dados são idênticas
+### A2-009 — As três cópias anexadas da arquitetura de dados são idênticas
 
 **Veredito:** CONFIRMADO  
 **Prioridade:** Baixa — redundância documental
@@ -99,7 +101,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Trecho da saída:** os três caminhos terminam com o mesmo SHA-256 acima. Nenhum arquivo foi apagado.
 
-### 12-010 — HTML e ZIP da documentação são artefatos de geração cuja sincronização não foi verificada
+### A2-010 — HTML e ZIP da documentação são artefatos de geração cuja sincronização não foi verificada
 
 **Veredito:** NÃO VERIFICADO  
 **Prioridade:** Baixa
@@ -108,7 +110,7 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 
 **Trecho:** `Regenere ambos depois de alterar as fontes e mantenha o ZIP sincronizado`.
 
-## Contagem deste bloco
+## Contagem deste apêndice A2
 
 | Veredito | Quantidade |
 |---|---:|
@@ -117,4 +119,4 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 | CONTRADITO | 4 |
 | NÃO VERIFICADO | 2 |
 
-**Próximo bloco:** ciclo de vida e exclusão de conta, consistência entre regra aprovada, serviço, banco e fluxos consumidores.
+**Uso no dossiê:** as contradições documentais alimentam a síntese e as ações recomendadas em `99-sintese-lacunas.md`.

@@ -62,11 +62,13 @@ Confronto do backend Feed e dos contratos usados pelo cliente: páginas “Para 
 **Veredito:** PARCIAL  
 **Prioridade:** Média
 
-**Evidência:** `feed/infrastructure/postRepository.ts:152–168` usa `position(lower(term) in lower(content/title/body))`; os índices catalogados no bloco 05 incluem índice de prefixo para tags, mas não índice de texto para conteúdo, título ou corpo.
+**Evidência:** `feed/infrastructure/postRepository.ts:152–168` usa `position(lower(term) in lower(content/title/body))`; os índices catalogados no bloco 05 incluem índice de prefixo para tags, mas não índice de texto para conteúdo, título ou corpo. `EXPLAIN (COSTS TRUE, FORMAT TEXT)` de uma forma representativa da busca textual retornou `Seq Scan on posts`, seguido de `Sort`; não foi usado `ANALYZE`.
 
-**Trecho:** `position(lower(${input.searchTerm}) in lower(${feedPosts.content})) > 0`. A consulta de catálogo do bloco 05 não encontrou índice de texto nos campos pesquisados; não foi executado plano `EXPLAIN`.
+**Trecho:** `position(lower(${input.searchTerm}) in lower(${feedPosts.content})) > 0`.
 
-**Impacto:** a busca por texto pode exigir varredura de publicações à medida que o conteúdo crescer. Não executei `EXPLAIN`; a forma exata do plano e o custo permanecem não verificados.
+**Consulta e saída resumida:** `EXPLAIN (COSTS TRUE, FORMAT TEXT) SELECT id, author_id, created_at FROM feed.posts WHERE position(lower($1::text) in lower(content)) > 0 ORDER BY created_at DESC, id DESC LIMIT 51`, parâmetro fictício `cafe`: `Seq Scan on posts` com filtro `POSITION(...) > 0`; depois `Sort` por `created_at DESC, id DESC`. O plano estimou 23 linhas; isso é estimativa do planner, não contagem de registros.
+
+**Impacto:** a forma representativa da busca textual exige varredura de posts e ordenação. Os filtros completos de visibilidade, formato, tags e cursor podem alterar o plano; o custo com volume futuro não é inferido deste catálogo pequeno.
 
 ### 06-007 — Publicações e artigos têm limites e formatos verificados também no banco
 
@@ -99,13 +101,38 @@ Confronto do backend Feed e dos contratos usados pelo cliente: páginas “Para 
 
 **Limite:** Trust & Safety é um domínio ainda não construído. Não trato essa ausência como falha de uma funcionalidade que o projeto declarou adiar; ela impede, contudo, declarar o fluxo público de moderação concluído.
 
+### 06-010 — O índice de autor e o índice de prefixo de hashtag aparecem nos planos representativos
+
+**Afirmação da doc:** N/A — execução segura de `EXPLAIN` sem `ANALYZE`, usando parâmetros fictícios.
+
+**Veredito:** CONFIRMADO
+**Risco:** Informativo — o planner usa índices em formas simplificadas, mas os planos ainda incluem ordenação.
+
+**Evidência:** `postRepository.ts:172–186` pagina por autor/data/ID e `:160–165` usa prefixo normalizado de tag. Consultas `EXPLAIN (COSTS TRUE, FORMAT TEXT)` usaram identificadores fictícios e não leram linhas da tabela.
+
+**Consultas e saída resumida:**
+
+- Timeline por `author_id = ANY($1::uuid[])`, cursor de primeiro lote e `LIMIT 51`: `Index Only Scan using feed_posts_author_created_id`, seguido de `Sort` por `created_at DESC, id DESC`.
+- `EXISTS` sobre `feed.post_tags` com `normalized_tag LIKE $1::varchar`, parâmetro `cafe%`: `Bitmap Index Scan using feed_post_tags_normalized_prefix_idx`, `Bitmap Heap Scan`, lookup por `posts_pkey` e `Sort`.
+
+**Limite:** são formas representativas e os custos/linhas são estimativas. Não equivalem à consulta completa do caso de uso com todos os predicados e relações de visibilidade.
+
+### 06-011 — Os demais planos de consultas principais não foram cobertos por EXPLAIN
+
+**Afirmação da doc:** O plano deve ser confrontado para feed global/seguindo, busca, timeline, relações e avaliações.
+
+**Veredito:** NÃO VERIFICADO
+**Risco:** Médio — a evidência de indexação é parcial e não cobre o conjunto de formas reais de consulta.
+
+**Evidência:** foram executados apenas planos representativos da busca textual, timeline por autor e prefixo de hashtag. Não foi gerado plano para o feed completo com visibilidade, seguidores/seguindo, listagens de relações ou avaliações. O bloco 05 documenta que `profiles.business_profile_reviews` não existe no catálogo atual.
+
 ## Contagem deste bloco
 
 | Veredito | Quantidade |
 |---|---:|
-| CONFIRMADO | 6 |
+| CONFIRMADO | 7 |
 | PARCIAL | 3 |
 | CONTRADITO | 0 |
-| NÃO VERIFICADO | 0 |
+| NÃO VERIFICADO | 1 |
 
-**Próximo bloco:** Mídias, arquivos locais, validação, vínculo a publicação, expiração e remoção.
+**Próximo bloco:** transações e concorrência entre operações que escrevem em mais de um registro.

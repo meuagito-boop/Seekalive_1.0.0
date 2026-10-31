@@ -11,7 +11,7 @@ Este bloco é um inventário estático dos arquivos e scripts de teste. Não exe
 **Veredito:** CONFIRMADO  
 **Prioridade:** Informativa
 
-**Evidência:** inventário por `find` encontrou 40 arquivos de teste em `Aplicativo/back/test`, 21 em `Aplicativo/front/tests` e 1 em `infra/database/test`. Os testes do backend abrangem autenticação, cadastro, segurança de sessão/dispositivo, exclusão de conta, Profiles, Social, Feed, Media e limites de camada. O frontend inclui testes de API, estado, telas e 5 fluxos E2E de autenticação.
+**Evidência:** inventário por `find` encontrou 40 arquivos de teste em `Aplicativo/back/test`, 21 em `Aplicativo/front/tests` e 1 em `infra/database/test`. A busca `rg -n '\b(test|it)\s*\(' ...` encontrou 333 ocorrências de declarações/chamadas de casos; essa contagem textual não foi executada e não equivale a cobertura. Os testes do backend abrangem autenticação, cadastro, segurança de sessão/dispositivo, exclusão de conta, Profiles, Social, Feed, Media e limites de camada. O frontend inclui testes de API, estado, telas e 5 fluxos E2E de autenticação.
 
 **Trecho da saída:** `40`, `21`, `1`; arquivos nomeados como `auth-registration-injection`, `feed-visibility`, `profilePresentation` e `authFlows.e2e`.
 
@@ -84,11 +84,22 @@ Este bloco é um inventário estático dos arquivos e scripts de teste. Não exe
 
 **Trecho:** execução omitida por restrição expressa de escopo; comandos identificados nos manifests: `pnpm test`, `pnpm typecheck`, `pnpm build`, `drizzle-kit check` e `test:baselines`.
 
+### 14-009 — Não foram encontrados marcadores skip/todo, pipeline CI ou configuração de cobertura no escopo pesquisado
+
+**Afirmação da doc:** N/A — inventário estático de qualidade solicitado pelo prompt.
+
+**Veredito:** CONFIRMADO
+**Risco:** Informativo — não há evidência local de execução automatizada contínua nem medição de cobertura.
+
+**Evidência:** buscas por `.skip(...)`, `.todo(...)`, `test.skip`, `it.skip` e `describe.skip` nos diretórios de teste não retornaram resultados. `find` até cinco níveis não localizou workflows de CI nem arquivos/configurações de cobertura; busca de `TODO|FIXME|HACK|XXX` em `Aplicativo`, `infra`, `shared` e `scripts` não retornou resultados. Os manifests expõem scripts manuais, mas isso não demonstra pipeline externo.
+
+**Trecho da saída:** nenhuma correspondência para marcadores de teste incompleto, nenhum arquivo de cobertura/workflow no escopo pesquisado e nenhuma ocorrência dos marcadores de manutenção.
+
 ## Contagem deste bloco
 
 | Veredito | Quantidade |
 |---|---:|
-| CONFIRMADO | 4 |
+| CONFIRMADO | 5 |
 | PARCIAL | 3 |
 | CONTRADITO | 0 |
 | NÃO VERIFICADO | 1 |

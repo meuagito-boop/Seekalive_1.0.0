@@ -165,6 +165,7 @@ GET    /v1/social/feed
 GET    /v1/social/posts/{postId}/comments
 POST   /v1/social/posts/{postId}/comments
 DELETE /v1/social/posts/{postId}
+DELETE /v1/social/comments/{commentId}
 POST   /v1/social/posts/{postId}/repost
 DELETE /v1/social/posts/{postId}/repost
 PUT    /v1/social/posts/{postId}/like
@@ -248,12 +249,31 @@ router.use((_request, response, next) => {
 
 **Limite da conclusão:** Parte dos cabeçalhos observados pode ser responsabilidade de um proxy externo, não configurado no código. O domínio avaliado é apenas o preview de desenvolvimento; a camada de produção não foi acessada.
 
+### 02-011 — Não há rotas de administração/moderação nem validação de papel administrativo no backend atual
+
+**Afirmação da doc:** N/A — verificação da hipótese prioritária do prompt.
+
+**Veredito:** CONFIRMADO
+**Risco:** Informativo — essas funções ainda não estão implementadas, portanto não há mecanismo backend para gestão/moderação.
+
+**Evidência:** O inventário completo de routers montados no bloco `02-001` não contém rotas administrativas. A busca estática `rg -n -i 'moderation|admin|role|isAdmin|require.*Role|authorize' Aplicativo/back/src/modules Aplicativo/back/src/security --glob '*.ts'` não retornou resultados.
+
+**Trecho da saída:** nenhum match para termos de autorização administrativa nos diretórios pesquisados; as rotas registradas estão enumeradas em `02-002`.
+
+### 02-012 — O inventário de rotas ainda não fecha a matriz individual de autenticação, schemas e resposta
+
+**Afirmação da doc:** "Tabela de todas as rotas registradas: método, caminho, auth, CSRF, rate limit, papel exigido, schemas Zod de entrada e saída." (prompt de auditoria, seção 02)
+
+**Veredito:** PARCIAL
+**Evidência:** `02-002` registra método e caminho de 76 rotas; `11-001` enumera os 55 usos de limitador e `03`/`04` descrevem autenticação e predicados por grupo. Busca AST estática das declarações `router.get/post/put/patch/delete` identificou validação inline em parte dos handlers, mas não produziu uma matriz única por rota com sessão, CSRF, papel, schema de entrada e schema de resposta. `02-009` confirma que a validação de saída é rara.
+**Risco:** Médio — a ausência da matriz dificulta revisão independente de cada endpoint e deixa diferenças de autorização/contrato menos visíveis.
+
 ## Contagem deste bloco
 
 | Veredito | Quantidade |
 |---|---:|
-| CONFIRMADO | 6 |
-| PARCIAL | 2 |
+| CONFIRMADO | 7 |
+| PARCIAL | 3 |
 | CONTRADITO | 2 |
 | NÃO VERIFICADO | 0 |
 

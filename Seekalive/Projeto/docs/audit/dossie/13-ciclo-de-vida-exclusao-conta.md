@@ -102,12 +102,48 @@ Confronto estático da regra aprovada com os casos de uso, endpoints, worker e F
 
 **Evidência:** o prompt limita esta auditoria a leitura e proíbe execução de testes, mutações ou acesso a dados pessoais/de negócio. As referências históricas de testes em outros documentos não foram reproduzidas aqui. O bloco 14 separará validações estáticas, testes históricos e testes ainda necessários.
 
+### 13-011 — O código distribui dados pessoais e sensíveis entre Accounts, Auth, Profiles, Feed e Media
+
+**Afirmação da doc:** N/A — inventário técnico dos campos por schema solicitado pelo prompt.
+
+**Veredito:** PARCIAL
+**Risco:** Alto — o dossiê identifica as categorias principais, mas não comprova uma matriz completa de todos os campos, cópias, logs e fluxos de exportação.
+
+**Evidência:**
+
+| Domínio/tabela | Campos/categorias identificados em código |
+|---|---|
+| `accounts.accounts` | identificador, `username`, `age`, tipo/status da conta (`infra/database/src/schema/accounts/schema.ts:18–22`). |
+| `accounts.account_emails` | e-mail normalizado e estado de verificação (`schema.ts:115–130`). |
+| `security` | `password_hash`, hashes de tokens/sessões/dispositivos, e-mail pendente (`infra/database/src/schema/security/schema.ts:18,38–40,68,93`). |
+| `profiles.account_profiles` | nome, sobrenome, nome de exibição, bio, localidade e site (`infra/database/src/schema/profiles/accountProfiles.ts:9–14`). |
+| `profiles.business_profiles` | endereço, cidade, estado e país (`infra/database/src/schema/profiles/businessProfiles.ts:11–15`). |
+| `feed` | texto de publicações/artigos, comentário, IDs de autor e referências de mídia (`infra/database/src/schema/feed/posts.ts:18–30`; `postComments.ts:28–36`). |
+| `media.assets` | proprietário, chave de armazenamento, tipo, content type, tamanho e estado (`infra/database/src/schema/media/assets.ts:16–31`). |
+
+**Logs:** `app.ts:18–30,62–78` registra método, URL sem query, status e somente nome/código para erro genérico; `common/logger.ts:5–19` redige Authorization/Cookie/Set-Cookie. Os avisos de envio de e-mail usam códigos de erro (`auth/application` e rotas de cadastro, ver bloco 09). O worker também registra `{ err: error }` (`auth/infrastructure/accountDeletionWorker.ts:29–31`); não foi inspecionado conteúdo de logs reais nem demonstrado que todas as mensagens de erro excluam dados pessoais.
+
+**Limite:** não foram lidas linhas de negócio. O inventário é de colunas/código, não de valores armazenados; não cobre snapshots, backups ou serviços externos.
+
+### 13-012 — A data de nascimento não é armazenada, mas a idade calculada continua persistida
+
+**Afirmação da doc:** A pessoa informa a data para o backend validar 18+; idade não deve ser pública nem aparecer após o cadastro.
+
+**Veredito:** PARCIAL
+**Risco:** Médio — a data exata não é retida, mas o atributo calculado permanece em `accounts` e a auditoria não demonstra todos os consumidores nem a ausência em toda resposta privada.
+
+**Evidência:** `accounts/domain/accountAgeEligibility.ts:42–70` valida data e retorna idade calculada. `accounts/infrastructure/accountRegistrationRepository.ts:56` persiste `age`; `infra/database/src/schema/accounts/schema.ts:21,69` declara a coluna e check `18 <= age <= 120`. Busca estática de `age`, `dateOfBirth`, `birthDate` e `birth_date` no backend/schema/contracts encontrou apenas o gate, o campo persistido, a constraint e o schema de cadastro; `04-004` confirma ausência no DTO público.
+
+**Trecho:** `age: input.age`; `if (age < 18) ...; if (age > 120) ...; return { kind: "eligible", age };`.
+
+**Limite:** a busca não substitui teste de todas as respostas privadas nem confirma o que a tela autenticada renderiza; nenhuma navegação foi executada.
+
 ## Contagem deste bloco
 
 | Veredito | Quantidade |
 |---|---:|
 | CONFIRMADO | 5 |
-| PARCIAL | 4 |
+| PARCIAL | 6 |
 | CONTRADITO | 0 |
 | NÃO VERIFICADO | 1 |
 

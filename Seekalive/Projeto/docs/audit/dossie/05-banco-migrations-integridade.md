@@ -122,17 +122,68 @@ Também foram executadas consultas somente a `information_schema.columns`, `info
 **Veredito:** NÃO VERIFICADO  
 **Prioridade:** Alta
 
-**Evidência:** consultas realizadas pela ferramenta do banco mostram apenas o contexto de acesso da própria ferramenta; não foi comprovado que ele seja idêntico ao usuário de conexão usado pelo processo da API. Nenhum valor de conexão foi lido.
+**Evidência:** consulta de catálogo para `current_user` da ferramenta retornou `rolsuper = true`, `rolcreatedb = true`, `rolcreaterole = true` e permissão `CREATE` nos cinco schemas de aplicação. Uma consulta de ownership também mostrou o papel da ferramenta como owner de todas as tabelas listadas. Não foi comprovado que esse papel seja idêntico ao usuário de conexão do processo da API; nenhum nome de papel, URL ou valor de conexão foi impresso/lido.
 
-**Impacto:** não é possível afirmar que a API usa o princípio do menor privilégio ou que seu papel não tem permissão indevida de DDL. A verificação exige identificar o papel efetivo do processo sem expor credenciais.
+**Impacto:** a ferramenta de consulta tem privilégios amplos no banco de desenvolvimento. Isso não prova que a API os tenha; é necessário identificar com segurança o papel efetivo do processo antes de concluir se o runtime segue menor privilégio ou pode executar DDL.
+
+### 05-012 — Versão, extensão e triggers do PostgreSQL foram consultados no ambiente de desenvolvimento
+
+**Afirmação da doc:** N/A — verificação de metadados solicitada pelo prompt.
+
+**Veredito:** CONFIRMADO
+**Risco:** Informativo — confirmação restrita ao banco de desenvolvimento observado, não a outro ambiente.
+
+**Evidência:** consultas de metadados em `environment: development` retornaram `server_version = 16.10`, extensão `plpgsql 1.0` e zero triggers não internos habilitados ou desabilitados nos schemas não sistêmicos. A consulta de `pg_class` contou tabelas de aplicação por schema, sem ler linhas de negócio.
+
+**Saída resumida:** `accounts: 4`, `feed: 8`, `media: 1`, `profiles: 5`, `security: 4`, `drizzle: 6` tabelas. As contagens são de objetos de catálogo, não de registros de usuários.
+
+### 05-013 — As FKs para `accounts.accounts` não impedem exclusão por `RESTRICT` ou `NO ACTION`
+
+**Afirmação da doc:** A linha de conta será removida fisicamente após a janela de 7 + 90 dias.
+
+**Veredito:** CONFIRMADO para a ação das FKs catalogadas; execução da exclusão permanece sujeita ao achado 13-006.
+**Risco:** Médio — a ausência de bloqueio por FK não comprova que o processo de expurgo conclua a remoção.
+
+**Evidência:** consulta somente a `pg_constraint`, com `contype = 'f'` e tabela referenciada `accounts.accounts`, listou 22 FKs: 21 `CASCADE` e uma `SET NULL` (`accounts.account_username_reservations`). Nenhuma retornou `RESTRICT` ou `NO ACTION`.
+
+**Limite:** a consulta cobre apenas FKs direcionadas a `accounts.accounts`; não testa a operação de exclusão nem outras restrições/efeitos em cascata.
+
+### 05-014 — A coluna legada `accounts.is_verified` ainda existe, sem leitura ou escrita encontrada no código
+
+**Afirmação da doc:** Verificar se `accounts.is_verified` (legada) continua em uso.
+
+**Veredito:** PARCIAL
+**Risco:** Baixo — coluna residual pode divergir do estado de verificação mantido no domínio de e-mail.
+
+**Evidência:** o catálogo retornou `accounts.is_verified boolean NOT NULL DEFAULT false`; busca `rg -n 'is_verified|isVerified'` em backend, frontend, schema e contratos encontrou somente `infra/database/src/schema/accounts/schema.ts:43`.
+
+**Limite:** a busca abrangeu os caminhos indicados, não consumidores SQL fora do workspace ou ferramentas externas.
+
+### 05-015 — Há ledgers de migration por domínio, mas o conteúdo das trilhas aplicadas não foi lido
+
+**Afirmação da doc:** Metadados de migrations devem ser conferidos sem ler dados de usuários.
+
+**Veredito:** PARCIAL
+**Risco:** Médio — a presença de ledger não comprova quais migrations foram aplicadas nem se cada trilha está sincronizada com o schema.
+
+**Evidência:** consulta a `information_schema.columns` identificou os ledgers `accounts_migrations`, `feed_migrations`, `media_migrations`, `profiles_migrations`, `security_migrations` e `seek_migrations`, cada um com `id`, `hash` e `created_at`. Nenhuma linha dos ledgers foi consultada.
+
+### 05-016 — Drift completo entre o catálogo e os schemas Drizzle não foi calculado
+
+**Afirmação da doc:** N/A — lacuna do escopo de comparação solicitado.
+
+**Veredito:** NÃO VERIFICADO
+**Risco:** Médio — uma diferença não detectada de coluna, índice ou constraint pode causar comportamento diferente entre o banco e a próxima migration.
+
+**Evidência:** foram consultados metadados de colunas, constraints e índices, mas não foi executada comparação automatizada objeto a objeto entre o catálogo e todos os schemas/migrations Drizzle. A execução de geração, migration e `push` foi proibida pelo prompt.
 
 ## Contagem deste bloco
 
 | Veredito | Quantidade |
 |---|---:|
-| CONFIRMADO | 3 |
-| PARCIAL | 7 |
+| CONFIRMADO | 5 |
+| PARCIAL | 9 |
 | CONTRADITO | 0 |
-| NÃO VERIFICADO | 1 |
+| NÃO VERIFICADO | 2 |
 
 **Próximo bloco:** Feed, publicações, visibilidade, comentários, interações, tags e paginação.

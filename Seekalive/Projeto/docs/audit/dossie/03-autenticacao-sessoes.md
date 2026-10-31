@@ -190,12 +190,45 @@ const ARGON2ID_OPTIONS = {
 
 **Limite:** A entrega dos e-mails não foi testada nesta auditoria.
 
+### 03-016 — Tentativas de verificação de e-mail usam lock de linha em transação, não incremento SQL atômico
+
+**Afirmação da doc:** N/A — verificação da hipótese prioritária sobre `auth_challenges.attempts`.
+
+**Veredito:** PARCIAL
+**Risco:** Médio — o padrão serializa o fluxo observado, mas não há teste concorrente que confirme o limite em corrida.
+
+**Evidência:** `emailVerificationRepository.ts:76–101` executa a operação dentro de `db.transaction` e lê o desafio `verify_email` com `.for("update")`. `confirmEmailVerification.ts:59–62` passa `challenge.attempts + 1`; o repositório grava esse valor absoluto em `:104–120`, em vez de fazer `attempts = attempts + 1` no SQL. As chamadas que seguem esse caminho ficam serializadas pelo lock da linha; não foi encontrado teste de confirmações paralelas.
+
+**Trecho:** `.for("update")`; em seguida `.set({ attempts })` com condições de desafio não consumido, não expirado e abaixo do máximo.
+
+### 03-017 — Contas pendentes de verificação não têm TTL ou purga automática identificada
+
+**Afirmação da doc:** N/A — verificação da hipótese prioritária sobre contas não verificadas.
+
+**Veredito:** PARCIAL
+**Risco:** Médio — identidade, nome de usuário e e-mail podem permanecer reservados após o desafio expirar.
+
+**Evidência:** `emailVerification/policy.ts:1–2` dá TTL de dez minutos ao código. `accountRegistrationRepository.ts` cria a conta com `status: "pending_verification"`; o fluxo de verificação muda esse estado para `active` (`emailVerificationRepository.ts:153–163`). Busca estática de `pending_verification` e remoção de contas encontrou a purga somente para `deletion_retained` no worker de exclusão, não uma limpeza de contas pendentes.
+
+**Trecho da saída:** os caminhos de criação e ativação existem; não foi encontrado job/consulta que apague `accounts.status = "pending_verification"` após expirar o código.
+
+### 03-018 — O hashing Argon2id não tem limite global de concorrência no código da aplicação
+
+**Afirmação da doc:** N/A — verificação da hipótese prioritária de exaustão de recursos.
+
+**Veredito:** PARCIAL
+**Risco:** Alto sob tráfego concorrente — cada hash usa 65.536 KiB de memória e não há semáforo/fila global visível.
+
+**Evidência:** `application/passwordHashing.ts:3–12` configura Argon2id com `memoryCost: 65_536` e chama diretamente `argon2.hash`. Cadastro, troca de senha, redefinição e atualização de senha chamam esse serviço. Busca por semáforo, fila ou limitador global de hashing no backend não encontrou mecanismo correspondente. Não foi feito benchmark nem teste de concorrência.
+
+**Trecho:** `return argon2.hash(password, ARGON2ID_OPTIONS);`.
+
 ## Contagem deste bloco
 
 | Veredito | Quantidade |
 |---|---:|
 | CONFIRMADO | 8 |
-| PARCIAL | 4 |
+| PARCIAL | 7 |
 | CONTRADITO | 3 |
 | NÃO VERIFICADO | 0 |
 
