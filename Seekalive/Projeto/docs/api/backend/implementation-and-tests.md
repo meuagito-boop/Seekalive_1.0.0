@@ -45,12 +45,12 @@ Este documento registra a implementação existente e organiza as próximas fati
 - Implementar publicação, artigos, galeria derivada, comentários, curtidas, reposts e referências com autorização.
 - Aceite: só mídia pronta e pertencente ao autor pode ser anexada; excluir/ocultar publicação não deixa mídia acessível por URL alternativa; `blob:` só é preview local e nunca entra no banco.
 
-### Fase 4 — Seek, avaliações e eventos
+### Fase 4 — descoberta Seek e perfil comercial
 
-- Cadastrar catálogo IBGE e categorias aprovadas; descobrir somente contas comerciais Social elegíveis.
-- Implementar extensão comercial, serviços (delivery/mesa/reserva/agendamento), horários, avaliação única por usuário/comércio e resposta do comerciante.
-- Implementar eventos com conta organizadora comercial existente; interesse não equivale a ingresso.
-- Aceite: perfil pessoal não aparece como estabelecimento; comerciante só edita dados da própria conta; avaliações respeitam uma por autor/negócio e não podem ser autoavaliação; município sempre resolve pelo código IBGE.
+- Cadastrar catálogo IBGE e categorias aprovadas; descobrir e organizar somente contas comerciais Social elegíveis por localização/categoria.
+- Manter dados comerciais, serviços e horários na experiência e nos contratos do perfil comercial; Seek apenas consome uma projeção pública necessária à descoberta.
+- Exibir/criar/responder avaliações na experiência do perfil comercial, nunca como fluxo de avaliação do Seek. Definir ownership persistente e contrato de avaliações antes de ativá-los; os endpoints `/v1/seek/.../reviews` listados em documentação gerada são propostas antigas, não APIs ativas ou aprovadas.
+- Aceite: perfil pessoal não aparece como comércio; Seek não cria nem edita cadastro/perfil/avaliação; comerciante só edita dados da própria conta; município resolve pelo código IBGE; eventual cartão de descoberta pode exibir apenas agregados derivados e autorizados do perfil comercial.
 
 ### Fase 5 — Shop (catálogo, sem checkout)
 

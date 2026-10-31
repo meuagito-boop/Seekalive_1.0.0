@@ -23,7 +23,8 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/social/suggestions` | Sugestões locais | Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis |
 | `/notifications` | Eventos e leitura locais | Destinatário no servidor, paginação, marcar lida, preferências e entrega |
 | `/messages`, `/messages/:conversationId` | Conversas/mensagens locais | Participação, criação de conversa, texto, leitura monotônica, deduplicação e stream |
-| `/seek` | Localização, categorias, filtros, carrosséis, salvos e mocks | Descoberta por contas comerciais, busca, cidades, avaliações e eventos reais |
+| `/seek` | Localização, categorias, filtros, carrosséis, salvos e mocks | Descoberta e organização por localização/categoria somente de perfis comerciais originados no Social; não criar ou administrar avaliações aqui |
+| `/profile/:username` — conta comercial | Aba de avaliações usa estado local/demonstrativo | Exibir e, quando habilitado, criar/responder avaliações dentro do perfil comercial; qualquer nota resumida no Seek é projeção somente de leitura |
 | `/seek/event/:id` | Detalhe de demonstração; ingresso desabilitado | Evento real com organizador, interesse persistente, estado; ingressos são extensão |
 | `/shop`, `/shop/item/:id` | Catálogo ilustrativo, detalhe, favoritos; compra desabilitada | Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo |
 | `/settings/privacy`, `/settings/blocked` | Sessões remotas leem e salvam privacidade pela API e usam API para lista/ações de bloqueio; demonstração mantém estado local | Preservar a regra bilateral: remover follows/pedidos, ocultar relações e não restaurar ao desbloquear; mensagens antigas retornam após desbloquear |
@@ -32,7 +33,7 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/settings/appearance` | Escuro; tamanho 16/18/20 local | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render |
 | `/styleguide`, página inexistente | Apoio visual e fallback | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API |
 
-O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador não guarda credenciais. No desenvolvimento de 30/10/2026, Feed e Mídias têm schemas separados e `feed.posts`/`media.assets` aplicados. Publicações com fotos/vídeos enviam arquivos autenticados para armazenamento local de desenvolvimento; a leitura volta a verificar a visibilidade do post. Registro não cria sessão; só a confirmação do e-mail ativa a conta. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; sem configuração de envio, o cadastro responde `503` sem criar conta. O E2E autenticado no navegador e armazenamento de produção permanecem pendentes.
+O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador não guarda credenciais. No desenvolvimento de 30/10/2026, Feed e Mídias têm schemas separados e `feed.posts`/`media.assets` aplicados. Publicações com fotos/vídeos enviam arquivos autenticados para armazenamento local de desenvolvimento; a leitura volta a verificar a visibilidade do post. Registro não cria sessão; só a confirmação do e-mail ativa a conta. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; sem configuração de envio, o cadastro responde `503` sem criar conta. O E2E autenticado no navegador e armazenamento de produção permanecem pendentes. A especificação gerada ainda contém rotas futuras de avaliações sob `/v1/seek/...`; elas não são contratos ativos e contradizem a fronteira confirmada. Não as implementar como operações de Seek: as avaliações são da experiência do perfil comercial, e ownership/API devem ser alinhados antes de ativar esse contrato.
 
 ### Fluxo de acesso proposto
 
@@ -129,17 +130,9 @@ GET /api/v1/social/posts/00000000-0000-4000-8000-000000000011/reference
 
 O endpoint é público apenas para alvos legíveis por visitantes; quando login for necessário, a sessão atual precisa ter acesso. Alvo privado não legível, bloqueado ou removido retorna o mesmo `404 CONTENT_NOT_FOUND`, sem expor título, autor ou existência. Esta implementação aceita somente referências `social_post`; referências de evento/Seek e Shop continuam fora do backend atual.
 
-### Avaliação
+### Avaliações do perfil comercial
 
-```http
-PUT /api/v1/seek/businesses/00000000-0000-4000-8000-000000000011/reviews/me
-Content-Type: application/json
-X-CSRF-Token: <token-da-sessao>
-
-{"rating":5,"comment":"Atendimento cuidadoso e serviço bem explicado."}
-```
-
-O autor vem da sessão. Atualização substitui a avaliação da mesma pessoa, sem duplicar contagens; resposta comercial é um recurso separado.
+Não existe endpoint ativo para avaliações. O exemplo antigo `PUT /api/v1/seek/businesses/{accountId}/reviews/me` foi retirado desta documentação: avaliações são parte da experiência do perfil comercial, e a rota/ownership persistente devem ser definidos no domínio correspondente antes de especificar um contrato.
 
 ## 5. Matriz resumida de permissão
 

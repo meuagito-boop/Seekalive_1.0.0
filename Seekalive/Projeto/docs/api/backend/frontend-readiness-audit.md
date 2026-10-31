@@ -7,7 +7,7 @@
 
 ## Parecer
 
-**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API. Configurações > Conta diferencia conta pessoal e comercial e lê/salva por `/v1/accounts/me` em sessão real; Privacidade e Segurança também usam APIs no fluxo autenticado. A tela Segurança lista e revoga instalações confiáveis usando token por navegador/app, não IP nem fingerprint. O envio Resend foi testado em desenvolvimento, mas ainda falta E2E do fluxo completo; não está habilitado para produção. Posts, mídias, avaliações, mensagens, Seek e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
+**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API. Configurações > Conta diferencia conta pessoal e comercial e lê/salva por `/v1/accounts/me` em sessão real; Privacidade e Segurança também usam APIs no fluxo autenticado. A tela Segurança lista e revoga instalações confiáveis usando token por navegador/app, não IP nem fingerprint. O envio Resend foi testado em desenvolvimento, mas ainda falta E2E do fluxo completo; não está habilitado para produção. Posts, mídias, avaliações do perfil comercial, descoberta Seek, mensagens e outros domínios ainda não têm API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
 
 O backend foi iniciado. O próximo trabalho de frontend é consumir somente os endpoints ativos e manter a demonstração de desenvolvimento separada da conta real; não conectar telas a contratos que ainda estejam marcados como propostos.
 
@@ -31,8 +31,8 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Relacionamentos e Círculo | API persiste seguimentos, pedidos privados e Círculo derivado; sessões remotas usam a API para visualizar e alterar relações | Integrado em sessão remota; falta E2E visual |
 | Privacidade e bloqueio | A tela Privacidade e ações de bloqueio usam a API em sessões remotas. O servidor remove follows/pedidos em transação, permite desbloqueio só pelo iniciador e aplica visibilidade a posts/mídias | Integrado para perfis, posts e mídias; Mensagens ainda não tem API |
 | Mensagens e notificações | Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos | Bloqueador |
-| Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há busca/avaliações/eventos reais no servidor | Parcial |
-| Avaliações | Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500 | Parcial |
+| Seek | Descoberta por localização/categoria de perfis comerciais originados no Social; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há API real de descoberta no servidor | Parcial |
+| Avaliações do perfil comercial | Registros locais exibidos na experiência do perfil comercial; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500. O domínio persistente/API ainda não estão ativos | Parcial |
 | Shop | Catálogo ilustrativo e itens salvos separados por conta no navegador; checkout é explicitamente indisponível | Parcial por escopo |
 | Configurações | Conta, privacidade e segurança usam a API em sessão real; notificações e aparência ainda ficam no navegador; ações sensíveis adicionais aguardam implementação | Parcial |
 
@@ -56,8 +56,8 @@ O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a 
 
 ### Integração gradual — conteúdo e relações ainda incompletos
 
-- `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha e gestão de sessões), onboarding, perfil básico, privacidade, relações, Feed global/perfil, interações sociais e upload de mídia. Busca do Seek, avaliações, Shop, mensagens e notificações ainda não estão integralmente conectados.
-- Em sessões remotas, Feed, linha do tempo do perfil e busca de publicações/hashtags usam os endpoints próprios; a prévia demonstrativa continua local e não é fallback após erro de rede. Referências e avaliações/Seek permanecem fora desta fatia. A integração visual autenticada ainda não foi verificada ponta a ponta.
+- `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha e gestão de sessões), onboarding, perfil básico, privacidade, relações, Feed global/perfil, interações sociais e upload de mídia. Descoberta Seek, avaliações do perfil comercial, Shop, mensagens e notificações ainda não estão integralmente conectados.
+- Em sessões remotas, Feed, linha do tempo do perfil e busca de publicações/hashtags usam os endpoints próprios; a prévia demonstrativa continua local e não é fallback após erro de rede. Referências e avaliações exibidas no perfil comercial permanecem fora desta fatia. A integração visual autenticada ainda não foi verificada ponta a ponta.
 - O catálogo público do IBGE é uma integração externa de dados; cadastro, autenticação e configurações usam a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.
 
@@ -160,11 +160,11 @@ Na auditoria e nesta fatia:
 - Testes HTTP com três contas temporárias e e-mail verificado no banco **de desenvolvimento**: pedido privado, lista e aprovação; perfil após aprovação; seguimento público e mutualidade/Círculo; bloqueio, ocultação de perfil e rejeição de seguimento durante bloqueio; desbloqueio sem restaurar vínculos; edição de perfil e privacidade com versão.
 - Rotas protegidas responderam `401` sem sessão e escrita sem CSRF respondeu `403`; health check da API respondeu `200`. As contas temporárias foram excluídas ao final.
 
-Esses resultados comprovam esta fatia, não a prontidão integral do backend. Não há teste de navegador autenticado ponta a ponta; referências, avaliações/Seek, mensagens e notificações continuam pendentes. Busca por texto e hashtags está integrada em sessões remotas. Upload de mídia está integrado no desenvolvimento, mas armazenamento permanente/produção permanece fora do escopo atual.
+Esses resultados comprovam esta fatia, não a prontidão integral do backend. Não há teste de navegador autenticado ponta a ponta; referências, avaliações do perfil comercial, mensagens e notificações continuam pendentes. Busca por texto e hashtags está integrada em sessões remotas. Upload de mídia está integrado no desenvolvimento, mas armazenamento permanente/produção permanece fora do escopo atual.
 
 ## Próximas etapas vigentes
 
-A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.6 estão implementadas; a próxima fatia é avaliações/Seek, uma por vez. Referências do Feed aceitam somente publicações Social, são persistidas no schema Feed e reautorizadas ao montar cada prévia. O Feed global e a busca por hashtags não devem ser reimplementados.
+A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.6 estão implementadas; a próxima fatia relacionada a avaliações é a experiência do perfil comercial, não o Seek. Referências do Feed aceitam somente publicações Social, são persistidas no schema Feed e reautorizadas ao montar cada prévia. O Feed global e a busca por hashtags não devem ser reimplementados.
 
 ## Ordem histórica da auditoria inicial
 
@@ -173,7 +173,7 @@ A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os ga
 3. **Concluído no frontend:** fixtures de exemplo ficam no desenvolvimento; curtidas, repostagens, salvos, leituras, filtros e preferências locais são separados por conta. Não migrar automaticamente os valores das chaves antigas sem identificar seu dono.
 4. Aprovar um contrato OpenAPI que corresponda às telas atuais e definir uma API de mesma origem, erros, paginação, CSRF e sessão.
 5. Implementar upload de mídia com ownership/validação e migrar a galeria para IDs de mídia autorizados.
-6. Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.
+6. Integrar gradualmente cadastro/perfil, Social, avaliações dentro do perfil comercial, descoberta do Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.
 7. Criar testes de API e navegador que cubram autorização entre contas, privacidade, Círculo, publicação/galeria, avaliações, mensagens e ações de configuração.
 
-**Estado vigente desta auditoria:** perfis owner-only, privacidade, relações, Feed global, publicações/artigos de perfil e busca de texto/hashtags usam os contratos remotos em sessão autenticada, enquanto a prévia segue local. E2E visual autenticado, referências, avaliações/Seek e outros domínios pendentes continuam sem aceite; produção e provedores externos não foram alterados.
+**Estado vigente desta auditoria:** perfis owner-only, privacidade, relações, Feed global, publicações/artigos de perfil e busca de texto/hashtags usam os contratos remotos em sessão autenticada, enquanto a prévia segue local. E2E visual autenticado, referências, avaliações no perfil comercial e outros domínios pendentes continuam sem aceite; produção e provedores externos não foram alterados.
