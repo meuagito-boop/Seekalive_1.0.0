@@ -1,9 +1,16 @@
-# Plano 1 — Verdade única para rotas, contrato e documentação
+# Plano 1 — Verdade única para rotas, contrato e documentação (revisão consolidada)
 
 **Data:** 2026-10-31  
-**Status:** aguardando aprovação explícita para implementação. A solicitação de aprovação foi cancelada; isso não autoriza executar o plano.
+**Revisão:** v2, incorporando o aditivo técnico do proprietário.
+**Status:** aguardando aprovação explícita desta versão consolidada. A aprovação anterior foi cancelada; o aditivo autoriza revisar o plano, não implementar.
 
 Este documento preserva no mesmo arquivo o prompt original do usuário e o plano apresentado pelo agente.
+
+## Aditivo técnico recebido
+
+Fonte original: [aditivo técnico anexado pelo proprietário](../../../../attached_assets/aditivo-tecnico-plano-1-seekalive_1793465004885.md). O arquivo anexado permanece sem alteração. Este plano consolida suas ordens: verificar comportamento, contratos, middlewares, regras de negócio, testes e documentação; distinguir o que está declarado do que foi comprovado; evitar reescrita de roteamento e dependências redundantes; não executar `push`, `migrate`, DDL, produção ou operações com segredos; e parar para consultar se surgir conflito ou decisão arquitetural nova.
+
+O aditivo também altera um ponto do plano inicial: **uma rota montada não basta para classificá-la como ATIVA**. As 11 operações devem ser avaliadas uma a uma; ATIVA só poderá indicar funcionalidade validada no ambiente explicitamente indicado.
 
 ## Prompt original do usuário
 
@@ -19,7 +26,7 @@ Este documento preserva no mesmo arquivo o prompt original do usuário e o plano
 >
 > ACEITE: teste rotas×contrato passa; nenhum documento contradiz o código.
 
-## Plano apresentado pelo agente
+## Plano inicial apresentado pelo agente — v1, substituído pela revisão consolidada abaixo
 
 Mapeei os pontos principais sem alterar arquivos. Há uma diferença de prefixo importante: o Express monta a API em `/api`, enquanto o OpenAPI usa caminhos relativos; assim, `/readyz` no contrato corresponde a `/api/readyz` em runtime. `endpoints.md` já lista `/readyz`, disponibilidade e onboarding, mas o `shared/api-spec/openapi.yaml` não contém esses três caminhos. A especificação compartilhada já registra `/v1/social/accounts/{accountId}/posts` como `GET`; vou verificar e alinhar também qualquer catálogo ou documento que ainda indique `POST`.
 
@@ -75,3 +82,199 @@ O gerador existente produz um catálogo estático de 146 operações e também e
 - O codegen e o typecheck terminam sem erros.
 - Os documentos ativos não contradizem o código ou as regras aprovadas.
 - Nenhum `push`, `migrate`, DDL, operação em produção ou acesso a segredo é realizado.
+
+---
+
+## Diagnóstico complementar após o aditivo
+
+As constatações abaixo vêm de leitura e busca nos arquivos. Elas **não** provam comportamento de execução; itens não comprovados estão explicitamente separados.
+
+### Evidências de implementação e ferramentas encontradas
+
+| Área | Evidência observada | Limite da evidência |
+|---|---|---|
+| Montagem Express | `Aplicativo/back/src/app.ts` monta o router em `/api`; `Aplicativo/back/src/modules/index.ts` agrega health, auth, onboarding, Profiles, relações Social, mídia e Feed. O backend usa Express 5.3.0. | A leitura do código não comprova que um extrator futuro percorra corretamente todos os routers e middlewares em runtime. |
+| Prefixos | A API usa `/api` no runtime; OpenAPI e caminhos do inventário são relativos a esse prefixo. `GET /readyz` corresponde ao runtime `/api/readyz`. | O teste de paridade ainda não existe/foi executado. |
+| Contrato e codegen | `shared/api-spec/openapi.yaml` é entrada do Orval. A configuração gera React Query em `shared/api-client-react/src/generated` e Zod/types em `shared/contracts/src/generated`. O script `codegen` também executa `typecheck:libs`. | Não foi executado codegen nesta revisão nem validada a equivalência de cada handler com cada schema gerado. |
+| Rotas do escopo Feed | O código monta 11 operações hoje descritas como PROPOSTA: GET feed; GET/POST comentários; DELETE comentário; PUT/DELETE curtida em publicação; POST/DELETE repost; PUT/DELETE curtida em comentário; DELETE publicação. | A montagem confirma existência da rota, não a conclusão funcional, autorização correta ou persistência validada. |
+| Middlewares Feed | As declarações encontradas aplicam limitadores por operação; as escritas usam `requireCsrf`; as operações consultam o ator por `requiredActorId`. `requireCsrf` verifica origem e token. | Não foram executados testes positivos e negativos de autenticação, autorização, CSRF, rate limit e ordem para cada operação. |
+| Limite de requisições | `createAuthRateLimit` guarda contadores em um `Map` local ao processo e usa nome do limitador e IP confiável como chave. | Não há evidência de coordenação entre processos/instâncias. O plano não alterará esse desenho nem o descreverá como rate limit distribuído; seu alcance será registrado. |
+| Testes existentes | A stack usa `node:test`, `tsx` e `fetch` nativo. `scripts/src/api-runtime.test.mjs` usa servidor local efêmero e cobre health/readiness, 404, rejeição de sessão ausente, rejeição CSRF do onboarding e limites de corpo. Existem testes de Feed para visibilidade, listagem, políticas e injeção de dependências. | Esses testes não demonstram, por si só, os 11 fluxos HTTP autenticados. |
+| Teste HTTP completo existente | `Aplicativo/back/test/api-isolated-db.test.mjs` contém cenários HTTP de Feed e outras áreas, inclusive comentários, curtidas, reposts, permissões e exclusões. | `setupIsolatedDatabaseFixture` cria schema, executa `pnpm --filter @workspace/db run push` e remove o schema com `DROP SCHEMA ... CASCADE`. O teste não será executado sob a proibição explícita de push e DDL. |
+| Dependências de teste | Não foram encontrados `supertest` ou Schemathesis nos manifests pesquisados; há `node:test`, `tsx` e `fetch` nativo. | Nenhuma dependência nova está aprovada. Primeiro será avaliado se a stack existente atende; eventual dependência exige justificativa e nova aprovação. |
+| Documentação | `generate-contracts.mjs` mantém um catálogo estático de 146 operações e escreve `openapi.json` e `endpoints.md`. `render-docs.mjs` lê nove documentos Markdown e gera `index.html` e `Seekalive-backend-documentation.md`. | Não foi encontrada, na busca feita, uma verificação automatizada de atualização/determinismo dos artefatos. A ausência precisa ser confirmada na etapa de diagnóstico. |
+| Banco e catálogo | `docs/audit/dossie/05-banco-migrations-integridade.md` contém consulta de `information_schema.tables`; também existem probes de auditoria em `docs/audit/dossie2/experimentos/`. | Não foi localizada em `docs/api/backend` uma consulta reutilizável que identifique ambiente e liste, em conjunto, tabelas, views, índices, constraints, FKs e ações referenciais. Nenhum catálogo atual foi consultado nesta revisão. |
+
+### Não verificado nesta revisão
+
+- Enumeração completa e automatizada de todas as rotas realmente montadas, incluindo routers aninhados e middlewares herdados.
+- Conformidade total de parâmetros, schemas, códigos HTTP, respostas, content types e segurança entre handlers e OpenAPI.
+- Comportamento HTTP positivo de todas as 11 operações com sessão válida e autorização por recurso.
+- Rate limit por operação em execução e seu comportamento sob múltiplos processos.
+- Persistência atual e cascatas do banco de desenvolvimento.
+- Geração determinística e detecção automatizada de documentação desatualizada.
+- Execução de testes, codegen e typecheck durante esta revisão.
+
+## Plano consolidado revisado — v2
+
+### Princípio de autoridade
+
+Não existe um arquivo único que prove todos os aspectos. A autoridade será definida por responsabilidade:
+
+- **Grafo Express montado:** quais métodos, caminhos, routers e middlewares estão realmente registrados.
+- **`shared/api-spec/openapi.yaml`:** contrato público esperado, incluindo parâmetros, entrada, respostas, erros e segurança declarada.
+- **Schemas e validadores usados pelos handlers:** comportamento de validação efetivamente aplicado.
+- **Testes HTTP/funcionais/de segurança:** comportamento observável comprovado.
+- **Regras aprovadas pelo proprietário:** decisões de produto que não podem ser reinterpretadas.
+- **Documentação gerada:** representação derivada das fontes acima, nunca evidência independente.
+
+### Etapa 0 — diagnóstico complementar somente leitura
+
+**Sem alteração de código, contrato, banco ou documentos ativos.**
+
+1. Completar a matriz das 11 operações, registrando método, caminho relativo, router, handler, dependências, validação, status HTTP, DTO, erros e testes já existentes.
+2. Mapear a cadeia real por operação: middleware global, router, rota, rate limit, CSRF, autenticação, autorização e verificação de propriedade.
+3. Inspecionar a estrutura de runtime do Express 5.3.0 para saber se um inventário consegue enumerar routers aninhados sem depender de APIs privadas instáveis.
+4. Examinar o uso dos clientes gerados no frontend antes de qualquer mudança no OpenAPI, para detectar impacto de codegen.
+5. Confirmar comandos de teste sem efeitos colaterais. Não executar `api-isolated-db.test.mjs`: o fixture executa `push` e DDL.
+
+**Entrega/gate:** matriz “existe e atende / parcial / não verificado”, lista exata das 11 operações, arquivos afetados e riscos. Se o runtime Express não puder ser inspecionado de modo confiável sem reescrita ou novo mecanismo, parar e apresentar a alternativa antes de implementá-la.
+
+### Etapa 1 — matriz de conformidade por operação
+
+Para cada rota da lista das 11, registrar:
+
+1. método, caminho real e normalização do prefixo `/api`;
+2. parâmetros de path, query e headers;
+3. corpo, obrigatoriedade, tipos, formatos e restrições;
+4. status de sucesso e erro, schemas, DTO e content type;
+5. autenticação, autorização, propriedade do recurso e CSRF quando aplicáveis;
+6. limitador, ordem observada e resposta de bloqueio;
+7. regra de negócio e persistência esperadas;
+8. teste disponível, evidência executada e lacuna restante;
+9. classificação e ambiente.
+
+Manter a taxonomia existente sempre que possível. Se for necessário tornar os estados inequívocos, usar a menor extensão que diferencie: **PLANEJADA**, **REGISTRADA** (rota montada sem comprovação funcional), **IMPLEMENTADA** (handler/dependências presentes, validação insuficiente), **VALIDADA** (contrato, funcionalidade e segurança aplicável testados) e **ATIVA** (validada e disponível no ambiente indicado). Não duplicar estados já equivalentes. `ATIVA` nunca significará produção se só houver evidência de desenvolvimento.
+
+**Gate:** revisar a matriz antes das alterações. As 11 rotas não serão marcadas ATIVA apenas por estarem montadas; cada uma precisa de evidências próprias. O pedido original de ativação é atendido somente onde os critérios individuais forem aprovados.
+
+### Etapa 2 — inventário de runtime e paridade de rotas
+
+1. Implementar primeiro um teste/protótipo isolado que importe a aplicação sem iniciar listener externo nem consultar banco e enumere as rotas do grafo Express efetivamente montado.
+2. Usar caminhos relativos ao prefixo `/api`; registrar, para diagnóstico, o caminho de runtime e o caminho de contrato.
+3. Preferir mecanismos já disponíveis. Não reescrever routers nem introduzir registro paralelo só para gerar documentação.
+4. Se a enumeração depender de estrutura interna instável do Express, não declarar completude: parar e pedir aprovação para a alternativa mínima.
+5. Gerar `docs/api/backend/routes.generated.md` a partir do grafo confirmado, correlacionado ao contrato e aos testes. Distinguir segurança declarada, middleware presente, comportamento testado e itens não verificados.
+6. O teste de paridade deve comparar método+caminho em ambas as direções. Divergências de schema não serão tratadas como aprovadas por esse teste básico.
+
+### Etapa 3 — conformidade integral OpenAPI/implementação
+
+1. Adicionar ao OpenAPI os caminhos ausentes confirmados no código: `GET /readyz`, `GET /v1/accounts/availability` e `POST /v1/onboarding/interests`.
+2. Preservar `GET /v1/social/accounts/{accountId}/posts`; procurar `POST` obsoleto em todos os catálogos e remover/corrigir somente as projeções erradas.
+3. Comparar por operação parâmetros de path/query/headers, request body, campos obrigatórios, tipos, formatos, restrições, respostas e códigos HTTP, content types, erros e segurança.
+4. Reutilizar schemas/validadores atuais e os schemas Zod gerados por Orval quando forem realmente usados pelo handler. Não duplicar regras para satisfazer o teste.
+5. Validar respostas observadas com os schemas de contrato existentes; se não houver schema reutilizável ou a equivalência não puder ser comprovada, registrar a lacuna e não inventar DTOs.
+6. Antes de remover operações não montadas do OpenAPI ativo, identificar chamadas no frontend e preservar operações futuras no catálogo de roadmap para evitar remoção silenciosa de tipos/clientes usados.
+7. Rodar `pnpm --filter @workspace/api-spec run codegen` e `pnpm run typecheck`; revisar os artefatos gerados.
+
+### Etapa 4 — segurança observável e ordem de middlewares
+
+Para cada operação aplicável, testar comportamento, não só nomes de funções:
+
+- Sem sessão e com credencial inválida: resposta não autenticada correta.
+- Sessão autenticada sem autorização: negação, inclusive tentativa de acessar recurso de outra conta (BOLA).
+- CSRF ausente/inválido e válido para escritas; same-origin e origem rejeitada.
+- Rate limit abaixo e acima do limite, incluindo `429`/`Retry-After` e isolamento por chave.
+- Ordem entre middlewares globais, mount de router, limitador, CSRF, autenticação, validação e handler.
+- Falhas sem vazamento de internals.
+
+Usar os mecanismos existentes (`node:test`, `fetch`, test doubles). Não adicionar Supertest/Schemathesis sem comprovar a necessidade e obter aprovação. A limitação do rate limiter atual (estado em memória por processo) deverá constar no relatório; não será apresentada como proteção distribuída.
+
+### Etapa 5 — validação funcional individual das 11 operações
+
+Lista a confirmar pela matriz:
+
+1. `GET /v1/social/feed`
+2. `GET /v1/social/posts/{postId}/comments`
+3. `POST /v1/social/posts/{postId}/comments`
+4. `DELETE /v1/social/comments/{commentId}`
+5. `PUT /v1/social/posts/{postId}/like`
+6. `DELETE /v1/social/posts/{postId}/like`
+7. `POST /v1/social/posts/{postId}/repost`
+8. `DELETE /v1/social/posts/{postId}/repost`
+9. `PUT /v1/social/comments/{commentId}/like`
+10. `DELETE /v1/social/comments/{commentId}/like`
+11. `DELETE /v1/social/posts/{postId}`
+
+Para cada uma, comprovar entrada válida/inválida, sucesso e DTO, erros, conta sem permissão, recurso inexistente, idempotência/duplicidade quando aplicável e persistência. Reaproveitar a cobertura existente; não duplicar testes que já atendam.
+
+**Limite obrigatório:** o teste HTTP integrado existente cobre vários desses casos, mas seu setup cria schema, executa `db push`, grava dados e remove o schema com `DROP SCHEMA ... CASCADE`. Isso viola a proibição atual de push/DDL. Não será executado nem contornado. Testes sem persistência poderão usar doubles somente para o que realmente comprovarem. Persistência e sucessos autenticados que dependam desse banco permanecerão **não verificados** até existir ambiente de teste previamente provisionado sem DDL ou autorização explícita separada para esse setup. Não declarar ATIVA para uma rota cuja validação obrigatória permaneça bloqueada.
+
+### Etapa 6 — regressão das regras aprovadas
+
+1. Privacidade: titular acessa; seguidores aprovados de perfil privado acessam o conteúdo permitido; não aprovados e visitantes não contornam a restrição; conhecer o ID não concede acesso.
+2. Apresentação e propriedade: campos de apresentação permanecem em Profiles, sem fonte paralela contraditória.
+3. Avaliações: permanecem em Profiles, não Seek.
+4. Inspecionar e reaproveitar testes existentes (`feed-visibility`, `profile-visibility`, testes de reviews); complementar somente lacunas concretas.
+5. Se o comportamento do código conflitar com regra aprovada, corrigir somente conforme a regra já definida. Se houver ambiguidade, parar e consultar; não criar política nova.
+
+### Etapa 7 — documentação como código
+
+1. Manter `shared/api-spec/openapi.yaml` como contrato público; runtime, validadores e testes comprovam partes diferentes e não serão reduzidos a uma única fonte artificial.
+2. Gerar `routes.generated.md` e `endpoints.md` do inventário e do OpenAPI, sem catálogo estático duplicado de rotas ativas.
+3. Classificar individualmente as 11 operações segundo evidência, ambiente e taxonomia aprovada.
+4. Corrigir documentação de mídia (`/v1/social/media`) e salvos (`/bookmark`).
+5. Mover o catálogo de 146 operações para `docs/roadmap/api-operation-catalog.json`; ajustar minimamente `generate-contracts.mjs` para que gere somente o artefato de roadmap e nunca sobrescreva docs ativas.
+6. Remover afirmações obsoletas sobre recuperação, Drizzle, `restSocialApi`, contagens fixas de tabelas e FKs restritivas, sem apagar evidência histórica que continue claramente identificada como histórica.
+7. Documentar fontes e arquivos gerados; criar/usar um único comando de geração e uma verificação de saída desatualizada. Reutilizar `render-docs.mjs` para `index.html` e `Seekalive-backend-documentation.md`; não criar renderer concorrente.
+8. Comprovar determinismo executando geração duas vezes e comparando saídas. Testar a detecção de stale docs em cópia/fixture temporária, não corrompendo arquivos de trabalho.
+
+### Etapa 8 — catálogo de banco somente leitura
+
+1. Reutilizar consulta existente se atender; caso contrário, propor um arquivo SQL somente leitura em `docs/api/backend/queries/`.
+2. Incluir tabelas, views, índices, constraints, FKs e ações referenciais (`CASCADE`, `RESTRICT`, etc.).
+3. Informar o ambiente selecionado pelo operador e uma identificação não sensível da instância/banco; nunca registrar URL ou credenciais.
+4. Não executar DDL, push, migration, nem consultar linhas de negócio. Não manter contagens temporárias fixas como descrição permanente.
+5. Confirmar o dado atual de CASCADE com o catálogo de desenvolvimento, se autorizado e disponível; se a evidência não estiver disponível, declarar não verificado, não afirmar número.
+
+### Etapa 9 — revisão final e relatório
+
+Executar apenas verificações cujo efeito foi inspecionado:
+
+- Teste de paridade método+caminho nos dois sentidos.
+- Testes de conformidade de parâmetros, entrada, respostas e segurança que não escrevam em banco.
+- Testes HTTP/runtime e regressões sem DDL.
+- `pnpm --filter @workspace/api-spec run codegen`.
+- `pnpm run typecheck`.
+- Suíte de testes sem efeitos de banco, após confirmar seus efeitos; não incluir `test:api-isolated-db`.
+- Geração de documentos e teste de determinismo/staleness.
+- Consulta de catálogo somente leitura em desenvolvimento, sem dados de negócio, se disponível.
+
+Executar uma segunda revisão independente dos critérios e artefatos antes de qualquer fechamento. Entregar:
+
+**A. Mudou** — cada arquivo alterado/criado/removido e finalidade.
+**B. Evidência** — comandos, resultados, testes aprovados/reprovados e comportamento observado.
+**C. Não verificado** — item, motivo e próximo passo, sem alegar conclusão.
+**D. Riscos e pendências** — impacto, decisão necessária e condição de encerramento.
+**E. Restrições respeitadas** — declarar expressamente se houve push, migrate, DDL, produção, acesso/exposição de segredos ou mudança de regra.
+
+## Arquivos e módulos potencialmente afetados
+
+Nenhum deles foi alterado nesta revisão. A matriz da Etapa 0 definirá o conjunto final antes de implementação.
+
+- Runtime e rotas: `Aplicativo/back/src/app.ts`, `Aplicativo/back/src/modules/index.ts`, `Aplicativo/back/src/modules/feed/composition/router.ts` e arquivos de rotas Feed; health, onboarding, Profiles e segurança somente quando a auditoria de contrato exigir.
+- Contrato e geração: `shared/api-spec/openapi.yaml`, `shared/api-spec/orval.config.ts`, código gerado em `shared/contracts/src/generated` e `shared/api-client-react/src/generated`.
+- Testes: `scripts/src/api-runtime.test.mjs`, testes existentes em `Aplicativo/back/test` e, se necessário, testes sem banco com `node:test` e `fetch`. Não executar o setup isolado que chama `push`.
+- Documentação: `docs/api/backend/generate-contracts.mjs`, `render-docs.mjs`, documentos-fonte envolvidos, `endpoints.md`, `routes.generated.md`, `index.html`, `Seekalive-backend-documentation.md` e o catálogo movido para `docs/roadmap/`.
+- Banco: consulta somente leitura proposta em `docs/api/backend/queries/` apenas se a consulta existente não atender; sem alteração no schema.
+
+## Decisões, riscos e pontos de parada
+
+1. **Sem reescrita de routers ou registro paralelo por conveniência.** Se a inspeção real do Express exigir uma mudança arquitetural ou uma dependência, interromper e pedir aprovação específica.
+2. **Sem nova dependência prevista.** A stack já possui Express, Orval, Zod, `node:test`, `tsx` e `fetch`; qualquer lacuna que realmente exija outra ferramenta será demonstrada antes de propor instalação.
+3. **A suíte integrada de Feed existe, mas está bloqueada pelas restrições atuais:** ela executa `push` e DDL em schema temporário. Não será rodada. Isso impede alegar persistência completa sem um ambiente previamente provisionado ou autorização futura.
+4. **Rate limit atual é local ao processo.** A validação pode comprovar o comportamento na instância de desenvolvimento, não coordenação entre instâncias.
+5. **Código declarado não é comportamento comprovado.** O relatório separará fonte, registro runtime, middleware aplicado e teste observado.
+6. **Nenhuma operação com produção, segredo, DDL, migration ou push.** Qualquer desvio de escopo ou regra aprovada exige interrupção e consulta.
+
+**Autorização atual:** o aditivo autorizou revisar este plano; ainda não autorizou implementar. A implementação aguarda o OK explícito desta revisão consolidada.
