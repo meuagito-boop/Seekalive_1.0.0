@@ -18,52 +18,126 @@ const files = [
   "external-services-and-operations.md",
   "implementation-and-tests.md",
 ];
-const esc = s => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+const sectionTitles = [
+  "Visão geral",
+  "Análise dos documentos de referência",
+  "Auditoria de prontidão do frontend",
+  "Arquitetura e segurança",
+  "Integração do frontend",
+  "Endpoints",
+  "Dicionário de dados",
+  "Serviços externos e operação",
+  "Implementação e testes",
+];
+const esc = (s) =>
+  s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 function inline(s) {
   return esc(s)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^ )]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
+    .replace(
+      /\[([^\]]+)\]\((https?:\/\/[^ )]+)\)/g,
+      '<a href="$2" rel="noopener noreferrer">$1</a>',
+    );
 }
 function render(md) {
   const lines = md.split(/\r?\n/);
   const out = [];
-  let i = 0, code = false, codeLines = [], list = null;
-  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  let i = 0,
+    code = false,
+    codeLines = [],
+    list = null;
+  const closeList = () => {
+    if (list) {
+      out.push(`</${list}>`);
+      list = null;
+    }
+  };
   while (i < lines.length) {
     const line = lines[i];
     if (line.startsWith("```")) {
       closeList();
-      if (code) { out.push(`<pre><code>${esc(codeLines.join("\n"))}</code></pre>`); codeLines = []; }
-      code = !code; i++; continue;
+      if (code) {
+        out.push(`<pre><code>${esc(codeLines.join("\n"))}</code></pre>`);
+        codeLines = [];
+      }
+      code = !code;
+      i++;
+      continue;
     }
-    if (code) { codeLines.push(line); i++; continue; }
-    if (!line.trim()) { closeList(); i++; continue; }
-    if (/^\|/.test(line) && i + 1 < lines.length && /^\|[\s|:-]+\|?$/.test(lines[i + 1])) {
+    if (code) {
+      codeLines.push(line);
+      i++;
+      continue;
+    }
+    if (!line.trim()) {
+      closeList();
+      i++;
+      continue;
+    }
+    if (
+      /^\|/.test(line) &&
+      i + 1 < lines.length &&
+      /^\|[\s|:-]+\|?$/.test(lines[i + 1])
+    ) {
       closeList();
       const rows = [];
       while (i < lines.length && /^\|/.test(lines[i])) {
-        const cells = lines[i].split("|").slice(1, -1).map(c => c.trim());
-        if (!cells.every(c => /^:?-{3,}:?$/.test(c))) rows.push(cells);
+        const cells = lines[i]
+          .split("|")
+          .slice(1, -1)
+          .map((c) => c.trim());
+        if (!cells.every((c) => /^:?-{3,}:?$/.test(c))) rows.push(cells);
         i++;
       }
       if (rows.length) {
-        out.push("<div class=\"table-wrap\"><table>");
-        rows.forEach((row, ri) => out.push(`<tr>${row.map(c => ri === 0 ? `<th>${inline(c)}</th>` : `<td>${inline(c)}</td>`).join("")}</tr>`));
+        out.push('<div class="table-wrap"><table>');
+        rows.forEach((row, ri) =>
+          out.push(
+            `<tr>${row.map((c) => (ri === 0 ? `<th>${inline(c)}</th>` : `<td>${inline(c)}</td>`)).join("")}</tr>`,
+          ),
+        );
         out.push("</table></div>");
       }
       continue;
     }
     const heading = line.match(/^(#{1,3})\s+(.*)$/);
-    if (heading) { closeList(); const n = heading[1].length; out.push(`<h${n}>${inline(heading[2])}</h${n}>`); i++; continue; }
-    if (/^---+$/.test(line.trim())) { closeList(); out.push("<hr>"); i++; continue; }
-    if (/^>\s?/.test(line)) { closeList(); out.push(`<blockquote>${inline(line.replace(/^>\s?/, ""))}</blockquote>`); i++; continue; }
-    const ul = line.match(/^\s*[-*]\s+(.*)$/), ol = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (heading) {
+      closeList();
+      const n = heading[1].length;
+      out.push(`<h${n}>${inline(heading[2])}</h${n}>`);
+      i++;
+      continue;
+    }
+    if (/^---+$/.test(line.trim())) {
+      closeList();
+      out.push("<hr>");
+      i++;
+      continue;
+    }
+    if (/^>\s?/.test(line)) {
+      closeList();
+      out.push(`<blockquote>${inline(line.replace(/^>\s?/, ""))}</blockquote>`);
+      i++;
+      continue;
+    }
+    const ul = line.match(/^\s*[-*]\s+(.*)$/),
+      ol = line.match(/^\s*\d+\.\s+(.*)$/);
     if (ul || ol) {
       const type = ul ? "ul" : "ol";
-      if (list !== type) { closeList(); list = type; out.push(`<${type}>`); }
-      out.push(`<li>${inline((ul || ol)[1])}</li>`); i++; continue;
+      if (list !== type) {
+        closeList();
+        list = type;
+        out.push(`<${type}>`);
+      }
+      out.push(`<li>${inline((ul || ol)[1])}</li>`);
+      i++;
+      continue;
     }
     closeList();
     out.push(`<p>${inline(line)}</p>`);
@@ -74,9 +148,13 @@ function render(md) {
   return out.join("\n");
 }
 const parts = [];
-for (const file of files) {
+const documents = [];
+for (const [index, file] of files.entries()) {
   const source = await readFile(join(dir, file), "utf8");
-  parts.push(`<section id="${file.replace(".md", "")}">${render(source)}</section>`);
+  documents.push({ file, source, title: sectionTitles[index] });
+  parts.push(
+    `<section id="${file.replace(".md", "")}">${render(source)}</section>`,
+  );
 }
 const html = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -99,4 +177,32 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <a href="#README">Visão geral</a><a href="#analysis-of-reference-documents">Análise dos PDFs</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
 </nav></header><main>${parts.join("\n")}</main></body></html>`;
 await writeFile(join(dir, "index.html"), html);
-console.log(`HTML autônomo gerado: ${html.length.toLocaleString("pt-BR")} caracteres, ${files.length} documentos.`);
+const markdown = [
+  "# Seekalive — documentação do backend",
+  "",
+  "Edição consolidada das fontes Markdown listadas abaixo. Regenere este arquivo com `node docs/api/backend/render-docs.mjs` depois de atualizar as fontes.",
+  "",
+  "## Índice",
+  ...documents.map(
+    ({ file, title }, index) =>
+      `- [${title}](#secao-${index + 1}) — \`${file}\``,
+  ),
+  ...documents.flatMap(({ file, source, title }, index) => [
+    "",
+    "---",
+    "",
+    `<a id="secao-${index + 1}"></a>`,
+    `## ${index + 1}. ${title}`,
+    "",
+    `Fonte: [\`${file}\`](${file}).`,
+    "",
+    source.replace(/^# .+\r?\n/, "").trim(),
+  ]),
+].join("\n");
+await writeFile(
+  join(dir, "Seekalive-backend-documentation.md"),
+  `${markdown}\n`,
+);
+console.log(
+  `Documentação consolidada gerada: HTML ${html.length.toLocaleString("pt-BR")} caracteres e Markdown ${markdown.length.toLocaleString("pt-BR")} caracteres (${files.length} fontes).`,
+);

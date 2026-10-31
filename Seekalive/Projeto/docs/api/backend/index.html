@@ -31,7 +31,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Consultar <code>external-services-and-operations.md</code>: serviços, links oficiais, configuração, implantação e monitoramento.</li>
 <li>Seguir <code>implementation-and-tests.md</code>: ordem de implementação, critérios de aceite e funcionalidades futuras.</li>
 </ol>
-<p>O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, o mapa de domínios de dados, o catálogo técnico, o OpenAPI compartilhado da API ativa, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere o HTML depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. <code>docs/api/backend/openapi.json</code> é um catálogo separado de referência/propostas; para paths e schemas implementados, use <code>shared/api-spec/openapi.yaml</code>, inclusive para upload e leitura de mídia.</p>
+<p>O HTML autônomo e <code>Seekalive-backend-documentation.md</code> reúnem as fontes para consulta em formatos navegável e Markdown; o ZIP inclui documentação, o mapa de domínios de dados, o catálogo técnico, o OpenAPI compartilhado da API ativa, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere ambos depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. <code>docs/api/backend/openapi.json</code> é um catálogo separado de referência/propostas; para paths e schemas implementados, use <code>shared/api-spec/openapi.yaml</code>, inclusive para upload e leitura de mídia.</p>
 <h2>1. Produto</h2>
 <p>Seekalive reúne três módulos conectados por uma identidade única:</p>
 <div class="table-wrap"><table>
@@ -55,15 +55,15 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <tr><td>Recuperação/verificação</td><td>Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria</td></tr>
 <tr><td>Publicações/comentários</td><td>Publicação remota de texto/artigo e publicação com ativos de mídia; curtidas, comentários, reposts, referências e parte da experiência ainda permanecem locais ou não implementados</td></tr>
 <tr><td>Fotos/vídeos</td><td>Envio autenticado de arquivos para armazenamento local de desenvolvimento; metadados são persistidos em <code>media.assets</code> e IDs são associados a publicações em <code>feed.posts</code>. Não é armazenamento de produção</td></tr>
-<tr><td>Contas/avaliações</td><td>A avaliação de perfil comercial usa a API de Profiles em sessão real; somente a prévia demonstrativa persiste avaliações em <code>localStorage</code>, sem sincronização entre dispositivos</td></tr>
-<tr><td>Perfil e relações</td><td>API ativa para leitura/edição básica do perfil, privacidade, seguir, pedidos privados, Círculo derivado, bloqueio e avaliações comerciais; outras telas de perfil e relações ainda não consomem toda essa API</td></tr>
+<tr><td>Contas/avaliações</td><td>Rotas e interface de avaliações de Profiles estão implementadas; a migration <code>profiles/0003</code> ainda não foi aplicada, então a persistência remota não está operacional. A prévia persiste somente no navegador</td></tr>
+<tr><td>Perfil e relações</td><td>API ativa para perfil básico, privacidade, seguir, pedidos privados, Círculo derivado e bloqueio; avaliações comerciais têm código pronto, mas aguardam a migration <code>profiles/0003</code></td></tr>
 <tr><td>Mensagens</td><td>Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio</td></tr>
 <tr><td>Seek</td><td>Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância</td></tr>
 <tr><td>Dados demonstrativos</td><td>Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API</td></tr>
 <tr><td>Shop</td><td>Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real</td></tr>
 <tr><td>Configurações</td><td>A API já persiste privacidade básica e bloqueios; preferências restantes e a interface ainda usam estado local. Bloquear remove seguimentos/pedidos nas duas direções e só quem iniciou desbloqueia</td></tr>
 </table></div>
-<p>O frontend e a API têm processos separados. A autenticação está conectada à API; as telas de perfil e relações ainda não. Antes de conectá-las, validar roteamento de mesma origem e manter a separação entre sessão real e demonstração de desenvolvimento.</p>
+<p>O frontend e a API têm processos separados. A autenticação está conectada à API; parte das telas de perfil e relações ainda não consome todos os endpoints. A aba de avaliações do perfil comercial já chama Profiles, mas sua persistência aguarda a migration <code>profiles/0003</code>. Antes de conectar outras telas, validar roteamento de mesma origem e manter a separação entre sessão real e demonstração de desenvolvimento.</p>
 <h2>3. Regras de negócio obrigatórias</h2>
 <h3>Identidade e autorização</h3>
 <ul>
@@ -102,7 +102,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Categoria, especialidades e áreas de atendimento são dados declarados pelo responsável. Não significam verificação profissional.</li>
 <li>Delivery, atendimento no local/mesa, retirada, reservas e agendamento são <strong>capacidades declaradas</strong>. Não são pedidos, entregas, mesas disponíveis ou horários reserváveis.</li>
 <li>Avaliação: nota inteira obrigatória de 1–5, comentário de 10–500 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.</li>
-<li>Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. Esses limites refletem a interface e ainda precisam ser validados no backend.</li>
+<li>Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. Serviço e schema validam esses limites; a migration <code>profiles/0003</code> ainda não foi aplicada ao banco de desenvolvimento.</li>
 <li>Serviço comercial: delivery, mesa, retirada, reserva e agendamento só aparecem publicamente quando marcados explicitamente como oferecidos (<code>true</code>). Não oferecido (<code>false</code>) e não informado (<code>null</code>/ausente) não podem aparecer como oferta.</li>
 <li>O dono pode responder, não apagar crítica de cliente pela API comercial. Remoções são do autor ou de moderação autorizada.</li>
 <li>Média e quantidade são calculadas das avaliações elegíveis. Ausência de avaliações não significa nota zero.</li>
@@ -118,7 +118,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Datas UTC/ISO no transporte e armazenamento; fuso IANA para apresentação e regras de calendário. Não interpretar rótulos como “sábado, 21 jun” como datas canônicas.</li>
 </ul>
 <h2>4. Entregas de backend e limites</h2>
-<p><strong>Núcleo a implementar:</strong> identidade, conta/perfil, Social, mídias, relacionamentos, mensagens, notificações, Seek, avaliações, eventos, catálogo Shop, salvos, busca, preferências, moderação e privacidade.</p>
+<p><strong>Núcleo a completar:</strong> integração e validação autenticada do perfil comercial após a migration <code>profiles/0003</code>; descoberta remota do Seek como projeção derivada de Profiles; interações sociais ainda ausentes; mensagens, notificações, eventos, catálogo Shop, salvos, preferências e moderação.</p>
 <p><strong>Extensões ainda sujeitas a decisão:</strong> checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.</p>
 <p><strong>Direção implementada nesta etapa:</strong> autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio de contas sem e-mail confirmado; perfis, configurações de privacidade e relações sociais essenciais também usam a API. Metadados de desenvolvimento confirmam as tabelas atuais desses domínios; não foi encontrada tabela de histórico que permita afirmar qual sequência de comandos criou cada objeto. O contrato OpenAPI separa rotas ativas das propostas. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; ainda falta validar o fluxo completo de cadastro/confirmação no navegador e a produção não está configurada. Sem configuração de envio, o servidor responde <code>503</code> e não cria conta. O schema completo dos demais domínios continua proposto e não foi aplicado à produção.</p>
 <h2>5. Links e versões</h2>
@@ -233,7 +233,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <tr><td>Privacidade e bloqueio</td><td>A tela Privacidade e ações de bloqueio usam a API em sessões remotas. O servidor remove follows/pedidos em transação, permite desbloqueio só pelo iniciador e aplica visibilidade a posts/mídias</td><td>Integrado para perfis, posts e mídias; Mensagens ainda não tem API</td></tr>
 <tr><td>Mensagens e notificações</td><td>Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos</td><td>Bloqueador</td></tr>
 <tr><td>Seek</td><td>Descoberta por localização/categoria de perfis comerciais originados no Social; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há API real de descoberta no servidor</td><td>Parcial</td></tr>
-<tr><td>Avaliações do perfil comercial</td><td>Registros locais exibidos na experiência do perfil comercial; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500. O domínio persistente/API ainda não estão ativos</td><td>Parcial</td></tr>
+<tr><td>Avaliações do perfil comercial</td><td>Interface, contrato, rotas e persistência de Profiles implementados em código; migration <code>profiles/0003</code> ainda não aplicada. A prévia continua local e a sessão real ainda não pode persistir no banco</td><td>Implementado em código; bloqueado pela migration</td></tr>
 <tr><td>Shop</td><td>Catálogo ilustrativo e itens salvos separados por conta no navegador; checkout é explicitamente indisponível</td><td>Parcial por escopo</td></tr>
 <tr><td>Configurações</td><td>Conta, privacidade e segurança usam a API em sessão real; notificações e aparência ainda ficam no navegador; ações sensíveis adicionais aguardam implementação</td><td>Parcial</td></tr>
 </table></div>
@@ -307,7 +307,7 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Avaliação agora exige nota inteira de 1–5, comentário entre 10–500 caracteres e resposta entre 3–500, alinhados à UI.</li>
 <li>Opções de serviço comerciais distinguem oferecido (<code>true</code>), não oferecido (<code>false</code>) e não informado (<code>null</code>/ausente). Só <code>true</code> pode aparecer no perfil público.</li>
 </ul>
-<p>Os contratos de domínio comercial e avaliação ainda são propostas e precisam de testes de integração quando suas APIs forem implementadas.</p>
+<p>As rotas de avaliação e o contrato já estão implementados em código. A migration <code>profiles/0003</code> precisa ser aplicada no banco de desenvolvimento antes dos testes HTTP integrados e do aceite da experiência autenticada.</p>
 <h3>P2 — Controles/telas que não completam a ação esperada</h3>
 <ul>
 <li>O botão “nova mensagem” em <code>Messages.tsx</code> não tem ação associada.</li>
@@ -348,9 +348,9 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Testes HTTP com três contas temporárias e e-mail verificado no banco <strong>de desenvolvimento</strong>: pedido privado, lista e aprovação; perfil após aprovação; seguimento público e mutualidade/Círculo; bloqueio, ocultação de perfil e rejeição de seguimento durante bloqueio; desbloqueio sem restaurar vínculos; edição de perfil e privacidade com versão.</li>
 <li>Rotas protegidas responderam <code>401</code> sem sessão e escrita sem CSRF respondeu <code>403</code>; health check da API respondeu <code>200</code>. As contas temporárias foram excluídas ao final.</li>
 </ul>
-<p>Esses resultados comprovam esta fatia, não a prontidão integral do backend. Não há teste de navegador autenticado ponta a ponta; referências, avaliações do perfil comercial, mensagens e notificações continuam pendentes. Busca por texto e hashtags está integrada em sessões remotas. Upload de mídia está integrado no desenvolvimento, mas armazenamento permanente/produção permanece fora do escopo atual.</p>
+<p>Esses resultados comprovam as fatias testadas, não a prontidão integral do backend. Não há teste de navegador autenticado ponta a ponta; avaliações do perfil comercial têm código implementado, mas aguardam migration e validação HTTP integrada; referências, mensagens e notificações também continuam pendentes. Busca por texto e hashtags está integrada em sessões remotas. Upload de mídia está integrado no desenvolvimento, mas armazenamento permanente/produção permanece fora do escopo atual.</p>
 <h2>Próximas etapas vigentes</h2>
-<p>A ordem oficial é a do <code>auditoria/plano-de-acao-tecnico.md</code>, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.6 estão implementadas; a próxima fatia relacionada a avaliações é a experiência do perfil comercial, não o Seek. Referências do Feed aceitam somente publicações Social, são persistidas no schema Feed e reautorizadas ao montar cada prévia. O Feed global e a busca por hashtags não devem ser reimplementados.</p>
+<p>A ordem oficial é a do <code>auditoria/plano-de-acao-tecnico.md</code>, que controla os gates e substitui a sequência histórica abaixo. A experiência de avaliações do perfil comercial está implementada em código em Profiles; a migration <code>profiles/0003</code> e a validação HTTP/autenticada ainda são bloqueios antes do aceite desta fatia. Avaliações seguem no perfil comercial, não no Seek. Referências do Feed aceitam somente publicações Social, são persistidas no schema Feed e reautorizadas ao montar cada prévia. O Feed global e a busca por hashtags não devem ser reimplementados.</p>
 <h2>Ordem histórica da auditoria inicial</h2>
 <ol>
 <li><strong>Concluído nesta etapa:</strong> edição de dados pessoais/comerciais em Configurações &gt; Conta ligada à API owner-only, mantendo o preview de demonstração separado. Próximo: validar a tela em navegador autenticado e fechar as decisões/controles de conta que ainda faltam antes de iniciar páginas públicas.</li>
@@ -361,11 +361,11 @@ hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640p
 <li>Integrar gradualmente cadastro/perfil, Social, avaliações dentro do perfil comercial, descoberta do Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.</li>
 <li>Criar testes de API e navegador que cubram autorização entre contas, privacidade, Círculo, publicação/galeria, avaliações, mensagens e ações de configuração.</li>
 </ol>
-<p><strong>Estado vigente desta auditoria:</strong> perfis owner-only, privacidade, relações, Feed global, publicações/artigos de perfil e busca de texto/hashtags usam os contratos remotos em sessão autenticada, enquanto a prévia segue local. E2E visual autenticado, referências, avaliações no perfil comercial e outros domínios pendentes continuam sem aceite; produção e provedores externos não foram alterados.</p></section>
+<p><strong>Estado vigente desta auditoria:</strong> perfis owner-only, privacidade, relações, Feed global, publicações/artigos de perfil e busca de texto/hashtags usam os contratos remotos em sessão autenticada, enquanto a prévia segue local. Avaliações do perfil comercial estão implementadas em código, mas a migration pendente impede validar a persistência remota; E2E visual autenticado, referências e outros domínios continuam sem aceite. Produção e provedores externos não foram alterados.</p></section>
 <section id="architecture-and-security"><h1>Arquitetura, segurança e fluxos</h1>
 <h2>Escopo atualmente implementado</h2>
 <p>A API Express com PostgreSQL/Drizzle implementa autenticação, recuperação de senha, gestão de sessões, onboarding, leitura/edição do próprio perfil, consulta pública de perfil, privacidade, relações e bloqueios. Feed persiste publicações e aceita fotos/vídeos enviados pelo titular por meio do domínio Mídias. Escritas exigem sessão verificada e CSRF. Em 30/10/2026, <code>feed.posts</code> e <code>media.assets</code> foram verificados no banco de desenvolvimento. Os binários usam disco local restrito a desenvolvimento; isso não configura armazenamento de produção. O frontend mantém demonstração local em parte das experiências; a presença de um endpoint não significa que todas as telas autenticadas foram verificadas visualmente.</p>
-<p>Permanecem incompletos: comentários/respostas, curtidas, reposts, salvos, referências e ranking do feed. Upload de mídia funciona no desenvolvimento, mas armazenamento permanente, processamento/transcodificação, thumbnails e reconciliação de arquivos órfãos ainda não estão implementados. Avaliações, perfil comercial completo/Seek, mensagens, notificações, silenciamentos, busca e moderação continuam fora desta fatia.</p>
+<p>Permanecem incompletos: comentários/respostas, curtidas, reposts, salvos, referências e ranking do feed. Upload de mídia funciona no desenvolvimento, mas armazenamento permanente, processamento/transcodificação, thumbnails e reconciliação de arquivos órfãos ainda não estão implementados. O fluxo de avaliações do perfil comercial foi implementado em Profiles e no frontend; a migration <code>profiles/0003</code> aguarda aplicação no banco de desenvolvimento e a validação HTTP/autenticada ainda não foi concluída. Perfil comercial completo/descoberta do Seek, mensagens, notificações, silenciamentos, busca e moderação continuam fora desta fatia.</p>
 <h2>1. Arquitetura de referência</h2>
 <pre><code>Navegador / aplicativo web
   | mesma origem; cookie HttpOnly; token CSRF nas alterações
@@ -414,7 +414,9 @@ Roteador HTTP / Express
     &quot;code&quot;: &quot;VALIDATION_FAILED&quot;,
     &quot;message&quot;: &quot;Revise os campos informados.&quot;,
     &quot;requestId&quot;: &quot;req_exemplo&quot;,
-    &quot;fields&quot;: [{&quot;path&quot;: &quot;rating&quot;, &quot;message&quot;: &quot;Informe uma nota inteira entre 1 e 5.&quot;}]
+    &quot;fields&quot;: [
+      { &quot;path&quot;: &quot;rating&quot;, &quot;message&quot;: &quot;Informe uma nota inteira entre 1 e 5.&quot; }
+    ]
   }
 }</code></pre>
 <h3>Adaptação dos contratos existentes</h3>

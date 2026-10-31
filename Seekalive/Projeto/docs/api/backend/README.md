@@ -15,7 +15,7 @@
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML autônomo reúne os textos para consulta; o ZIP inclui documentação, o mapa de domínios de dados, o catálogo técnico, o OpenAPI compartilhado da API ativa, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere o HTML depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. `docs/api/backend/openapi.json` é um catálogo separado de referência/propostas; para paths e schemas implementados, use `shared/api-spec/openapi.yaml`, inclusive para upload e leitura de mídia.
+O HTML autônomo e `Seekalive-backend-documentation.md` reúnem as fontes para consulta em formatos navegável e Markdown; o ZIP inclui documentação, o mapa de domínios de dados, o catálogo técnico, o OpenAPI compartilhado da API ativa, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere ambos depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. `docs/api/backend/openapi.json` é um catálogo separado de referência/propostas; para paths e schemas implementados, use `shared/api-spec/openapi.yaml`, inclusive para upload e leitura de mídia.
 
 ## 1. Produto
 
@@ -46,15 +46,15 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Recuperação/verificação | Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria         |
 | Publicações/comentários | Publicação remota de texto/artigo e publicação com ativos de mídia; curtidas, comentários, reposts, referências e parte da experiência ainda permanecem locais ou não implementados                           |
 | Fotos/vídeos            | Envio autenticado de arquivos para armazenamento local de desenvolvimento; metadados são persistidos em `media.assets` e IDs são associados a publicações em `feed.posts`. Não é armazenamento de produção    |
-| Contas/avaliações       | A avaliação de perfil comercial usa a API de Profiles em sessão real; somente a prévia demonstrativa persiste avaliações em `localStorage`, sem sincronização entre dispositivos                              |
-| Perfil e relações       | API ativa para leitura/edição básica do perfil, privacidade, seguir, pedidos privados, Círculo derivado, bloqueio e avaliações comerciais; outras telas de perfil e relações ainda não consomem toda essa API |
+| Contas/avaliações       | Rotas e interface de avaliações de Profiles estão implementadas; a migration `profiles/0003` ainda não foi aplicada, então a persistência remota não está operacional. A prévia persiste somente no navegador |
+| Perfil e relações       | API ativa para perfil básico, privacidade, seguir, pedidos privados, Círculo derivado e bloqueio; avaliações comerciais têm código pronto, mas aguardam a migration `profiles/0003`                           |
 | Mensagens               | Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio                                                                                       |
 | Seek                    | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância                                                                       |
 | Dados demonstrativos    | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API                                 |
 | Shop                    | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real                                                                                      |
 | Configurações           | A API já persiste privacidade básica e bloqueios; preferências restantes e a interface ainda usam estado local. Bloquear remove seguimentos/pedidos nas duas direções e só quem iniciou desbloqueia           |
 
-O frontend e a API têm processos separados. A autenticação está conectada à API; as telas de perfil e relações ainda não. Antes de conectá-las, validar roteamento de mesma origem e manter a separação entre sessão real e demonstração de desenvolvimento.
+O frontend e a API têm processos separados. A autenticação está conectada à API; parte das telas de perfil e relações ainda não consome todos os endpoints. A aba de avaliações do perfil comercial já chama Profiles, mas sua persistência aguarda a migration `profiles/0003`. Antes de conectar outras telas, validar roteamento de mesma origem e manter a separação entre sessão real e demonstração de desenvolvimento.
 
 ## 3. Regras de negócio obrigatórias
 
@@ -97,7 +97,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 - Categoria, especialidades e áreas de atendimento são dados declarados pelo responsável. Não significam verificação profissional.
 - Delivery, atendimento no local/mesa, retirada, reservas e agendamento são **capacidades declaradas**. Não são pedidos, entregas, mesas disponíveis ou horários reserváveis.
 - Avaliação: nota inteira obrigatória de 1–5, comentário de 10–500 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.
-- Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. Esses limites refletem a interface e ainda precisam ser validados no backend.
+- Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. Serviço e schema validam esses limites; a migration `profiles/0003` ainda não foi aplicada ao banco de desenvolvimento.
 - Serviço comercial: delivery, mesa, retirada, reserva e agendamento só aparecem publicamente quando marcados explicitamente como oferecidos (`true`). Não oferecido (`false`) e não informado (`null`/ausente) não podem aparecer como oferta.
 - O dono pode responder, não apagar crítica de cliente pela API comercial. Remoções são do autor ou de moderação autorizada.
 - Média e quantidade são calculadas das avaliações elegíveis. Ausência de avaliações não significa nota zero.
@@ -114,7 +114,7 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 
 ## 4. Entregas de backend e limites
 
-**Núcleo a implementar:** identidade, conta/perfil, Social, mídias, relacionamentos, mensagens, notificações, Seek, avaliações, eventos, catálogo Shop, salvos, busca, preferências, moderação e privacidade.
+**Núcleo a completar:** integração e validação autenticada do perfil comercial após a migration `profiles/0003`; descoberta remota do Seek como projeção derivada de Profiles; interações sociais ainda ausentes; mensagens, notificações, eventos, catálogo Shop, salvos, preferências e moderação.
 
 **Extensões ainda sujeitas a decisão:** checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.
 

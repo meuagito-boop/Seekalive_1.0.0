@@ -4,7 +4,7 @@
 
 A API Express com PostgreSQL/Drizzle implementa autenticação, recuperação de senha, gestão de sessões, onboarding, leitura/edição do próprio perfil, consulta pública de perfil, privacidade, relações e bloqueios. Feed persiste publicações e aceita fotos/vídeos enviados pelo titular por meio do domínio Mídias. Escritas exigem sessão verificada e CSRF. Em 30/10/2026, `feed.posts` e `media.assets` foram verificados no banco de desenvolvimento. Os binários usam disco local restrito a desenvolvimento; isso não configura armazenamento de produção. O frontend mantém demonstração local em parte das experiências; a presença de um endpoint não significa que todas as telas autenticadas foram verificadas visualmente.
 
-Permanecem incompletos: comentários/respostas, curtidas, reposts, salvos, referências e ranking do feed. Upload de mídia funciona no desenvolvimento, mas armazenamento permanente, processamento/transcodificação, thumbnails e reconciliação de arquivos órfãos ainda não estão implementados. Avaliações, perfil comercial completo/Seek, mensagens, notificações, silenciamentos, busca e moderação continuam fora desta fatia.
+Permanecem incompletos: comentários/respostas, curtidas, reposts, salvos, referências e ranking do feed. Upload de mídia funciona no desenvolvimento, mas armazenamento permanente, processamento/transcodificação, thumbnails e reconciliação de arquivos órfãos ainda não estão implementados. O fluxo de avaliações do perfil comercial foi implementado em Profiles e no frontend; a migration `profiles/0003` aguarda aplicação no banco de desenvolvimento e a validação HTTP/autenticada ainda não foi concluída. Perfil comercial completo/descoberta do Seek, mensagens, notificações, silenciamentos, busca e moderação continuam fora desta fatia.
 
 ## 1. Arquitetura de referência
 
@@ -38,20 +38,20 @@ Preservar a stack atual; separar routers, políticas, serviços, repositórios e
 
 ## 2. Convenções da API
 
-| Convenção | Contrato proposto |
-|---|---|
-| Versão | `/api/v1`; manter `/api/healthz` existente |
-| IDs novos | UUID gerado no servidor; IDs legados de demonstração não são importados |
-| Datas | ISO 8601 UTC; fuso IANA separado quando houver calendário local |
-| Dinheiro | Inteiro em centavos + moeda ISO, inicialmente BRL; jamais fazer cálculo com `R$ 29,90` |
-| Paginação | `{items: [...], nextCursor: string|null}`; limite padrão 20, máximo 100 |
-| Cursor | Opaco, assinado ou validado, vinculado a filtros/ordem/escopo; desempate por ID |
-| Busca | Normalização de acentos, limites de tamanho, ranking documentado; não chamar de semântica sem implementação |
-| Erro | `{error:{code,message,requestId,fields?}}`, sem SQL, token, stack ou informação privada |
-| Concorrência | `version`/ETag em recursos editáveis; `If-Match` nas alterações; `412` para versão divergente |
-| Relações | PUT/DELETE idempotentes; repost POST existente também deve ser idempotente por par conta/publicação |
-| Criações | `Idempotency-Key` em POST com efeito; vincular conta, método, rota e hash do corpo; rejeitar reutilização com corpo diferente |
-| Limites | `429` e `Retry-After`; cotas propostas, configuráveis e medidas |
+| Convenção    | Contrato proposto                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Versão       | `/api/v1`; manter `/api/healthz` existente                                                                                    |
+| IDs novos    | UUID gerado no servidor; IDs legados de demonstração não são importados                                                       |
+| Datas        | ISO 8601 UTC; fuso IANA separado quando houver calendário local                                                               |
+| Dinheiro     | Inteiro em centavos + moeda ISO, inicialmente BRL; jamais fazer cálculo com `R$ 29,90`                                        |
+| Paginação    | `{items: [...], nextCursor: string                                                                                            | null}`; limite padrão 20, máximo 100 |
+| Cursor       | Opaco, assinado ou validado, vinculado a filtros/ordem/escopo; desempate por ID                                               |
+| Busca        | Normalização de acentos, limites de tamanho, ranking documentado; não chamar de semântica sem implementação                   |
+| Erro         | `{error:{code,message,requestId,fields?}}`, sem SQL, token, stack ou informação privada                                       |
+| Concorrência | `version`/ETag em recursos editáveis; `If-Match` nas alterações; `412` para versão divergente                                 |
+| Relações     | PUT/DELETE idempotentes; repost POST existente também deve ser idempotente por par conta/publicação                           |
+| Criações     | `Idempotency-Key` em POST com efeito; vincular conta, método, rota e hash do corpo; rejeitar reutilização com corpo diferente |
+| Limites      | `429` e `Retry-After`; cotas propostas, configuráveis e medidas                                                               |
 
 Status principais: `200`, `201`, `202` para tarefa realmente aceita, `204` sem corpo, `400` sintaxe, `401`, `403`, `404`, `409` conflito de domínio, `412` versão, `413` tamanho, `415` tipo, `422` validação, `429`, `500`, `502` integração, `503` indisponibilidade. `401` nunca deve ser convertido em resultado vazio nem em dados de demonstração.
 
@@ -63,7 +63,9 @@ Status principais: `200`, `201`, `202` para tarefa realmente aceita, `204` sem c
     "code": "VALIDATION_FAILED",
     "message": "Revise os campos informados.",
     "requestId": "req_exemplo",
-    "fields": [{"path": "rating", "message": "Informe uma nota inteira entre 1 e 5."}]
+    "fields": [
+      { "path": "rating", "message": "Informe uma nota inteira entre 1 e 5." }
+    ]
   }
 }
 ```
@@ -130,20 +132,20 @@ Uploads sem vínculo podem expirar, proposta inicial 24 horas. Um ativo ainda us
 
 ## 5. Transações críticas
 
-| Operação | Unidade transacional / prevenção de corrida |
-|---|---|
-| Cadastro | Identidade + conta + perfil comercial, se houver + termos; unique username/provider-subject |
-| Publicar | Sessão + ACL da referência + ownership de mídia + post + vínculos + outbox |
-| Repost/curtir/salvar | Unique de par; retry não duplica; contador derivado ou atualizado na mesma transação |
-| Comentário/resposta | Permissão do post + pai no mesmo post + conteúdo + evento de notificação |
-| Seguir/Círculo | Persistir somente arestas de seguir. Círculo é uma projeção de duas arestas aceitas em sentidos opostos; desfazer qualquer uma remove o resultado derivado. Não há transição própria de convite/aceite de Círculo |
-| Bloquear | Em transação, remover seguimentos aceitos e solicitações pendentes entre as contas; ocultar perfis/conteúdo e impedir interação nos dois sentidos. Mensagens existentes ficam inacessíveis durante o bloqueio, sem apagamento. Só o iniciador pode desbloquear; relações removidas não são recriadas |
-| Avaliação | Sessão do avaliador + conta comercial distinta + unique negócio/avaliador; média coerente com moderação |
-| Resposta comercial | Apenas dono do negócio vinculado à avaliação; nenhum `businessAccountId` arbitrário |
-| Mensagem | Participação + permissão de contato + clientMessageId único + mensagem + outbox |
-| Leitura de conversa | Cursor monotônico; mensagem deve pertencer à conversa; um participante não altera o cursor de outro |
-| Atualização de perfil | Versão esperada; username único; cache do Seek invalidado somente após commit |
-| Remoção de conteúdo | Estado removido + dependências/reposts ocultos + invalidação de busca/referências/galeria |
+| Operação              | Unidade transacional / prevenção de corrida                                                                                                                                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cadastro              | Identidade + conta + perfil comercial, se houver + termos; unique username/provider-subject                                                                                                                                                                                                          |
+| Publicar              | Sessão + ACL da referência + ownership de mídia + post + vínculos + outbox                                                                                                                                                                                                                           |
+| Repost/curtir/salvar  | Unique de par; retry não duplica; contador derivado ou atualizado na mesma transação                                                                                                                                                                                                                 |
+| Comentário/resposta   | Permissão do post + pai no mesmo post + conteúdo + evento de notificação                                                                                                                                                                                                                             |
+| Seguir/Círculo        | Persistir somente arestas de seguir. Círculo é uma projeção de duas arestas aceitas em sentidos opostos; desfazer qualquer uma remove o resultado derivado. Não há transição própria de convite/aceite de Círculo                                                                                    |
+| Bloquear              | Em transação, remover seguimentos aceitos e solicitações pendentes entre as contas; ocultar perfis/conteúdo e impedir interação nos dois sentidos. Mensagens existentes ficam inacessíveis durante o bloqueio, sem apagamento. Só o iniciador pode desbloquear; relações removidas não são recriadas |
+| Avaliação             | Sessão do avaliador + conta comercial distinta + unique negócio/avaliador; média coerente com moderação                                                                                                                                                                                              |
+| Resposta comercial    | Apenas dono do negócio vinculado à avaliação; nenhum `businessAccountId` arbitrário                                                                                                                                                                                                                  |
+| Mensagem              | Participação + permissão de contato + clientMessageId único + mensagem + outbox                                                                                                                                                                                                                      |
+| Leitura de conversa   | Cursor monotônico; mensagem deve pertencer à conversa; um participante não altera o cursor de outro                                                                                                                                                                                                  |
+| Atualização de perfil | Versão esperada; username único; cache do Seek invalidado somente após commit                                                                                                                                                                                                                        |
+| Remoção de conteúdo   | Estado removido + dependências/reposts ocultos + invalidação de busca/referências/galeria                                                                                                                                                                                                            |
 
 ## 6. Tempo real
 
