@@ -1,8 +1,8 @@
 # Endpoints e contrato OpenAPI
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **146 operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **147 operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
 
-> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A suíte de API isolada passou após a sincronização, criando e removendo seu schema temporário. Produção não foi consultada, alterada ou publicada.
+> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A integração HTTP isolada da fatia de referências não foi executada porque o runner não recebeu `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; a limitação está registrada no roadmap. Produção não foi consultada, alterada ou publicada.
 
 ## Respostas, paginação e autenticação
 
@@ -84,12 +84,13 @@ Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `opena
 | Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
 |---|---|---|---|---|---|
 | GET | `/v1/social/feed` | Sessão autenticada | — | `PagePost` | **PROPOSTA** |
-| POST | `/v1/social/posts` | Sessão autenticada | `PostCreate` | `Post` | **PROPOSTA** |
-| GET | `/v1/social/posts/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **PROPOSTA** |
+| POST | `/v1/social/posts` | Sessão autenticada | `PostCreate` | `Post` | **ATIVA** |
+| GET | `/v1/social/posts/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **ATIVA** |
 | PATCH | `/v1/social/posts/{postId}` | Sessão autenticada | `PostPatch` | `Post` | **PROPOSTA** |
 | DELETE | `/v1/social/posts/{postId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/social/articles` | Sessão autenticada | `PostCreate` | `Post` | **PROPOSTA** |
-| GET | `/v1/social/articles/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **PROPOSTA** |
+| POST | `/v1/social/articles` | Sessão autenticada | `ArticleCreate` | `Post` | **ATIVA** |
+| GET | `/v1/social/articles/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **ATIVA** |
+| GET | `/v1/social/posts/{postId}/reference` | Público/sessão; ACL no servidor | — | `SocialPostReferencePreview` | **ATIVA** |
 | GET | `/v1/social/posts/{postId}/comments` | Sessão autenticada | — | `PageComment` | **PROPOSTA** |
 | POST | `/v1/social/posts/{postId}/comments` | Sessão autenticada | `CommentCreate` | `Comment` | **PROPOSTA** |
 | PATCH | `/v1/social/comments/{commentId}` | Sessão autenticada | `CommentPatch` | `Comment` | **PROPOSTA** |

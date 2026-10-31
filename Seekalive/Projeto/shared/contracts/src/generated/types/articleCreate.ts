@@ -7,9 +7,10 @@
  */
 import type { ArticleCreateArticle } from './articleCreateArticle';
 import type { ArticleCreateAudience } from './articleCreateAudience';
+import type { ContentReference } from './contentReference';
 
 /**
- * Article with optional staged media assets and at most 10 distinct hashtags across its caption, title, and body.
+ * Article with optional staged media assets, optional readable social_post reference, and at most 10 distinct hashtags across its caption, title, and body.
  */
 export interface ArticleCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -21,4 +22,5 @@ export interface ArticleCreate {
   article: ArticleCreateArticle;
   /** @maxItems 8 */
   mediaAssetIds?: string[];
+  reference?: ContentReference;
 }

@@ -22,6 +22,13 @@
       "when": 1793418500824,
       "tag": "0002_flawless_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793420030307,
+      "tag": "0003_post_references",
+      "breakpoints": true
     }
   ]
 }

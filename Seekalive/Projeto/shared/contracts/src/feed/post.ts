@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { postAudienceSchema } from "./audience";
+import { socialPostReferenceSchema } from "./references";
 import {
   countPostHashtags,
   HASHTAG_LIMIT_MESSAGE,
@@ -14,6 +15,7 @@ export const createTextPostSchema = z.object({
   audience: postAudienceSchema,
   format: z.enum(["text", "media"]).optional(),
   mediaAssetIds: z.array(z.string().uuid()).max(8).optional(),
+  reference: socialPostReferenceSchema.optional(),
 }).strict().superRefine((value, context) => {
   if (countPostHashtags(value.content) > MAX_HASHTAGS_PER_POST) {
     context.addIssue({

@@ -5,6 +5,7 @@ import { createPostDeleter } from "../src/modules/feed/application/deletePost.ts
 import { createProfilePostLister } from "../src/modules/feed/application/listProfilePosts.ts";
 import { createArticleReader } from "../src/modules/feed/application/readArticle.ts";
 import { createPostReader } from "../src/modules/feed/application/readPost.ts";
+import { createPostReferencePreviewReader } from "../src/modules/feed/application/readPostReferencePreview.ts";
 
 const authorId = "11111111-1111-4111-8111-111111111111";
 const viewerId = "22222222-2222-4222-8222-222222222222";
@@ -43,15 +44,38 @@ test("post creation delegates persistence and propagates repository failures", a
   const createPost = createPostCreator(async (input) => {
     received = input;
     return post;
-  });
+  }, async () => true);
 
   assert.equal(await createPost(command), post);
   assert.deepEqual(received, command);
 
   const failedCreate = createPostCreator(async () => {
     throw new Error("database unavailable");
-  });
+  }, async () => true);
   await assert.rejects(failedCreate(command), /database unavailable/);
+});
+
+test("post creation requires access to a referenced publication before persistence", async () => {
+  let persisted = false;
+  const createPost = createPostCreator(
+    async () => {
+      persisted = true;
+      return post;
+    },
+    async () => false,
+  );
+
+  await assert.rejects(
+    createPost({
+      authorId: viewerId,
+      content: "Citação",
+      audience: "public",
+      format: "text",
+      reference: { type: "social_post", id: postId },
+    }),
+    { name: "FeedReferencedPostUnavailableError" },
+  );
+  assert.equal(persisted, false);
 });
 
 test("post deletion delegates the post and actor identifiers", async () => {
@@ -91,6 +115,56 @@ test("post read resolves the author before applying visibility", async () => {
     async () => new Map(),
   );
   assert.equal(await blockedRead(postId, viewerId), null);
+});
+
+test("reference preview uses only currently readable post data and its author", async () => {
+  const author = {
+    id: authorId,
+    username: "conta_social",
+    displayName: "Conta Social",
+    avatarUrl: null,
+  };
+  const lookupCalls = [];
+  const previewPost = createPostReferencePreviewReader(
+    async (requestedPostId, requestedViewerId) => {
+      assert.equal(requestedPostId, postId);
+      assert.equal(requestedViewerId, viewerId);
+      return {
+        ...post,
+        format: "article",
+        article: { title: "Título do artigo", body: "Texto" },
+        mediaTypes: ["image"],
+        mediaUrls: ["/api/v1/social/media/image-id"],
+      };
+    },
+    async (...args) => {
+      lookupCalls.push(args);
+      return [author];
+    },
+  );
+
+  assert.deepEqual(await previewPost(postId, viewerId), {
+    type: "social_post",
+    id: postId,
+    title: "Título do artigo",
+    imageUrl: "/api/v1/social/media/image-id",
+    subtitle: "@conta_social",
+    targetPath: `/article/${postId}`,
+    authorName: "Conta Social",
+    entityLabel: "Artigo Social",
+  });
+  assert.deepEqual(lookupCalls, [[[authorId], viewerId]]);
+
+  let authorLookupCalled = false;
+  const hiddenPostPreview = createPostReferencePreviewReader(
+    async () => null,
+    async () => {
+      authorLookupCalled = true;
+      return [author];
+    },
+  );
+  assert.equal(await hiddenPostPreview(postId, null), null);
+  assert.equal(authorLookupCalled, false);
 });
 
 test("article read returns only visible posts with article format", async () => {

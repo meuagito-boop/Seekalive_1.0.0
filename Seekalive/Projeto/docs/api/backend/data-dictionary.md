@@ -2,7 +2,7 @@
 
 **Registro histórico de 29/10/2026:** a leitura somente de metadados daquele dia encontrou 12 tabelas físicas e `feed.posts` ausente; a validação de `0005` foi feita em schemas temporários, sem alteração do schema principal. Esse estado foi substituído pela aplicação autorizada abaixo.
 
-**Estado de desenvolvimento em 30/10/2026:** os schemas têm `accounts` (4 tabelas), `security` (4), `profiles` (5), `feed` (6) e `media` (1). `feed.posts` e `media.assets` estão aplicados em tracks independentes. A coluna `feed.posts.media` armazena referências tipadas para ativos; os binários de teste são locais ao desenvolvimento. A aplicação e a consulta posterior verificaram nomes/colunas e ledgers de Feed/Mídias; nenhuma operação foi feita em produção. O replay automatizado dos baselines passou em schemas temporários, incluindo Feed e Mídias; os schemas foram removidos ao fim e o schema `public` permaneceu inalterado.
+**Estado de desenvolvimento em 31/10/2026:** os schemas têm `accounts` (4 tabelas), `security` (4), `profiles` (5), `feed` (7) e `media` (1). `feed.posts`, `feed.post_tags`, `feed.post_references` e `media.assets` estão aplicados em tracks independentes. A coluna `feed.posts.media` armazena referências tipadas para ativos; `feed.post_references` guarda vínculos de uma publicação Social a outra publicação Social. Os binários de teste são locais ao desenvolvimento. A aplicação e a consulta posterior verificaram a migration de referências no track Feed; nenhuma operação foi feita em produção.
 
 ## Sources and boundaries
 
@@ -39,9 +39,10 @@ Esta lista representa o modelo no código, não uma afirmação de que todas as 
 | `account_follow_requests` | Pedidos pendentes direcionados a perfis privados; a aprovação cria o follow aceito. |
 | `account_blocks` | Bloqueio iniciado por uma conta; bloquear remove follows e pedidos pendentes em ambas as direções. |
 | `feed.posts` | Publicações de texto/artigo/mídia com audiência, autoria, estado de versão, referências tipadas a ativos, constraints, FK e índices. |
+| `feed.post_references` | Até uma publicação Social referenciada por publicação de origem; guarda o UUID original e uma FK anulável que é removida ao excluir o alvo, para deixar a prévia indisponível sem reter metadados do conteúdo apagado. |
 | `media.assets` | Metadados de foto/vídeo, titular, publicação, tipo, tamanho, estado e chave de armazenamento local temporário; uploads podem ser anexados por 24 horas e expirados são limpos no próximo upload, sem worker periódico. Binários só são aceitos em desenvolvimento. |
 
-O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; armazenamento permanente, galeria comercial, campos de avatar/capa, avaliações, serviços comerciais completos, conversas, mensagens, busca e moderação ainda não têm implementação completa.
+O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; referências no Feed aceitam somente `social_post` nesta etapa e revalidam a leitura do alvo em cada prévia. Referências para Seek, Shop ou eventos permanecem no modelo futuro, sem rotas ativas. Armazenamento permanente, galeria comercial, campos de avatar/capa, avaliações, serviços comerciais completos, conversas, mensagens e moderação ainda não têm implementação completa.
 
 Frontend DTOs use **camelCase**, SQL uses **snake_case**. Serializers, not accidental ORM field exposure, must bridge them:
 
@@ -94,6 +95,8 @@ As tabelas e colunas abaixo descrevem o modelo-alvo/proposto e incluem entidades
 
 ### Social content and graph
 
+The table below describes the broader proposed cross-domain reference model, not the active schema. The implemented Feed track currently permits only a `social_post` reference in `feed.post_references`; Seek, Shop and event targets have no active persistence contract.
+
 | Table / intent | Columns | Keys / indexes / invariants | Required access |
 | --- | --- | --- | --- |
 | `posts` — text/media/articles | `id`, `author_id`, `content`, `format`, `audience`, `article_title`, `article_body`, `parent_post_id`, `status`, `created_at`, `updated_at` | Author/time, published-public/time, parent indexes; 280 text chars; article title 1–160 and body 1–50,000; title/body only for articles; no direct self-parent. | Author creates/edits/deletes; visibility checked on every fetch, search, preview and interaction. Media presence/nonempty publication needs transaction checks. |
@@ -101,7 +104,7 @@ As tabelas e colunas abaixo descrevem o modelo-alvo/proposto e incluem entidades
 | `post_mentions` — resolved accounts | `post_id`, `mentioned_account_id` | Composite PK; reverse account+post index. | Author/server extraction writes; read through visible post; notification only if recipient can see post and interaction is allowed. |
 | `hashtags` — normalized vocabulary | `id`, `normalized_tag` | Unique nonempty tag, up to 100 chars. | Controlled server upsert after Unicode/locale normalization; public tag suggestions must not reveal private usage. |
 | `post_hashtags` — token associations | `post_id`, `hashtag_id` | Composite PK; reverse hashtag+post index. | Server maintains atomically with post edits; discovery always filters visible posts. |
-| `post_references` — one typed target | `post_id`, nullable `business_account_id`, `shop_item_id`, `referenced_post_id`, `seek_event_id` | Post PK/FK; exactly one of four non-null targets; each target has FK and index; no direct self-reference. | Resolve accessible target during publish and again on read; unavailable target yields unavailable preview, not leaked metadata. Events use the existing `seek_entity` type with normalized `event:` ID, not a new public type. |
+| `post_references` — proposed future cross-domain target | `post_id`, nullable `business_account_id`, `shop_item_id`, `referenced_post_id`, `seek_event_id` | Proposed Post PK/FK; exactly one typed target; each target has FK and index; no direct self-reference. | Future model only. Active Feed implementation is social-post-only as specified in `Tabelas implementadas no Drizzle`; never expose targets that are not readable now. |
 | `comments` — replies within a post | `id`, `post_id`, `author_id`, `parent_comment_id`, `content`, `status`, `created_at`, `updated_at` | Unique (id, post_id); composite parent/post FK forces same post; no direct self-parent; 1–2,000 trimmed chars; post/time, parent/post, author indexes. | Author write, authorized post viewers read; lock/check live parent and prevent cycles; parent/post association immutable through API. |
 | `comment_likes` — one reaction | `comment_id`, `account_id`, `created_at` | Composite PK, account reverse index. | Session actor adds/removes own like only on readable, eligible comment/post. |
 | `post_likes` — one reaction | `post_id`, `account_id`, `created_at` | Composite PK, account reverse index. | Session actor own mutations; current target access required. |
@@ -204,4 +207,4 @@ These snippets are **future design only**, cannot run against the core without a
 
 The core currently contains **43 proposed tables**, including custom email, password-credential, challenge, and session structures. The count describes this documentation draft only; no migration, live rows, or runtime validation are asserted.
 
-The larger SQL design in `schema-core.sql` remains a reference proposal and was not run. In the 30/10/2026 development state, the active schemas contain 20 tables across Accounts, Security, Profiles, Feed and Media; `feed.posts` and `media.assets` are applied. Feed and Media use independent migration ledgers. Local media binaries are development-only. Production was not accessed; baseline replay and account-deletion database integration tests remain unverified in this shell because the required development connection variables are unavailable.
+The larger SQL design in `schema-core.sql` remains a reference proposal and was not run. In the 31/10/2026 development state, the active schemas contain 21 tables across Accounts, Security, Profiles, Feed and Media; `feed.post_references` was confirmed in the development database after `feed/0003_post_references`. Feed and Media use independent migration ledgers. Local media binaries are development-only. Production was not accessed. The isolated HTTP integration and baseline replay were not rerun after this migration because their runner requires `DATABASE_URL` and `SEEKALIVE_EXPECTED_DATABASE`, which are unavailable to the shell runner.

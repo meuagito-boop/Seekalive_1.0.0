@@ -80,7 +80,7 @@ test("application use case rejects excess hashtags before persistence", async ()
   const createPost = createPostCreator(async () => {
     persistenceCalled = true;
     throw new Error("persistence should not be called");
-  });
+  }, async () => true);
 
   await assert.rejects(
     createPost({

@@ -2,6 +2,10 @@ import { and, count, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { postAudienceSchema } from "@workspace/api-zod";
 import { db, feedPostTags, feedPosts } from "@workspace/db";
 import { persistPostHashtags } from "./postTagRepository";
+import {
+  findPostReferencesByPostIds,
+  persistPostReference,
+} from "./postReferenceRepository";
 import type {
   FeedPost,
   FeedPostFormat,
@@ -9,7 +13,10 @@ import type {
   PostPosition,
 } from "../domain/post";
 
-export function toFeedPost(row: typeof feedPosts.$inferSelect): FeedPost {
+export function toFeedPost(
+  row: typeof feedPosts.$inferSelect,
+  reference: FeedPost["reference"] = null,
+): FeedPost {
   const audience = postAudienceSchema.safeParse(row.audience);
   if (!audience.success) {
     throw new Error("Invalid feed post audience stored in database");
@@ -36,6 +43,7 @@ export function toFeedPost(row: typeof feedPosts.$inferSelect): FeedPost {
     ...row,
     audience: audience.data,
     format: row.format,
+    reference,
   };
 }
 
@@ -56,7 +64,8 @@ export async function insertFeedPost(input: NewFeedPost): Promise<FeedPost> {
       input.articleTitle,
       input.articleBody,
     ]);
-    return toFeedPost(row);
+    await persistPostReference(transaction, row.id, input.reference);
+    return toFeedPost(row, input.reference ?? null);
   });
 }
 
@@ -64,7 +73,9 @@ export async function findFeedPostById(postId: string): Promise<FeedPost | null>
   const [row] = await db.select().from(feedPosts)
     .where(eq(feedPosts.id, postId))
     .limit(1);
-  return row ? toFeedPost(row) : null;
+  if (!row) return null;
+  const references = await findPostReferencesByPostIds([row.id]);
+  return toFeedPost(row, references.get(row.id) ?? null);
 }
 
 export async function deleteOwnedFeedPost(postId: string, actorId: string): Promise<boolean> {
@@ -112,7 +123,10 @@ export async function listFeedPostsByAuthor(input: {
     .where(and(...conditions))
     .orderBy(desc(feedPosts.createdAt), desc(feedPosts.id))
     .limit(input.limit);
-  return rows.map(toFeedPost);
+  const references = await findPostReferencesByPostIds(rows.map((row) => row.id));
+  return rows.map((row) =>
+    toFeedPost(row, references.get(row.id) ?? null),
+  );
 }
 
 export async function listFeedPostsForTimeline(input: {
@@ -170,5 +184,8 @@ export async function listFeedPostsForTimeline(input: {
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(feedPosts.createdAt), desc(feedPosts.id))
     .limit(input.limit);
-  return rows.map(toFeedPost);
+  const references = await findPostReferencesByPostIds(rows.map((row) => row.id));
+  return rows.map((row) =>
+    toFeedPost(row, references.get(row.id) ?? null),
+  );
 }

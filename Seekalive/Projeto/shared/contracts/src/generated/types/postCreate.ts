@@ -5,11 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ContentReference } from './contentReference';
 import type { PostCreateAudience } from './postCreateAudience';
 import type { PostCreateFormat } from './postCreateFormat';
 
 /**
- * Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; arbitrary URLs are not accepted.
+ * Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; an optional social_post reference must be readable by the authenticated author.
  */
 export interface PostCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -20,4 +21,5 @@ export interface PostCreate {
   format?: PostCreateFormat;
   /** @maxItems 8 */
   mediaAssetIds?: string[];
+  reference?: ContentReference;
 }

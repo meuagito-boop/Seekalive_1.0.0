@@ -4,6 +4,7 @@ import { listFeedFollowingAccountIds } from "../../social/composition/feedIntegr
 import { createPostCreator } from "../application/createPost";
 import { createPostDeleter } from "../application/deletePost";
 import { createPostReader } from "../application/readPost";
+import { createPostReferencePreviewReader } from "../application/readPostReferencePreview";
 import { createArticleReader } from "../application/readArticle";
 import { createPostLikeSetter } from "../application/setPostLike";
 import { createPostRepostSetter } from "../application/setPostRepost";
@@ -39,6 +40,7 @@ import { createArticleWriteRoutes } from "../presentation/articleWriteRoutes";
 import { createPostCreateRoutes } from "../presentation/postCreateRoutes";
 import { createPostDeleteRoutes } from "../presentation/postDeleteRoutes";
 import { createPostReadRoutes } from "../presentation/postReadRoutes";
+import { createPostReferencePreviewRoutes } from "../presentation/postReferencePreviewRoutes";
 import { createProfileContentRoutes } from "../presentation/profileContentRoutes";
 import { createPostLikeRoutes } from "../presentation/postLikeRoutes";
 import { createPostRepostRoutes } from "../presentation/postRepostRoutes";
@@ -66,7 +68,6 @@ async function findCommentAuthors(
   }));
 }
 
-const createPost = createPostCreator(persistFeedPost);
 const deletePost = createPostDeleter(deleteFeedPostWithMedia);
 export const readFeedPost = createPostReader(
   findFeedPostById,
@@ -74,6 +75,14 @@ export const readFeedPost = createPostReader(
   findPostInteractionSummaries,
 );
 const readPost = readFeedPost;
+const createPost = createPostCreator(
+  persistFeedPost,
+  async (postId, viewerId) => Boolean(await readPost(postId, viewerId)),
+);
+const readPostReferencePreview = createPostReferencePreviewReader(
+  readPost,
+  accountViewsByIds,
+);
 const readArticle = createArticleReader(readPost);
 const listProfilePosts = createProfilePostListApi(accountViewsByIds);
 const listGlobalFeed = createGlobalFeedLister(
@@ -112,6 +121,7 @@ router.use(createGlobalFeedRoutes(listGlobalFeed));
 router.use(createArticleWriteRoutes(createPost));
 router.use(createArticleReadRoutes(readArticle));
 router.use(createPostReadRoutes(readPost));
+router.use(createPostReferencePreviewRoutes(readPostReferencePreview));
 router.use(createPostCreateRoutes(createPost));
 router.use(createPostDeleteRoutes(deletePost));
 router.use(createProfileContentRoutes(listProfilePosts));

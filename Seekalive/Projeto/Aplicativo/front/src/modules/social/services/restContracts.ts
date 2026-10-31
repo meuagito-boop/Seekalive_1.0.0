@@ -146,11 +146,12 @@ export const restSocialApi = {
   },
   async reference(reference: ContentReference) {
     referenceSchema.parse(reference);
+    const path = reference.type === "social_post"
+      ? `/api/v1/social/posts/${encodeURIComponent(reference.id)}/reference`
+      : `/api/v1/references/${reference.type}/${encodeURIComponent(reference.id)}`;
     return parseResponse(
       referencePreviewSchema,
-      await apiRequest(
-        `/api/v1/references/${reference.type}/${encodeURIComponent(reference.id)}`,
-      ),
+      await apiRequest(path),
     );
   },
   async searchUsers(query: string, signal?: AbortSignal) {

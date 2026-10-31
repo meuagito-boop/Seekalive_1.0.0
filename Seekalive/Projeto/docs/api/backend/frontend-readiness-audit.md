@@ -66,7 +66,7 @@ O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a 
 - A tela Social > Busca consulta `GET /api/v1/social/feed?q=...` em sessão remota. O endpoint mantém paginação com cursor vinculado à consulta e aplica as mesmas regras de perfil privado, Círculo, bloqueio e audiência do Feed; a busca não amplia acesso ao conteúdo.
 - A consulta por hashtag usa prefixo normalizado sem diferenciar acentos ou caixa: `café` encontra `#cafeteira`. Texto comum, legenda e conteúdo de artigo também participam da busca. Resultados de tags derivam de publicações existentes; tendências de demonstração permanecem somente no modo de desenvolvimento.
 - Publicações comuns e artigos aceitam até dez hashtags distintas, contando legenda, título e corpo do artigo em conjunto. Duplicatas que diferem apenas em caixa/acentos contam como uma só. A API rejeita o excesso antes da persistência; as hashtags retornam na leitura e a projeção normalizada pertence ao schema `feed`.
-- A migration `feed/0002` criou `feed.post_tags` e foi aplicada exclusivamente ao banco de desenvolvimento. Nenhuma migration, dado ou serviço de produção foi consultado ou alterado.
+- As migrations `feed/0002` e `feed/0003_post_references` criaram `feed.post_tags` e `feed.post_references` e foram aplicadas exclusivamente ao banco de desenvolvimento. A existência da tabela nova foi confirmada por consulta somente de leitura. Nenhuma migration, dado ou serviço de produção foi consultado ou alterado.
 - A busca foi validada em teste HTTP com schema temporário: `café` encontrou `#cafeteira`, 11 hashtags foram rejeitadas, o schema foi removido e `public` permaneceu inalterado. Typecheck, suíte completa, build, codegen e verificações dos tracks de migration passaram. O teste de navegador autenticado não foi feito porque o navegador de captura não possui sessão.
 
 **Antes de integrar novos módulos remotos:** reutilizar o cliente, roteamento e tratamento de erros/paginação já adotados; reavaliar CORS somente se a implantação futura separar as origens. Manter a prévia demonstrativa isolada: falha de rede nunca deve acionar fallback silencioso para fixtures.
@@ -164,7 +164,7 @@ Esses resultados comprovam esta fatia, não a prontidão integral do backend. N�
 
 ## Próximas etapas vigentes
 
-A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.5 estão concluídas; a próxima fatia prevista é conectar referências e, em seguida, avaliações/Seek, uma por vez. O Feed global e a busca por hashtags não devem ser reimplementados.
+A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.6 estão implementadas; a próxima fatia é avaliações/Seek, uma por vez. Referências do Feed aceitam somente publicações Social, são persistidas no schema Feed e reautorizadas ao montar cada prévia. O Feed global e a busca por hashtags não devem ser reimplementados.
 
 ## Ordem histórica da auditoria inicial
 

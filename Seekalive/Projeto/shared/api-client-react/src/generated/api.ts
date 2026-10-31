@@ -99,6 +99,7 @@ import type {
   PrivacySettingsWrite,
   ProfileResponse,
   RangeNotSatisfiableResponse,
+  ReferencePreview,
   RegisterRequest,
   SearchAccountsParams,
   ServiceUnavailableResponse,
@@ -5030,6 +5031,107 @@ export const useDeleteSocialPost = <TError = ErrorType<UnauthorizedResponse | No
       > => {
       return useMutation(getDeleteSocialPostMutationOptions(options), queryClient);
     }
+
+export const getGetSocialPostReferencePreviewUrl = (postId: string,) => {
+
+
+
+
+  return `/api/v1/social/posts/${postId}/reference`
+}
+
+/**
+ * @summary Read a referenced Social publication when its current audience permits
+ */
+export const getSocialPostReferencePreview = async (postId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReferencePreview> => {
+
+  return customFetch<ReferencePreview>(getGetSocialPostReferencePreviewUrl(postId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialPostReferencePreviewQueryKey = (postId: string,) => {
+    return [
+    `/api/v1/social/posts/${postId}/reference`
+    ] as const;
+    }
+
+
+export const getGetSocialPostReferencePreviewQueryOptions = <TData = Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError = ErrorType<NotFoundResponse | TooManyRequestsResponse>>(postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialPostReferencePreviewQueryKey(postId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialPostReferencePreview>>> = ({ signal }) => getSocialPostReferencePreview(postId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: postId !== null && postId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialPostReferencePreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialPostReferencePreview>>>
+export type GetSocialPostReferencePreviewQueryError = ErrorType<NotFoundResponse | TooManyRequestsResponse>
+
+
+export function useGetSocialPostReferencePreview<TData = Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError = ErrorType<NotFoundResponse | TooManyRequestsResponse>>(
+ postId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialPostReferencePreview>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialPostReferencePreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialPostReferencePreview<TData = Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError = ErrorType<NotFoundResponse | TooManyRequestsResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialPostReferencePreview>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialPostReferencePreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialPostReferencePreview<TData = Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError = ErrorType<NotFoundResponse | TooManyRequestsResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read a referenced Social publication when its current audience permits
+ */
+
+export function useGetSocialPostReferencePreview<TData = Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError = ErrorType<NotFoundResponse | TooManyRequestsResponse>>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostReferencePreview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialPostReferencePreviewQueryOptions(postId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getLikeSocialPostUrl = (postId: string,) => {
 

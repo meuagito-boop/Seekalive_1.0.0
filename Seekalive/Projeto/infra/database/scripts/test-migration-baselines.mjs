@@ -26,7 +26,7 @@ const expectedTablesAfterTransfer = {
   security: 4,
   profiles: 5,
   seek: 0,
-  feed: 6,
+  feed: 7,
   media: 1,
 };
 const expectedBusinessProfileColumns = [

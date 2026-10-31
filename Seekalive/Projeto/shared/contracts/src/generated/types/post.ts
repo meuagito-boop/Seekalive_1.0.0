@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ContentReference } from './contentReference';
 import type { PostArticle } from './postArticle';
 import type { PostAudience } from './postAudience';
 import type { PostFormat } from './postFormat';
@@ -27,6 +28,7 @@ export interface Post {
   /** @maxItems 8 */
   mediaTypes?: PostMediaTypesItem[];
   article?: PostArticle;
+  reference?: ContentReference;
   /** @minimum 0 */
   likes: number;
   /** @minimum 0 */

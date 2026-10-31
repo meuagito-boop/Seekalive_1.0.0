@@ -39,6 +39,7 @@ const {
   commercialProfiles,
   db,
   feedPosts,
+  feedPostReferences,
   feedPostTags,
   passwordCredentials,
   pool,
@@ -69,6 +70,7 @@ const modelTables = [
   accountBlocks,
   accountUsernameReservations,
   feedPosts,
+  feedPostReferences,
   feedPostTags,
 ];
 for (const table of modelTables) {
@@ -1902,6 +1904,90 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   assert.equal(articleRead.response.status, 200);
 
+  const createdReferencePost = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: commercial,
+    body: {
+      content: "Comentário sobre uma publicação pública",
+      audience: "public",
+      reference: {
+        type: "social_post",
+        id: createdPublicPost.body.id,
+      },
+    },
+  });
+  assert.equal(createdReferencePost.response.status, 201);
+  assert.deepEqual(createdReferencePost.body.reference, {
+    type: "social_post",
+    id: createdPublicPost.body.id,
+  });
+
+  const publicReferencePreview = await request(
+    `/api/v1/social/posts/${createdPublicPost.body.id}/reference`,
+    { auth: commercial },
+  );
+  assert.equal(publicReferencePreview.response.status, 200);
+  assert.equal(publicReferencePreview.body.type, "social_post");
+  assert.equal(publicReferencePreview.body.id, createdPublicPost.body.id);
+  assert.equal(publicReferencePreview.body.authorName, "Conta Isolada");
+
+  const createdArticleWithReference = await request(
+    "/api/v1/social/articles",
+    {
+      method: "POST",
+      auth: commercial,
+      body: {
+        audience: "public",
+        article: {
+          title: "Artigo que cita uma publicação",
+          body: "Texto do artigo de referência.",
+        },
+        reference: {
+          type: "social_post",
+          id: createdPublicPost.body.id,
+        },
+      },
+    },
+  );
+  assert.equal(createdArticleWithReference.response.status, 201);
+  assert.deepEqual(createdArticleWithReference.body.reference, {
+    type: "social_post",
+    id: createdPublicPost.body.id,
+  });
+
+  const createdPrivateReferencePost = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: commercial,
+    body: {
+      content: "Referência a publicação privada aprovada",
+      audience: "public",
+      reference: {
+        type: "social_post",
+        id: createdPrivatePost.body.id,
+      },
+    },
+  });
+  assert.equal(createdPrivateReferencePost.response.status, 201);
+  const approvedFollowerReferencePreview = await request(
+    `/api/v1/social/posts/${createdPrivatePost.body.id}/reference`,
+    { auth: commercial },
+  );
+  assert.equal(approvedFollowerReferencePreview.response.status, 200);
+  const hiddenReferencePreview = await request(
+    `/api/v1/social/posts/${createdPrivatePost.body.id}/reference`,
+  );
+  assert.equal(hiddenReferencePreview.response.status, 404);
+  const invalidReferenceId = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: commercial,
+    body: {
+      content: "ID inválido",
+      audience: "public",
+      reference: { type: "social_post", id: "not-a-uuid" },
+    },
+  });
+  assert.equal(invalidReferenceId.response.status, 422);
+
   const accentInsensitiveTagSearch = await request(
     "/api/v1/social/feed?tab=for-you&limit=50&q=caf%C3%A9",
     { auth: commercial },
@@ -2314,6 +2400,29 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     .from(feedPosts)
     .where(eq(feedPosts.id, createdPrivatePost.body.id));
   assert.equal(deletedPrivatePost, undefined);
+  const [referenceAfterSourceDelete] = await db
+    .select()
+    .from(feedPostReferences)
+    .where(eq(feedPostReferences.postId, createdPrivateReferencePost.body.id));
+  assert.equal(
+    referenceAfterSourceDelete.referenceId,
+    createdPrivatePost.body.reference.id,
+  );
+  assert.equal(referenceAfterSourceDelete.referencedPostId, null);
+  const referencePublicationAfterSourceDelete = await request(
+    `/api/v1/social/posts/${createdPrivateReferencePost.body.id}`,
+    { auth: commercial },
+  );
+  assert.equal(referencePublicationAfterSourceDelete.response.status, 200);
+  assert.deepEqual(referencePublicationAfterSourceDelete.body.reference, {
+    type: "social_post",
+    id: createdPrivatePost.body.reference.id,
+  });
+  const deletedTargetPreview = await request(
+    `/api/v1/social/posts/${createdPrivatePost.body.reference.id}/reference`,
+    { auth: commercial },
+  );
+  assert.equal(deletedTargetPreview.response.status, 404);
   const relationshipsAfterAcceptRace = await db
     .select()
     .from(accountFollows)

@@ -56,7 +56,7 @@ Em sessões remotas, a interface também usa o cliente Orval para busca de conta
 | `services/restContracts.ts` | Completar operações, erros, paginação e validações; manter formatos existentes documentados |
 | `services/contentValidation.ts` | Compartilhar regras com servidor sem confundir validação de UI com segurança |
 | `services/mediaService.ts`, `hooks/use-draft-media.ts` | Seleção e preview local; no envio remoto, upload autenticado via API para disco local em desenvolvimento. Estado de processamento, progresso/cancelamento e armazenamento permanente ainda não existem |
-| `services/referenceResolver.ts`, `lib/contentLinks.ts` | Resolver no servidor respeitando audiência e destino original, incluindo `event:` |
+| `modules/app/content/referenceResolver.ts`, `components/content/ReferencePreviewCard.tsx` | Sessão remota consulta a prévia autorizada de `social_post`; demonstração local continua usando snapshot. Tipos de Seek/evento/Shop não são aceitos no backend desta etapa |
 | `lib/postMedia.ts` | Galeria derivada de publicações e mídias autorizadas; não expor ativo oculto por outro caminho |
 | `data/accountStorage.ts`, `data/reviewStorage.ts` | Retirar como persistência principal; importação, se houver, explícita e validada |
 | `hooks/useSeekDiscovery.ts`, `lib/seekDiscovery.ts` | Consultar API por filtros/cidade; separar estado de UI dos dados; preservar retorno e scroll |
@@ -106,12 +106,12 @@ Idempotency-Key: <uuid-da-tentativa>
   "format": "media",
   "content": "Um registro do encontro.",
   "audience": "public",
-  "mediaIds": ["00000000-0000-4000-8000-000000000010"],
-  "reference": {"type":"seek_entity","id":"00000000-0000-4000-8000-000000000011"}
+  "mediaAssetIds": ["00000000-0000-4000-8000-000000000010"],
+  "reference": {"type":"social_post","id":"00000000-0000-4000-8000-000000000011"}
 }
 ```
 
-O servidor preenche autor, datas, contadores, menções e hashtags, valida os arquivos e a referência. A resposta continua no formato `Post` esperado pelo cliente.
+O servidor deriva o autor da sessão, valida os arquivos e verifica se o autor pode ler a publicação referenciada antes de criar. A prévia nunca é gravada no post: o UUID de destino é resolvido novamente na leitura, aplicando audiência, bloqueios e estado atual. Se o alvo ficar indisponível ou for apagado, a relação permanece sem metadados e a interface exibe “Conteúdo indisponível”.
 
 ### Busca de serviço em município
 
@@ -121,13 +121,13 @@ GET /api/v1/seek/discover?q=pedreiro&kind=provider&cityId=3550308&minRating=4&so
 
 Mapeamento do filtro atual: `query→q`, `tab=providers→kind=provider`, `minimumRating→minRating`; `list` e `scroll` não são filtros de servidor. `onlyOpen` atual é situação declarada: mapear para `open=declared`, não “aberto agora” sem horários estruturados.
 
-### Referência a evento legado
+### Prévia de publicação Social referenciada
 
 ```http
-GET /api/v1/references/seek_entity/event%3A00000000-0000-4000-8000-000000000012
+GET /api/v1/social/posts/00000000-0000-4000-8000-000000000011/reference
 ```
 
-O adaptador mantém `encodeURIComponent`. O servidor valida o prefixo, resolve evento e retorna `/seek/event/<id>`, sem transformar o evento em conta.
+O endpoint é público apenas para alvos legíveis por visitantes; quando login for necessário, a sessão atual precisa ter acesso. Alvo privado não legível, bloqueado ou removido retorna o mesmo `404 CONTENT_NOT_FOUND`, sem expor título, autor ou existência. Esta implementação aceita somente referências `social_post`; referências de evento/Seek e Shop continuam fora do backend atual.
 
 ### Avaliação
 

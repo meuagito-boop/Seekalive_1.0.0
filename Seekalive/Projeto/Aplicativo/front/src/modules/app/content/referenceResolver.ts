@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Post } from "@/modules/social/types/post";
 import type { SeekReview } from "@/modules/seek/types/review";
 import type { User } from "@/modules/profile/types/user";
@@ -5,6 +6,22 @@ import type { ContentReference, ReferencePreview } from "@/modules/app/content/c
 import { canReadPost } from "@/modules/social/application/contentValidation";
 import { referenceSchema } from "@/modules/app/content/referenceSchema";
 import { ContentServiceError } from "@/modules/app/api/contentServiceError";
+import { ApiRequestError, getJson } from "@/modules/app/api/httpClient";
+
+const referencePreviewSchema = referenceSchema.extend({
+  title: z.string(),
+  imageUrl: z.string().optional(),
+  subtitle: z.string().optional(),
+  status: z.string().optional(),
+  distanceLabel: z.string().optional(),
+  rating: z.number().optional(),
+  ratingCount: z.number().optional(),
+  price: z.string().optional(),
+  targetPath: z.string(),
+  authorName: z.string().optional(),
+  authorAvatarUrl: z.string().optional(),
+  entityLabel: z.string().optional(),
+});
 
 export interface ReferenceSnapshot {
   users: User[];
@@ -128,4 +145,24 @@ export function resolveReference(
     .finally(() => inFlight.delete(key));
   inFlight.set(key, result);
   return result;
+}
+
+export async function resolveRemoteReference(
+  reference: ContentReference,
+): Promise<ReferencePreview | null> {
+  if (reference.type !== "social_post") {
+    throw new ContentServiceError(
+      "Nesta etapa, só é possível carregar referências de publicações Social.",
+      422,
+    );
+  }
+  try {
+    return await getJson<ReferencePreview>(
+      `/social/posts/${encodeURIComponent(reference.id)}/reference`,
+      { 200: referencePreviewSchema },
+    );
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) return null;
+    throw error;
+  }
 }

@@ -1,4 +1,4 @@
-import type { PostAudience } from "@workspace/api-zod";
+import type { PostAudience, SocialPostReference } from "@workspace/api-zod";
 
 export type FeedPostFormat = "text" | "media" | "article";
 export type SocialFeedTab = "for-you" | "following" | "articles" | "videos";
@@ -16,6 +16,7 @@ export type FeedPost = {
   media: FeedMediaReference[];
   articleTitle: string | null;
   articleBody: string | null;
+  reference: SocialPostReference | null;
   createdAt: Date;
   updatedAt: Date;
   version: number;
@@ -28,6 +29,7 @@ export type NewFeedPost = Pick<
   media?: FeedMediaReference[];
   articleTitle?: string | null;
   articleBody?: string | null;
+  reference?: SocialPostReference;
 };
 
 export type PostPosition = Pick<FeedPost, "createdAt" | "id">;

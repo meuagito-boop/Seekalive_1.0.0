@@ -1481,6 +1481,27 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /v1/social/posts/{postId}/reference:
+    parameters:
+      - $ref: "#/components/parameters/PostId"
+    get:
+      operationId: getSocialPostReferencePreview
+      tags: [feed]
+      summary: Read a referenced Social publication when its current audience permits
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "200":
+          description: Sanitized preview of a readable Social publication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferencePreview"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/social/posts/{postId}/like:
     parameters:
       - $ref: "#/components/parameters/PostId"
@@ -3098,6 +3119,8 @@ components:
               type: string
               maxLength: 50000
           required: [title, body]
+        reference:
+          $ref: "#/components/schemas/ContentReference"
         likes:
           type: integer
           minimum: 0
@@ -3134,6 +3157,45 @@ components:
           isReposted,
           isBookmarked,
         ]
+    ContentReference:
+      type: object
+      properties:
+        type:
+          type: string
+          const: social_post
+        id:
+          type: string
+          format: uuid
+      required: [type, id]
+      additionalProperties: false
+    ReferencePreview:
+      type: object
+      properties:
+        type:
+          type: string
+          const: social_post
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        imageUrl:
+          type: string
+          format: uri-reference
+        subtitle:
+          type: string
+        targetPath:
+          type: string
+        authorName:
+          type: string
+        authorAvatarUrl:
+          type: string
+          format: uri-reference
+        entityLabel:
+          type: string
+      required: [type, id, title, targetPath]
+      additionalProperties: false
     CommentCreate:
       type: object
       properties:
@@ -3220,7 +3282,7 @@ components:
       required: [items, nextCursor]
     PostCreate:
       type: object
-      description: Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; arbitrary URLs are not accepted.
+      description: Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; an optional social_post reference must be readable by the authenticated author.
       properties:
         authorId:
           type: string
@@ -3242,11 +3304,13 @@ components:
           items:
             type: string
             format: uuid
+        reference:
+          $ref: "#/components/schemas/ContentReference"
       required: [audience]
       additionalProperties: false
     ArticleCreate:
       type: object
-      description: Article with optional staged media assets and at most 10 distinct hashtags across its caption, title, and body.
+      description: Article with optional staged media assets, optional readable social_post reference, and at most 10 distinct hashtags across its caption, title, and body.
       properties:
         authorId:
           type: string
@@ -3282,6 +3346,8 @@ components:
           items:
             type: string
             format: uuid
+        reference:
+          $ref: "#/components/schemas/ContentReference"
       required: [audience, article]
       additionalProperties: false
     MediaUpload:

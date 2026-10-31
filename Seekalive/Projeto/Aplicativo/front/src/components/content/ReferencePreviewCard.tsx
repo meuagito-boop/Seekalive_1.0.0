@@ -5,7 +5,12 @@ import { ArrowUpRight, MapPin, Star, X, Store, CalendarDays, FileText, ShoppingB
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import { useAppContext } from "@/modules/app/state/AppContext";
-import { resolveReference, referenceKey, referenceDataVersion } from "@/modules/app/content/referenceResolver";
+import {
+  resolveReference,
+  resolveRemoteReference,
+  referenceKey,
+  referenceDataVersion,
+} from "@/modules/app/content/referenceResolver";
 import type { ContentReference, ReferencePreview } from "@/modules/app/content/contentReferences";
 import { ErrorState } from "./StateBlocks";
 
@@ -18,7 +23,8 @@ const TYPE_META = {
 /** Shared React Query hook — deduplicates by stable type+id and a coarse state version. */
 export function useReferencePreview(reference: ContentReference | null | undefined) {
   const { users, posts, reviews } = useSocial();
-  const { currentUser } = useAppContext();
+  const { currentUser, isDevelopmentPreview } = useAppContext();
+  const useRemoteResolution = !isDevelopmentPreview;
   const viewerId = currentUser?.id;
   const snapshotUsers = useMemo(
     () => currentUser ? [...users.filter(user => user.id !== currentUser.id), currentUser] : users,
@@ -29,9 +35,18 @@ export function useReferencePreview(reference: ContentReference | null | undefin
 
   return useQuery<ReferencePreview | null>({
     queryKey: ["reference-preview", target ? referenceKey(target) : "none", viewerId ?? "anon", version],
-    queryFn: () => resolveReference(target as ContentReference, { users: snapshotUsers, posts, reviews, viewerId }),
+    queryFn: () =>
+      useRemoteResolution
+        ? resolveRemoteReference(target as ContentReference)
+        : resolveReference(target as ContentReference, {
+            users: snapshotUsers,
+            posts,
+            reviews,
+            viewerId,
+          }),
     enabled: !!target,
-    staleTime: 60_000,
+    staleTime: useRemoteResolution ? 0 : 60_000,
+    refetchOnWindowFocus: useRemoteResolution,
     retry: 1,
   });
 }

@@ -19,6 +19,7 @@ export const isolatedDatabaseTableNames = Object.freeze([
   "post_bookmarks",
   "post_comments",
   "post_likes",
+  "post_references",
   "post_reposts",
   "post_tags",
   "posts",

@@ -8566,7 +8566,7 @@
           "social"
         ],
         "summary": "Publicar texto ou mídia por IDs de uploads prontos",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "security": [
           {
             "SessionCookie": [],
@@ -8584,8 +8584,8 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8744,7 +8744,7 @@
           "social"
         ],
         "summary": "Ler publicação aplicando audiência e bloqueios",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "postId",
@@ -8764,7 +8764,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9287,7 +9287,7 @@
           "social"
         ],
         "summary": "Publicar artigo longo como publicação",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "security": [
           {
             "SessionCookie": [],
@@ -9299,14 +9299,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PostCreate"
+                "$ref": "#/components/schemas/ArticleCreate"
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Contrato proposto; handler ainda não existe.",
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9465,7 +9465,7 @@
           "social"
         ],
         "summary": "Ler artigo como publicação",
-        "description": "PROPOSED ONLY; not currently implemented.",
+        "description": "LIVE on the audited API server.",
         "parameters": [
           {
             "name": "postId",
@@ -9485,11 +9485,190 @@
         ],
         "responses": {
           "200": {
-            "description": "Contrato proposto; handler ainda não existe.",
+            "description": "Endpoint implementado e observado no servidor atual.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Post"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Resposta de erro padronizada; detalhes por rota em README e architecture-and-security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/social/posts/{postId}/reference": {
+      "get": {
+        "operationId": "social_get_v1_social_posts_postId_reference_1",
+        "tags": [
+          "social"
+        ],
+        "summary": "Resolver prévia de publicação Social reaplicando audiência e bloqueios",
+        "description": "LIVE on the audited API server.",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "Endpoint implementado e observado no servidor atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialPostReferencePreview"
                 }
               }
             }
@@ -28770,6 +28949,26 @@
           "id"
         ]
       },
+      "SocialPostReference": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "social_post"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ]
+      },
       "PostCreate": {
         "type": "object",
         "additionalProperties": false,
@@ -28790,23 +28989,20 @@
             "type": "string",
             "enum": [
               "text",
-              "media",
-              "article"
+              "media"
             ]
           },
-          "article": {
-            "$ref": "#/components/schemas/Article"
-          },
-          "mediaIds": {
+          "mediaAssetIds": {
             "type": "array",
             "maxItems": 8,
+            "uniqueItems": true,
             "items": {
               "type": "string",
               "format": "uuid"
             }
           },
           "reference": {
-            "$ref": "#/components/schemas/ContentReference"
+            "$ref": "#/components/schemas/SocialPostReference"
           },
           "authorId": {
             "type": "string",
@@ -28815,8 +29011,56 @@
           }
         },
         "required": [
-          "content",
           "audience"
+        ]
+      },
+      "ArticleCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 280,
+            "default": ""
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "public",
+              "circles",
+              "private"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "article"
+            ]
+          },
+          "article": {
+            "$ref": "#/components/schemas/Article"
+          },
+          "mediaAssetIds": {
+            "type": "array",
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "reference": {
+            "$ref": "#/components/schemas/SocialPostReference"
+          },
+          "authorId": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Compatibilidade transitória; ignorado ou validado contra a sessão."
+          }
+        },
+        "required": [
+          "audience",
+          "article"
         ]
       },
       "PostPatch": {
@@ -29343,6 +29587,50 @@
               "string",
               "null"
             ]
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "title",
+          "targetPath"
+        ]
+      },
+      "SocialPostReferencePreview": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "social_post"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "targetPath": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "authorAvatarUrl": {
+            "type": "string"
+          },
+          "entityLabel": {
+            "type": "string"
           }
         },
         "required": [

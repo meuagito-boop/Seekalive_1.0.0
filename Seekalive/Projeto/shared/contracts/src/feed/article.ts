@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { postAudienceSchema } from "./audience";
+import { socialPostReferenceSchema } from "./references";
 import {
   countPostHashtags,
   HASHTAG_LIMIT_MESSAGE,
@@ -14,6 +15,7 @@ export const createArticleSchema = z.object({
   audience: postAudienceSchema,
   format: z.literal("article").optional(),
   mediaAssetIds: z.array(z.string().uuid()).max(8).optional(),
+  reference: socialPostReferenceSchema.optional(),
   article: z.object({
     title: z.string().trim().min(1).max(160),
     body: z.string().trim().min(1).max(50_000),

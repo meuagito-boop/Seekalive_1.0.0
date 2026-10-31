@@ -35,6 +35,7 @@ export function toPostView(
     ...(post.format === "article" && post.articleTitle && post.articleBody
       ? { article: { title: post.articleTitle, body: post.articleBody } }
       : {}),
+    ...(post.reference ? { reference: post.reference } : {}),
     likes: interactions.likes,
     comments: interactions.comments,
     reposts: interactions.reposts,

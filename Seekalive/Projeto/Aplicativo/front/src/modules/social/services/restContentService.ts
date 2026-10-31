@@ -11,9 +11,9 @@ import { ContentServiceError } from "@/modules/app/api/contentServiceError";
 export const restContentAdapter: ContentService = {
   async createPost(input) {
     const validated = validatePublication(input);
-    if (validated.reference) {
+    if (validated.reference && validated.reference.type !== "social_post") {
       throw new ContentServiceError(
-        "Publicações com conteúdo referenciado ainda não estão disponíveis na conexão com o servidor.",
+        "Nesta etapa, só é possível anexar outra publicação Social.",
         422,
       );
     }

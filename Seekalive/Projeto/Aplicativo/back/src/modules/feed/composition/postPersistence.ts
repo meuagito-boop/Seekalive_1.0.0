@@ -11,6 +11,7 @@ import type { NewFeedPost, FeedMediaReference } from "../domain/post";
 import { FeedMediaAssetsUnavailableError } from "../domain/feedMediaAssets";
 import { toFeedPost } from "../infrastructure/postRepository";
 import { persistPostHashtags } from "../infrastructure/postTagRepository";
+import { persistPostReference } from "../infrastructure/postReferenceRepository";
 
 export type PersistFeedPostCommand = NewFeedPost & {
   mediaAssetIds?: string[];
@@ -60,6 +61,7 @@ export async function persistFeedPost(
       command.articleTitle,
       command.articleBody,
     ]);
+    await persistPostReference(transaction, row.id, command.reference);
 
     if (assetIds.length > 0) {
       await attachStagedMediaAssets(transaction, {
@@ -68,7 +70,7 @@ export async function persistFeedPost(
         assetIds,
       });
     }
-    return toFeedPost(row);
+    return toFeedPost(row, command.reference ?? null);
   });
 }
 

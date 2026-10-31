@@ -9,6 +9,7 @@ import type { CreatePost } from "../application/createPost";
 import { toPostView } from "../application/postView";
 import { FeedMediaAssetsUnavailableError } from "../domain/feedMediaAssets";
 import { FeedHashtagLimitExceededError } from "../domain/postTags";
+import { FeedReferencedPostUnavailableError } from "../domain/feedReferences";
 import { requiredActorId, sendFeedError } from "./feedHttp";
 
 export function createPostCreateRoutes(createPost: CreatePost): IRouter {
@@ -55,8 +56,18 @@ export function createPostCreateRoutes(createPost: CreatePost): IRouter {
           audience: parsed.data.audience,
           format: parsed.data.format ?? "text",
           mediaAssetIds: parsed.data.mediaAssetIds,
+          reference: parsed.data.reference,
         });
       } catch (error) {
+        if (error instanceof FeedReferencedPostUnavailableError) {
+          sendFeedError(
+            response,
+            404,
+            "CONTENT_NOT_FOUND",
+            "O conteúdo anexado não está disponível.",
+          );
+          return;
+        }
         if (error instanceof FeedHashtagLimitExceededError) {
           sendFeedError(
             response,

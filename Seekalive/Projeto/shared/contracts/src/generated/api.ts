@@ -1076,6 +1076,10 @@ export const GetProfileByUsernameResponse = zod.object({
   "title": zod.string().max(getProfileByUsernameResponsePostsItemsItemArticleTitleMax),
   "body": zod.string().max(getProfileByUsernameResponsePostsItemsItemArticleBodyMax)
 }).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional(),
   "likes": zod.int().min(getProfileByUsernameResponsePostsItemsItemLikesMin),
   "comments": zod.int().min(getProfileByUsernameResponsePostsItemsItemCommentsMin),
   "reposts": zod.int().min(getProfileByUsernameResponsePostsItemsItemRepostsMin),
@@ -1101,6 +1105,10 @@ export const GetProfileByUsernameResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(getProfileByUsernameResponseArticlesItemsItemArticleTitleMax),
   "body": zod.string().max(getProfileByUsernameResponseArticlesItemsItemArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(getProfileByUsernameResponseArticlesItemsItemLikesMin),
   "comments": zod.int().min(getProfileByUsernameResponseArticlesItemsItemCommentsMin),
@@ -1686,6 +1694,10 @@ export const GetSocialFeedResponse = zod.object({
   "title": zod.string().max(getSocialFeedResponseItemsItemPostArticleTitleMax),
   "body": zod.string().max(getSocialFeedResponseItemsItemPostArticleBodyMax)
 }).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional(),
   "likes": zod.int().min(getSocialFeedResponseItemsItemPostLikesMin),
   "comments": zod.int().min(getSocialFeedResponseItemsItemPostCommentsMin),
   "reposts": zod.int().min(getSocialFeedResponseItemsItemPostRepostsMin),
@@ -1790,8 +1802,12 @@ export const CreateSocialPostBody = zod.object({
   "content": zod.string().max(createSocialPostBodyContentMax).optional(),
   "audience": zod.enum(['public', 'circles', 'private']),
   "format": zod.enum(['text', 'media']).optional(),
-  "mediaAssetIds": zod.array(zod.uuid()).max(createSocialPostBodyMediaAssetIdsMax).optional()
-}).describe('Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; arbitrary URLs are not accepted.')
+  "mediaAssetIds": zod.array(zod.uuid()).max(createSocialPostBodyMediaAssetIdsMax).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional()
+}).describe('Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; an optional social_post reference must be readable by the authenticated author.')
 
 export const createSocialPostResponseContentMax = 280;
 
@@ -1829,6 +1845,10 @@ export const CreateSocialPostResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(createSocialPostResponseArticleTitleMax),
   "body": zod.string().max(createSocialPostResponseArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(createSocialPostResponseLikesMin),
   "comments": zod.int().min(createSocialPostResponseCommentsMin),
@@ -1884,6 +1904,10 @@ export const GetSocialPostResponse = zod.object({
   "title": zod.string().max(getSocialPostResponseArticleTitleMax),
   "body": zod.string().max(getSocialPostResponseArticleBodyMax)
 }).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional(),
   "likes": zod.int().min(getSocialPostResponseLikesMin),
   "comments": zod.int().min(getSocialPostResponseCommentsMin),
   "reposts": zod.int().min(getSocialPostResponseRepostsMin),
@@ -1902,6 +1926,30 @@ export const DeleteSocialPostParams = zod.object({
 })
 
 export const DeleteSocialPostResponse = zod.void()
+
+
+/**
+ * @summary Read a referenced Social publication when its current audience permits
+ */
+export const GetSocialPostReferencePreviewParams = zod.object({
+  "postId": zod.uuid()
+})
+
+export const getSocialPostReferencePreviewResponseTitleMax = 200;
+
+
+
+export const GetSocialPostReferencePreviewResponse = zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid(),
+  "title": zod.string().max(getSocialPostReferencePreviewResponseTitleMax),
+  "imageUrl": zod.string().optional(),
+  "subtitle": zod.string().optional(),
+  "targetPath": zod.string(),
+  "authorName": zod.string().optional(),
+  "authorAvatarUrl": zod.string().optional(),
+  "entityLabel": zod.string().optional()
+})
 
 
 /**
@@ -1947,6 +1995,10 @@ export const LikeSocialPostResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(likeSocialPostResponseArticleTitleMax),
   "body": zod.string().max(likeSocialPostResponseArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(likeSocialPostResponseLikesMin),
   "comments": zod.int().min(likeSocialPostResponseCommentsMin),
@@ -2002,6 +2054,10 @@ export const UnlikeSocialPostResponse = zod.object({
   "title": zod.string().max(unlikeSocialPostResponseArticleTitleMax),
   "body": zod.string().max(unlikeSocialPostResponseArticleBodyMax)
 }).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional(),
   "likes": zod.int().min(unlikeSocialPostResponseLikesMin),
   "comments": zod.int().min(unlikeSocialPostResponseCommentsMin),
   "reposts": zod.int().min(unlikeSocialPostResponseRepostsMin),
@@ -2055,6 +2111,10 @@ export const RepostSocialPostResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(repostSocialPostResponseArticleTitleMax),
   "body": zod.string().max(repostSocialPostResponseArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(repostSocialPostResponseLikesMin),
   "comments": zod.int().min(repostSocialPostResponseCommentsMin),
@@ -2110,6 +2170,10 @@ export const RemoveSocialPostRepostResponse = zod.object({
   "title": zod.string().max(removeSocialPostRepostResponseArticleTitleMax),
   "body": zod.string().max(removeSocialPostRepostResponseArticleBodyMax)
 }).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional(),
   "likes": zod.int().min(removeSocialPostRepostResponseLikesMin),
   "comments": zod.int().min(removeSocialPostRepostResponseCommentsMin),
   "reposts": zod.int().min(removeSocialPostRepostResponseRepostsMin),
@@ -2164,6 +2228,10 @@ export const BookmarkSocialPostResponse = zod.object({
   "title": zod.string().max(bookmarkSocialPostResponseArticleTitleMax),
   "body": zod.string().max(bookmarkSocialPostResponseArticleBodyMax)
 }).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional(),
   "likes": zod.int().min(bookmarkSocialPostResponseLikesMin),
   "comments": zod.int().min(bookmarkSocialPostResponseCommentsMin),
   "reposts": zod.int().min(bookmarkSocialPostResponseRepostsMin),
@@ -2217,6 +2285,10 @@ export const RemoveSocialPostBookmarkResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(removeSocialPostBookmarkResponseArticleTitleMax),
   "body": zod.string().max(removeSocialPostBookmarkResponseArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(removeSocialPostBookmarkResponseLikesMin),
   "comments": zod.int().min(removeSocialPostBookmarkResponseCommentsMin),
@@ -2423,8 +2495,12 @@ export const CreateSocialArticleBody = zod.object({
   "title": zod.string().min(1).max(createSocialArticleBodyArticleTitleMax),
   "body": zod.string().min(1).max(createSocialArticleBodyArticleBodyMax)
 }),
-  "mediaAssetIds": zod.array(zod.uuid()).max(createSocialArticleBodyMediaAssetIdsMax).optional()
-}).describe('Article with optional staged media assets and at most 10 distinct hashtags across its caption, title, and body.')
+  "mediaAssetIds": zod.array(zod.uuid()).max(createSocialArticleBodyMediaAssetIdsMax).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
+}).optional()
+}).describe('Article with optional staged media assets, optional readable social_post reference, and at most 10 distinct hashtags across its caption, title, and body.')
 
 export const createSocialArticleResponseContentMax = 280;
 
@@ -2462,6 +2538,10 @@ export const CreateSocialArticleResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(createSocialArticleResponseArticleTitleMax),
   "body": zod.string().max(createSocialArticleResponseArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(createSocialArticleResponseLikesMin),
   "comments": zod.int().min(createSocialArticleResponseCommentsMin),
@@ -2516,6 +2596,10 @@ export const GetSocialArticleResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(getSocialArticleResponseArticleTitleMax),
   "body": zod.string().max(getSocialArticleResponseArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(getSocialArticleResponseLikesMin),
   "comments": zod.int().min(getSocialArticleResponseCommentsMin),
@@ -2585,6 +2669,10 @@ export const GetSocialAccountPostsResponse = zod.object({
   "article": zod.object({
   "title": zod.string().max(getSocialAccountPostsResponseItemsItemArticleTitleMax),
   "body": zod.string().max(getSocialAccountPostsResponseItemsItemArticleBodyMax)
+}).optional(),
+  "reference": zod.object({
+  "type": zod.literal("social_post"),
+  "id": zod.uuid()
 }).optional(),
   "likes": zod.int().min(getSocialAccountPostsResponseItemsItemLikesMin),
   "comments": zod.int().min(getSocialAccountPostsResponseItemsItemCommentsMin),

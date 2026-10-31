@@ -385,12 +385,13 @@ put("accounts", "/v1/accounts/me/privacy", "Atualizar nível de privacidade, men
 g("accounts", "/v1/accounts/me/privacy", "Consultar permissões e privacidade próprias", "Privacy", null, { status: "live" });
 
 g("social", "/v1/social/feed", "Feed paginado e filtrado por visitante", P, null, { query: ["tab", "limit", "cursor"] });
-post("social", "/v1/social/posts", "Publicar texto ou mídia por IDs de uploads prontos", "PostCreate", "Post");
-g("social", "/v1/social/posts/{postId}", "Ler publicação aplicando audiência e bloqueios", "Post", null, { auth: "optional" });
+post("social", "/v1/social/posts", "Publicar texto ou mídia por IDs de uploads prontos", "PostCreate", "Post", { status: "live" });
+g("social", "/v1/social/posts/{postId}", "Ler publicação aplicando audiência e bloqueios", "Post", null, { auth: "optional", status: "live" });
 patch("social", "/v1/social/posts/{postId}", "Editar publicação própria com versão", "PostPatch", "Post");
 del("social", "/v1/social/posts/{postId}", "Remover publicação própria", "Empty");
-post("social", "/v1/social/articles", "Publicar artigo longo como publicação", "PostCreate", "Post");
-g("social", "/v1/social/articles/{postId}", "Ler artigo como publicação", "Post", null, { auth: "optional" });
+post("social", "/v1/social/articles", "Publicar artigo longo como publicação", "ArticleCreate", "Post", { status: "live" });
+g("social", "/v1/social/articles/{postId}", "Ler artigo como publicação", "Post", null, { auth: "optional", status: "live" });
+g("social", "/v1/social/posts/{postId}/reference", "Resolver prévia de publicação Social reaplicando audiência e bloqueios", "SocialPostReferencePreview", null, { auth: "optional", status: "live" });
 g("social", "/v1/social/posts/{postId}/comments", "Listar comentários legíveis da publicação", "PageComment", null, { query: ["cursor"] });
 post("social", "/v1/social/posts/{postId}/comments", "Comentar ou responder na mesma publicação", "CommentCreate", C);
 patch("social", "/v1/social/comments/{commentId}", "Editar comentário próprio com versão", "CommentPatch", C);
@@ -874,7 +875,9 @@ const schemas = {
   PostStats: model({ likes: { type: "integer", minimum: 0 }, comments: { type: "integer", minimum: 0 }, reposts: { type: "integer", minimum: 0 }, shares: { type: "integer", minimum: 0 } }, ["likes", "comments", "reposts", "shares"]),
   PostViewer: model({ isLiked: { type: "boolean" }, isReposted: { type: "boolean" }, isBookmarked: { type: "boolean" } }, ["isLiked", "isReposted", "isBookmarked"]),
   ContentReference: model({ type: { type: "string", enum: ["seek_entity", "shop_item", "social_post"] }, id: { type: "string", minLength: 1, maxLength: 200 } }, ["type", "id"]),
-  PostCreate: model({ content: { type: "string", maxLength: 280 }, audience, format: { type: "string", enum: ["text", "media", "article"] }, article: ref("Article"), mediaIds: { type: "array", maxItems: 8, items: uuid }, reference: ref("ContentReference"), authorId: { type: "string", deprecated: true, description: "Compatibilidade transitória; ignorado ou validado contra a sessão." } }, ["content", "audience"]),
+  SocialPostReference: model({ type: { type: "string", enum: ["social_post"] }, id: uuid }, ["type", "id"]),
+  PostCreate: model({ content: { type: "string", maxLength: 280 }, audience, format: { type: "string", enum: ["text", "media"] }, mediaAssetIds: { type: "array", maxItems: 8, uniqueItems: true, items: uuid }, reference: ref("SocialPostReference"), authorId: { type: "string", deprecated: true, description: "Compatibilidade transitória; ignorado ou validado contra a sessão." } }, ["audience"]),
+  ArticleCreate: model({ content: { type: "string", maxLength: 280, default: "" }, audience, format: { type: "string", enum: ["article"] }, article: ref("Article"), mediaAssetIds: { type: "array", maxItems: 8, uniqueItems: true, items: uuid }, reference: ref("SocialPostReference"), authorId: { type: "string", deprecated: true, description: "Compatibilidade transitória; ignorado ou validado contra a sessão." } }, ["audience", "article"]),
   PostPatch: model({ content: { type: "string", maxLength: 280 }, audience, article: ref("Article"), reference: ref("ContentReference"), version: { type: "integer" } }, ["version"]),
   PagePost: page("Post"),
   Comment: model({ id: uuid, postId: uuid, authorId: uuid, content: { type: "string", maxLength: 2000 }, replyToCommentId: { type: ["string", "null"], format: "uuid" }, createdAt: { type: "string", format: "date-time" }, likes: { type: "integer", minimum: 0 }, isLiked: { type: "boolean" }, version: { type: "integer" } }, ["id", "postId", "authorId", "content", "createdAt", "likes", "isLiked", "version"]),
@@ -894,6 +897,7 @@ const schemas = {
   Tag: model({ tag: string, count: { type: "integer", minimum: 0 } }, ["tag", "count"]),
   SearchResults: model({ posts: page("Post"), accounts: page("Account"), tags: page("Tag"), nextCursor: { type: ["string", "null"] } }, ["posts", "accounts", "tags"]),
   ReferencePreview: model({ type: { type: "string", enum: ["seek_entity", "shop_item", "social_post"] }, id: string, title: string, targetPath: string, imageUrl: { type: ["string", "null"] }, subtitle: { type: ["string", "null"] }, rating: { type: ["number", "null"] }, ratingCount: { type: "integer", minimum: 0 }, authorName: { type: ["string", "null"] }, authorAvatarUrl: { type: ["string", "null"] } }, ["type", "id", "title", "targetPath"]),
+  SocialPostReferencePreview: model({ type: { type: "string", enum: ["social_post"] }, id: uuid, title: { type: "string", maxLength: 200 }, imageUrl: string, subtitle: string, targetPath: string, authorName: string, authorAvatarUrl: string, entityLabel: string }, ["type", "id", "title", "targetPath"]),
   Activity: model({ id: uuid, type: string, resourceType: string, resourceId: uuid, createdAt: { type: "string", format: "date-time" } }, ["id", "type", "resourceType", "resourceId", "createdAt"]),
   PageActivity: page("Activity"),
   PageMedia: page("MediaAsset"),
@@ -1055,7 +1059,7 @@ const lines = [
   "",
   `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. OpenAPI 3.1 em \`openapi.json\`: **${R.length} operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
   "",
-  "> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A suíte de API isolada passou após a sincronização, criando e removendo seu schema temporário. Produção não foi consultada, alterada ou publicada.",
+  "> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A integração HTTP isolada da fatia de referências não foi executada porque o runner não recebeu `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; a limitação está registrada no roadmap. Produção não foi consultada, alterada ou publicada.",
   "",
   "## Respostas, paginação e autenticação",
   "",

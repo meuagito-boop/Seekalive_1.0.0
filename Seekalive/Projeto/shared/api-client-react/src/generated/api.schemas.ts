@@ -672,6 +672,11 @@ export const PostMediaTypesItem = {
   video: 'video',
 } as const;
 
+export interface ContentReference {
+  type: 'social_post';
+  id: string;
+}
+
 export type PostArticle = {
   /** @maxLength 160 */
   title: string;
@@ -695,6 +700,7 @@ export interface Post {
   /** @maxItems 8 */
   mediaTypes?: PostMediaTypesItem[];
   article?: PostArticle;
+  reference?: ContentReference;
   /** @minimum 0 */
   likes: number;
   /** @minimum 0 */
@@ -880,6 +886,19 @@ export interface FollowState {
   updatedAt: string;
 }
 
+export interface ReferencePreview {
+  type: 'social_post';
+  id: string;
+  /** @maxLength 200 */
+  title: string;
+  imageUrl?: string;
+  subtitle?: string;
+  targetPath: string;
+  authorName?: string;
+  authorAvatarUrl?: string;
+  entityLabel?: string;
+}
+
 export interface CommentCreate {
   /**
      * @minLength 1
@@ -940,7 +959,7 @@ export const PostCreateFormat = {
 } as const;
 
 /**
- * Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; arbitrary URLs are not accepted.
+ * Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; an optional social_post reference must be readable by the authenticated author.
  */
 export interface PostCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -951,6 +970,7 @@ export interface PostCreate {
   format?: PostCreateFormat;
   /** @maxItems 8 */
   mediaAssetIds?: string[];
+  reference?: ContentReference;
 }
 
 export type ArticleCreateAudience = typeof ArticleCreateAudience[keyof typeof ArticleCreateAudience];
@@ -976,7 +996,7 @@ export type ArticleCreateArticle = {
 };
 
 /**
- * Article with optional staged media assets and at most 10 distinct hashtags across its caption, title, and body.
+ * Article with optional staged media assets, optional readable social_post reference, and at most 10 distinct hashtags across its caption, title, and body.
  */
 export interface ArticleCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -988,6 +1008,7 @@ export interface ArticleCreate {
   article: ArticleCreateArticle;
   /** @maxItems 8 */
   mediaAssetIds?: string[];
+  reference?: ContentReference;
 }
 
 export type MediaUploadType = typeof MediaUploadType[keyof typeof MediaUploadType];
