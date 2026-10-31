@@ -227,6 +227,15 @@ test("real API schedules and restores deletion with an authenticated session and
   assert.equal(unauthorized.body.error.key, "UNAUTHENTICATED");
   assert.equal(deletionMessages.length, messagesBeforeUnauthorizedRequest);
 
+  const missingCsrf = await request("/api/v1/auth/account/deletion/code", {
+    method: "POST",
+    auth: { cookie: preAuth.cookie },
+    body: {},
+  });
+  assert.equal(missingCsrf.response.status, 403);
+  assert.equal(missingCsrf.body.error.key, "CSRF_REJECTED");
+  assert.equal(deletionMessages.length, messagesBeforeUnauthorizedRequest);
+
   const codeRequest = await request("/api/v1/auth/account/deletion/code", {
     method: "POST",
     auth: preAuth,

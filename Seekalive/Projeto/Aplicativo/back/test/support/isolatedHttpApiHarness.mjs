@@ -218,12 +218,17 @@ export async function startIsolatedHttpApiHarness({
       };
     }
 
-    async function registerAccount(registration, auth = undefined) {
+    async function registerAccount(
+      registration,
+      auth = undefined,
+      clientIp = "203.0.113.42",
+    ) {
       const preAuth = auth ?? (await createPreAuth());
       const { response, body } = await request("/api/v1/auth/register", {
         method: "POST",
         body: registration,
         auth: preAuth,
+        clientIp,
       });
       assert.equal(response.status, 202, JSON.stringify(body));
       assert.equal(body?.status, "verification_required");
@@ -231,17 +236,21 @@ export async function startIsolatedHttpApiHarness({
       const message = emails.verification.findLast(
         (item) => item.email === email,
       );
-      assert.ok(message, "The in-memory sink must capture the verification code.");
+      assert.ok(
+        message,
+        "The in-memory sink must capture the verification code.",
+      );
       return { email, password: registration.password, message, preAuth, body };
     }
 
-    async function confirmAccount(pending) {
+    async function confirmAccount(pending, clientIp = "203.0.113.42") {
       const { response, body } = await request(
         "/api/v1/auth/verification/confirm",
         {
           method: "POST",
           body: { email: pending.email, code: pending.message.code },
           auth: pending.preAuth,
+          clientIp,
         },
       );
       assert.equal(response.status, 200, JSON.stringify(body));
@@ -256,16 +265,18 @@ export async function startIsolatedHttpApiHarness({
       };
     }
 
-    async function createVerifiedAccount(accountType, suffix = undefined) {
+    async function createVerifiedAccount(
+      accountType,
+      suffix = undefined,
+      clientIp = "203.0.113.42",
+    ) {
       assert.ok(accountType === "personal" || accountType === "commercial");
       const uniqueSuffix =
         suffix ?? randomUUID().replaceAll("-", "").slice(0, 10);
       const safeSuffix = uniqueSuffix.toLowerCase().replace(/[^a-z0-9_]/g, "");
       assert.ok(safeSuffix.length >= 2 && safeSuffix.length <= 14);
       const username =
-        accountType === "commercial"
-          ? `b_${safeSuffix}`
-          : `p_${safeSuffix}`;
+        accountType === "commercial" ? `b_${safeSuffix}` : `p_${safeSuffix}`;
       const email = `${accountType}-${safeSuffix}@example.test`;
       const password = "A02_Isolated_Test_2026!";
       const registration =
@@ -299,8 +310,8 @@ export async function startIsolatedHttpApiHarness({
               acceptedTermsVersion: "v1",
             };
 
-      const pending = await registerAccount(registration);
-      const verified = await confirmAccount(pending);
+      const pending = await registerAccount(registration, undefined, clientIp);
+      const verified = await confirmAccount(pending, clientIp);
       return { ...verified, username, registration };
     }
 
