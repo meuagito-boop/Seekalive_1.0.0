@@ -10,6 +10,7 @@ import { localMediaFileStore } from "../../media/infrastructure/localMediaFileSt
 import type { NewFeedPost, FeedMediaReference } from "../domain/post";
 import { FeedMediaAssetsUnavailableError } from "../domain/feedMediaAssets";
 import { toFeedPost } from "../infrastructure/postRepository";
+import { persistPostHashtags } from "../infrastructure/postTagRepository";
 
 export type PersistFeedPostCommand = NewFeedPost & {
   mediaAssetIds?: string[];
@@ -54,6 +55,11 @@ export async function persistFeedPost(
       })
       .returning();
     if (!row) throw new Error("Feed post insert returned no row.");
+    await persistPostHashtags(transaction, row.id, [
+      command.content,
+      command.articleTitle,
+      command.articleBody,
+    ]);
 
     if (assetIds.length > 0) {
       await attachStagedMediaAssets(transaction, {

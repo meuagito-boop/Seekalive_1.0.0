@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
+import { normalizeHashtag, normalizeHashtagPrefix } from "@workspace/api-zod";
 import { useAppContext } from "@/modules/app/state/AppContext";
 import { canReadPost } from "@/modules/social/application/contentValidation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,6 +11,10 @@ import { formatCount } from "@/lib/formatters";
 import { useSocial } from "@/modules/app/state/SocialApplicationContext";
 import { accountListToUsers, socialGraphApi } from "@/modules/social/services/socialGraphApi";
 import { handleTabKeyDown } from "@/lib/tabKeyboard";
+import {
+  useRemoteFeedSearch,
+  type FeedSearchPage,
+} from "@/modules/social/hooks/useRemoteFeedSearch";
 
 const tabs = [
   { label: "Publicações", id: "Posts" },
@@ -33,13 +38,15 @@ export default function Search() {
     toggleFollow,
     isRemoteSocialSession,
     upsertRemoteUser,
+    dispatch,
   } = useSocial();
   const search = useSearch();
   const urlQuery = new URLSearchParams(search).get("q") ?? "";
   const [query, setQuery] = useState(urlQuery);
   const { currentUser } = useAppContext();
   const viewerId = currentUser?.id ?? "me";
-  const trending = import.meta.env.DEV ? demoTrending : [];
+  const trending =
+    import.meta.env.DEV && !isRemoteSocialSession ? demoTrending : [];
   const suggestedUsers = isRemoteSocialSession
     ? []
     : users.filter(user => user.id !== currentUser?.id).slice(0, 5);
@@ -54,7 +61,21 @@ export default function Search() {
   const isSearching = query.trim().length > 0;
 
   const q = query.trim().toLowerCase();
+  const feedSearchQuery = query.trim();
   const apiQuery = query.trim().replace(/^@/, "");
+  const handleRemoteFeedPage = useCallback((page: FeedSearchPage) => {
+    page.authors.forEach(upsertRemoteUser);
+    page.items.forEach((post) => dispatch({ type: "UPSERT_POST", post }));
+  }, [dispatch, upsertRemoteUser]);
+  const remoteFeedSearch = useRemoteFeedSearch({
+    enabled:
+      isRemoteSocialSession &&
+      isSearching &&
+      feedSearchQuery.length >= 2 &&
+      (activeTab === 0 || activeTab === 2),
+    query: feedSearchQuery,
+    onPage: handleRemoteFeedPage,
+  });
   useEffect(() => {
     if (!isRemoteSocialSession || apiQuery.length < 2) {
       setRemoteUsers([]);
@@ -130,6 +151,20 @@ export default function Search() {
   const filteredTags = trending.filter(t =>
     t.tag.toLowerCase().includes(query.toLowerCase())
   );
+  const hashtagPrefix = normalizeHashtagPrefix(feedSearchQuery);
+  const remoteTagMap = new Map<string, string>();
+  if (hashtagPrefix) {
+    for (const tag of remoteFeedSearch.posts.flatMap((post) => post.hashtags ?? [])) {
+      const normalizedTag = normalizeHashtag(tag);
+      if (
+        normalizedTag.startsWith(hashtagPrefix) &&
+        !remoteTagMap.has(normalizedTag)
+      ) {
+        remoteTagMap.set(normalizedTag, tag);
+      }
+    }
+  }
+  const remoteTags = [...remoteTagMap.values()];
 
   return (
     <div className="min-h-screen pb-16 md:pb-0">
@@ -254,9 +289,30 @@ export default function Search() {
             {/* Posts */}
             <div id="search-panel-0" role="tabpanel" aria-labelledby="search-tab-0" hidden={activeTab !== 0} tabIndex={0}>
             {activeTab === 0 && (
-              filteredPosts.length === 0
+              isRemoteSocialSession && remoteFeedSearch.error ? (
+                <div className="py-16 text-center text-muted-foreground">
+                  <p role="alert" className="font-medium text-destructive">{remoteFeedSearch.error}</p>
+                  <button type="button" className="mt-3 text-sm font-semibold text-primary underline" onClick={remoteFeedSearch.retry}>Tentar novamente</button>
+                </div>
+              ) : isRemoteSocialSession && feedSearchQuery.length < 2 ? (
+                <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Digite pelo menos 2 caracteres para buscar.</p></div>
+              ) : isRemoteSocialSession && remoteFeedSearch.loading && remoteFeedSearch.posts.length === 0 ? (
+                <div role="status" className="py-16 text-center text-muted-foreground"><p className="font-medium">Buscando publicações…</p></div>
+              ) : (isRemoteSocialSession ? remoteFeedSearch.posts : filteredPosts).length === 0
                 ? <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Nenhuma publicação encontrada para "{query}"</p></div>
-                : filteredPosts.map(post => <PostCard key={post.id} post={post} />)
+                : (isRemoteSocialSession ? remoteFeedSearch.posts : filteredPosts).map(post => <PostCard key={post.id} post={post} />)
+            )}
+            {activeTab === 0 && isRemoteSocialSession && remoteFeedSearch.cursor && (
+              <div className="flex justify-center px-4 py-5">
+                <button
+                  type="button"
+                  onClick={() => void remoteFeedSearch.loadMore()}
+                  disabled={remoteFeedSearch.loading}
+                  className="rounded-full border border-border px-5 py-2 text-sm font-semibold disabled:opacity-60"
+                >
+                  {remoteFeedSearch.loading ? "Carregando…" : "Carregar mais"}
+                </button>
+              </div>
             )}
             </div>
 
@@ -324,24 +380,51 @@ export default function Search() {
             {/* Tags */}
             <div id="search-panel-2" role="tabpanel" aria-labelledby="search-tab-2" hidden={activeTab !== 2} tabIndex={0}>
             {activeTab === 2 && (
-              filteredTags.length === 0
+              isRemoteSocialSession && remoteFeedSearch.error ? (
+                <div className="py-16 text-center text-muted-foreground">
+                  <p role="alert" className="font-medium text-destructive">{remoteFeedSearch.error}</p>
+                  <button type="button" className="mt-3 text-sm font-semibold text-primary underline" onClick={remoteFeedSearch.retry}>Tentar novamente</button>
+                </div>
+              ) : isRemoteSocialSession && !hashtagPrefix ? (
+                <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Digite uma hashtag ou prefixo de hashtag.</p></div>
+              ) : isRemoteSocialSession && remoteFeedSearch.loading && remoteFeedSearch.posts.length === 0 ? (
+                <div role="status" className="py-16 text-center text-muted-foreground"><p className="font-medium">Buscando hashtags…</p></div>
+              ) : (isRemoteSocialSession ? remoteTags : filteredTags.map((tag) => tag.tag.slice(1))).length === 0
                 ? <div className="py-16 text-center text-muted-foreground"><p className="font-medium">Nenhuma tag encontrada</p></div>
-                : filteredTags.map((t, i) => (
+                : (isRemoteSocialSession ? remoteTags : filteredTags.map((tag) => tag.tag.slice(1))).map((tag, i) => (
                   <motion.div
-                    key={t.tag}
+                    key={tag}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="flex items-center justify-between px-4 py-4 border-b border-border"
-                    data-testid={`result-tag-${t.tag}`}
+                    onClick={() => {
+                      setQuery(`#${tag}`);
+                      setActiveTab(0);
+                    }}
+                    className="flex cursor-pointer items-center justify-between px-4 py-4 border-b border-border"
+                    data-testid={`result-tag-#${tag}`}
                   >
                     <div>
-                      <p className="font-bold text-base">{t.tag}</p>
-                      <p className="text-xs text-muted-foreground">{t.category} · {formatCount(t.count)} publicações</p>
+                      <p className="font-bold text-base">#{tag}</p>
+                      {!isRemoteSocialSession && (
+                        <p className="text-xs text-muted-foreground">Dados de demonstração</p>
+                      )}
                     </div>
                     <Hash className="w-5 h-5 text-muted-foreground" />
                   </motion.div>
                 ))
+            )}
+            {activeTab === 2 && isRemoteSocialSession && remoteFeedSearch.cursor && (
+              <div className="flex justify-center px-4 py-5">
+                <button
+                  type="button"
+                  onClick={() => void remoteFeedSearch.loadMore()}
+                  disabled={remoteFeedSearch.loading}
+                  className="rounded-full border border-border px-5 py-2 text-sm font-semibold disabled:opacity-60"
+                >
+                  {remoteFeedSearch.loading ? "Carregando…" : "Carregar mais"}
+                </button>
+              </div>
             )}
             </div>
           </motion.div>

@@ -7,6 +7,7 @@ import type {
 import type { FeedAuthorAccessView } from "./postVisibility";
 import { canReadPost } from "./postVisibility";
 import { toPostView } from "./postView";
+import { normalizeHashtagPrefix } from "@workspace/api-zod";
 import {
   encodeGlobalFeedCursor,
   type GlobalFeedCursorScope,
@@ -27,9 +28,14 @@ export function createGlobalFeedLister<TAuthor extends FeedAuthorAccessView>(
   return async function listGlobalFeed(input: {
     tab: SocialFeedTab;
     viewerId: string | null;
+    searchTerm?: string;
     limit: number;
     cursor: PostPosition | null;
   }) {
+    const searchTerm = input.searchTerm?.trim().toLocaleLowerCase("pt-BR");
+    const hashtagPrefix = searchTerm
+      ? normalizeHashtagPrefix(searchTerm)
+      : null;
     const followingIds =
       input.tab === "following" && input.viewerId
         ? await listFollowingIds(input.viewerId)
@@ -43,6 +49,7 @@ export function createGlobalFeedLister<TAuthor extends FeedAuthorAccessView>(
     const scope: GlobalFeedCursorScope = {
       tab: input.tab,
       viewerId: input.viewerId,
+      searchTerm: searchTerm || undefined,
     };
     const items: Array<{
       record: FeedPost;
@@ -66,6 +73,8 @@ export function createGlobalFeedLister<TAuthor extends FeedAuthorAccessView>(
         authorIds: followingIds,
         format,
         videoOnly: input.tab === "videos",
+        searchTerm: searchTerm || undefined,
+        hashtagPrefix: hashtagPrefix ?? undefined,
         after: position,
         limit: batchSize,
       });

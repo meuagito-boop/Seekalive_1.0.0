@@ -39,6 +39,7 @@ const {
   commercialProfiles,
   db,
   feedPosts,
+  feedPostTags,
   passwordCredentials,
   pool,
   sessions,
@@ -68,6 +69,7 @@ const modelTables = [
   accountBlocks,
   accountUsernameReservations,
   feedPosts,
+  feedPostTags,
 ];
 for (const table of modelTables) {
   assert.equal(
@@ -1599,7 +1601,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     method: "POST",
     auth: personal,
     body: {
-      content: "Publicação de teste",
+      content: "Publicação de teste #cafeteira",
       audience: "public",
     },
   });
@@ -1610,6 +1612,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   assert.equal(createdPublicPost.body.authorId, personal.account.id);
   assert.equal(createdPublicPost.body.format, "text");
+  assert.deepEqual(createdPublicPost.body.hashtags, ["cafeteira"]);
   assert.equal(createdPublicPost.body.likes, 0);
   const createdCirclePost = await request("/api/v1/social/posts", {
     method: "POST",
@@ -1898,6 +1901,28 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   );
   assert.equal(articleRead.response.status, 200);
+
+  const accentInsensitiveTagSearch = await request(
+    "/api/v1/social/feed?tab=for-you&limit=50&q=caf%C3%A9",
+    { auth: commercial },
+  );
+  assert.equal(accentInsensitiveTagSearch.response.status, 200);
+  assert(
+    accentInsensitiveTagSearch.body.items.some(
+      (item) => item.post.id === createdPublicPost.body.id,
+    ),
+    "Searching for café should find the #cafeteira post.",
+  );
+
+  const tooManyHashtags = await request("/api/v1/social/posts", {
+    method: "POST",
+    auth: personal,
+    body: {
+      content: Array.from({ length: 11 }, (_, index) => `#tag${index}`).join(" "),
+      audience: "public",
+    },
+  });
+  assert.equal(tooManyHashtags.response.status, 422);
 
   const anonymousFeed = await request(
     "/api/v1/social/feed?tab=for-you&limit=50",

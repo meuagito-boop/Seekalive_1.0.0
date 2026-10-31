@@ -25,7 +25,7 @@ export const postSchema = z.object({
   isReposted: z.boolean().optional(),
   isBookmarked: z.boolean().optional(),
   mentions: z.array(z.string()).optional(),
-  hashtags: z.array(z.string()).optional(),
+  hashtags: z.array(z.string()).max(10).optional(),
 });
 
 export const commentSchema = z.object({

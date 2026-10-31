@@ -1,6 +1,6 @@
 # Auditoria de prontidão do frontend — Seekalive
 
-**Auditoria-base:** 22/10/2026; última atualização de estado: 25/10/2026
+**Auditoria-base:** 22/10/2026; última atualização de estado: 31/10/2026
 **Escopo:** prontidão do frontend para integração gradual. A auditoria original foi análise/documentação; desde então, autenticação, onboarding, perfil básico, privacidade e relações sociais essenciais receberam API e schema no desenvolvimento.
 
 > Os achados detalhados abaixo preservam o corte da auditoria-base de 22–23/10, incluindo estados que já foram alterados depois. Para o estado mais recente, decisões de produto e plano de ação, consulte `reports/auditoria-aplicativo-e-plano-de-acao-2026-10-23.md` (versão 2.53).
@@ -57,9 +57,17 @@ O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a 
 ### Integração gradual — conteúdo e relações ainda incompletos
 
 - `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha e gestão de sessões), onboarding, perfil básico, privacidade, relações, Feed global/perfil, interações sociais e upload de mídia. Busca do Seek, avaliações, Shop, mensagens e notificações ainda não estão integralmente conectados.
-- Em sessões remotas, Feed e linha do tempo do perfil usam os endpoints próprios; a prévia demonstrativa continua local e não é fallback após erro de rede. Busca por tags, referências e avaliações/Seek permanecem fora desta fatia. A integração visual autenticada ainda não foi verificada ponta a ponta.
+- Em sessões remotas, Feed, linha do tempo do perfil e busca de publicações/hashtags usam os endpoints próprios; a prévia demonstrativa continua local e não é fallback após erro de rede. Referências e avaliações/Seek permanecem fora desta fatia. A integração visual autenticada ainda não foi verificada ponta a ponta.
 - O catálogo público do IBGE é uma integração externa de dados; cadastro, autenticação e configurações usam a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.
+
+### Busca remota de publicações e hashtags — validada em 31/10/2026
+
+- A tela Social > Busca consulta `GET /api/v1/social/feed?q=...` em sessão remota. O endpoint mantém paginação com cursor vinculado à consulta e aplica as mesmas regras de perfil privado, Círculo, bloqueio e audiência do Feed; a busca não amplia acesso ao conteúdo.
+- A consulta por hashtag usa prefixo normalizado sem diferenciar acentos ou caixa: `café` encontra `#cafeteira`. Texto comum, legenda e conteúdo de artigo também participam da busca. Resultados de tags derivam de publicações existentes; tendências de demonstração permanecem somente no modo de desenvolvimento.
+- Publicações comuns e artigos aceitam até dez hashtags distintas, contando legenda, título e corpo do artigo em conjunto. Duplicatas que diferem apenas em caixa/acentos contam como uma só. A API rejeita o excesso antes da persistência; as hashtags retornam na leitura e a projeção normalizada pertence ao schema `feed`.
+- A migration `feed/0002` criou `feed.post_tags` e foi aplicada exclusivamente ao banco de desenvolvimento. Nenhuma migration, dado ou serviço de produção foi consultado ou alterado.
+- A busca foi validada em teste HTTP com schema temporário: `café` encontrou `#cafeteira`, 11 hashtags foram rejeitadas, o schema foi removido e `public` permaneceu inalterado. Typecheck, suíte completa, build, codegen e verificações dos tracks de migration passaram. O teste de navegador autenticado não foi feito porque o navegador de captura não possui sessão.
 
 **Antes de integrar novos módulos remotos:** reutilizar o cliente, roteamento e tratamento de erros/paginação já adotados; reavaliar CORS somente se a implantação futura separar as origens. Manter a prévia demonstrativa isolada: falha de rede nunca deve acionar fallback silencioso para fixtures.
 
@@ -135,7 +143,7 @@ Os contratos de domínio comercial e avaliação ainda são propostas e precisam
 |---|---|---|
 | Acesso e cadastro | `/`, `/login`, `/register`, `/forgot-password`, `/verify-email` | API própria para conta real; estado local separado apenas para demonstração de desenvolvimento |
 | Onboarding | `/onboarding/interests`, `/onboarding/suggestions` | preferências locais e sugestões mock |
-| Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | Sessão remota: Feed global/perfil e ações de conteúdo via API. Prévia de desenvolvimento: `SocialContext`, fixtures restritas e `contentService` demo. Busca por tags/referências permanece local |
+| Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | Sessão remota: Feed global/perfil, busca de texto/hashtags e ações de conteúdo via API. Prévia de desenvolvimento: `SocialContext`, fixtures restritas e `contentService` demo. Referências permanecem locais |
 | Perfis e relações | `/profile`, `/profile/:username`, `/profile/edit`, seguidores/seguindo, `/circles` | perfil e publicações remotas usam a API em sessão real; seções comerciais sem contrato permanecem limitadas; `/profile/edit` não substitui os dados privados de Configurações > Conta |
 | Seek | `/seek`, `/seek/event/:id` | dados locais, catálogo IBGE, preferências de busca; eventos de exemplo |
 | Shop | `/shop`, `/shop/item/:id` | catálogo ilustrativo restrito ao desenvolvimento; salvos em localStorage |
@@ -146,17 +154,17 @@ Os contratos de domínio comercial e avaliação ainda são propostas e precisam
 
 Na auditoria e nesta fatia:
 
-- Baseline anterior: `pnpm test:social` passou em 42 testes, cobrindo isolamento local de ações/relações e regras de conteúdo. Na verificação atual de 31/10/2026, `pnpm run test:social` passou em **95/95**, incluindo estados do Feed remoto e deduplicação de páginas.
-- `pnpm --filter @workspace/social run typecheck`: aprovado.
-- `pnpm --filter @workspace/social run build` com `PORT=5000 BASE_PATH=/`: aprovado; 97 chunks passaram na verificação de conteúdo demonstrativo. Permaneceram dois avisos de anotações em comentários internos do Zod; a versão não foi alterada.
+- Baseline anterior: `pnpm test:social` passou em 42 testes. Na verificação atual de 31/10/2026, `pnpm run test:social` passou em **95/95**, incluindo Feed remoto, paginação e ações.
+- `pnpm run typecheck`, `pnpm run test` e `pnpm run build`: aprovados. O build do frontend passou pela verificação de conteúdo demonstrativo em 97 chunks. Permaneceram dois avisos em comentários internos do Zod; a versão não foi alterada.
+- `pnpm --filter @workspace/api-spec run codegen` e `pnpm --filter @workspace/db run check`: aprovados. `pnpm --filter @workspace/db run test:baselines` passou com replay isolado; o teste HTTP isolado passou em **5/5**, incluindo busca acentuada de hashtag e validação do limite. Os schemas temporários foram removidos e o schema `public` permaneceu inalterado.
 - Testes HTTP com três contas temporárias e e-mail verificado no banco **de desenvolvimento**: pedido privado, lista e aprovação; perfil após aprovação; seguimento público e mutualidade/Círculo; bloqueio, ocultação de perfil e rejeição de seguimento durante bloqueio; desbloqueio sem restaurar vínculos; edição de perfil e privacidade com versão.
 - Rotas protegidas responderam `401` sem sessão e escrita sem CSRF respondeu `403`; health check da API respondeu `200`. As contas temporárias foram excluídas ao final.
 
-Esses resultados comprovam esta fatia, não a prontidão integral do backend. Não há teste de navegador autenticado ponta a ponta; busca por tags, referências, avaliações/Seek, mensagens e notificações continuam pendentes. Upload de mídia está integrado no desenvolvimento, mas armazenamento permanente/produção permanece fora do escopo atual.
+Esses resultados comprovam esta fatia, não a prontidão integral do backend. Não há teste de navegador autenticado ponta a ponta; referências, avaliações/Seek, mensagens e notificações continuam pendentes. Busca por texto e hashtags está integrada em sessões remotas. Upload de mídia está integrado no desenvolvimento, mas armazenamento permanente/produção permanece fora do escopo atual.
 
 ## Próximas etapas vigentes
 
-A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.4 estão concluídas; a próxima fatia prevista é conectar referências/busca por tags e, em seguida, avaliações/Seek, uma por vez. O Feed global não deve ser reimplementado.
+A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.5 estão concluídas; a próxima fatia prevista é conectar referências e, em seguida, avaliações/Seek, uma por vez. O Feed global e a busca por hashtags não devem ser reimplementados.
 
 ## Ordem histórica da auditoria inicial
 
@@ -168,4 +176,4 @@ A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os ga
 6. Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.
 7. Criar testes de API e navegador que cubram autorização entre contas, privacidade, Círculo, publicação/galeria, avaliações, mensagens e ações de configuração.
 
-**Estado vigente desta auditoria:** perfis owner-only, privacidade e relações usam os contratos existentes; o Feed global e as publicações/artigos de perfil funcionam via API em sessão remota, enquanto a prévia segue local. E2E visual autenticado, busca por tags, referências, avaliações/Seek e outros domínios pendentes continuam sem aceite; produção e provedores externos não foram alterados.
+**Estado vigente desta auditoria:** perfis owner-only, privacidade, relações, Feed global, publicações/artigos de perfil e busca de texto/hashtags usam os contratos remotos em sessão autenticada, enquanto a prévia segue local. E2E visual autenticado, referências, avaliações/Seek e outros domínios pendentes continuam sem aceite; produção e provedores externos não foram alterados.

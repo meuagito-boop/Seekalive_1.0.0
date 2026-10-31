@@ -1,4 +1,5 @@
 import type { FeedPost } from "../domain/post";
+import { extractPostHashtags } from "@workspace/api-zod";
 import {
   EMPTY_POST_INTERACTION_SUMMARY,
   type PostInteractionSummary,
@@ -12,6 +13,11 @@ export function toPostView(
     id: post.id,
     authorId: post.authorId,
     content: post.content,
+    hashtags: extractPostHashtags(
+      post.content,
+      post.articleTitle,
+      post.articleBody,
+    ),
     createdAt: post.createdAt.toISOString(),
     audience: post.audience,
     type: post.media.some((media) => media.type === "video")

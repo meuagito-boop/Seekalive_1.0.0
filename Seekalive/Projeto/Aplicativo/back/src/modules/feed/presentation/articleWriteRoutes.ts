@@ -1,10 +1,14 @@
 import { Router, type IRouter } from "express";
-import { createArticleSchema } from "@workspace/api-zod";
+import {
+  createArticleSchema,
+  HASHTAG_LIMIT_MESSAGE,
+} from "@workspace/api-zod";
 import { createAuthRateLimit } from "../../../security/rateLimit";
 import { requireCsrf } from "../../../security/csrf";
 import type { CreatePost } from "../application/createPost";
 import { toPostView } from "../application/postView";
 import { FeedMediaAssetsUnavailableError } from "../domain/feedMediaAssets";
+import { FeedHashtagLimitExceededError } from "../domain/postTags";
 import { requiredActorId, sendFeedError } from "./feedHttp";
 
 export function createArticleWriteRoutes(createPost: CreatePost): IRouter {
@@ -20,11 +24,16 @@ export function createArticleWriteRoutes(createPost: CreatePost): IRouter {
 
       const parsed = createArticleSchema.safeParse(request.body);
       if (!parsed.success) {
+        const hashtagLimitExceeded = parsed.error.issues.some(
+          (issue) => issue.message === HASHTAG_LIMIT_MESSAGE,
+        );
         sendFeedError(
           response,
           422,
           "CONTENT_VALIDATION_FAILED",
-          "Informe título, texto do artigo e audiência válidos.",
+          hashtagLimitExceeded
+            ? HASHTAG_LIMIT_MESSAGE
+            : "Informe título, texto do artigo e audiência válidos.",
         );
         return;
       }
@@ -50,6 +59,15 @@ export function createArticleWriteRoutes(createPost: CreatePost): IRouter {
           mediaAssetIds: parsed.data.mediaAssetIds,
         });
       } catch (error) {
+        if (error instanceof FeedHashtagLimitExceededError) {
+          sendFeedError(
+            response,
+            422,
+            "CONTENT_VALIDATION_FAILED",
+            HASHTAG_LIMIT_MESSAGE,
+          );
+          return;
+        }
         if (!(error instanceof FeedMediaAssetsUnavailableError)) throw error;
         sendFeedError(
           response,

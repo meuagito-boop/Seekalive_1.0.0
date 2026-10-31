@@ -9,7 +9,7 @@ import type { PostCreateAudience } from './postCreateAudience';
 import type { PostCreateFormat } from './postCreateFormat';
 
 /**
- * Text or media post. Media must reference staged uploads; arbitrary URLs are not accepted.
+ * Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; arbitrary URLs are not accepted.
  */
 export interface PostCreate {
   /** Optional compatibility field; must match the authenticated account. */

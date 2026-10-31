@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  countPostHashtags,
+  extractPostHashtags,
+  HASHTAG_LIMIT_MESSAGE,
+  MAX_HASHTAGS_PER_POST,
+} from "@workspace/api-zod";
 import type { Post } from "@/modules/social/types/post";
 import type { PublishPostInput, SocialComment } from "@/modules/social/types/posts";
 import { ContentServiceError } from "@/modules/app/api/contentServiceError";
@@ -30,6 +36,15 @@ export function validatePublication(input: PublishPostInput): PublishPostInput {
   if (value.format === "article" && !value.article) {
     throw new ContentServiceError("Informe título e corpo do artigo.", 422);
   }
+  if (
+    countPostHashtags(
+      value.content,
+      value.article?.title,
+      value.article?.body,
+    ) > MAX_HASHTAGS_PER_POST
+  ) {
+    throw new ContentServiceError(HASHTAG_LIMIT_MESSAGE, 422);
+  }
   if (value.format !== "article" && !value.content.trim() && !value.mediaUrls?.length) {
     throw new ContentServiceError("Escreva algo ou adicione uma mídia.", 422);
   }
@@ -45,7 +60,7 @@ export function validatePublication(input: PublishPostInput): PublishPostInput {
 export function extractSocialTokens(text: string) {
   return {
     mentions: [...new Set(Array.from(text.matchAll(/@([\p{L}\p{N}_.]+)/gu), (match) => match[1]))],
-    hashtags: [...new Set(Array.from(text.matchAll(/#([\p{L}\p{N}_]+)/gu), (match) => match[1].toLocaleLowerCase("pt-BR")))],
+    hashtags: extractPostHashtags(text),
   };
 }
 

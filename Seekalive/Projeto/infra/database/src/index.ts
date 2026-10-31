@@ -27,6 +27,7 @@ export {
 } from "./schema/profiles/relationships";
 export { accountProfiles } from "./schema/profiles/accountProfiles";
 export { feedPosts } from "./schema/feed/posts";
+export { feedPostTags } from "./schema/feed/postTags";
 export { feedPostLikes } from "./schema/feed/postLikes";
 export { feedPostReposts } from "./schema/feed/postReposts";
 export { feedPostBookmarks } from "./schema/feed/postBookmarks";

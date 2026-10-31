@@ -12,6 +12,12 @@ import type { PageLimitParameter } from './pageLimitParameter';
 export type GetSocialFeedParams = {
 tab?: GetSocialFeedTab;
 /**
+ * Search text or hashtag prefix. Search terms contain 2 to 120 characters.
+ * @minLength 2
+ * @maxLength 120
+ */
+q?: string;
+/**
  * @minimum 1
  * @maximum 100
  */

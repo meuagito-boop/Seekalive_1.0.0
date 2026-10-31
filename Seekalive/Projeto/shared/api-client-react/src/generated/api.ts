@@ -4410,7 +4410,7 @@ export const getGetSocialFeedUrl = (params?: GetSocialFeedParams,) => {
 }
 
 /**
- * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. videos returns persisted media posts containing at least one video.
+ * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. videos returns persisted media posts containing at least one video. q searches caption and article text and also matches hashtag prefixes; hashtag matching ignores case and diacritics.
  * @summary List readable social feed posts
  */
 export const getSocialFeed = async (params?: GetSocialFeedParams, options?: Parameters<typeof customFetch>[1]): Promise<FeedPage> => {

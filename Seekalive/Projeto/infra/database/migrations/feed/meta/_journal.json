@@ -15,6 +15,13 @@
       "when": 1793404317808,
       "tag": "0001_robust_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793418500824,
+      "tag": "0002_flawless_living_lightning",
+      "breakpoints": true
     }
   ]
 }

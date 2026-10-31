@@ -74,12 +74,15 @@ export const restSocialApi = {
     cursor?: string,
     tab: "for-you" | "following" | "articles" | "videos" = "for-you",
     limit = 20,
+    searchTerm?: string,
+    signal?: AbortSignal,
   ) {
     const query = new URLSearchParams({ tab, limit: String(limit) });
     if (cursor) query.set("cursor", cursor);
+    if (searchTerm) query.set("q", searchTerm);
     const result = parseResponse(
       page(z.object({ post: postSchema, author: accountViewSchema })),
-      await apiRequest(`/api/v1/social/feed?${query}`),
+      await apiRequest(`/api/v1/social/feed?${query}`, { signal }),
     );
     return {
       nextCursor: result.nextCursor,

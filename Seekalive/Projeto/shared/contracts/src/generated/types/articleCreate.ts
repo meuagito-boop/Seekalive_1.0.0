@@ -9,7 +9,7 @@ import type { ArticleCreateArticle } from './articleCreateArticle';
 import type { ArticleCreateAudience } from './articleCreateAudience';
 
 /**
- * Article with optional staged media assets.
+ * Article with optional staged media assets and at most 10 distinct hashtags across its caption, title, and body.
  */
 export interface ArticleCreate {
   /** Optional compatibility field; must match the authenticated account. */

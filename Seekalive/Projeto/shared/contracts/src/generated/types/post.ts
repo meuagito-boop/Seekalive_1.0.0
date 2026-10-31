@@ -16,6 +16,8 @@ export interface Post {
   authorId: string;
   /** @maxLength 280 */
   content: string;
+  /** @maxItems 10 */
+  hashtags: string[];
   createdAt: Date;
   audience: PostAudience;
   type: PostType;

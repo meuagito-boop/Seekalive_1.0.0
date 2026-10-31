@@ -5,6 +5,7 @@ import {
   accounts,
 } from "./accounts/schema";
 import { feedPosts } from "./feed/posts";
+import { feedPostTags } from "./feed/postTags";
 import { feedPostLikes } from "./feed/postLikes";
 import { feedPostReposts } from "./feed/postReposts";
 import { feedPostBookmarks } from "./feed/postBookmarks";
@@ -40,6 +41,7 @@ export const databaseSchema = {
   accountFollowRequests,
   accountBlocks,
   feedPosts,
+  feedPostTags,
   feedPostLikes,
   feedPostReposts,
   feedPostBookmarks,
@@ -62,6 +64,7 @@ export {
   accountFollows,
   accountFollowRequests,
   feedPosts,
+  feedPostTags,
   feedPostLikes,
   feedPostReposts,
   feedPostBookmarks,

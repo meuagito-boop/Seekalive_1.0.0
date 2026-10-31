@@ -30,6 +30,8 @@ export type ListFeedPostsForTimeline = (input: {
   authorIds: string[] | null;
   format: FeedPostFormat | "all";
   videoOnly?: boolean;
+  searchTerm?: string;
+  hashtagPrefix?: string;
   after: PostPosition | null;
   limit: number;
 }) => Promise<FeedPost[]>;

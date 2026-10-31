@@ -1,6 +1,7 @@
 import { and, count, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { postAudienceSchema } from "@workspace/api-zod";
-import { db, feedPosts } from "@workspace/db";
+import { db, feedPostTags, feedPosts } from "@workspace/db";
+import { persistPostHashtags } from "./postTagRepository";
 import type {
   FeedPost,
   FeedPostFormat,
@@ -39,17 +40,24 @@ export function toFeedPost(row: typeof feedPosts.$inferSelect): FeedPost {
 }
 
 export async function insertFeedPost(input: NewFeedPost): Promise<FeedPost> {
-  const [row] = await db.insert(feedPosts).values({
-    authorId: input.authorId,
-    content: input.content,
-    audience: input.audience,
-    format: input.format,
-    media: input.media ?? [],
-    articleTitle: input.articleTitle ?? null,
-    articleBody: input.articleBody ?? null,
-  }).returning();
-  if (!row) throw new Error("Feed post insert returned no row");
-  return toFeedPost(row);
+  return db.transaction(async (transaction) => {
+    const [row] = await transaction.insert(feedPosts).values({
+      authorId: input.authorId,
+      content: input.content,
+      audience: input.audience,
+      format: input.format,
+      media: input.media ?? [],
+      articleTitle: input.articleTitle ?? null,
+      articleBody: input.articleBody ?? null,
+    }).returning();
+    if (!row) throw new Error("Feed post insert returned no row");
+    await persistPostHashtags(transaction, row.id, [
+      input.content,
+      input.articleTitle,
+      input.articleBody,
+    ]);
+    return toFeedPost(row);
+  });
 }
 
 export async function findFeedPostById(postId: string): Promise<FeedPost | null> {
@@ -111,6 +119,8 @@ export async function listFeedPostsForTimeline(input: {
   authorIds: string[] | null;
   format: FeedPostFormat | "all";
   videoOnly?: boolean;
+  searchTerm?: string;
+  hashtagPrefix?: string;
   after: PostPosition | null;
   limit: number;
 }): Promise<FeedPost[]> {
@@ -124,6 +134,25 @@ export async function listFeedPostsForTimeline(input: {
     ...(input.format === "all" ? [] : [eq(feedPosts.format, input.format)]),
     ...(input.videoOnly
       ? [sql`${feedPosts.media} @> '[{"type":"video"}]'::jsonb`]
+      : []),
+    ...(input.searchTerm
+      ? [
+          or(
+            sql`position(lower(${input.searchTerm}) in lower(${feedPosts.content})) > 0`,
+            sql`position(lower(${input.searchTerm}) in lower(coalesce(${feedPosts.articleTitle}, ''))) > 0`,
+            sql`position(lower(${input.searchTerm}) in lower(coalesce(${feedPosts.articleBody}, ''))) > 0`,
+            ...(input.hashtagPrefix
+              ? [
+                  sql`exists (
+                    select 1
+                    from ${feedPostTags}
+                    where ${feedPostTags.postId} = ${feedPosts.id}
+                      and ${feedPostTags.normalizedTag} like ${`${input.hashtagPrefix.replace(/_/g, "\\_")}%`} escape E'\\\\'
+                  )`,
+                ]
+              : []),
+          ),
+        ]
       : []),
   ];
   if (input.after) {

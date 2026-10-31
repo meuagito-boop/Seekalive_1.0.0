@@ -15,6 +15,7 @@ const feedTabs = new Set<SocialFeedTab>([
 type ListGlobalFeed = (input: {
   tab: SocialFeedTab;
   viewerId: string | null;
+  searchTerm?: string;
   limit: number;
   cursor: PostPosition | null;
 }) => Promise<{
@@ -33,13 +34,21 @@ export function createGlobalFeedRoutes(
     async (request, response) => {
       const rawTab = request.query.tab ?? "for-you";
       const rawLimit = request.query.limit;
+      const rawSearchTerm = request.query.q;
+      const searchTerm =
+        typeof rawSearchTerm === "string" ? rawSearchTerm.trim() : undefined;
       const limit = rawLimit === undefined ? 20 : Number(rawLimit);
       if (
         typeof rawTab !== "string" ||
         !feedTabs.has(rawTab as SocialFeedTab) ||
         !Number.isInteger(limit) ||
         limit < 1 ||
-        limit > 50
+        limit > 50 ||
+        (rawSearchTerm !== undefined &&
+          (typeof rawSearchTerm !== "string" ||
+            !searchTerm ||
+            searchTerm.length < 2 ||
+            searchTerm.length > 120))
       ) {
         sendFeedError(
           response,
@@ -60,6 +69,7 @@ export function createGlobalFeedRoutes(
       const cursor = parseGlobalFeedCursor(request.query.cursor, {
         tab,
         viewerId,
+        searchTerm: searchTerm?.toLocaleLowerCase("pt-BR"),
       });
       if (cursor === undefined) {
         sendFeedError(
@@ -72,7 +82,13 @@ export function createGlobalFeedRoutes(
       }
 
       response.json(
-        await listGlobalFeed({ tab, viewerId, limit, cursor }),
+        await listGlobalFeed({
+          tab,
+          viewerId,
+          searchTerm,
+          limit,
+          cursor,
+        }),
       );
     },
   );

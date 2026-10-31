@@ -684,6 +684,8 @@ export interface Post {
   authorId: string;
   /** @maxLength 280 */
   content: string;
+  /** @maxItems 10 */
+  hashtags: string[];
   createdAt: string;
   audience: PostAudience;
   type: PostType;
@@ -938,7 +940,7 @@ export const PostCreateFormat = {
 } as const;
 
 /**
- * Text or media post. Media must reference staged uploads; arbitrary URLs are not accepted.
+ * Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; arbitrary URLs are not accepted.
  */
 export interface PostCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -974,7 +976,7 @@ export type ArticleCreateArticle = {
 };
 
 /**
- * Article with optional staged media assets.
+ * Article with optional staged media assets and at most 10 distinct hashtags across its caption, title, and body.
  */
 export interface ArticleCreate {
   /** Optional compatibility field; must match the authenticated account. */
@@ -1163,6 +1165,12 @@ cursor?: PageCursorParameter;
 
 export type GetSocialFeedParams = {
 tab?: GetSocialFeedTab;
+/**
+ * Search text or hashtag prefix. Search terms contain 2 to 120 characters.
+ * @minLength 2
+ * @maxLength 120
+ */
+q?: string;
 /**
  * @minimum 1
  * @maximum 100

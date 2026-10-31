@@ -1252,6 +1252,8 @@ paths:
         visibility, Círculo membership, and bilateral blocks. following requires
         an authenticated session and includes only accepted followed accounts.
         videos returns persisted media posts containing at least one video.
+        q searches caption and article text and also matches hashtag prefixes;
+        hashtag matching ignores case and diacritics.
       security:
         - sessionCookie: []
         - {}
@@ -1263,6 +1265,14 @@ paths:
             type: string
             enum: [for-you, following, articles, videos]
             default: for-you
+        - name: q
+          in: query
+          required: false
+          description: Search text or hashtag prefix. Search terms contain 2 to 120 characters.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 120
         - $ref: "#/components/parameters/PageLimit"
         - $ref: "#/components/parameters/PageCursor"
       responses:
@@ -3049,6 +3059,11 @@ components:
         content:
           type: string
           maxLength: 280
+        hashtags:
+          type: array
+          maxItems: 10
+          items:
+            type: string
         createdAt:
           type: string
           format: date-time
@@ -3106,6 +3121,7 @@ components:
           id,
           authorId,
           content,
+          hashtags,
           createdAt,
           audience,
           type,
@@ -3204,7 +3220,7 @@ components:
       required: [items, nextCursor]
     PostCreate:
       type: object
-      description: Text or media post. Media must reference staged uploads; arbitrary URLs are not accepted.
+      description: Text or media post. Allows at most 10 distinct hashtags. Media must reference staged uploads; arbitrary URLs are not accepted.
       properties:
         authorId:
           type: string
@@ -3230,7 +3246,7 @@ components:
       additionalProperties: false
     ArticleCreate:
       type: object
-      description: Article with optional staged media assets.
+      description: Article with optional staged media assets and at most 10 distinct hashtags across its caption, title, and body.
       properties:
         authorId:
           type: string

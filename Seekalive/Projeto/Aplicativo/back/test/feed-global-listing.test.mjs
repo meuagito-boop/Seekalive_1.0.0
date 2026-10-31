@@ -93,6 +93,59 @@ test("following feed scopes repository candidates and requires an accepted relat
   assert.deepEqual(page.items.map(({ post }) => post.id), [followedPost.id]);
 });
 
+test("search passes normalized text and an accent-insensitive hashtag prefix to Feed storage", async () => {
+  let listedInput;
+  const listFeed = createGlobalFeedLister(
+    async (input) => {
+      listedInput = input;
+      return [];
+    },
+    async () => [],
+    async () => new Map(),
+    async () => [],
+  );
+
+  await listFeed({
+    tab: "for-you",
+    viewerId: null,
+    searchTerm: "  CAFÉ  ",
+    limit: 20,
+    cursor: null,
+  });
+
+  assert.equal(listedInput.searchTerm, "café");
+  assert.equal(listedInput.hashtagPrefix, "cafe");
+});
+
+test("a search cursor cannot be reused with a different query", () => {
+  const position = {
+    createdAt: new Date("2026-10-27T10:00:00.000Z"),
+    id: "44444444-4444-4444-8444-444444444444",
+  };
+  const cursor = encodeGlobalFeedCursor(position, {
+    tab: "for-you",
+    viewerId: null,
+    searchTerm: "café",
+  });
+
+  assert.equal(
+    parseGlobalFeedCursor(cursor, {
+      tab: "for-you",
+      viewerId: null,
+      searchTerm: "café",
+    })?.id,
+    position.id,
+  );
+  assert.equal(
+    parseGlobalFeedCursor(cursor, {
+      tab: "for-you",
+      viewerId: null,
+      searchTerm: "cafeteira",
+    }),
+    undefined,
+  );
+});
+
 test("videos feed requests only video media and returns video post views", async () => {
   const videoPost = {
     ...makePost("77777777-7777-4777-8777-777777777777"),

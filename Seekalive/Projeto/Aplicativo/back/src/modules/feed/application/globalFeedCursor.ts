@@ -4,6 +4,7 @@ import { isFeedResourceId } from "../domain/feedResourceId";
 export type GlobalFeedCursorScope = {
   tab: SocialFeedTab;
   viewerId: string | null;
+  searchTerm?: string;
 };
 
 export function encodeGlobalFeedCursor(
@@ -15,6 +16,7 @@ export function encodeGlobalFeedCursor(
       version: 1,
       tab: scope.tab,
       viewerId: scope.viewerId,
+      searchTerm: scope.searchTerm ?? null,
       createdAt: position.createdAt.toISOString(),
       id: position.id,
     }),
@@ -36,6 +38,7 @@ export function parseGlobalFeedCursor(
       version?: unknown;
       tab?: unknown;
       viewerId?: unknown;
+      searchTerm?: unknown;
       createdAt?: unknown;
       id?: unknown;
     };
@@ -43,6 +46,7 @@ export function parseGlobalFeedCursor(
       payload.version !== 1 ||
       payload.tab !== scope.tab ||
       payload.viewerId !== scope.viewerId ||
+      (payload.searchTerm ?? null) !== (scope.searchTerm ?? null) ||
       typeof payload.createdAt !== "string" ||
       !Number.isFinite(Date.parse(payload.createdAt)) ||
       !isFeedResourceId(payload.id)
