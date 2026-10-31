@@ -95,9 +95,7 @@ function createFixture({ businessPrivate = false, blocked = false } = {}) {
             record.reviewerAccountId === input.reviewerAccountId,
         )
       ) {
-        throw {
-          constraint: "business_profile_reviews_business_reviewer_unique",
-        };
+        return { kind: "already_exists" };
       }
       const record = {
         id: "50000000-0000-4000-8000-000000000005",
@@ -107,7 +105,7 @@ function createFixture({ businessPrivate = false, blocked = false } = {}) {
         createdAt,
       };
       records.push(record);
-      return record;
+      return { kind: "created", record };
     },
     async deleteOwn(businessId, reviewerId) {
       const previousLength = records.length;

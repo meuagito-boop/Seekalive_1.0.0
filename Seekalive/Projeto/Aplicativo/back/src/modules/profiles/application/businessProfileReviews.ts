@@ -62,7 +62,10 @@ export type BusinessProfileReviewStore = {
     reviewerAccountId: string;
     rating: number;
     comment: string;
-  }) => Promise<BusinessReviewRecord>;
+  }) => Promise<
+    | { kind: "created"; record: BusinessReviewRecord }
+    | { kind: "already_exists" }
+  >;
   deleteOwn: (
     businessAccountId: string,
     reviewerAccountId: string,
@@ -273,25 +276,16 @@ export function createBusinessProfileReviewService(
       ) {
         throw new BusinessProfileReviewError("not_allowed");
       }
-      try {
-        return await dependencies.store.create({
-          businessAccountId,
-          reviewerAccountId,
-          rating: input.rating,
-          comment,
-        });
-      } catch (error) {
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "constraint" in error &&
-          error.constraint ===
-            "business_profile_reviews_business_reviewer_unique"
-        ) {
-          throw new BusinessProfileReviewError("already_exists");
-        }
-        throw error;
+      const result = await dependencies.store.create({
+        businessAccountId,
+        reviewerAccountId,
+        rating: input.rating,
+        comment,
+      });
+      if (result.kind === "already_exists") {
+        throw new BusinessProfileReviewError("already_exists");
       }
+      return result.record;
     },
 
     async deleteOwn(

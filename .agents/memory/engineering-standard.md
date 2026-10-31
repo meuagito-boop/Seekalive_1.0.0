@@ -38,3 +38,11 @@ Toda pendência encontrada que não seja resolvida no escopo atual deve ser regi
 **Why:** a paridade entre router e OpenAPI prova método/caminho, não prova autorização de titular, comportamento dos casos de uso ou persistência. O proprietário pediu explicitamente avaliações rota a rota e rejeitou declarar operações ativas apenas por estarem montadas.
 
 **How to apply:** em inventários gerados e relatórios, nomear o nível de evidência, ligar a testes concretos e manter o nível não verificado e sua ação de fechamento no plano.
+
+## Conflitos de unicidade concorrentes
+
+**Regra:** classificar violações de unicidade conhecidas no adaptador de persistência e devolver um resultado tipado à aplicação. Não inspecionar códigos/constraints específicos do banco na camada de aplicação; não converter erros desconhecidos em conflito.
+
+**Why:** em 31/10/2026, uma integração HTTP isolada de Reviews encontrou que uma violação única concorrente, envolvida pelo driver/ORM, escapava do tratamento existente e virava HTTP 500. O teste unitário anterior não exercitava essa forma real da exceção.
+
+**How to apply:** para conflitos que sejam resultado esperado do produto, testar duas requisições concorrentes contra o schema temporário; reconhecer apenas o SQLSTATE e a constraint previstos no adaptador, retornar o resultado discriminado correspondente e propagar as demais falhas.

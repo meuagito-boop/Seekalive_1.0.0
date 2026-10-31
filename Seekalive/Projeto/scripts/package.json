@@ -20,6 +20,7 @@
     "test:feed-application": "tsx --test ../Aplicativo/back/test/feed-application-injection.test.mjs ../Aplicativo/back/test/feed-visibility.test.mjs ../Aplicativo/back/test/feed-interactions-application.test.mjs",
     "test:media-storage": "tsx --test ../Aplicativo/back/test/media-file-store.test.mjs",
     "test:profiles-reviews": "tsx --test ../Aplicativo/back/test/business-profile-reviews-application.test.mjs",
+    "test:profiles-reviews-api-isolated": "tsx --test ../Aplicativo/back/test/business-profile-reviews-api-isolated.test.mjs",
     "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:db-domain-registry && pnpm run test:api-runtime && pnpm run test:api-route-contract && pnpm run test:feed-global && pnpm run test:feed-application && pnpm run test:media-storage && pnpm run test:profiles-reviews",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

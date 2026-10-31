@@ -21,6 +21,31 @@ function asCount(value: string | number): number {
   return parsed;
 }
 
+function isDuplicateReviewError(error: unknown): boolean {
+  let current: unknown = error;
+  let code: string | undefined;
+  let constraint: string | undefined;
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (!current || typeof current !== "object") break;
+    const candidate = current as {
+      code?: unknown;
+      constraint?: unknown;
+      cause?: unknown;
+    };
+    if (!code && typeof candidate.code === "string") {
+      code = candidate.code;
+    }
+    if (!constraint && typeof candidate.constraint === "string") {
+      constraint = candidate.constraint;
+    }
+    current = candidate.cause;
+  }
+  return (
+    code === "23505" &&
+    constraint === "business_profile_reviews_business_reviewer_unique"
+  );
+}
+
 function visibleReviewConditions(
   businessAccountId: string,
   viewerId: string | null,
@@ -166,17 +191,24 @@ export const businessProfileReviewStore: BusinessProfileReviewStore = {
   },
 
   async create(input) {
-    const [row] = await db
-      .insert(businessProfileReviews)
-      .values({
-        businessAccountId: input.businessAccountId,
-        reviewerAccountId: input.reviewerAccountId,
-        rating: input.rating,
-        comment: input.comment,
-      })
-      .returning();
-    if (!row) throw new Error("Business review insert returned no row.");
-    return mapRecord(row);
+    try {
+      const [row] = await db
+        .insert(businessProfileReviews)
+        .values({
+          businessAccountId: input.businessAccountId,
+          reviewerAccountId: input.reviewerAccountId,
+          rating: input.rating,
+          comment: input.comment,
+        })
+        .returning();
+      if (!row) throw new Error("Business review insert returned no row.");
+      return { kind: "created", record: mapRecord(row) };
+    } catch (error) {
+      if (isDuplicateReviewError(error)) {
+        return { kind: "already_exists" };
+      }
+      throw error;
+    }
   },
 
   async deleteOwn(businessAccountId, reviewerAccountId) {
