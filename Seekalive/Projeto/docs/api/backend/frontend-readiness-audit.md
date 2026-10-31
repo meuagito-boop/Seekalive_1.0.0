@@ -25,7 +25,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; guard do cliente complementa a autorização independente da API | Parcial |
 | Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação, troca de senha, sessões e instalações confiáveis chamam a API | Falta E2E no navegador; metadados de 29/10/2026 confirmam as tabelas necessárias no banco de desenvolvimento |
 | Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados; idade é coletada no cadastro, permanece somente no servidor para a regra de 18+ e nunca é retornada após a criação; e-mail é somente para o titular. Perfis remotos já carregam publicações/artigos pela API; a inspeção visual autenticada não foi executada | Parcial; falta E2E visual e continuam fora os campos comerciais ainda não suportados pelo contrato |
-| Publicações e comentários | A prévia permanece local. Em sessão remota, perfil carrega publicações/artigos paginados e as ações de curtir, comentar/responder, repostar e salvar usam a API; o Feed global e sua jornada completa ainda não foram verificados nesta etapa | Parcial |
+| Publicações e comentários | A prévia permanece local. Em sessão remota, o Feed global consome a API nas abas Para você, Seguindo, Artigos e Vídeos, e perfis carregam publicações/artigos paginados; curtir, comentar/responder, repostar e salvar usam a API. Estados de carregamento/erro/vazio, paginação sem duplicação e ações assíncronas da aba Vídeos têm testes. A jornada autenticada ainda não foi verificada visualmente no navegador | Parcial |
 | Fotos e vídeos | Upload autenticado, IDs de mídia e associação às publicações funcionam no desenvolvimento com arquivos locais; isso não fornece armazenamento permanente de produção | Desenvolvimento funcional; produção não pronta |
 | Galeria | Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência | Parcial |
 | Relacionamentos e Círculo | API persiste seguimentos, pedidos privados e Círculo derivado; sessões remotas usam a API para visualizar e alterar relações | Integrado em sessão remota; falta E2E visual |
@@ -56,12 +56,12 @@ O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a 
 
 ### Integração gradual — conteúdo e relações ainda incompletos
 
-- `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha e gestão de sessões), onboarding, perfil básico, privacidade e relações sociais. Conteúdo, mídia, Seek, avaliações, Shop, mensagens e notificações continuam sem handlers.
-- Configurações de conta, privacidade e segurança usam endpoints ativos. O feed e conteúdos permanecem no `demoContentAdapter`; seguir, pedidos e Círculo ainda precisam concluir a integração visual com as rotas disponíveis.
+- `Aplicativo/back/src` implementa saúde, autenticação (incluindo recuperação de senha e gestão de sessões), onboarding, perfil básico, privacidade, relações, Feed global/perfil, interações sociais e upload de mídia. Busca do Seek, avaliações, Shop, mensagens e notificações ainda não estão integralmente conectados.
+- Em sessões remotas, Feed e linha do tempo do perfil usam os endpoints próprios; a prévia demonstrativa continua local e não é fallback após erro de rede. Busca por tags, referências e avaliações/Seek permanecem fora desta fatia. A integração visual autenticada ainda não foi verificada ponta a ponta.
 - O catálogo público do IBGE é uma integração externa de dados; cadastro, autenticação e configurações usam a API Seekalive.
 - O fluxo da API usa processos/servidores separados; a configuração de same-origin/proxy e CORS precisa ser conferida antes de conectar novos módulos. A API ativa exige sessão verificada e CSRF para escrita.
 
-**Antes de integrar as telas de perfil/relações:** escolher o cliente/base URL, configurar roteamento/CORS, mapear erros/paginação e manter as demonstrações separadas; falha de rede nunca deve acionar fallback silencioso para fixtures.
+**Antes de integrar novos módulos remotos:** reutilizar o cliente, roteamento e tratamento de erros/paginação já adotados; reavaliar CORS somente se a implantação futura separar as origens. Manter a prévia demonstrativa isolada: falha de rede nunca deve acionar fallback silencioso para fixtures.
 
 ### Resolvido — Fixtures de exemplo aparecem somente no desenvolvimento
 
@@ -89,16 +89,16 @@ O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a 
 - `canReadPost` e filtros de tela são úteis para UX, mas não protegem dados. Feed, busca, perfil, comentário, notificações, mensagens, referência e arquivo precisam da mesma autorização no servidor.
 - Em perfil público, seguir é imediato. Em perfil privado, a API cria solicitação pendente; somente o dono pode aceitar ou recusar. Pedido pendente não conta como seguidor e não libera conteúdo.
 - Após a aprovação, o seguidor vê publicações com audiência `public` e `private` do perfil privado. Publicações destinadas ao Círculo continuam exigindo seguimento aceito nos dois sentidos. A regra de Círculo permanece derivada: A segue B e B segue A; a remoção de qualquer seguimento encerra o Círculo.
-- A API de bloqueio remove seguimentos e pedidos nos dois sentidos em transação, oculta a conta e permite desbloqueio apenas pelo iniciador. Ao desbloquear, os vínculos não voltam automaticamente. As telas ainda não consomem esses endpoints.
+- A API de bloqueio remove seguimentos e pedidos nos dois sentidos em transação, oculta a conta e permite desbloqueio apenas pelo iniciador. Ao desbloquear, os vínculos não voltam automaticamente. As telas em sessão remota consomem esses endpoints; a validação E2E autenticada permanece pendente.
 - Mensagens antigas ainda não têm API; portanto, ocultação/restauração durante bloqueio permanece pendente para o futuro domínio de mensagens. A API já persiste preferência de mensagens e confirmações de leitura, mas a tela ainda não a consome.
 
 **Regra de backend concluída para perfil, posts e mídias:** os endpoints ativos foram verificados com sessões autenticadas temporárias no banco de desenvolvimento. As telas de perfil e relações consomem esses endpoints em sessões remotas; mensagens ainda não têm API e deverão aplicar a regra de bloqueio quando forem construídas.
 
-### P1 — Mídias não são uploads e a galeria tem duas fontes
+### P1 — Upload de mídia funciona no desenvolvimento; a galeria comercial ainda precisa de ownership definido
 
-- `mediaService.ts` e `use-draft-media.ts` criam URLs locais para prévia. URLs `blob:` deixam de existir após recarga e não são IDs que o backend possa anexar a um post.
-- A publicação precisa enviar IDs de uploads prontos, pertencentes ao autor e validados pelo servidor; tipo MIME declarado pelo navegador não é prova do formato do arquivo.
-- A galeria derivada das publicações respeita audiência, mas `CommercialProfilePage` também reúne `commercialProfile.photos/videos`. O contrato precisa definir se essas mídias são publicações importadas/vinculadas ou ativos de perfil separados. Não duplicar arquivo nem expor conteúdo privado via galeria.
+- A prévia de desenvolvimento pode usar URLs `blob:` locais, mas a publicação em sessão remota envia o arquivo pelo fluxo de upload, recebe um ID e associa esse ID ao post; uma falha remota não é tratada como publicação bem-sucedida.
+- O backend valida arquivo/titularidade e mantém os binários no disco local de desenvolvimento. Armazenamento permanente, processamento e limpeza periódica de produção continuam fora desta etapa.
+- A galeria derivada das publicações respeita audiência, mas `CommercialProfilePage` também reúne `commercialProfile.photos/videos`. Ainda é necessário definir se esses ativos pertencem a publicações vinculadas ou ao perfil comercial; não duplicar arquivos nem expor conteúdo privado via galeria.
 
 ### P1 — O contrato documental tinha divergências de regra
 
@@ -135,8 +135,8 @@ Os contratos de domínio comercial e avaliação ainda são propostas e precisam
 |---|---|---|
 | Acesso e cadastro | `/`, `/login`, `/register`, `/forgot-password`, `/verify-email` | API própria para conta real; estado local separado apenas para demonstração de desenvolvimento |
 | Onboarding | `/onboarding/interests`, `/onboarding/suggestions` | preferências locais e sugestões mock |
-| Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | `SocialContext`, fixtures restritas ao desenvolvimento, reducer; `contentService` demo |
-| Perfis e relações | `/profile`, `/profile/:username`, `/profile/edit`, seguidores/seguindo, `/circles` | dados públicos/conteúdo ainda usam estado local em partes; `/profile/edit` não substitui os dados privados de Configurações > Conta |
+| Social | `/feed`, `/search`, `/post/:id`, `/article/:id`, `/compose`, `/article/create`, `/social/activity`, `/social/suggestions` | Sessão remota: Feed global/perfil e ações de conteúdo via API. Prévia de desenvolvimento: `SocialContext`, fixtures restritas e `contentService` demo. Busca por tags/referências permanece local |
+| Perfis e relações | `/profile`, `/profile/:username`, `/profile/edit`, seguidores/seguindo, `/circles` | perfil e publicações remotas usam a API em sessão real; seções comerciais sem contrato permanecem limitadas; `/profile/edit` não substitui os dados privados de Configurações > Conta |
 | Seek | `/seek`, `/seek/event/:id` | dados locais, catálogo IBGE, preferências de busca; eventos de exemplo |
 | Shop | `/shop`, `/shop/item/:id` | catálogo ilustrativo restrito ao desenvolvimento; salvos em localStorage |
 | Comunicação | `/messages`, `/messages/:conversationId`, `/notifications` | objetos em memória/contexto; sem entrega externa |
@@ -146,15 +146,19 @@ Os contratos de domínio comercial e avaliação ainda são propostas e precisam
 
 Na auditoria e nesta fatia:
 
-- `pnpm test:social`: **42 testes aprovados** incluindo isolamento/persistência local de ações sociais, seguimentos e bloqueios bilaterais por conta, remoção das relações entre contas, desbloqueio ativo, sincronização de nome de usuário entre conta e Social, além de regras de conteúdo, privacidade, validação, referências e erros do adaptador.
+- Baseline anterior: `pnpm test:social` passou em 42 testes, cobrindo isolamento local de ações/relações e regras de conteúdo. Na verificação atual de 31/10/2026, `pnpm run test:social` passou em **95/95**, incluindo estados do Feed remoto e deduplicação de páginas.
 - `pnpm --filter @workspace/social run typecheck`: aprovado.
-- `pnpm --filter @workspace/social run build`: aprovado nesta revisão; apresentou avisos não bloqueantes de sourcemap e tamanho de bundle.
+- `pnpm --filter @workspace/social run build` com `PORT=5000 BASE_PATH=/`: aprovado; 97 chunks passaram na verificação de conteúdo demonstrativo. Permaneceram dois avisos de anotações em comentários internos do Zod; a versão não foi alterada.
 - Testes HTTP com três contas temporárias e e-mail verificado no banco **de desenvolvimento**: pedido privado, lista e aprovação; perfil após aprovação; seguimento público e mutualidade/Círculo; bloqueio, ocultação de perfil e rejeição de seguimento durante bloqueio; desbloqueio sem restaurar vínculos; edição de perfil e privacidade com versão.
 - Rotas protegidas responderam `401` sem sessão e escrita sem CSRF respondeu `403`; health check da API respondeu `200`. As contas temporárias foram excluídas ao final.
 
-Esses resultados comprovam esta fatia, não a prontidão integral do backend. Não há testes de navegador ponta a ponta; também seguem pendentes uploads, conteúdo, avaliações, mensagens, notificações e conexão das telas de perfil/relações com a API.
+Esses resultados comprovam esta fatia, não a prontidão integral do backend. Não há teste de navegador autenticado ponta a ponta; busca por tags, referências, avaliações/Seek, mensagens e notificações continuam pendentes. Upload de mídia está integrado no desenvolvimento, mas armazenamento permanente/produção permanece fora do escopo atual.
 
-## Ordem recomendada para fechar a prontidão
+## Próximas etapas vigentes
+
+A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. No Gate 5, as Etapas 5.1–5.4 estão concluídas; a próxima fatia prevista é conectar referências/busca por tags e, em seguida, avaliações/Seek, uma por vez. O Feed global não deve ser reimplementado.
+
+## Ordem histórica da auditoria inicial
 
 1. **Concluído nesta etapa:** edição de dados pessoais/comerciais em Configurações > Conta ligada à API owner-only, mantendo o preview de demonstração separado. Próximo: validar a tela em navegador autenticado e fechar as decisões/controles de conta que ainda faltam antes de iniciar páginas públicas.
 2. **Fatia de identidade implementada:** registro pessoal/comercial, login por usuário/e-mail, sessão, CSRF, verificação obrigatória, gravação das escolhas de onboarding e recuperação de senha. O fluxo de recuperação tem teste integrado com e-mail em memória; validar o envio no navegador e a entrega real no ambiente de desenvolvimento segue como aceite separado.
@@ -164,4 +168,4 @@ Esses resultados comprovam esta fatia, não a prontidão integral do backend. N�
 6. Integrar gradualmente cadastro/perfil, Social, avaliações/Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.
 7. Criar testes de API e navegador que cubram autorização entre contas, privacidade, Círculo, publicação/galeria, avaliações, mensagens e ações de configuração.
 
-**Estado final desta auditoria:** perfil owner-only, privacidade e relações atualizados/testados em desenvolvimento; Configurações > Conta já está integrada por tipo de conta. E2E visual autenticado, páginas públicas, conteúdo e demais áreas continuam pendentes; produção e provedores externos não foram alterados.
+**Estado vigente desta auditoria:** perfis owner-only, privacidade e relações usam os contratos existentes; o Feed global e as publicações/artigos de perfil funcionam via API em sessão remota, enquanto a prévia segue local. E2E visual autenticado, busca por tags, referências, avaliações/Seek e outros domínios pendentes continuam sem aceite; produção e provedores externos não foram alterados.

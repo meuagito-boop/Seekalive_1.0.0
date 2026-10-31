@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Repeat2, Share2, UserPlus, Check, Clock3, Play, BookOpenText } from "lucide-react";
@@ -16,6 +16,10 @@ import { getPostMediaType } from "@/lib/postMedia";
 import { useToast } from "@/hooks/use-toast";
 import { handleTabKeyDown } from "@/lib/tabKeyboard";
 import { restSocialApi } from "@/modules/social/services/restContracts";
+import {
+  appendUniqueRemoteFeedItems,
+  getRemoteFeedViewState,
+} from "@/modules/social/application/remoteFeedState";
 
 const feedTabs = ["Para você", "Seguindo", "Artigos", "Vídeos"] as const;
 
@@ -56,22 +60,71 @@ function useVisibleFeed() {
 }
 
 function VideoFeedItem({ post }: { post: Post }) {
-  const { getUserById, toggleLike, toggleRepost, toggleFollow, repostEntries } = useSocial();
+  const {
+    getUserById,
+    getPostById,
+    isRemoteSocialSession,
+    toggleLike,
+    toggleRepost,
+    toggleFollow,
+    repostEntries,
+  } = useSocial();
   const { currentUser } = useAppContext();
   const { toast } = useToast();
   const [shareOpen, setShareOpen] = useState(false);
-  const author = getUserById(post.authorId);
+  const [busyAction, setBusyAction] = useState<
+    "like" | "repost" | "follow" | null
+  >(null);
+  const currentPost = getPostById(post.id) ?? post;
+  const author = getUserById(currentPost.authorId);
   if (!author) return null;
+  const followTargetId = author.id;
   const viewerId = currentUser?.id ?? "me";
-  const reposted = repostEntries.some((r) => r.postId === post.id && r.authorId === viewerId);
-  const videoIndex = (post.mediaUrls ?? []).findIndex((_, i) => getPostMediaType(post, i) === "video");
+  const reposted = isRemoteSocialSession
+    ? Boolean(currentPost.isReposted)
+    : repostEntries.some(
+        (entry) =>
+          entry.postId === currentPost.id && entry.authorId === viewerId,
+      );
+  const videoIndex = (currentPost.mediaUrls ?? []).findIndex(
+    (_, index) => getPostMediaType(currentPost, index) === "video",
+  );
   const isRealVideo = videoIndex >= 0;
-  const poster = isRealVideo ? undefined : post.mediaUrls?.[0];
+  const poster = isRealVideo ? undefined : currentPost.mediaUrls?.[0];
+
+  async function runAction(
+    action: "like" | "repost" | "follow",
+    operation: () => Promise<unknown>,
+  ) {
+    if (busyAction) return;
+    setBusyAction(action);
+    try {
+      await operation();
+    } catch {
+      const title =
+        action === "like"
+          ? "Curtida não atualizada"
+          : action === "repost"
+            ? "Repostagem não atualizada"
+            : "Seguimento não atualizado";
+      toast({
+        title,
+        description: "Não foi possível concluir a ação. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
 
   function repost() {
-    try { toggleRepost(post.id, viewerId); } catch (e) {
-      toast({ title: "Repostagem indisponível", description: e instanceof Error ? e.message : "", variant: "destructive" });
-    }
+    return runAction("repost", () =>
+      toggleRepost(currentPost.id, viewerId),
+    );
+  }
+
+  function follow() {
+    return runAction("follow", () => toggleFollow(followTargetId));
   }
 
   const action = "flex flex-col items-center gap-0.5 select-none text-white";
@@ -81,11 +134,11 @@ function VideoFeedItem({ post }: { post: Post }) {
     <div className="border-b border-border" data-testid={`video-card-${post.id}`}>
       <div className="relative w-full overflow-hidden bg-black" style={{ height: "min(72vw, 480px)" }}>
         {isRealVideo ? (
-          <video src={post.mediaUrls![videoIndex]} controls playsInline className="h-full w-full object-contain" aria-label={`Vídeo de ${author.displayName}`} />
+          <video src={currentPost.mediaUrls![videoIndex]} controls playsInline className="h-full w-full object-contain" aria-label={`Vídeo de ${author.displayName}`} />
         ) : poster ? (
           <img src={poster} alt="" className="h-full w-full object-cover opacity-80" />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/25 to-primary/5 p-8 text-center text-sm text-white/80">{post.content}</div>
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/25 to-primary/5 p-8 text-center text-sm text-white/80">{currentPost.content}</div>
         )}
         {!isRealVideo && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -101,23 +154,23 @@ function VideoFeedItem({ post }: { post: Post }) {
               <Avatar className="h-11 w-11 border-2 border-white shadow-lg"><AvatarImage src={author.avatarUrl} alt="" /><AvatarFallback>{author.displayName[0]}</AvatarFallback></Avatar>
             </Link>
             {author.id !== viewerId && (
-              <button type="button" onClick={() => toggleFollow(author.id)} aria-label={author.isFollowing ? "Deixar de seguir" : author.followRequestSent ? "Cancelar solicitação para seguir" : author.isPrivate ? "Solicitar para seguir" : "Seguir"}
-                className={`absolute -bottom-2 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full ${author.isFollowing ? "bg-zinc-600" : author.followRequestSent ? "bg-amber-600" : "bg-primary"}`}>
+              <button type="button" onClick={() => void follow()} disabled={busyAction !== null} aria-label={author.isFollowing ? "Deixar de seguir" : author.followRequestSent ? "Cancelar solicitação para seguir" : author.isPrivate ? "Solicitar para seguir" : "Seguir"}
+                className={`absolute -bottom-2 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full ${author.isFollowing ? "bg-zinc-600" : author.followRequestSent ? "bg-amber-600" : "bg-primary"} disabled:opacity-50`}>
                 {author.isFollowing ? <Check className="h-2.5 w-2.5 text-white" /> : author.followRequestSent ? <Clock3 className="h-2.5 w-2.5 text-white" /> : <UserPlus className="h-2.5 w-2.5 text-white" />}
               </button>
             )}
           </div>
-          <motion.button whileTap={{ scale: 1.2 }} type="button" onClick={() => toggleLike(post.id)} aria-pressed={!!post.isLiked} aria-label="Curtir" className={action}>
-            <span className={bubble}><Heart className={`h-5 w-5 ${post.isLiked ? "fill-red-500 text-red-500" : ""}`} /></span>
-            <span className="text-[10px] font-semibold">{formatCount(post.likes)}</span>
+          <motion.button whileTap={{ scale: 1.2 }} type="button" onClick={() => void runAction("like", () => toggleLike(currentPost.id))} disabled={busyAction !== null} aria-pressed={!!currentPost.isLiked} aria-label={currentPost.isLiked ? "Descurtir" : "Curtir"} className={`${action} disabled:opacity-50`}>
+            <span className={bubble}><Heart className={`h-5 w-5 ${currentPost.isLiked ? "fill-red-500 text-red-500" : ""}`} /></span>
+            <span className="text-[10px] font-semibold">{formatCount(currentPost.likes)}</span>
           </motion.button>
-          <Link href={`/post/${post.id}`} aria-label="Comentários" className={action}>
+          <Link href={`/post/${currentPost.id}`} aria-label={`Comentários (${currentPost.comments})`} className={action}>
             <span className={bubble}><MessageCircle className="h-5 w-5" /></span>
-            <span className="text-[10px] font-semibold">{formatCount(post.comments)}</span>
+            <span className="text-[10px] font-semibold">{formatCount(currentPost.comments)}</span>
           </Link>
-          <motion.button whileTap={{ scale: 1.2 }} type="button" onClick={repost} disabled={post.audience !== "public"} aria-pressed={reposted} aria-label="Repostar" className={`${action} disabled:opacity-40`}>
+          <motion.button whileTap={{ scale: 1.2 }} type="button" onClick={() => void repost()} disabled={currentPost.audience !== "public" || busyAction !== null} aria-pressed={reposted} aria-label={reposted ? "Desfazer repostagem" : "Repostar"} className={`${action} disabled:opacity-40`}>
             <span className={bubble}><Repeat2 className={`h-5 w-5 ${reposted ? "text-green-400" : ""}`} /></span>
-            <span className="text-[10px] font-semibold">{formatCount(post.reposts)}</span>
+            <span className="text-[10px] font-semibold">{formatCount(currentPost.reposts)}</span>
           </motion.button>
           <button type="button" onClick={() => setShareOpen(true)} aria-label="Compartilhar" className={action}>
             <span className={bubble}><Share2 className="h-5 w-5" /></span>
@@ -125,12 +178,12 @@ function VideoFeedItem({ post }: { post: Post }) {
         </div>
         <div className="absolute bottom-0 left-0 right-16 z-10 px-3 pb-3">
           <p className="text-xs font-semibold text-white">{author.displayName}</p>
-          <p className="line-clamp-2 text-xs text-white/85">{post.content}</p>
+          <p className="line-clamp-2 text-xs text-white/85">{currentPost.content}</p>
         </div>
       </div>
-      <ShareContentDialog open={shareOpen} onOpenChange={setShareOpen} reference={{ type: "social_post", id: post.id }}
-        title={post.content.slice(0, 80)} linkPath={`/post/${post.id}`}
-        repost={post.audience === "public" ? { active: reposted, onToggle: repost } : undefined} />
+      <ShareContentDialog open={shareOpen} onOpenChange={setShareOpen} reference={{ type: "social_post", id: currentPost.id }}
+        title={currentPost.content.slice(0, 80)} linkPath={`/post/${currentPost.id}`}
+        repost={currentPost.audience === "public" ? { active: reposted, onToggle: () => void repost() } : undefined} />
     </div>
   );
 }
@@ -142,15 +195,22 @@ export default function Feed() {
     tab: 0,
     items: [],
     nextCursor: null,
-    loading: false,
+    loading: true,
     error: null,
   });
+  const loadMoreInFlight = useRef(false);
   const { getUserById, isRemoteSocialSession, dispatch } = useSocial();
   const { items, visible } = useVisibleFeed();
 
   const followingItems = items.filter((i) => getUserById(i.post.authorId)?.isFollowing || (i.repostedById && getUserById(i.repostedById)?.isFollowing));
   const articles = visible.filter((p) => p.format === "article");
-  const videoPosts = visible.filter((p) => p.format !== "article" && (p.type === "video" || (p.mediaUrls?.length ?? 0) > 0));
+  const videoPosts = visible.filter(
+    (post) =>
+      post.format !== "article" &&
+      (post.mediaUrls ?? []).some(
+        (_, index) => getPostMediaType(post, index) === "video",
+      ),
+  );
 
   const list = (feed: FeedItem[]) => feed.map((i) => <PostCard key={i.key} post={i.post} repostedById={i.repostedById} />);
   const remoteTab = activeTab === 0
@@ -209,9 +269,11 @@ export default function Feed() {
     if (
       remoteFeed.tab !== activeTab ||
       !remoteFeed.nextCursor ||
-      remoteFeed.loading
+      remoteFeed.loading ||
+      loadMoreInFlight.current
     ) return;
     const requestedTab = activeTab;
+    loadMoreInFlight.current = true;
     setRemoteFeed((current) => ({ ...current, loading: true, error: null }));
     try {
       const page = await restSocialApi.feed(
@@ -227,14 +289,14 @@ export default function Feed() {
           ? current
           : {
               ...current,
-              items: [
-                ...current.items,
-                ...page.items.map((post) => ({
+              items: appendUniqueRemoteFeedItems(
+                current.items,
+                page.items.map((post) => ({
                   key: post.id,
                   post,
                   at: post.createdAt,
                 })),
-              ],
+              ),
               nextCursor: page.nextCursor,
               loading: false,
               error: null,
@@ -252,6 +314,8 @@ export default function Feed() {
                 : "Não foi possível carregar mais publicações.",
             },
       );
+    } finally {
+      loadMoreInFlight.current = false;
     }
   }
 
@@ -261,15 +325,24 @@ export default function Feed() {
     const currentRemoteItems = remoteFeed.tab === index
       ? remoteFeed.items
       : [];
-    if (isRemoteSocialSession && remoteFeed.tab === index && remoteFeed.loading && remoteFeed.items.length === 0) {
-      return <div className="px-4 py-8 text-center text-sm text-muted-foreground" role="status">Carregando publicações…</div>;
+    const remoteViewState = getRemoteFeedViewState({
+      isRemoteSession: isRemoteSocialSession,
+      activeTab: index,
+      loadedTab: remoteFeed.tab,
+      loading: remoteFeed.loading,
+      error: remoteFeed.error,
+      itemCount: currentRemoteItems.length,
+    });
+    if (remoteViewState === "loading") {
+      const label =
+        index === 2
+          ? "Carregando artigos…"
+          : index === 3
+            ? "Carregando vídeos…"
+            : "Carregando publicações…";
+      return <div className="px-4 py-8 text-center text-sm text-muted-foreground" role="status">{label}</div>;
     }
-    if (
-      isRemoteSocialSession &&
-      remoteFeed.tab === index &&
-      remoteFeed.error &&
-      remoteFeed.items.length === 0
-    ) {
+    if (remoteViewState === "error") {
       return (
         <div className="space-y-3 px-4 py-8 text-center" role="alert">
           <p className="text-sm text-destructive">{remoteFeed.error}</p>
@@ -352,7 +425,11 @@ export default function Feed() {
             {isRemoteSocialSession && remoteFeed.tab === index && remoteFeed.nextCursor && (
               <div className="flex justify-center px-4 py-5">
                 <Button variant="outline" className="rounded-full" disabled={remoteFeed.loading} onClick={() => void loadMoreRemoteFeed()}>
-                  {remoteFeed.loading ? "Carregando…" : "Carregar mais"}
+                  {remoteFeed.loading
+                    ? "Carregando…"
+                    : remoteFeed.error
+                      ? "Tentar carregar mais"
+                      : "Carregar mais"}
                 </Button>
               </div>
             )}
