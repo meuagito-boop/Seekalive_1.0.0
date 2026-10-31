@@ -38,3 +38,11 @@ Em `CHECK` constraints e predicados de índices parciais, usar expressões SQL e
 **Why:** O interpolador produziu referências com schema/tabela/coluna que passam pelo typecheck e pelo `drizzle-kit check`, mas o PostgreSQL rejeita ao executar DDL de bootstrap.
 
 **How to apply:** Reproduzir sempre os SQLs baseline em schemas descartáveis antes de registrá-los como bootstrap válido; se o SQL já foi registrado no ledger de desenvolvimento, manter hash/timestamp coerentes após ajustar apenas o texto do baseline e confirmar que não houve alteração de DDL de negócio.
+
+## Runner isolado de banco no desenvolvimento
+
+Em alguns trabalhos do workspace, o shell comum não herda `DATABASE_URL` runtime-managed, enquanto `CodeExecution.shellExec` consegue executar o runner usando essa variável sem mostrá-la. Descobrir o nome do banco com consulta somente leitura, passar apenas esse nome em `SEEKALIVE_EXPECTED_DATABASE` e manter o opt-in e `NODE_ENV=test`; nunca imprimir/copiar a URL.
+
+**Why:** O teste integrado depende de um pool PostgreSQL real e valida que schema temporário foi removido e que `public` não mudou. A diferença entre ambientes de shell pode parecer falta de banco, embora o banco de desenvolvimento esteja acessível pela execução segura.
+
+**How to apply:** Para testes que exigem isolamento real, prefira o runner de integração com schema aleatório e as proteções existentes; se o shell comum não tiver a conexão, use a execução com o contexto de desenvolvimento disponível sem expor credenciais. Confirme a limpeza do schema ao fim e reporte falha se não puder comprová-la.

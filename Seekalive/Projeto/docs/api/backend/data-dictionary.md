@@ -2,7 +2,7 @@
 
 **Registro histórico de 29/10/2026:** a leitura somente de metadados daquele dia encontrou 12 tabelas físicas e `feed.posts` ausente; a validação de `0005` foi feita em schemas temporários, sem alteração do schema principal. Esse estado foi substituído pela aplicação autorizada abaixo.
 
-**Estado de desenvolvimento em 30/10/2026:** os schemas têm `accounts` (4 tabelas), `security` (4), `profiles` (5), `feed` (6) e `media` (1). `feed.posts` e `media.assets` estão aplicados em tracks independentes. A coluna `feed.posts.media` armazena referências tipadas para ativos; os binários de teste são locais ao desenvolvimento. A aplicação e a consulta posterior verificaram nomes/colunas e ledgers de Feed/Mídias; nenhuma operação foi feita em produção. Replay automatizado de baselines em schemas temporários não foi executado pelo shell porque faltam `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`.
+**Estado de desenvolvimento em 30/10/2026:** os schemas têm `accounts` (4 tabelas), `security` (4), `profiles` (5), `feed` (6) e `media` (1). `feed.posts` e `media.assets` estão aplicados em tracks independentes. A coluna `feed.posts.media` armazena referências tipadas para ativos; os binários de teste são locais ao desenvolvimento. A aplicação e a consulta posterior verificaram nomes/colunas e ledgers de Feed/Mídias; nenhuma operação foi feita em produção. O replay automatizado dos baselines passou em schemas temporários, incluindo Feed e Mídias; os schemas foram removidos ao fim e o schema `public` permaneceu inalterado.
 
 ## Sources and boundaries
 

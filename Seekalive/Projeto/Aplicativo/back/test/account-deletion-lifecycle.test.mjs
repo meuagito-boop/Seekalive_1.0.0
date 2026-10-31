@@ -24,10 +24,12 @@ const database = await import("@workspace/db");
 const {
   accountEmails,
   accountFollows,
+  accountProfiles,
   accountUsernameReservations,
   accounts,
   authChallenges,
   db,
+  mediaAssets,
   passwordCredentials,
   pool,
   sessions,
@@ -39,6 +41,10 @@ const deletionRepository =
   await import("../src/modules/auth/infrastructure/accountDeletionRepository.ts");
 const deletionFinalizer =
   await import("../src/modules/auth/infrastructure/accountDeletionFinalizerRepository.ts");
+const mediaAssetRepository =
+  await import("../src/modules/media/infrastructure/mediaAssetRepository.ts");
+const { createAccountMediaPurger } =
+  await import("../src/modules/media/composition/accountMediaPurge.ts");
 const usernameAvailability =
   await import("../src/modules/profiles/infrastructure/usernameAvailabilityRepository.ts");
 const loginRepository =
@@ -91,6 +97,12 @@ async function createAccount(label) {
     .returning({ id: accounts.id, username: accounts.username });
 
   const now = new Date();
+  await db.insert(accountProfiles).values({
+    accountId,
+    firstName: "Lifecycle",
+    lastName: label,
+    displayName: `Lifecycle ${label}`,
+  });
   await db.insert(accountEmails).values({
     accountId,
     emailNormalized: `deletion-${label}-${randomUUID()}@example.test`,
@@ -255,9 +267,13 @@ test("account deletion request, restoration, retention, and final purge follow p
     })
     .where(eq(accounts.id, account.id));
 
-  assert.equal(await deletionFinalizer.finalizeDueAccountDeletions(), 1);
+  const noMediaPurge = async () => {};
   assert.equal(
-    await deletionFinalizer.finalizeDueAccountDeletions(),
+    await deletionFinalizer.finalizeDueAccountDeletions(noMediaPurge),
+    1,
+  );
+  assert.equal(
+    await deletionFinalizer.finalizeDueAccountDeletions(noMediaPurge),
     0,
     "Running the finalizer again must not delete or process the same account twice.",
   );
@@ -320,11 +336,17 @@ test("account deletion request, restoration, retention, and final purge follow p
   );
 
   assert.equal(
-    await deletionFinalizer.finalizeDueAccountDeletions(retentionUntil),
+    await deletionFinalizer.finalizeDueAccountDeletions(
+      noMediaPurge,
+      retentionUntil,
+    ),
     1,
   );
   assert.equal(
-    await deletionFinalizer.finalizeDueAccountDeletions(retentionUntil),
+    await deletionFinalizer.finalizeDueAccountDeletions(
+      noMediaPurge,
+      retentionUntil,
+    ),
     0,
     "Purging an expired retention record must be idempotent.",
   );
@@ -369,6 +391,108 @@ test("account deletion request, restoration, retention, and final purge follow p
   );
 });
 
+test("permanent account purge removes owned media before deleting account data", async () => {
+  const account = await createAccount("media-purge");
+  const now = new Date();
+  const deletionRequestedAt = new Date(
+    now.getTime() - 100 * 24 * 60 * 60 * 1000,
+  );
+  const deletionScheduledFor =
+    deletionPolicy.calculateAccountDeletionDeadline(deletionRequestedAt);
+  const retentionUntil =
+    deletionPolicy.calculateAccountDeletionRetentionDeadline(
+      deletionScheduledFor,
+    );
+  const storageKeys = [randomUUID(), randomUUID()];
+
+  await db
+    .update(accounts)
+    .set({
+      status: "deletion_retained",
+      deletionRequestedAt,
+      deletionScheduledFor,
+      deletionRetentionUntil: retentionUntil,
+    })
+    .where(eq(accounts.id, account.id));
+
+  await db.insert(mediaAssets).values(
+    storageKeys.map((storageKey) => ({
+      ownerAccountId: account.id,
+      storageKey,
+      mediaType: "image",
+      contentType: "image/jpeg",
+      sizeBytes: 3,
+      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    })),
+  );
+
+  const removedStorageKeys = new Set();
+  const removalAttempts = [];
+  let shouldFailRemoval = true;
+  const purgeMedia = createAccountMediaPurger(
+    mediaAssetRepository.listMediaStorageKeysForAccount,
+    async (storageKey) => {
+      removalAttempts.push(storageKey);
+      if (shouldFailRemoval && removalAttempts.length === 2) {
+        throw new Error("simulated local file removal failure");
+      }
+      removedStorageKeys.add(storageKey);
+    },
+    () => true,
+  );
+
+  await assert.rejects(
+    deletionFinalizer.finalizeDueAccountDeletions(purgeMedia, retentionUntil),
+    /simulated local file removal failure/,
+  );
+
+  const [accountAfterFailedRemoval] = await db
+    .select({ id: accounts.id, status: accounts.status })
+    .from(accounts)
+    .where(eq(accounts.id, account.id));
+  assert.deepEqual(accountAfterFailedRemoval, {
+    id: account.id,
+    status: "deletion_retained",
+  });
+  const mediaAfterFailedRemoval = await db
+    .select({ storageKey: mediaAssets.storageKey })
+    .from(mediaAssets)
+    .where(eq(mediaAssets.ownerAccountId, account.id));
+  assert.equal(mediaAfterFailedRemoval.length, 2);
+
+  shouldFailRemoval = false;
+  assert.equal(
+    await deletionFinalizer.finalizeDueAccountDeletions(
+      purgeMedia,
+      retentionUntil,
+    ),
+    1,
+  );
+  assert.deepEqual(
+    [...removedStorageKeys].sort(),
+    storageKeys.slice().sort(),
+    "The retry must remove every file; already-removed files may be encountered again.",
+  );
+  assert.equal(
+    (
+      await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(eq(accounts.id, account.id))
+    ).length,
+    0,
+  );
+  assert.equal(
+    (
+      await db
+        .select({ id: mediaAssets.id })
+        .from(mediaAssets)
+        .where(eq(mediaAssets.ownerAccountId, account.id))
+    ).length,
+    0,
+  );
+});
+
 test("a retained account releases its username after the 30-day hold", async () => {
   const deletedAccount = await createAccount("username-reuse");
   const now = new Date();
@@ -385,7 +509,13 @@ test("a retained account releases its username after the 30-day hold", async () 
     })
     .where(eq(accounts.id, deletedAccount.id));
 
-  assert.equal(await deletionFinalizer.finalizeDueAccountDeletions(now), 1);
+  assert.equal(
+    await deletionFinalizer.finalizeDueAccountDeletions(
+      async () => {},
+      now,
+    ),
+    1,
+  );
   assert.equal(
     await usernameAvailability.isUsernameClaimedOrReserved(
       deletedAccount.username,
@@ -402,6 +532,12 @@ test("a retained account releases its username after the 30-day hold", async () 
     displayName: "New owner of username",
     accountType: "personal",
     status: "active",
+  });
+  await db.insert(accountProfiles).values({
+    accountId: newAccountId,
+    firstName: "New",
+    lastName: "Owner",
+    displayName: "New owner of username",
   });
   await db.insert(accountEmails).values({
     accountId: newAccountId,

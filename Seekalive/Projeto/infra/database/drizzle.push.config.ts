@@ -9,6 +9,7 @@ export default defineConfig({
     path.join(__dirname, "./src/schema/security/*.ts"),
     path.join(__dirname, "./src/schema/profiles/*.ts"),
     path.join(__dirname, "./src/schema/feed/*.ts"),
+    path.join(__dirname, "./src/schema/media/*.ts"),
     path.join(__dirname, "./src/schema/seek/*.ts"),
   ],
   dialect: "postgresql",
