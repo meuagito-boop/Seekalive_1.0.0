@@ -20,6 +20,8 @@ tags:
     description: Text posts and articles with server-enforced audience visibility
   - name: auth-security
     description: Authenticated e-mail and password changes
+  - name: onboarding
+    description: Account interest preferences collected during onboarding
 paths:
   /healthz:
     get:
@@ -34,6 +36,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /readyz:
+    get:
+      operationId: readinessCheck
+      tags: [health]
+      summary: Check whether the API can serve requests
+      description: Returns readiness without exposing database or connection details.
+      responses:
+        "200":
+          description: Dependencies are ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessStatus"
+        "503":
+          description: A required dependency is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessStatus"
+  /v1/accounts/availability:
+    get:
+      operationId: checkAccountUsernameAvailability
+      tags: [profiles]
+      summary: Check whether a username can be claimed
+      description: >
+        Accepts an optional leading @ and trims surrounding whitespace. The
+        server normalizes uppercase ASCII letters to lowercase and reports
+        reserved platform usernames as unavailable. Limited to 30 requests
+        per 60 seconds per client IP.
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 21
+            pattern: "^@?[A-Za-z0-9_-]{3,20}$"
+      responses:
+        "200":
+          description: Availability result for the normalized username
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountUsernameAvailability"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/auth/csrf:
     get:
       operationId: getAuthCsrfToken
@@ -944,6 +995,37 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
+  /v1/onboarding/interests:
+    post:
+      operationId: completeOnboardingInterests
+      tags: [onboarding]
+      summary: Save or skip account interest selection
+      description: >
+        Requires an authenticated session and CSRF token. Interests are
+        optional, unique, and limited to 100 keys; when skipped is true, the
+        interests array must be empty.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingInterestsRequest"
+      responses:
+        "200":
+          description: Onboarding interest selection saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingCompletionResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /v1/profiles/{username}:
     parameters:
       - $ref: "#/components/parameters/Username"
@@ -972,9 +1054,10 @@ paths:
       tags: [profiles]
       summary: List reviews on a commercial profile
       description: >
-        Reviews belong to the commercial profile in Social. Reads are
-        authenticated optionally and follow profile visibility and block rules.
-        The aggregate is read-only and may be displayed by Seek discovery.
+        Reviews belong to the commercial-profile aggregate owned by Profiles.
+        Reads are optionally authenticated and follow profile visibility and
+        block rules. Seek may consume authorized review summaries but does not
+        own review operations.
       security:
         - sessionCookie: []
         - {}
@@ -1014,6 +1097,7 @@ paths:
         the author may delete and publish a new one. Self-reviews are rejected.
       security:
         - sessionCookie: []
+          csrfToken: []
       requestBody:
         required: true
         content:
@@ -1037,6 +1121,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/profiles/{username}/reviews/me:
     parameters:
       - $ref: "#/components/parameters/Username"
@@ -1046,6 +1132,7 @@ paths:
       summary: Delete the authenticated person's review
       security:
         - sessionCookie: []
+          csrfToken: []
       responses:
         "200":
           description: Review deleted
@@ -1055,8 +1142,12 @@ paths:
                 $ref: "#/components/schemas/BusinessProfileReviewDeleted"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/profiles/{username}/reviews/{reviewId}/reply:
     parameters:
       - $ref: "#/components/parameters/Username"
@@ -1073,6 +1164,7 @@ paths:
       description: Only the owner of the commercial account may reply.
       security:
         - sessionCookie: []
+          csrfToken: []
       requestBody:
         required: true
         content:
@@ -1094,6 +1186,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/accounts/{accountId}:
     parameters:
       - $ref: "#/components/parameters/AccountId"
@@ -1378,9 +1472,10 @@ paths:
       summary: List readable social feed posts
       description: >
         Results are ordered newest first with stable keyset pagination.
-        for-you and articles can be read anonymously but still respect account
-        visibility, Círculo membership, and bilateral blocks. following requires
-        an authenticated session and includes only accepted followed accounts.
+        for-you and articles can be read anonymously. Private-account posts are
+        visible only to their owner and approved followers. Círculo posts require
+        a mutual follow relationship. Blocks in either direction prevent access.
+        following requires an authenticated session and includes accepted follows.
         videos returns persisted media posts containing at least one video.
         q searches caption and article text and also matches hashtag prefixes;
         hashtag matching ignores case and diacritics.
@@ -1403,8 +1498,8 @@ paths:
             type: string
             minLength: 2
             maxLength: 120
-        - $ref: "#/components/parameters/PageLimit"
-        - $ref: "#/components/parameters/PageCursor"
+        - $ref: "#/components/parameters/FeedPageLimit"
+        - $ref: "#/components/parameters/FeedPageCursor"
       responses:
         "200":
           description: Paginated readable feed content with public author views
@@ -1609,8 +1704,12 @@ paths:
           description: Publication deleted
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/social/posts/{postId}/reference:
     parameters:
       - $ref: "#/components/parameters/PostId"
@@ -1651,6 +1750,8 @@ paths:
                 $ref: "#/components/schemas/Post"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "429":
@@ -1671,6 +1772,8 @@ paths:
                 $ref: "#/components/schemas/Post"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "429":
@@ -1694,10 +1797,10 @@ paths:
                 $ref: "#/components/schemas/Post"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-        "422":
-          $ref: "#/components/responses/ValidationError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
     delete:
@@ -1716,6 +1819,8 @@ paths:
                 $ref: "#/components/schemas/Post"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "429":
@@ -1739,6 +1844,8 @@ paths:
                 $ref: "#/components/schemas/Post"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "429":
@@ -1766,8 +1873,8 @@ paths:
   /v1/social/posts/{postId}/comments:
     parameters:
       - $ref: "#/components/parameters/PostId"
-      - $ref: "#/components/parameters/PageLimit"
-      - $ref: "#/components/parameters/PageCursor"
+      - $ref: "#/components/parameters/CommentPageLimit"
+      - $ref: "#/components/parameters/FeedPageCursor"
     get:
       operationId: getSocialPostComments
       tags: [feed]
@@ -1781,6 +1888,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CommentPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1807,10 +1916,14 @@ paths:
                 $ref: "#/components/schemas/Comment"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
   /v1/social/comments/{commentId}:
@@ -1828,8 +1941,12 @@ paths:
           description: Comment deleted
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/social/comments/{commentId}/like:
     parameters:
       - $ref: "#/components/parameters/CommentId"
@@ -1925,7 +2042,7 @@ paths:
     parameters:
       - $ref: "#/components/parameters/AccountId"
       - $ref: "#/components/parameters/PageLimit"
-      - $ref: "#/components/parameters/PageCursor"
+      - $ref: "#/components/parameters/FeedPageCursor"
     get:
       operationId: getSocialAccountPosts
       tags: [feed]
@@ -2024,6 +2141,31 @@ components:
       schema:
         type: string
         maxLength: 32
+    FeedPageLimit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+    CommentPageLimit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    FeedPageCursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        maxLength: 512
   responses:
     Unauthorized:
       description: Missing, expired, or unverified account session
@@ -2116,6 +2258,55 @@ components:
           type: string
       required:
         - status
+    ReadinessStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+      required: [status]
+      additionalProperties: false
+    AccountUsernameAvailability:
+      type: object
+      properties:
+        available:
+          type: boolean
+        normalizedUsername:
+          type: string
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-z0-9_-]{3,20}$"
+      required: [available, normalizedUsername]
+      additionalProperties: false
+    OnboardingInterestsRequest:
+      type: object
+      description: >
+        Unique interest labels; submit an empty list when the optional step is
+        skipped. The API additionally rejects skipped=true with non-empty interests.
+      properties:
+        interests:
+          type: array
+          maxItems: 100
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 80
+        skipped:
+          type: boolean
+      required: [interests, skipped]
+      additionalProperties: false
+    OnboardingCompletionResult:
+      type: object
+      properties:
+        onboardingCompleted:
+          type: boolean
+        interestCount:
+          type: integer
+          minimum: 0
+          maximum: 100
+      required: [onboardingCompleted, interestCount]
+      additionalProperties: false
     ApiError:
       type: object
       properties:
@@ -3562,6 +3753,7 @@ components:
             $ref: "#/components/schemas/Comment"
         nextCursor:
           type: [string, "null"]
+          maxLength: 512
       required: [items, nextCursor]
     PostCreate:
       type: object
@@ -3665,6 +3857,7 @@ components:
             $ref: "#/components/schemas/Post"
         nextCursor:
           type: [string, "null"]
+          maxLength: 512
       required: [items, nextCursor]
     FeedItem:
       type: object
@@ -3683,4 +3876,5 @@ components:
             $ref: "#/components/schemas/FeedItem"
         nextCursor:
           type: [string, "null"]
+          maxLength: 512
       required: [items, nextCursor]

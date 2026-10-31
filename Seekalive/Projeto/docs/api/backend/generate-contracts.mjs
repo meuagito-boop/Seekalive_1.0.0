@@ -1,13 +1,15 @@
 /**
- * Reproducibly generates the endpoint catalog and OpenAPI 3.1 spec.
- * It documents contracts only; it does not add handlers or run database SQL.
+ * Generates the non-normative planning catalog in docs/roadmap.
+ * Mounted routes and the canonical HTTP contract are maintained separately.
+ * This script does not add handlers or run database SQL.
  * Run: node docs/api/backend/generate-contracts.mjs
  */
-import { writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
+const roadmapDir = resolve(dir, "../../roadmap");
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
 // tag, method, path, summary, request schema, response schema, behavior
 // "live" is reserved for endpoints verified in Aplicativo/back.
@@ -597,7 +599,7 @@ g(
     auth: "optional",
     status: "implemented",
     contractDescription:
-      "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Avaliações pertencem ao perfil comercial do Social. A resposta contém a página, a distribuição de notas e o identificador da avaliação do visitante autenticado, quando houver. A leitura respeita a visibilidade do perfil e bloqueios; Seek pode consumir somente o agregado autorizado.",
+      "Handler implementado em código. Avaliações pertencem ao perfil comercial em Profiles; Seek pode consumir somente o agregado autorizado. O inventário confirma o registro da rota, não sua persistência física nem execução ponta a ponta.",
   },
 );
 post(
@@ -3182,7 +3184,7 @@ for (const route of R) {
       (route.status === "live"
         ? "LIVE on the audited API server."
         : route.status === "implemented"
-          ? "IMPLEMENTED IN CODE; database migration and HTTP verification are pending."
+      ? "Planning-catalog entry only; do not infer physical migration or mounted-route status from this snapshot."
           : `PROPOSED ONLY; not currently implemented.${route.accepted ? " Async job and request ID; no synchronous-success simulation." : ""}`),
     ...(route.query?.includes("q") && !parameters.some((p) => p.name === "q")
       ? {
@@ -3334,16 +3336,18 @@ for (const [path, operations] of Object.entries(paths)) {
         throw new Error(`Parâmetro path inválido: ${parameter.name}`);
   }
 }
+await mkdir(roadmapDir, { recursive: true });
 await writeFile(
-  join(dir, "openapi.json"),
+  join(roadmapDir, "seekalive-operation-catalog.json"),
   `${JSON.stringify(spec, null, 2)}\n`,
 );
 const lines = [
-  "# Endpoints e contrato OpenAPI",
+  "# Catálogo de operações de referência",
   "",
-  `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. OpenAPI 3.1 em \`openapi.json\`: **${R.length} operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
+  `Gerado por \`node docs/api/backend/generate-contracts.mjs\`. Este registro histórico de planejamento contém **${R.length} operações** e não é o inventário de rotas ativas nem o contrato da API. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.`,
   "",
-  "> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A integração HTTP isolada da fatia de referências não foi executada porque o runner não recebeu `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; a limitação está registrada no roadmap. Produção não foi consultada, alterada ou publicada.",
+  "> **Não normativo:** os estados e descrições deste catálogo são o snapshot original do planejamento. Para rotas realmente montadas, use `docs/api/backend/endpoints.md`; para o contrato HTTP, use `shared/api-spec/openapi.yaml`. Este arquivo não prova testes, persistência ou implantação.",
+  "> **Regras vigentes que substituem qualquer conflito neste snapshot:** audiência `private` = titular e seguidores aprovados de perfil privado; Círculo exige seguimento mútuo; campos de apresentação e avaliações pertencem a Profiles; Seek apenas consome projeções públicas autorizadas e não cria nem edita avaliações.",
   "",
   "## Respostas, paginação e autenticação",
   "",
@@ -3351,7 +3355,7 @@ const lines = [
   "- Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.",
   "- Erro: `{error:{code,message,requestId,details?,supportEmail?,retryAfterSeconds?,attemptsRemaining?,resendAvailableAt?}}`. Nunca serializar stack trace.",
   "- Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.",
-  "- Rota marcada `ACTIVA` existe hoje. Outras são propostas e requerem implementação, migração e testes.",
+  "- Não use os estados registrados abaixo para decidir se uma rota está ativa. Essa informação é regenerada a partir do Express e do OpenAPI.",
   "",
 ];
 for (const tag of [...new Set(R.map((r) => r.tag))]) {
@@ -3374,7 +3378,7 @@ for (const tag of [...new Set(R.map((r) => r.tag))]) {
       r.status === "live"
         ? "ATIVA"
         : r.status === "implemented"
-          ? "IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE"
+        ? "IMPLEMENTADA EM CÓDIGO; ESTADO FÍSICO DO BANCO NÃO ASSERTADO"
           : "PROPOSTA";
     const responseLabel =
       r.responseVariants ?? (r.response ? `\`${r.response}\`` : "bytes/SSE");
@@ -3390,12 +3394,16 @@ lines.push(
   "Checkout, pagamento, assinatura, pedido, entrega, reserva de mesa, agendamento confirmado, ingresso e localização por raio não aparecem como recursos prontos nesta especificação. Se aprovados, serão uma fase e contratos separados. O Shop atual desabilita compra e os eventos atuais não recebem inscrições pagas.",
   "",
 );
-await writeFile(join(dir, "endpoints.md"), `${lines.join("\n")}\n`);
+await writeFile(
+  join(roadmapDir, "seekalive-operation-catalog.md"),
+  `${lines.join("\n")}\n`,
+);
 console.log(
   JSON.stringify({
     endpoints: R.length,
     paths: Object.keys(paths).length,
     schemas: Object.keys(schemas).length,
     live: R.filter((r) => r.status === "live").length,
+    outputDirectory: "docs/roadmap",
   }),
 );

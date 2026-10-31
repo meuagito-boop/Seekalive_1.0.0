@@ -9,6 +9,9 @@ import type { Comment } from './comment';
 
 export interface CommentPage {
   items: Comment[];
-  /** @nullable */
+  /**
+     * @maxLength 512
+     * @nullable
+     */
   nextCursor: string | null;
 }

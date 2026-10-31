@@ -224,7 +224,7 @@ Para cada uma, comprovar entrada válida/inválida, sucesso e DTO, erros, conta 
 2. Gerar `routes.generated.md` e `endpoints.md` do inventário e do OpenAPI, sem catálogo estático duplicado de rotas ativas.
 3. Classificar individualmente as 11 operações segundo evidência, ambiente e taxonomia aprovada.
 4. Corrigir documentação de mídia (`/v1/social/media`) e salvos (`/bookmark`).
-5. Mover o catálogo de 146 operações para `docs/roadmap/api-operation-catalog.json`; ajustar minimamente `generate-contracts.mjs` para que gere somente o artefato de roadmap e nunca sobrescreva docs ativas.
+5. Mover o catálogo de 146 operações para `docs/roadmap/seekalive-operation-catalog.json` e `.md`; ajustar minimamente `generate-contracts.mjs` para que gere somente o artefato de roadmap e nunca sobrescreva docs ativas.
 6. Remover afirmações obsoletas sobre recuperação, Drizzle, `restSocialApi`, contagens fixas de tabelas e FKs restritivas, sem apagar evidência histórica que continue claramente identificada como histórica.
 7. Documentar fontes e arquivos gerados; criar/usar um único comando de geração e uma verificação de saída desatualizada. Reutilizar `render-docs.mjs` para `index.html` e `Seekalive-backend-documentation.md`; não criar renderer concorrente.
 8. Comprovar determinismo executando geração duas vezes e comparando saídas. Testar a detecção de stale docs em cópia/fixture temporária, não corrompendo arquivos de trabalho.
@@ -258,9 +258,9 @@ Executar uma segunda revisão independente dos critérios e artefatos antes de q
 **D. Riscos e pendências** — impacto, decisão necessária e condição de encerramento.
 **E. Restrições respeitadas** — declarar expressamente se houve push, migrate, DDL, produção, acesso/exposição de segredos ou mudança de regra.
 
-## Arquivos e módulos potencialmente afetados
+## Arquivos e módulos afetados
 
-Nenhum deles foi alterado nesta revisão. A matriz da Etapa 0 definirá o conjunto final antes de implementação.
+A implementação foi limitada à instrumentação de inventário, contratos gerados e documentação. Nenhuma regra de negócio, endpoint executável ou persistência foi adicionada.
 
 - Runtime e rotas: `Aplicativo/back/src/app.ts`, `Aplicativo/back/src/modules/index.ts`, `Aplicativo/back/src/modules/feed/composition/router.ts` e arquivos de rotas Feed; health, onboarding, Profiles e segurança somente quando a auditoria de contrato exigir.
 - Contrato e geração: `shared/api-spec/openapi.yaml`, `shared/api-spec/orval.config.ts`, código gerado em `shared/contracts/src/generated` e `shared/api-client-react/src/generated`.
@@ -271,10 +271,48 @@ Nenhum deles foi alterado nesta revisão. A matriz da Etapa 0 definirá o conjun
 ## Decisões, riscos e pontos de parada
 
 1. **Sem reescrita de routers ou registro paralelo por conveniência.** Se a inspeção real do Express exigir uma mudança arquitetural ou uma dependência, interromper e pedir aprovação específica.
-2. **Sem nova dependência prevista.** A stack já possui Express, Orval, Zod, `node:test`, `tsx` e `fetch`; qualquer lacuna que realmente exija outra ferramenta será demonstrada antes de propor instalação.
+2. **Dependência adicionada com justificativa:** `yaml@2.9.1` como dependência de desenvolvimento de `@workspace/scripts`, porque o inventário precisa interpretar o OpenAPI YAML com parser real. Licença ISC verificada; `pnpm audit --prod=false` não encontrou vulnerabilidades conhecidas. Orval e Zod não foram atualizados.
 3. **A suíte integrada de Feed existe, mas está bloqueada pelas restrições atuais:** ela executa `push` e DDL em schema temporário. Não será rodada. Isso impede alegar persistência completa sem um ambiente previamente provisionado ou autorização futura.
 4. **Rate limit atual é local ao processo.** A validação pode comprovar o comportamento na instância de desenvolvimento, não coordenação entre instâncias.
 5. **Código declarado não é comportamento comprovado.** O relatório separará fonte, registro runtime, middleware aplicado e teste observado.
 6. **Nenhuma operação com produção, segredo, DDL, migration ou push.** Qualquer desvio de escopo ou regra aprovada exige interrupção e consulta.
 
-**Autorização atual:** o aditivo autorizou revisar este plano; ainda não autorizou implementar. A implementação aguarda o OK explícito desta revisão consolidada.
+**Autorização:** implementação iniciada após aprovação explícita do usuário.
+
+## Registro de execução — 31/10/2026
+
+### Mudou
+
+- `scripts/src/api-route-inventory.mjs`: inventaria os registros Express através das APIs públicas de montagem, normaliza os caminhos e compara método/caminho com OpenAPI; extrai CSRF e metadados de rate limit.
+- `scripts/src/api-route-contract.test.mjs`, `scripts/src/generate-api-route-docs.mjs` e `scripts/package.json`: teste de paridade nos dois sentidos, rejeição de divergências e modo `--check` para detectar documentação de rotas desatualizada.
+- `Aplicativo/back/src/security/rateLimit.ts`: expõe metadados imutáveis do limitador para documentação. Limites, chaves e respostas de rate limit não foram alterados.
+- `shared/api-spec/openapi.yaml`: adiciona `GET /readyz`, `GET /v1/accounts/availability` e `POST /v1/onboarding/interests`; corrige `/v1/social/accounts/{accountId}/posts` para GET e alinha parâmetros, esquemas e respostas aos handlers.
+- Código cliente e schemas gerados via Orval; `shared/contracts/src/auth.ts` reutiliza o schema gerado de onboarding sem remover as validações de domínio.
+- `docs/api/backend/routes.generated.md` e `endpoints.md` passam a ser gerados do inventário real. As 11 rotas que estavam rotuladas como propostas aparecem como ativas em código.
+- Catálogo estático de planejamento movido para `docs/roadmap/seekalive-operation-catalog.json` e `.md`, marcado como não normativo; `docs/api/backend/openapi.json` foi removido.
+- `docs/api/backend/queries/development-database-catalog.sql` fornece consulta somente leitura para o catálogo físico. O estado atual do banco não é afirmado nos documentos.
+- `render-docs.mjs` ganhou modo `--check`; HTML e Markdown consolidados foram regenerados. O ZIP técnico foi atualizado.
+- Documentação vigente e relatórios históricos foram ajustados para refletir as regras atuais: `private` inclui titular e seguidores aprovados do perfil privado; campos de apresentação e avaliações pertencem a Profiles; Seek apenas consome projeções autorizadas; estados físicos dependem da consulta de catálogo.
+
+### Evidência
+
+- `pnpm --filter @workspace/api-spec run codegen`: passou; Orval 8.44.0 regenerou os clientes e o typecheck de bibliotecas passou.
+- `pnpm -w run typecheck`: passou para os pacotes do workspace.
+- `pnpm -w run test`: terminou com sucesso.
+- `pnpm --filter @workspace/scripts run test:backend`: passou em todos os grupos, incluindo segurança, conexão/configuração de banco sem conexão física, runtime de API, paridade de rotas, Feed, mídia e avaliações de Profiles.
+- `pnpm --filter @workspace/scripts run test:api-route-contract`: passou; 76 rotas e zero divergências de método/caminho/CSRF. O comando também verifica arquivos gerados desatualizados.
+- `pnpm audit --prod=false`: nenhuma vulnerabilidade conhecida.
+- A geração do catálogo, inventário e documentos consolidados foi executada duas vezes; os hashes dos seis artefatos gerados foram idênticos.
+- `git diff --check`: sem erros de whitespace.
+- Uma repetição intermediária revelou erro de sintaxe no wrapper do rate limit; foi corrigido preservando a função arrow original. A repetição final do typecheck e da suíte passou.
+
+### Não verificado
+
+- A consulta de catálogo não foi executada; presença física atual de tabelas, índices, constraints e ações referenciais permanece não verificada.
+- Não foi feita validação E2E autenticada de cada handler nem teste visual de browser. Paridade de rotas não prova persistência ou comportamento completo.
+- O modo `--check` foi executado com documentos atuais; não foi induzido um arquivo propositalmente desatualizado em fixture temporária para exercitar o caminho de falha.
+- Os testes que criam schemas ou executam DDL (`test:api-isolated-db`) foram deliberadamente excluídos.
+
+### Restrições respeitadas
+
+Nenhum push, migration, DDL, escrita de banco, consulta de dados de negócio, acesso à produção ou leitura/exposição de segredos ocorreu. Não houve mudança de regra de negócio nem atualização de Zod/Orval.

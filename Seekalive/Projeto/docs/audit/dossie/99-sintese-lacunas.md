@@ -18,7 +18,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 |---:|---|---|---|
 | 1 | Concorrência em `auth_challenges.attempts` | **PARCIAL — 03-016** | O caminho de verificação usa transação e `FOR UPDATE`, depois grava `attempts + 1` como valor absoluto; não é incremento SQL atômico e não há teste concorrente. |
 | 2 | `trust proxy` e IP usado pelo rate limit | **PARCIAL — 11-005** | Há seleção de IP considerando cadeia de proxies no caminho de desenvolvimento. O salto confiável depende da topologia; não se comprovou o IP observado atrás do proxy efetivo nem resistência a cabeçalho forjado. |
-| 3 | Remoção física após 7 + 90 dias | **PARCIAL — 13-004, 13-006, 13-009; FK CONFIRMADA — 05-013** | Há worker e as 22 FKs para `accounts.accounts` são 21 `CASCADE` e uma `SET NULL`, sem `RESTRICT`/`NO ACTION`. A purga, o tratamento dos arquivos e a recuperação do worker não foram exercitados. |
+| 3 | Remoção física após 7 + 90 dias | **PARCIAL — 13-004, 13-006, 13-009; integridade referencial a confirmar** | O fluxo de purga e as ações referenciais precisam ser verificados com testes e com a consulta atual do catálogo de desenvolvimento; este resumo não fixa contagens de FKs. |
 | 4 | Cache de mídia privada | **CONFIRMADO no código — 08-008** | A rota autoriza pelo post, responde `private, no-store`, `nosniff`, `Content-Disposition` e Range. `Vary` não é definido; nenhum cache externo foi testado. |
 | 5 | Conta pendente sem TTL | **PARCIAL — 03-017** | O código de verificação expira, mas não foi encontrado job que remova conta pendente nem libere o e-mail/@ após o desafio expirar. |
 | 6 | Semântica de audiência `private` | **CONFIRMADO no código / CONTRADITÓRIO nos documentos — 04-001 e A2-003** | Código permite conteúdo privado ao titular e a seguidores aprovados; Círculo continua exigindo seguimento mútuo. Documentos preservam regras divergentes. |
@@ -32,7 +32,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 ## Contradições entre documentação, decisão registrada, schema e código
 
 1. **Contrato OpenAPI ativo × handlers:** 74 operações no contrato ativo e 76 rotas no servidor, com rotas só no código e divergência de método para posts por conta (`02-003`). O catálogo amplo inclui propostas e não pode ser tratado como handlers (`02-004`).
-2. **Estado ATIVA/PROPOSTA × rotas montadas:** há operações marcadas como proposta já registradas no Express, além de caminhos sem linha correspondente (`02-004`). A presença do handler, por si só, também não prova que a persistência exista.
+2. **Estado de rotas e contrato:** corrigido; `test:api-route-contract` confirma paridade entre Express e OpenAPI. O inventário gerado lista as rotas montadas. Essa paridade não prova persistência ou execução E2E.
 3. **Reviews comerciais:** a API está registrada, mas `profiles.business_profile_reviews` não existe no banco de desenvolvimento; o catálogo de endpoints chama corretamente a persistência de pendente (`02-005`, `05-002`, `04-007`).
 4. **Audiência privada:** a implementação permite leitura por seguidor aprovado; documentos também afirmam “somente titular” (`04-001`, `A2-003`).
 5. **DTO pessoal × campos aprovados:** o DTO público inclui localização, site e data de entrada, além do conjunto informado para perfil pessoal (`04-003`).

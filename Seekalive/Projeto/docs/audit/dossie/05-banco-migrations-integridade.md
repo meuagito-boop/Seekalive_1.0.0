@@ -14,7 +14,7 @@ WHERE table_type = 'BASE TABLE'
 ORDER BY table_schema, table_name;
 ```
 
-**Saída resumida:** tabelas de aplicação listadas em `accounts`, `security`, `profiles`, `feed` e `media`, além das tabelas de histórico em `drizzle`. Não apareceu `profiles.business_profile_reviews`; tampouco apareceram tabelas de aplicação para `seek`, `messages`, `notifications`, `search`, `location`, `shop` ou `trust_safety`.
+**Saída histórica do snapshot auditado:** a consulta daquele momento listou objetos de aplicação em `accounts`, `security`, `profiles`, `feed` e `media` e não encontrou `profiles.business_profile_reviews` nem tabelas de aplicação para vários domínios ainda não iniciados. Essas observações não afirmam o estado físico atual; consulte `docs/api/backend/queries/development-database-catalog.sql`.
 
 Também foram executadas consultas somente a `information_schema.columns`, `information_schema.table_constraints`, `pg_constraint` e `pg_indexes` para colunas, restrições e índices. A consulta de colunas não incluiu valores de contas. A consulta de restrições identificou FKs e checks; a de índices identificou unicidade e índices de consulta.
 
@@ -34,7 +34,7 @@ Também foram executadas consultas somente a `information_schema.columns`, `info
 **Veredito:** PARCIAL  
 **Prioridade:** Alta
 
-**Evidência:** `infra/database/src/schema/profiles/businessProfileReviews.ts` define a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a cria. A consulta de catálogo acima não retornou `profiles.business_profile_reviews`. A documentação de API `docs/api/backend/endpoints.md:86–89` já identifica as rotas de reviews como dependentes do banco.
+**Evidência:** `infra/database/src/schema/profiles/businessProfileReviews.ts` define a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a cria. A presença física atual deve ser verificada em `docs/api/backend/queries/development-database-catalog.sql`. O inventário vigente de rotas está em `docs/api/backend/endpoints.md`.
 
 **Conclusão:** a estrutura está preparada em código/migration, mas a persistência não está presente no banco observado. Não determinei o estado do ledger de migrations, pois o prompt restringe a auditoria a metadados e não exige a leitura de conteúdo de ledger.
 
@@ -144,7 +144,7 @@ Também foram executadas consultas somente a `information_schema.columns`, `info
 **Veredito:** CONFIRMADO para a ação das FKs catalogadas; execução da exclusão permanece sujeita ao achado 13-006.
 **Risco:** Médio — a ausência de bloqueio por FK não comprova que o processo de expurgo conclua a remoção.
 
-**Evidência:** consulta somente a `pg_constraint`, com `contype = 'f'` e tabela referenciada `accounts.accounts`, listou 22 FKs: 21 `CASCADE` e uma `SET NULL` (`accounts.account_username_reservations`). Nenhuma retornou `RESTRICT` ou `NO ACTION`.
+**Evidência:** a query histórica examinou ações referenciais de FKs para `accounts.accounts`. O conjunto atual deve ser lido no catálogo do banco de desenvolvimento em `docs/api/backend/queries/development-database-catalog.sql`; este relatório não fixa contagens ou ações atuais.
 
 **Limite:** a consulta cobre apenas FKs direcionadas a `accounts.accounts`; não testa a operação de exclusão nem outras restrições/efeitos em cascata.
 

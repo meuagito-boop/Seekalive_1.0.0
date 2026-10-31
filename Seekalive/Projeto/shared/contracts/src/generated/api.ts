@@ -18,6 +18,43 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Returns readiness without exposing database or connection details.
+ * @summary Check whether the API can serve requests
+ */
+export const ReadinessCheckResponse = zod.object({
+  "status": zod.enum(['ready', 'not_ready'])
+})
+
+
+/**
+ * Accepts an optional leading @ and trims surrounding whitespace. The server normalizes uppercase ASCII letters to lowercase and reports reserved platform usernames as unavailable. Limited to 30 requests per 60 seconds per client IP.
+ * @summary Check whether a username can be claimed
+ */
+export const checkAccountUsernameAvailabilityQueryUsernameMin = 3;
+export const checkAccountUsernameAvailabilityQueryUsernameMax = 21;
+
+
+export const checkAccountUsernameAvailabilityQueryUsernameRegExp = new RegExp('^@?[A-Za-z0-9_-]{3,20}$');
+
+
+export const CheckAccountUsernameAvailabilityQueryParams = zod.object({
+  "username": zod.coerce.string().min(checkAccountUsernameAvailabilityQueryUsernameMin).max(checkAccountUsernameAvailabilityQueryUsernameMax).regex(checkAccountUsernameAvailabilityQueryUsernameRegExp)
+})
+
+export const checkAccountUsernameAvailabilityResponseNormalizedUsernameMin = 3;
+export const checkAccountUsernameAvailabilityResponseNormalizedUsernameMax = 20;
+
+
+export const checkAccountUsernameAvailabilityResponseNormalizedUsernameRegExp = new RegExp('^[a-z0-9_-]{3,20}$');
+
+
+export const CheckAccountUsernameAvailabilityResponse = zod.object({
+  "available": zod.boolean(),
+  "normalizedUsername": zod.string().min(checkAccountUsernameAvailabilityResponseNormalizedUsernameMin).max(checkAccountUsernameAvailabilityResponseNormalizedUsernameMax).regex(checkAccountUsernameAvailabilityResponseNormalizedUsernameRegExp)
+})
+
+
+/**
  * Rotates the active session token or creates a pre-authentication token.
  * @summary Obtain a CSRF token for the current browser context
  */
@@ -939,6 +976,32 @@ export const UpdateMyPrivacySettingsResponse = zod.object({
 
 
 /**
+ * Requires an authenticated session and CSRF token. Interests are optional, unique, and limited to 100 keys; when skipped is true, the interests array must be empty.
+ * @summary Save or skip account interest selection
+ */
+export const completeOnboardingInterestsBodyInterestsItemMax = 80;
+
+export const completeOnboardingInterestsBodyInterestsMax = 100;
+
+
+
+export const CompleteOnboardingInterestsBody = zod.object({
+  "interests": zod.array(zod.string().min(1).max(completeOnboardingInterestsBodyInterestsItemMax)).max(completeOnboardingInterestsBodyInterestsMax),
+  "skipped": zod.boolean()
+}).describe('Unique interest labels; submit an empty list when the optional step is skipped. The API additionally rejects skipped=true with non-empty interests.\n')
+
+export const completeOnboardingInterestsResponseInterestCountMin = 0;
+export const completeOnboardingInterestsResponseInterestCountMax = 100;
+
+
+
+export const CompleteOnboardingInterestsResponse = zod.object({
+  "onboardingCompleted": zod.boolean(),
+  "interestCount": zod.int().min(completeOnboardingInterestsResponseInterestCountMin).max(completeOnboardingInterestsResponseInterestCountMax)
+})
+
+
+/**
  * Authentication is optional. Private profile fields and commercial details are limited according to follow approval and block rules.
  * @summary Get a visible profile by username
  */
@@ -997,6 +1060,8 @@ export const getProfileByUsernameResponsePostsItemsItemRepostsMin = 0;
 
 export const getProfileByUsernameResponsePostsItemsItemSharesMin = 0;
 
+export const getProfileByUsernameResponsePostsNextCursorMax = 512;
+
 export const getProfileByUsernameResponseArticlesItemsItemContentMax = 280;
 
 export const getProfileByUsernameResponseArticlesItemsItemHashtagsMax = 10;
@@ -1016,6 +1081,8 @@ export const getProfileByUsernameResponseArticlesItemsItemCommentsMin = 0;
 export const getProfileByUsernameResponseArticlesItemsItemRepostsMin = 0;
 
 export const getProfileByUsernameResponseArticlesItemsItemSharesMin = 0;
+
+export const getProfileByUsernameResponseArticlesNextCursorMax = 512;
 
 
 
@@ -1088,7 +1155,7 @@ export const GetProfileByUsernameResponse = zod.object({
   "isReposted": zod.boolean(),
   "isBookmarked": zod.boolean()
 })),
-  "nextCursor": zod.string().nullable()
+  "nextCursor": zod.string().max(getProfileByUsernameResponsePostsNextCursorMax).nullable()
 }),
   "articles": zod.object({
   "items": zod.array(zod.object({
@@ -1118,7 +1185,7 @@ export const GetProfileByUsernameResponse = zod.object({
   "isReposted": zod.boolean(),
   "isBookmarked": zod.boolean()
 })),
-  "nextCursor": zod.string().nullable()
+  "nextCursor": zod.string().max(getProfileByUsernameResponseArticlesNextCursorMax).nullable()
 }),
   "media": zod.object({
   "items": zod.array(zod.record(zod.string(), zod.unknown())),
@@ -1128,7 +1195,7 @@ export const GetProfileByUsernameResponse = zod.object({
 
 
 /**
- * Reviews belong to the commercial profile in Social. Reads are authenticated optionally and follow profile visibility and block rules. The aggregate is read-only and may be displayed by Seek discovery.
+ * Reviews belong to the commercial-profile aggregate owned by Profiles. Reads are optionally authenticated and follow profile visibility and block rules. Seek may consume authorized review summaries but does not own review operations.
  * @summary List reviews on a commercial profile
  */
 export const listBusinessProfileReviewsPathUsernameMin = 3;
@@ -1790,7 +1857,7 @@ export const UnblockAccountResponse = zod.void()
 
 
 /**
- * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. videos returns persisted media posts containing at least one video. q searches caption and article text and also matches hashtag prefixes; hashtag matching ignores case and diacritics.
+ * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously. Private-account posts are visible only to their owner and approved followers. Círculo posts require a mutual follow relationship. Blocks in either direction prevent access. following requires an authenticated session and includes accepted follows. videos returns persisted media posts containing at least one video. q searches caption and article text and also matches hashtag prefixes; hashtag matching ignores case and diacritics.
  * @summary List readable social feed posts
  */
 export const getSocialFeedQueryTabDefault = `for-you`;
@@ -1798,9 +1865,9 @@ export const getSocialFeedQueryQMin = 2;
 export const getSocialFeedQueryQMax = 120;
 
 export const getSocialFeedQueryLimitDefault = 20;
-export const getSocialFeedQueryLimitMax = 100;
+export const getSocialFeedQueryLimitMax = 50;
 
-export const getSocialFeedQueryCursorMax = 32;
+export const getSocialFeedQueryCursorMax = 512;
 
 
 
@@ -1842,6 +1909,8 @@ export const getSocialFeedResponseItemsItemAuthorStatsFollowingMin = 0;
 
 export const getSocialFeedResponseItemsItemAuthorStatsCirclesMin = 0;
 
+
+export const getSocialFeedResponseNextCursorMax = 512;
 
 
 
@@ -1902,7 +1971,7 @@ export const GetSocialFeedResponse = zod.object({
   "version": zod.int().min(1)
 })
 })),
-  "nextCursor": zod.string().nullable()
+  "nextCursor": zod.string().max(getSocialFeedResponseNextCursorMax).nullable()
 })
 
 
@@ -2475,10 +2544,10 @@ export const GetSocialPostCommentsParams = zod.object({
   "postId": zod.uuid()
 })
 
-export const getSocialPostCommentsQueryLimitDefault = 20;
+export const getSocialPostCommentsQueryLimitDefault = 50;
 export const getSocialPostCommentsQueryLimitMax = 100;
 
-export const getSocialPostCommentsQueryCursorMax = 32;
+export const getSocialPostCommentsQueryCursorMax = 512;
 
 
 
@@ -2490,6 +2559,8 @@ export const GetSocialPostCommentsQueryParams = zod.object({
 export const getSocialPostCommentsResponseItemsItemContentMax = 2000;
 
 export const getSocialPostCommentsResponseItemsItemLikesMin = 0;
+
+export const getSocialPostCommentsResponseNextCursorMax = 512;
 
 
 
@@ -2510,7 +2581,7 @@ export const GetSocialPostCommentsResponse = zod.object({
   "avatarUrl": zod.url().nullable()
 })
 })),
-  "nextCursor": zod.string().nullable()
+  "nextCursor": zod.string().max(getSocialPostCommentsResponseNextCursorMax).nullable()
 })
 
 
@@ -2521,10 +2592,10 @@ export const CreateSocialPostCommentParams = zod.object({
   "postId": zod.uuid()
 })
 
-export const createSocialPostCommentQueryLimitDefault = 20;
+export const createSocialPostCommentQueryLimitDefault = 50;
 export const createSocialPostCommentQueryLimitMax = 100;
 
-export const createSocialPostCommentQueryCursorMax = 32;
+export const createSocialPostCommentQueryCursorMax = 512;
 
 
 
@@ -2790,7 +2861,7 @@ export const GetSocialAccountPostsParams = zod.object({
 export const getSocialAccountPostsQueryLimitDefault = 20;
 export const getSocialAccountPostsQueryLimitMax = 100;
 
-export const getSocialAccountPostsQueryCursorMax = 32;
+export const getSocialAccountPostsQueryCursorMax = 512;
 
 export const getSocialAccountPostsQueryFormatDefault = `all`;
 
@@ -2819,6 +2890,8 @@ export const getSocialAccountPostsResponseItemsItemCommentsMin = 0;
 export const getSocialAccountPostsResponseItemsItemRepostsMin = 0;
 
 export const getSocialAccountPostsResponseItemsItemSharesMin = 0;
+
+export const getSocialAccountPostsResponseNextCursorMax = 512;
 
 
 
@@ -2850,7 +2923,7 @@ export const GetSocialAccountPostsResponse = zod.object({
   "isReposted": zod.boolean(),
   "isBookmarked": zod.boolean()
 })),
-  "nextCursor": zod.string().nullable()
+  "nextCursor": zod.string().max(getSocialAccountPostsResponseNextCursorMax).nullable()
 })
 
 

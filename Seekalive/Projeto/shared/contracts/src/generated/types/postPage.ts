@@ -9,6 +9,9 @@ import type { Post } from './post';
 
 export interface PostPage {
   items: Post[];
-  /** @nullable */
+  /**
+     * @maxLength 512
+     * @nullable
+     */
   nextCursor: string | null;
 }

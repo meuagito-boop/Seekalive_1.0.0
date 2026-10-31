@@ -2,22 +2,22 @@
 
 ## Situação da auditoria
 
-Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL gerenciado da Replit no desenvolvimento; a produção permanece separada e não foi publicada. O envio de códigos via Resend foi testado em desenvolvimento, mas o E2E completo e a configuração de produção permanecem pendentes. Não há banco PostgreSQL externo escolhido ou conectado. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
+O projeto está em desenvolvimento. Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL de desenvolvimento. O envio de códigos via Resend foi testado nesse ambiente, mas esse teste não comprova o fluxo E2E completo. Esta documentação não descreve nem presume uma configuração de produção. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
 
-Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding, perfil/privacidade e relações sociais essenciais listadas como **ATIVA** em `endpoints.md`. As outras rotas são propostas. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.
+As rotas montadas estão em `endpoints.md` e `routes.generated.md`; esses inventários não afirmam que cada fluxo foi exercitado. As demais integrações abaixo são decisões a avaliar, não conexões já configuradas.
 
 ## Serviços candidatos e documentação oficial
 
 | Necessidade | Opção / situação | Referência oficial |
 |---|---|---|
-| Banco relacional | PostgreSQL gerenciado da Replit com Drizzle. No desenvolvimento, 12 schemas lógicos estão preparados; 12 tabelas estão distribuídas em `accounts`, `security`, `profiles` e `seek`. Produção é separada e continua sem publicação. | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
+| Banco relacional | PostgreSQL e Drizzle no desenvolvimento. Consulte [a query somente leitura do catálogo](queries/development-database-catalog.sql) para tabelas, views, índices, constraints e ações referenciais; este texto não fixa contagens. | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
 | Fotos e vídeos | Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca `blob:` como URL de backend | [Replit Object Storage](https://docs.replit.com/features/data-and-storage/object-storage) |
 | Autenticação | API própria, sem Clerk/OIDC. Resend foi testado no desenvolvimento; falta E2E completo e configuração própria para produção | Confirmar remetente/domínio e testar o fluxo completo antes de abrir cadastro real |
 | Cidades brasileiras | O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render | [API de localidades do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&orderBy=nome) |
 | Mapas/geocodificação | Nenhum fornecedor escolhido. A interface pode selecionar cidade manualmente. GPS só após consentimento; resolver cidade aproximada sem persistir coordenadas | Decidir provedor e termos antes de habilitar o endpoint proposto |
 | E-mail e notificações | Resend envia códigos no desenvolvimento; push e demais notificações não estão conectados. Produção requer domínio, credenciais e políticas próprios, mais outbox/retry duráveis | Proposta em `architecture-and-security.md` |
 | Pagamentos / Shop | Não há checkout real. Estoque, pedido, pagamento, entrega e reembolso estão fora do escopo do catálogo atual | Decisão comercial e integração financeira ficam para projeto próprio |
-| Deploy e secrets | Usar Secrets para valores sensíveis e deployments do Replit para publicação; não registrar valores em arquivos | [Secrets](https://docs.replit.com/core-concepts/project-editor/app-setup/secrets) · [Deployments](https://docs.replit.com/learn/projects-and-artifacts/replit-deployments) |
+| Deploy e secrets | A publicação não faz parte desta etapa de desenvolvimento. Valores sensíveis devem ficar fora do código e dos documentos | [Secrets](https://docs.replit.com/core-concepts/project-editor/app-setup/secrets) · [Deployments](https://docs.replit.com/learn/projects-and-artifacts/replit-deployments) |
 
 ## Catálogo municipal
 
@@ -46,6 +46,6 @@ Segredos e bancos de desenvolvimento/produção devem permanecer separados. Não
 - Medir latência/erros por rota, filas de uploads, falhas de e-mail/push e atrasos de outbox; alertar sem incluir conteúdo do usuário.
 - Retentar tarefas externas com backoff e chave de idempotência; mensagens irrecuperáveis vão para fila de falhas monitorada.
 - Ter backup/retention e teste de restauração do banco antes de habilitar dados reais; planejar ciclo de vida/exclusão de mídia separadamente.
-- Antes de publicar, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente certo, schema promovido pelo fluxo Replit Publish e health/readiness. Não fazer lançamento público até o sistema completo ser aprovado.
+- Antes de qualquer futura publicação, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente e readiness. Isso é orientação futura, não uma declaração de que o projeto esteja publicado.
 
 Mais referências de plataforma: [Storage e bancos no Replit](https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases) e [Troubleshooting](https://docs.replit.com/build/troubleshooting).

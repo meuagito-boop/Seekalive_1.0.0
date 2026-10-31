@@ -1,8 +1,8 @@
 # Domínios de dados do Seekalive
 
 **Status:** arquitetura vigente: separação lógica por domínio em um único PostgreSQL compartilhado no desenvolvimento. Não há exigência atual de bancos físicos, instâncias, provedores ou credenciais separados.
-**Atualizada:** 30/10/2026.
-**Ambiente:** desenvolvimento. Em 30/10/2026, a inspeção confirmou as trilhas de Contas, Segurança, Profiles, Feed e Mídias e 20 tabelas nos cinco schemas ativos: `accounts` (4), `security` (4), `profiles` (5), `feed` (6) e `media` (1). Não há tabela ativa em `seek` neste modelo. Nenhum dado de conta foi consultado.
+**Atualizada:** 31/10/2026.
+**Ambiente:** desenvolvimento. O inventário físico é variável e deve ser lido em `docs/api/backend/queries/development-database-catalog.sql`; este documento não fixa contagens nem presume a presença de objetos no banco.
 
 ## Objetivo e limites
 
@@ -12,7 +12,7 @@ O inventário do acoplamento atual e a sequência idempotente proposta para Cont
 
 A arquitetura de referência do anexo contém dez domínios de produto: Contas, Segurança, Perfis/Relações, Mídias, Feed/Publicações, Mensagens, Notificações, Pesquisa, Seek e Localização. Confiança e Segurança de Conteúdo é uma responsabilidade transversal adicional, separada pelos motivos descritos abaixo. **Shop está fora do escopo atual**; não serão criadas tabelas, APIs ou operações do Shop nesta etapa.
 
-O modelo Drizzle atual declara 20 tabelas em cinco schemas ativos: Contas (4), Segurança (4), Profiles/Relações (5), Feed (6) e Mídias (1). O banco de desenvolvimento foi conferido após a aplicação das trilhas de Feed e Mídias. Mensagens, Notificações, Pesquisa, Localização e Confiança e Segurança ainda não têm tabelas implementadas. As migrations têm trilhas e ledgers independentes por domínio, embora usem a mesma instância PostgreSQL no desenvolvimento. `docs/api/backend/schema-core.sql` continua uma proposta histórica, não uma migration executável.
+O modelo e as trilhas de migration são organizados por domínio. A existência física de tabelas, views, índices, constraints e FKs deve ser confirmada com a query de catálogo; registros históricos com contagens não são o estado atual. Mensagens, Notificações, Pesquisa, Localização e Confiança e Segurança ainda não têm modelos de persistência implementados nesta etapa. As trilhas e ledgers são independentes por domínio, embora usem a mesma instância PostgreSQL no desenvolvimento. `docs/api/backend/schema-core.sql` continua uma proposta histórica, não uma migration executável.
 
 ## Regras de arquitetura propostas
 
@@ -142,7 +142,7 @@ O arquivo propõe um modelo de 43 tabelas em um único SQL, inclusive entidades 
 - **Profiles/Relações:** perfis pessoais e comerciais, campos públicos a extrair de `accounts`, privacidade, `follows`, `blocks`, `mutes` e, conforme decisão de produto, `saved_resources`.
 - **Mídias:** `media.assets`; binários locais apenas no desenvolvimento. Avatar, capa, galeria, feed e Seek devem referenciar IDs de mídia, sem expor caminho físico.
 - **Feed:** `posts` (com IDs tipados em `posts.media` no modelo atual), `post_mentions`, `hashtags`, `post_hashtags`, `comments`, `comment_likes`, `post_likes`, `reposts`, `post_references`.
-- **Seek:** consultas/projeções de descoberta por localização e categorias, sempre alimentadas por perfis comerciais canônicos de Social/Profiles. Seek não é a tela nem o fluxo de criação/gestão de avaliações. Avaliações aparecem no perfil comercial; o domínio persistente proprietário das avaliações deve ser definido antes de implementar suas operações, e não deve ser assumido como Seek. Horários, serviços, comodidades e endereço pertencem à apresentação/dados do perfil comercial conforme o contrato de Profiles. Não incluir `business_service_areas`: o usuário decidiu que o perfil mostra somente o endereço principal, sem área geográfica de atendimento.
+- **Seek:** consultas/projeções de descoberta por localização e categorias, sempre alimentadas por perfis comerciais canônicos de Social/Profiles. Seek não é a tela nem o fluxo de criação/gestão de avaliações; as avaliações pertencem a Profiles. Horários, serviços, comodidades e endereço pertencem à apresentação/dados do perfil comercial conforme o contrato de Profiles. Não incluir `business_service_areas`: o usuário decidiu que o perfil mostra somente o endereço principal, sem área geográfica de atendimento.
 - **Shop:** fora do escopo atual; `shop_items` não é tabela aprovada para implementação nesta fase.
 - **Mensagens:** `conversations`, `conversation_participants`, `messages`.
 - **Notificações:** `notifications`, `push_subscriptions`.

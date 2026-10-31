@@ -813,7 +813,7 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 
 **Accounts/Profiles:** `profiles/0002_charming_alice.sql` copia os campos de apresentação de `accounts.accounts` para `profiles.account_profiles` e depois remove oito campos de Accounts. A tabela real de Accounts corresponde ao schema-fonte atual (`infra/database/src/schema/accounts/schema.ts`), mas `accounts/meta/0001_snapshot.json` e o SQL de baseline ainda descrevem os oito campos antigos. Não há migration posterior na trilha Accounts que registre essa mudança; a alteração foi feita pela migration de Profiles. Assim, `drizzle-kit check` passa a cadeia de snapshots sem identificar essa divergência entre o snapshot Accounts e o estado após executar todas as trilhas.
 
-**Profiles:** há quatro SQLs locais e três registros aplicados com hash correspondente. `profiles/0003_misty_rhodey.sql` está pendente; por isso a tabela de avaliações comerciais, seus três índices, duas FKs e quatro checks não existem no banco de desenvolvimento.
+**Profiles:** o código e a migration de avaliações comerciais existem. Este relatório não declara a presença física atual da tabela, índices, FKs ou checks; consulte `docs/api/backend/queries/development-database-catalog.sql` no banco de desenvolvimento.
 
 **Seek:** há uma migration e um ledger `seek_migrations` com hash correspondente, mas `seek.business_profiles` está ausente no catálogo. Ao mesmo tempo, `migrationTrackConfig.ts:4-30` não inclui Seek entre as trilhas aceitas e `infra/database/Aplicativo/db check` não verifica Seek. O ledger marca a migration como aplicada enquanto o objeto criado por ela falta; não foi possível determinar somente com esta leitura se a tabela foi removida manualmente, restaurada de estado incompleto ou se o ledger foi criado fora do fluxo atual.
 
@@ -830,7 +830,7 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 
 - **Rodada 1:** novo
 - **Veredito:** CONFIRMADO
-- **Evidência:** 3 hashes aplicados em Profiles correspondem aos 3 primeiros SQLs; o quarto arquivo local `profiles/0003_misty_rhodey.sql` não tem entrada no ledger e a tabela/índices/FKs/checks não constam no catálogo.
+- **Evidência deste snapshot:** o estado de ledger e objetos deve ser confirmado pela consulta de catálogo atual; este documento não é fonte para a presença física de tabelas.
 - **Risco:** Médio — chamadas de API que dependam da persistência de avaliações não podem funcionar corretamente contra o banco de desenvolvimento atual.
 
 ### R2-06-004 — Ledger Seek afirma aplicação, mas a tabela esperada não existe

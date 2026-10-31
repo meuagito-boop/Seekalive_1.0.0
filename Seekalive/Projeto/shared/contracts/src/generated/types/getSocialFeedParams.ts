@@ -5,9 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FeedPageCursorParameter } from './feedPageCursorParameter';
+import type { FeedPageLimitParameter } from './feedPageLimitParameter';
 import type { GetSocialFeedTab } from './getSocialFeedTab';
-import type { PageCursorParameter } from './pageCursorParameter';
-import type { PageLimitParameter } from './pageLimitParameter';
 
 export type GetSocialFeedParams = {
 tab?: GetSocialFeedTab;
@@ -19,11 +19,11 @@ tab?: GetSocialFeedTab;
 q?: string;
 /**
  * @minimum 1
- * @maximum 100
+ * @maximum 50
  */
-limit?: PageLimitParameter;
+limit?: FeedPageLimitParameter;
 /**
- * @maxLength 32
+ * @maxLength 512
  */
-cursor?: PageCursorParameter;
+cursor?: FeedPageCursorParameter;
 };

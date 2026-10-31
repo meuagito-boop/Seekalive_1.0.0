@@ -132,7 +132,7 @@ DELETE /api/v1/social/media/:assetId
 **Veredito:** CONTRADITO  
 **Prioridade:** Crítica
 
-**Evidência:** `shared/api-spec/openapi.yaml:7–9` define `servers.url: /api`; `shared/api-spec/orval.config.ts:59–75` usa esse arquivo e configura o cliente com `baseUrl: "/api"`. Comparação estática normalizada encontrou 74 operações no OpenAPI ativo e 76 rotas no código: três rotas só no código e uma divergência de método. `docs/api/backend/README.md:13–18` esclarece que `docs/api/backend/openapi.json` é catálogo amplo com propostas, não a fonte ativa; por isso suas 146 operações não foram tratadas como 146 handlers que deveriam existir.
+**Estado anterior, corrigido nesta implementação:** a comparação encontrou operações ausentes e um método divergente. O contrato foi atualizado; `test:api-route-contract` agora compara as rotas Express montadas nos dois sentidos e também a declaração CSRF. O inventário vigente em `docs/api/backend/endpoints.md` confirma 76 rotas, sem divergências. O catálogo de planejamento foi movido para `docs/roadmap/seekalive-operation-catalog.*`.
 
 **Três rotas presentes no servidor e ausentes do contrato ativo:**
 
@@ -156,7 +156,7 @@ Servidor:       GET  /api/v1/social/accounts/:accountId/posts
 **Veredito:** CONTRADITO  
 **Prioridade:** Alta
 
-**Evidência:** A leitura tabular integral de `docs/api/backend/endpoints.md` encontrou 146 operações: 54 `ATIVA`, 88 `PROPOSTA` e quatro `IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE`. As 54 ativas têm handler correspondente. Entre as 76 rotas montadas, 11 estão rotuladas `PROPOSTA` e sete caminhos não aparecem na tabela. O README (`docs/api/backend/README.md:13–18`) explica que o catálogo inclui propostas; contudo, essas 11 rotas propostas estão registradas no Express e não há feature flag no ponto de montagem.
+**Estado anterior, corrigido nesta implementação:** o inventário estático misturava operações de roadmap e rotas registradas. `endpoints.md` agora é gerado diretamente das 76 rotas Express e todas aparecem como `ATIVA EM CÓDIGO`; as 11 que antes estavam rotuladas como proposta foram corrigidas. O catálogo de 146 operações foi movido para `docs/roadmap/` e é explicitamente não normativo.
 
 **Onze rotas montadas que continuam marcadas como proposta:**
 

@@ -309,7 +309,7 @@ DELETE /api/v1/social/media/:assetId
 **Veredito:** CONTRADITO  
 **Prioridade:** Crítica
 
-**Evidência:** `shared/api-spec/openapi.yaml:7–9` define `servers.url: /api`; `shared/api-spec/orval.config.ts:59–75` usa esse arquivo e configura o cliente com `baseUrl: "/api"`. Comparação estática normalizada encontrou 74 operações no OpenAPI ativo e 76 rotas no código: três rotas só no código e uma divergência de método. `docs/api/backend/README.md:13–18` esclarece que `docs/api/backend/openapi.json` é catálogo amplo com propostas, não a fonte ativa; por isso suas 146 operações não foram tratadas como 146 handlers que deveriam existir.
+**Estado anterior, corrigido nesta implementação:** a comparação encontrou operações ausentes e um método divergente. O contrato foi atualizado; `test:api-route-contract` agora compara as rotas Express montadas nos dois sentidos e também a declaração CSRF. O inventário vigente em `docs/api/backend/endpoints.md` confirma 76 rotas, sem divergências. O catálogo de planejamento foi movido para `docs/roadmap/seekalive-operation-catalog.*`.
 
 **Três rotas presentes no servidor e ausentes do contrato ativo:**
 
@@ -333,7 +333,7 @@ Servidor:       GET  /api/v1/social/accounts/:accountId/posts
 **Veredito:** CONTRADITO  
 **Prioridade:** Alta
 
-**Evidência:** A leitura tabular integral de `docs/api/backend/endpoints.md` encontrou 146 operações: 54 `ATIVA`, 88 `PROPOSTA` e quatro `IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE`. As 54 ativas têm handler correspondente. Entre as 76 rotas montadas, 11 estão rotuladas `PROPOSTA` e sete caminhos não aparecem na tabela. O README (`docs/api/backend/README.md:13–18`) explica que o catálogo inclui propostas; contudo, essas 11 rotas propostas estão registradas no Express e não há feature flag no ponto de montagem.
+**Estado anterior, corrigido nesta implementação:** o inventário estático misturava operações de roadmap e rotas registradas. `endpoints.md` agora é gerado diretamente das 76 rotas Express e todas aparecem como `ATIVA EM CÓDIGO`; as 11 que antes estavam rotuladas como proposta foram corrigidas. O catálogo de 146 operações foi movido para `docs/roadmap/` e é explicitamente não normativo.
 
 **Onze rotas montadas que continuam marcadas como proposta:**
 
@@ -834,7 +834,7 @@ WHERE table_type = 'BASE TABLE'
 ORDER BY table_schema, table_name;
 ```
 
-**Saída resumida:** tabelas de aplicação listadas em `accounts`, `security`, `profiles`, `feed` e `media`, além das tabelas de histórico em `drizzle`. Não apareceu `profiles.business_profile_reviews`; tampouco apareceram tabelas de aplicação para `seek`, `messages`, `notifications`, `search`, `location`, `shop` ou `trust_safety`.
+**Saída histórica do snapshot auditado:** a consulta daquele momento listou objetos de aplicação em `accounts`, `security`, `profiles`, `feed` e `media` e não encontrou `profiles.business_profile_reviews` nem tabelas de aplicação para vários domínios ainda não iniciados. Essas observações não afirmam o estado físico atual; consulte `docs/api/backend/queries/development-database-catalog.sql`.
 
 Também foram executadas consultas somente a `information_schema.columns`, `information_schema.table_constraints`, `pg_constraint` e `pg_indexes` para colunas, restrições e índices. A consulta de colunas não incluiu valores de contas. A consulta de restrições identificou FKs e checks; a de índices identificou unicidade e índices de consulta.
 
@@ -854,7 +854,7 @@ Também foram executadas consultas somente a `information_schema.columns`, `info
 **Veredito:** PARCIAL  
 **Prioridade:** Alta
 
-**Evidência:** `infra/database/src/schema/profiles/businessProfileReviews.ts` define a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a cria. A consulta de catálogo acima não retornou `profiles.business_profile_reviews`. A documentação de API `docs/api/backend/endpoints.md:86–89` já identifica as rotas de reviews como dependentes do banco.
+**Evidência:** `infra/database/src/schema/profiles/businessProfileReviews.ts` define a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a cria. A presença física atual deve ser verificada em `docs/api/backend/queries/development-database-catalog.sql`. O inventário vigente de rotas está em `docs/api/backend/endpoints.md`.
 
 **Conclusão:** a estrutura está preparada em código/migration, mas a persistência não está presente no banco observado. Não determinei o estado do ledger de migrations, pois o prompt restringe a auditoria a metadados e não exige a leitura de conteúdo de ledger.
 
@@ -964,7 +964,7 @@ Também foram executadas consultas somente a `information_schema.columns`, `info
 **Veredito:** CONFIRMADO para a ação das FKs catalogadas; execução da exclusão permanece sujeita ao achado 13-006.
 **Risco:** Médio — a ausência de bloqueio por FK não comprova que o processo de expurgo conclua a remoção.
 
-**Evidência:** consulta somente a `pg_constraint`, com `contype = 'f'` e tabela referenciada `accounts.accounts`, listou 22 FKs: 21 `CASCADE` e uma `SET NULL` (`accounts.account_username_reservations`). Nenhuma retornou `RESTRICT` ou `NO ACTION`.
+**Evidência:** a query histórica examinou ações referenciais de FKs para `accounts.accounts`. O conjunto atual deve ser lido no catálogo do banco de desenvolvimento em `docs/api/backend/queries/development-database-catalog.sql`; este relatório não fixa contagens ou ações atuais.
 
 **Limite:** a consulta cobre apenas FKs direcionadas a `accounts.accounts`; não testa a operação de exclusão nem outras restrições/efeitos em cascata.
 
@@ -2188,9 +2188,9 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 **Veredito:** CONFIRMADO  
 **Prioridade:** Informativa
 
-**Evidência:** `docs/api/backend/README.md:13,18` define `shared/api-spec/openapi.yaml` como fonte dos contratos ativos e declara que `endpoints.md`/`openapi.json` incluem propostas. O bloco 02 confirmou essa distinção na configuração Orval e comparou os handlers com as rotas.
+**Estado atualizado:** `shared/api-spec/openapi.yaml` é o contrato HTTP; `endpoints.md` e `routes.generated.md` são gerados das rotas montadas. O catálogo de planejamento não normativo está em `docs/roadmap/seekalive-operation-catalog.*`.
 
-**Trecho:** `shared/api-spec/openapi.yaml` é “a fonte de verdade dos contratos ativos”; `docs/api/backend/openapi.json` é “catálogo separado de referência/propostas”.
+**Regra vigente:** `shared/api-spec/openapi.yaml` é o contrato HTTP; o catálogo de roadmap não é fonte de rotas ativas.
 
 ### A2-002 — A propriedade das avaliações comerciais está contraditória entre documentos
 
@@ -2319,7 +2319,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 |---:|---|---|---|
 | 1 | Concorrência em `auth_challenges.attempts` | **PARCIAL — 03-016** | O caminho de verificação usa transação e `FOR UPDATE`, depois grava `attempts + 1` como valor absoluto; não é incremento SQL atômico e não há teste concorrente. |
 | 2 | `trust proxy` e IP usado pelo rate limit | **PARCIAL — 11-005** | Há seleção de IP considerando cadeia de proxies no caminho de desenvolvimento. O salto confiável depende da topologia; não se comprovou o IP observado atrás do proxy efetivo nem resistência a cabeçalho forjado. |
-| 3 | Remoção física após 7 + 90 dias | **PARCIAL — 13-004, 13-006, 13-009; FK CONFIRMADA — 05-013** | Há worker e as 22 FKs para `accounts.accounts` são 21 `CASCADE` e uma `SET NULL`, sem `RESTRICT`/`NO ACTION`. A purga, o tratamento dos arquivos e a recuperação do worker não foram exercitados. |
+| 3 | Remoção física após 7 + 90 dias | **PARCIAL — 13-004, 13-006, 13-009; integridade referencial a confirmar** | O fluxo de purga e as ações referenciais precisam ser verificados com testes e com a consulta atual do catálogo de desenvolvimento; este resumo não fixa contagens de FKs. |
 | 4 | Cache de mídia privada | **CONFIRMADO no código — 08-008** | A rota autoriza pelo post, responde `private, no-store`, `nosniff`, `Content-Disposition` e Range. `Vary` não é definido; nenhum cache externo foi testado. |
 | 5 | Conta pendente sem TTL | **PARCIAL — 03-017** | O código de verificação expira, mas não foi encontrado job que remova conta pendente nem libere o e-mail/@ após o desafio expirar. |
 | 6 | Semântica de audiência `private` | **CONFIRMADO no código / CONTRADITÓRIO nos documentos — 04-001 e A2-003** | Código permite conteúdo privado ao titular e a seguidores aprovados; Círculo continua exigindo seguimento mútuo. Documentos preservam regras divergentes. |
@@ -2333,7 +2333,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 ## Contradições entre documentação, decisão registrada, schema e código
 
 1. **Contrato OpenAPI ativo × handlers:** 74 operações no contrato ativo e 76 rotas no servidor, com rotas só no código e divergência de método para posts por conta (`02-003`). O catálogo amplo inclui propostas e não pode ser tratado como handlers (`02-004`).
-2. **Estado ATIVA/PROPOSTA × rotas montadas:** há operações marcadas como proposta já registradas no Express, além de caminhos sem linha correspondente (`02-004`). A presença do handler, por si só, também não prova que a persistência exista.
+2. **Estado de rotas e contrato:** corrigido; `test:api-route-contract` confirma paridade entre Express e OpenAPI. O inventário gerado lista as rotas montadas. Essa paridade não prova persistência ou execução E2E.
 3. **Reviews comerciais:** a API está registrada, mas `profiles.business_profile_reviews` não existe no banco de desenvolvimento; o catálogo de endpoints chama corretamente a persistência de pendente (`02-005`, `05-002`, `04-007`).
 4. **Audiência privada:** a implementação permite leitura por seguidor aprovado; documentos também afirmam “somente titular” (`04-001`, `A2-003`).
 5. **DTO pessoal × campos aprovados:** o DTO público inclui localização, site e data de entrada, além do conjunto informado para perfil pessoal (`04-003`).

@@ -5,8 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FeedPageCursorParameter } from './feedPageCursorParameter';
 import type { GetSocialAccountPostsFormat } from './getSocialAccountPostsFormat';
-import type { PageCursorParameter } from './pageCursorParameter';
 import type { PageLimitParameter } from './pageLimitParameter';
 
 export type GetSocialAccountPostsParams = {
@@ -16,8 +16,8 @@ export type GetSocialAccountPostsParams = {
  */
 limit?: PageLimitParameter;
 /**
- * @maxLength 32
+ * @maxLength 512
  */
-cursor?: PageCursorParameter;
+cursor?: FeedPageCursorParameter;
 format?: GetSocialAccountPostsFormat;
 };

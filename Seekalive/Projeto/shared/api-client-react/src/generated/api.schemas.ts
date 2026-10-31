@@ -9,6 +9,50 @@ export interface HealthStatus {
   status: string;
 }
 
+export type ReadinessStatusStatus = typeof ReadinessStatusStatus[keyof typeof ReadinessStatusStatus];
+
+
+export const ReadinessStatusStatus = {
+  ready: 'ready',
+  not_ready: 'not_ready',
+} as const;
+
+export interface ReadinessStatus {
+  status: ReadinessStatusStatus;
+}
+
+export interface AccountUsernameAvailability {
+  available: boolean;
+  /**
+     * @minLength 3
+     * @maxLength 20
+     * @pattern ^[a-z0-9_-]{3,20}$
+     */
+  normalizedUsername: string;
+}
+
+/**
+ * Unique interest labels; submit an empty list when the optional step is skipped. The API additionally rejects skipped=true with non-empty interests.
+ */
+export interface OnboardingInterestsRequest {
+  /**
+     * @maxItems 100
+     * @items.minLength 1
+     * @items.maxLength 80
+     */
+  interests: string[];
+  skipped: boolean;
+}
+
+export interface OnboardingCompletionResult {
+  onboardingCompleted: boolean;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  interestCount: number;
+}
+
 export type ApiErrorErrorDetailsItem = {
   field: string;
   message: string;
@@ -716,7 +760,10 @@ export interface Post {
 
 export interface PostPage {
   items: Post[];
-  /** @nullable */
+  /**
+     * @maxLength 512
+     * @nullable
+     */
   nextCursor: string | null;
 }
 
@@ -1035,7 +1082,10 @@ export interface Comment {
 
 export interface CommentPage {
   items: Comment[];
-  /** @nullable */
+  /**
+     * @maxLength 512
+     * @nullable
+     */
   nextCursor: string | null;
 }
 
@@ -1137,7 +1187,10 @@ export interface FeedItem {
 
 export interface FeedPage {
   items: FeedItem[];
-  /** @nullable */
+  /**
+     * @maxLength 512
+     * @nullable
+     */
   nextCursor: string | null;
 }
 
@@ -1209,6 +1262,21 @@ export type InternalErrorResponse = ApiError;
 export type PageLimitParameter = number;
 
 export type PageCursorParameter = string;
+
+export type FeedPageLimitParameter = number;
+
+export type CommentPageLimitParameter = number;
+
+export type FeedPageCursorParameter = string;
+
+export type CheckAccountUsernameAvailabilityParams = {
+/**
+ * @minLength 3
+ * @maxLength 21
+ * @pattern ^@?[A-Za-z0-9_-]{3,20}$
+ */
+username: string;
+};
 
 export type ListAuthSessionsParams = {
 /**
@@ -1304,13 +1372,13 @@ tab?: GetSocialFeedTab;
 q?: string;
 /**
  * @minimum 1
- * @maximum 100
+ * @maximum 50
  */
-limit?: PageLimitParameter;
+limit?: FeedPageLimitParameter;
 /**
- * @maxLength 32
+ * @maxLength 512
  */
-cursor?: PageCursorParameter;
+cursor?: FeedPageCursorParameter;
 };
 
 export type GetSocialFeedTab = typeof GetSocialFeedTab[keyof typeof GetSocialFeedTab];
@@ -1328,11 +1396,11 @@ export type GetSocialPostCommentsParams = {
  * @minimum 1
  * @maximum 100
  */
-limit?: PageLimitParameter;
+limit?: CommentPageLimitParameter;
 /**
- * @maxLength 32
+ * @maxLength 512
  */
-cursor?: PageCursorParameter;
+cursor?: FeedPageCursorParameter;
 };
 
 export type CreateSocialPostCommentParams = {
@@ -1340,11 +1408,11 @@ export type CreateSocialPostCommentParams = {
  * @minimum 1
  * @maximum 100
  */
-limit?: PageLimitParameter;
+limit?: CommentPageLimitParameter;
 /**
- * @maxLength 32
+ * @maxLength 512
  */
-cursor?: PageCursorParameter;
+cursor?: FeedPageCursorParameter;
 };
 
 export type GetSocialAccountPostsParams = {
@@ -1354,9 +1422,9 @@ export type GetSocialAccountPostsParams = {
  */
 limit?: PageLimitParameter;
 /**
- * @maxLength 32
+ * @maxLength 512
  */
-cursor?: PageCursorParameter;
+cursor?: FeedPageCursorParameter;
 format?: GetSocialAccountPostsFormat;
 };
 

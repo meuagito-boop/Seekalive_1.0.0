@@ -5,17 +5,17 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { PageCursorParameter } from './pageCursorParameter';
-import type { PageLimitParameter } from './pageLimitParameter';
+import type { CommentPageLimitParameter } from './commentPageLimitParameter';
+import type { FeedPageCursorParameter } from './feedPageCursorParameter';
 
 export type GetSocialPostCommentsParams = {
 /**
  * @minimum 1
  * @maximum 100
  */
-limit?: PageLimitParameter;
+limit?: CommentPageLimitParameter;
 /**
- * @maxLength 32
+ * @maxLength 512
  */
-cursor?: PageCursorParameter;
+cursor?: FeedPageCursorParameter;
 };

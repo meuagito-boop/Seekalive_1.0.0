@@ -40,6 +40,7 @@ import type {
   AccountRestorationConfirmation,
   AccountRestoredResponse,
   AccountUnavailableResponse,
+  AccountUsernameAvailability,
   AccountView,
   ApiError,
   ArticleCreate,
@@ -53,6 +54,7 @@ import type {
   BusinessProfileReviewReplyResponse,
   ChallengeConfirmInput,
   ChallengeResendInput,
+  CheckAccountUsernameAvailabilityParams,
   CirclePage,
   Comment,
   CommentCreate,
@@ -88,6 +90,8 @@ import type {
   MediaUpload,
   MyAccountResponse,
   NotFoundResponse,
+  OnboardingCompletionResult,
+  OnboardingInterestsRequest,
   OtherDevicesRevoked,
   OtherSessionsRevoked,
   PasswordChangeCodeResponse,
@@ -106,6 +110,7 @@ import type {
   PrivacySettingsWrite,
   ProfileResponse,
   RangeNotSatisfiableResponse,
+  ReadinessStatus,
   ReferencePreview,
   RegisterRequest,
   SearchAccountsParams,
@@ -235,6 +240,217 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReadinessCheckUrl = () => {
+
+
+
+
+  return `/api/readyz`
+}
+
+/**
+ * Returns readiness without exposing database or connection details.
+ * @summary Check whether the API can serve requests
+ */
+export const readinessCheck = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReadinessStatus> => {
+
+  return customFetch<ReadinessStatus>(getReadinessCheckUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getReadinessCheckQueryKey = () => {
+    return [
+    `/api/readyz`
+    ] as const;
+    }
+
+
+export const getReadinessCheckQueryOptions = <TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getReadinessCheckQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readinessCheck>>> = ({ signal }) => readinessCheck({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ReadinessCheckQueryResult = NonNullable<Awaited<ReturnType<typeof readinessCheck>>>
+export type ReadinessCheckQueryError = ErrorType<ReadinessStatus>
+
+
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readinessCheck>>,
+          TError,
+          Awaited<ReturnType<typeof readinessCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readinessCheck>>,
+          TError,
+          Awaited<ReturnType<typeof readinessCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Check whether the API can serve requests
+ */
+
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getReadinessCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCheckAccountUsernameAvailabilityUrl = (params: CheckAccountUsernameAvailabilityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/accounts/availability?${stringifiedParams}` : `/api/v1/accounts/availability`
+}
+
+/**
+ * Accepts an optional leading @ and trims surrounding whitespace. The server normalizes uppercase ASCII letters to lowercase and reports reserved platform usernames as unavailable. Limited to 30 requests per 60 seconds per client IP.
+ * @summary Check whether a username can be claimed
+ */
+export const checkAccountUsernameAvailability = async (params: CheckAccountUsernameAvailabilityParams, options?: Parameters<typeof customFetch>[1]): Promise<AccountUsernameAvailability> => {
+
+  return customFetch<AccountUsernameAvailability>(getCheckAccountUsernameAvailabilityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCheckAccountUsernameAvailabilityQueryKey = (params?: CheckAccountUsernameAvailabilityParams,) => {
+    return [
+    `/api/v1/accounts/availability`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCheckAccountUsernameAvailabilityQueryOptions = <TData = Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>>(params: CheckAccountUsernameAvailabilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCheckAccountUsernameAvailabilityQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>> = ({ signal }) => checkAccountUsernameAvailability(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CheckAccountUsernameAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>>
+export type CheckAccountUsernameAvailabilityQueryError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>
+
+
+export function useCheckAccountUsernameAvailability<TData = Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>>(
+ params: CheckAccountUsernameAvailabilityParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAccountUsernameAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkAccountUsernameAvailability>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCheckAccountUsernameAvailability<TData = Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>>(
+ params: CheckAccountUsernameAvailabilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAccountUsernameAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkAccountUsernameAvailability>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCheckAccountUsernameAvailability<TData = Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>>(
+ params: CheckAccountUsernameAvailabilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Check whether a username can be claimed
+ */
+
+export function useCheckAccountUsernameAvailability<TData = Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError = ErrorType<ValidationErrorResponse | TooManyRequestsResponse>>(
+ params: CheckAccountUsernameAvailabilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAccountUsernameAvailability>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCheckAccountUsernameAvailabilityQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -3092,6 +3308,95 @@ export const useUpdateMyPrivacySettings = <TError = ErrorType<ValidationErrorRes
       return useMutation(getUpdateMyPrivacySettingsMutationOptions(options), queryClient);
     }
 
+export const getCompleteOnboardingInterestsUrl = () => {
+
+
+
+
+  return `/api/v1/onboarding/interests`
+}
+
+/**
+ * Requires an authenticated session and CSRF token. Interests are optional, unique, and limited to 100 keys; when skipped is true, the interests array must be empty.
+ * @summary Save or skip account interest selection
+ */
+export const completeOnboardingInterests = async (onboardingInterestsRequest: OnboardingInterestsRequest, options?: Parameters<typeof customFetch>[1]): Promise<OnboardingCompletionResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<OnboardingCompletionResult>(getCompleteOnboardingInterestsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(onboardingInterestsRequest)
+  }
+);}
+
+
+
+
+
+export const getCompleteOnboardingInterestsMutationKey = () => ['completeOnboardingInterests'] as const;
+
+export const getCompleteOnboardingInterestsMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOnboardingInterests>>, TError,CompleteOnboardingInterestsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOnboardingInterests>>, TError,CompleteOnboardingInterestsMutationVariables, TContext> => {
+
+const mutationKey = getCompleteOnboardingInterestsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOnboardingInterests>>, CompleteOnboardingInterestsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  completeOnboardingInterests(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteOnboardingInterestsMutationResult = NonNullable<Awaited<ReturnType<typeof completeOnboardingInterests>>>
+    export type CompleteOnboardingInterestsMutationBody = BodyType<OnboardingInterestsRequest>
+    export type CompleteOnboardingInterestsMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse>
+    export type CompleteOnboardingInterestsMutationVariables = {data: BodyType<OnboardingInterestsRequest>}
+
+    /**
+ * @summary Save or skip account interest selection
+ */
+export const useCompleteOnboardingInterests = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOnboardingInterests>>, TError,CompleteOnboardingInterestsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeOnboardingInterests>>,
+        TError,
+        CompleteOnboardingInterestsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteOnboardingInterestsMutationOptions(options), queryClient);
+    }
+
 export const getGetProfileByUsernameUrl = (username: string,) => {
 
 
@@ -3211,7 +3516,7 @@ export const getListBusinessProfileReviewsUrl = (username: string,
 }
 
 /**
- * Reviews belong to the commercial profile in Social. Reads are authenticated optionally and follow profile visibility and block rules. The aggregate is read-only and may be displayed by Seek discovery.
+ * Reviews belong to the commercial-profile aggregate owned by Profiles. Reads are optionally authenticated and follow profile visibility and block rules. Seek may consume authorized review summaries but does not own review operations.
  * @summary List reviews on a commercial profile
  */
 export const listBusinessProfileReviews = async (username: string,
@@ -3355,7 +3660,7 @@ return customFetch<BusinessProfileReviewCreated>(getCreateBusinessProfileReviewU
 
 export const getCreateBusinessProfileReviewMutationKey = () => ['createBusinessProfileReview'] as const;
 
-export const getCreateBusinessProfileReviewMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>,
+export const getCreateBusinessProfileReviewMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBusinessProfileReview>>, TError,CreateBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createBusinessProfileReview>>, TError,CreateBusinessProfileReviewMutationVariables, TContext> => {
 
@@ -3384,13 +3689,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateBusinessProfileReviewMutationResult = NonNullable<Awaited<ReturnType<typeof createBusinessProfileReview>>>
     export type CreateBusinessProfileReviewMutationBody = BodyType<BusinessProfileReviewCreate>
-    export type CreateBusinessProfileReviewMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>
+    export type CreateBusinessProfileReviewMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | TooManyRequestsResponse>
     export type CreateBusinessProfileReviewMutationVariables = {username: string;data: BodyType<BusinessProfileReviewCreate>}
 
     /**
  * @summary Publish a review on a commercial profile
  */
-export const useCreateBusinessProfileReview = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse>,
+export const useCreateBusinessProfileReview = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBusinessProfileReview>>, TError,CreateBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createBusinessProfileReview>>,
@@ -3429,7 +3734,7 @@ export const deleteMyBusinessProfileReview = async (username: string, options?: 
 
 export const getDeleteMyBusinessProfileReviewMutationKey = () => ['deleteMyBusinessProfileReview'] as const;
 
-export const getDeleteMyBusinessProfileReviewMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const getDeleteMyBusinessProfileReviewMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>, TError,DeleteMyBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>, TError,DeleteMyBusinessProfileReviewMutationVariables, TContext> => {
 
@@ -3458,13 +3763,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteMyBusinessProfileReviewMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>>
 
-    export type DeleteMyBusinessProfileReviewMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type DeleteMyBusinessProfileReviewMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type DeleteMyBusinessProfileReviewMutationVariables = {username: string}
 
     /**
  * @summary Delete the authenticated person's review
  */
-export const useDeleteMyBusinessProfileReview = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const useDeleteMyBusinessProfileReview = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>, TError,DeleteMyBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteMyBusinessProfileReview>>,
@@ -3521,7 +3826,7 @@ return customFetch<BusinessProfileReviewReplyResponse>(getReplyToBusinessProfile
 
 export const getReplyToBusinessProfileReviewMutationKey = () => ['replyToBusinessProfileReview'] as const;
 
-export const getReplyToBusinessProfileReviewMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const getReplyToBusinessProfileReviewMutationOptions = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToBusinessProfileReview>>, TError,ReplyToBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof replyToBusinessProfileReview>>, TError,ReplyToBusinessProfileReviewMutationVariables, TContext> => {
 
@@ -3550,13 +3855,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ReplyToBusinessProfileReviewMutationResult = NonNullable<Awaited<ReturnType<typeof replyToBusinessProfileReview>>>
     export type ReplyToBusinessProfileReviewMutationBody = BodyType<BusinessProfileReviewReply>
-    export type ReplyToBusinessProfileReviewMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+    export type ReplyToBusinessProfileReviewMutationError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type ReplyToBusinessProfileReviewMutationVariables = {username: string;reviewId: string;data: BodyType<BusinessProfileReviewReply>}
 
     /**
  * @summary Publish or update the commercial profile's reply
  */
-export const useReplyToBusinessProfileReview = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+export const useReplyToBusinessProfileReview = <TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToBusinessProfileReview>>, TError,ReplyToBusinessProfileReviewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof replyToBusinessProfileReview>>,
@@ -4791,7 +5096,7 @@ export const getGetSocialFeedUrl = (params?: GetSocialFeedParams,) => {
 }
 
 /**
- * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously but still respect account visibility, Círculo membership, and bilateral blocks. following requires an authenticated session and includes only accepted followed accounts. videos returns persisted media posts containing at least one video. q searches caption and article text and also matches hashtag prefixes; hashtag matching ignores case and diacritics.
+ * Results are ordered newest first with stable keyset pagination. for-you and articles can be read anonymously. Private-account posts are visible only to their owner and approved followers. Círculo posts require a mutual follow relationship. Blocks in either direction prevent access. following requires an authenticated session and includes accepted follows. videos returns persisted media posts containing at least one video. q searches caption and article text and also matches hashtag prefixes; hashtag matching ignores case and diacritics.
  * @summary List readable social feed posts
  */
 export const getSocialFeed = async (params?: GetSocialFeedParams, options?: Parameters<typeof customFetch>[1]): Promise<FeedPage> => {
@@ -5366,7 +5671,7 @@ export const deleteSocialPost = async (postId: string, options?: Parameters<type
 
 export const getDeleteSocialPostMutationKey = () => ['deleteSocialPost'] as const;
 
-export const getDeleteSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const getDeleteSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialPost>>, TError,DeleteSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteSocialPost>>, TError,DeleteSocialPostMutationVariables, TContext> => {
 
@@ -5395,13 +5700,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSocialPost>>>
 
-    export type DeleteSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type DeleteSocialPostMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type DeleteSocialPostMutationVariables = {postId: string}
 
     /**
  * @summary Delete the authenticated account's publication
  */
-export const useDeleteSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const useDeleteSocialPost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialPost>>, TError,DeleteSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteSocialPost>>,
@@ -5541,7 +5846,7 @@ export const likeSocialPost = async (postId: string, options?: Parameters<typeof
 
 export const getLikeSocialPostMutationKey = () => ['likeSocialPost'] as const;
 
-export const getLikeSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const getLikeSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeSocialPost>>, TError,LikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof likeSocialPost>>, TError,LikeSocialPostMutationVariables, TContext> => {
 
@@ -5570,13 +5875,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type LikeSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof likeSocialPost>>>
 
-    export type LikeSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type LikeSocialPostMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type LikeSocialPostMutationVariables = {postId: string}
 
     /**
  * @summary Like a readable publication
  */
-export const useLikeSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const useLikeSocialPost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeSocialPost>>, TError,LikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof likeSocialPost>>,
@@ -5615,7 +5920,7 @@ export const unlikeSocialPost = async (postId: string, options?: Parameters<type
 
 export const getUnlikeSocialPostMutationKey = () => ['unlikeSocialPost'] as const;
 
-export const getUnlikeSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const getUnlikeSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialPost>>, TError,UnlikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialPost>>, TError,UnlikeSocialPostMutationVariables, TContext> => {
 
@@ -5644,13 +5949,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UnlikeSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeSocialPost>>>
 
-    export type UnlikeSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type UnlikeSocialPostMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type UnlikeSocialPostMutationVariables = {postId: string}
 
     /**
  * @summary Remove the authenticated account's like
  */
-export const useUnlikeSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const useUnlikeSocialPost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeSocialPost>>, TError,UnlikeSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof unlikeSocialPost>>,
@@ -5689,7 +5994,7 @@ export const repostSocialPost = async (postId: string, options?: Parameters<type
 
 export const getRepostSocialPostMutationKey = () => ['repostSocialPost'] as const;
 
-export const getRepostSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+export const getRepostSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof repostSocialPost>>, TError,RepostSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof repostSocialPost>>, TError,RepostSocialPostMutationVariables, TContext> => {
 
@@ -5718,13 +6023,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RepostSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof repostSocialPost>>>
 
-    export type RepostSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>
+    export type RepostSocialPostMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type RepostSocialPostMutationVariables = {postId: string}
 
     /**
  * @summary Repost a readable public publication
  */
-export const useRepostSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+export const useRepostSocialPost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof repostSocialPost>>, TError,RepostSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof repostSocialPost>>,
@@ -5763,7 +6068,7 @@ export const removeSocialPostRepost = async (postId: string, options?: Parameter
 
 export const getRemoveSocialPostRepostMutationKey = () => ['removeSocialPostRepost'] as const;
 
-export const getRemoveSocialPostRepostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const getRemoveSocialPostRepostMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostRepost>>, TError,RemoveSocialPostRepostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostRepost>>, TError,RemoveSocialPostRepostMutationVariables, TContext> => {
 
@@ -5792,13 +6097,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RemoveSocialPostRepostMutationResult = NonNullable<Awaited<ReturnType<typeof removeSocialPostRepost>>>
 
-    export type RemoveSocialPostRepostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type RemoveSocialPostRepostMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type RemoveSocialPostRepostMutationVariables = {postId: string}
 
     /**
  * @summary Remove the authenticated account's repost
  */
-export const useRemoveSocialPostRepost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const useRemoveSocialPostRepost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSocialPostRepost>>, TError,RemoveSocialPostRepostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof removeSocialPostRepost>>,
@@ -5837,7 +6142,7 @@ export const bookmarkSocialPost = async (postId: string, options?: Parameters<ty
 
 export const getBookmarkSocialPostMutationKey = () => ['bookmarkSocialPost'] as const;
 
-export const getBookmarkSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const getBookmarkSocialPostMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bookmarkSocialPost>>, TError,BookmarkSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof bookmarkSocialPost>>, TError,BookmarkSocialPostMutationVariables, TContext> => {
 
@@ -5866,13 +6171,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type BookmarkSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof bookmarkSocialPost>>>
 
-    export type BookmarkSocialPostMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>
+    export type BookmarkSocialPostMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type BookmarkSocialPostMutationVariables = {postId: string}
 
     /**
  * @summary Save a readable publication
  */
-export const useBookmarkSocialPost = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | TooManyRequestsResponse>,
+export const useBookmarkSocialPost = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bookmarkSocialPost>>, TError,BookmarkSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof bookmarkSocialPost>>,
@@ -6000,7 +6305,7 @@ export const getGetSocialPostCommentsQueryKey = (postId: string,
     }
 
 
-export const getGetSocialPostCommentsQueryOptions = <TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(postId: string,
+export const getGetSocialPostCommentsQueryOptions = <TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | NotFoundResponse>>(postId: string,
     params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
@@ -6020,10 +6325,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetSocialPostCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialPostComments>>>
-export type GetSocialPostCommentsQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+export type GetSocialPostCommentsQueryError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | NotFoundResponse>
 
 
-export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | NotFoundResponse>>(
  postId: string,
     params: undefined |  GetSocialPostCommentsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -6034,7 +6339,7 @@ export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSo
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | NotFoundResponse>>(
  postId: string,
     params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -6045,7 +6350,7 @@ export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSo
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | NotFoundResponse>>(
  postId: string,
     params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
@@ -6054,7 +6359,7 @@ export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSo
  * @summary List comments on a currently readable publication
  */
 
-export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
+export function useGetSocialPostComments<TData = Awaited<ReturnType<typeof getSocialPostComments>>, TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse | NotFoundResponse>>(
  postId: string,
     params?: GetSocialPostCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialPostComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
@@ -6125,7 +6430,7 @@ return customFetch<Comment>(getCreateSocialPostCommentUrl(postId,params),
 
 export const getCreateSocialPostCommentMutationKey = () => ['createSocialPostComment'] as const;
 
-export const getCreateSocialPostCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+export const getCreateSocialPostCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | ValidationErrorResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialPostComment>>, TError,CreateSocialPostCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createSocialPostComment>>, TError,CreateSocialPostCommentMutationVariables, TContext> => {
 
@@ -6154,13 +6459,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateSocialPostCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createSocialPostComment>>>
     export type CreateSocialPostCommentMutationBody = BodyType<CommentCreate>
-    export type CreateSocialPostCommentMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>
+    export type CreateSocialPostCommentMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | ValidationErrorResponse | TooManyRequestsResponse>
     export type CreateSocialPostCommentMutationVariables = {postId: string;data: BodyType<CommentCreate>;params?: CreateSocialPostCommentParams}
 
     /**
  * @summary Comment on a currently readable publication
  */
-export const useCreateSocialPostComment = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ValidationErrorResponse | TooManyRequestsResponse>,
+export const useCreateSocialPostComment = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | ValidationErrorResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSocialPostComment>>, TError,CreateSocialPostCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createSocialPostComment>>,
@@ -6199,7 +6504,7 @@ export const deleteSocialComment = async (commentId: string, options?: Parameter
 
 export const getDeleteSocialCommentMutationKey = () => ['deleteSocialComment'] as const;
 
-export const getDeleteSocialCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const getDeleteSocialCommentMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialComment>>, TError,DeleteSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteSocialComment>>, TError,DeleteSocialCommentMutationVariables, TContext> => {
 
@@ -6228,13 +6533,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteSocialCommentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSocialComment>>>
 
-    export type DeleteSocialCommentMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type DeleteSocialCommentMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>
     export type DeleteSocialCommentMutationVariables = {commentId: string}
 
     /**
  * @summary Delete the authenticated account's comment
  */
-export const useDeleteSocialComment = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const useDeleteSocialComment = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | TooManyRequestsResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSocialComment>>, TError,DeleteSocialCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteSocialComment>>,

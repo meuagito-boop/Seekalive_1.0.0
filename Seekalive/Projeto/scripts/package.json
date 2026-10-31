@@ -7,6 +7,10 @@
     "hello": "tsx ./src/hello.ts",
     "test:security-boundaries": "tsx --test ./src/security-boundaries.test.mjs",
     "test:api-runtime": "tsx --test ./src/api-runtime.test.mjs",
+    "test:api-route-contract": "tsx --test ./src/api-route-contract.test.mjs && pnpm run check:api-docs",
+    "docs:api-routes": "tsx ./src/generate-api-route-docs.mjs",
+    "check:api-route-docs": "tsx ./src/generate-api-route-docs.mjs --check",
+    "check:api-docs": "pnpm run check:api-route-docs && node ../docs/api/backend/render-docs.mjs --check",
     "test:db-connection": "tsx --test ./src/database-connection.test.mjs",
     "test:db-domain-registry": "tsx --test ../infra/database/test/domain-registry.test.mjs",
     "test:api-isolated-db": "tsx --test ../Aplicativo/back/test/api-isolated-db.test.mjs",
@@ -15,12 +19,13 @@
     "test:feed-global": "tsx --test ../Aplicativo/back/test/feed-global-listing.test.mjs ../Aplicativo/back/test/feed-hashtag-policy.test.mjs",
     "test:media-storage": "tsx --test ../Aplicativo/back/test/media-file-store.test.mjs",
     "test:profiles-reviews": "tsx --test ../Aplicativo/back/test/business-profile-reviews-application.test.mjs",
-    "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:db-domain-registry && pnpm run test:api-runtime && pnpm run test:feed-global && pnpm run test:media-storage && pnpm run test:profiles-reviews",
+    "test:backend": "pnpm run test:security-boundaries && pnpm run test:db-connection && pnpm run test:db-domain-registry && pnpm run test:api-runtime && pnpm run test:api-route-contract && pnpm run test:feed-global && pnpm run test:media-storage && pnpm run test:profiles-reviews",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "esbuild": "0.28.2",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "yaml": "2.9.1"
   }
 }

@@ -9,9 +9,10 @@ Edição consolidada das fontes Markdown listadas abaixo. Regenere este arquivo 
 - [Arquitetura e segurança](#secao-4) — `architecture-and-security.md`
 - [Integração do frontend](#secao-5) — `frontend-integration.md`
 - [Endpoints](#secao-6) — `endpoints.md`
-- [Dicionário de dados](#secao-7) — `data-dictionary.md`
-- [Serviços externos e operação](#secao-8) — `external-services-and-operations.md`
-- [Implementação e testes](#secao-9) — `implementation-and-tests.md`
+- [Rotas montadas](#secao-7) — `routes.generated.md`
+- [Dicionário de dados](#secao-8) — `data-dictionary.md`
+- [Serviços externos e operação](#secao-9) — `external-services-and-operations.md`
+- [Implementação e testes](#secao-10) — `implementation-and-tests.md`
 
 ---
 
@@ -20,9 +21,9 @@ Edição consolidada das fontes Markdown listadas abaixo. Regenere este arquivo 
 
 Fonte: [`README.md`](README.md).
 
-**Atualizado:** 30/10/2026. **Natureza:** documentação técnica do backend já implementado em fatias e contratos futuros do produto.
+**Atualizado:** 31/10/2026. **Natureza:** documentação técnica do backend em desenvolvimento; não representa produção.
 
-> Estado atual de desenvolvimento: sessão, CSRF, cadastro/login/verificação, recuperação/troca de senha, instalações confiáveis, sessões, onboarding, perfis, relações, Feed e upload de fotos/vídeos estão implementados em fatias. O PostgreSQL de desenvolvimento tem tabelas nos schemas `accounts` (4), `security` (4), `profiles` (5), `feed` (6) e `media` (1); `feed.posts` e `media.assets` existem. Referências de mídia do Feed apontam para ativos do domínio Mídias; os arquivos binários ficam em disco local apenas em desenvolvimento, fora do Git e do deploy. Upload temporário pode ser anexado por até 24 horas; a limpeza de expirados é oportunística no próximo upload, sem worker periódico. As migrations Feed e Mídias possuem trilhas independentes e foram aplicadas/verificadas somente no banco de desenvolvimento. Nenhuma alteração foi feita em produção. A suíte geral, os testes isolados de exclusão de conta (6/6), o replay dos baselines em schemas temporários, typecheck, build, geração de contratos e verificações locais de migration passaram. Os testes isolados confirmaram remoção do schema temporário e preservação do schema `public`. Processamento de mídia e armazenamento permanente não estão implementados.
+> Estado de desenvolvimento: há rotas de autenticação, perfis, relações sociais, Feed, comentários e interações registradas no Express. Os arquivos de mídia usam armazenamento local de desenvolvimento, fora do Git e do deploy; isso não é armazenamento de produção. O inventário físico do banco não é fixado neste texto: consulte [a consulta de catálogo PostgreSQL](queries/development-database-catalog.sql) no banco de desenvolvimento. Nenhum dado de produção é descrito ou alterado por esta documentação.
 
 ## Como utilizar este pacote
 
@@ -30,12 +31,12 @@ Fonte: [`README.md`](README.md).
 2. Ler `analysis-of-reference-documents.md`: comparação dos PDFs com o produto atual e decisões que ainda precisam de aprovação.
 3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
 4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
-5. Usar `shared/api-spec/openapi.yaml` como fonte de verdade dos contratos ativos da API. `endpoints.md` e `openapi.json` neste pacote descrevem o catálogo técnico mais amplo do produto e incluem propostas que ainda não estão ligadas.
+5. Usar `shared/api-spec/openapi.yaml` como fonte de verdade dos contratos HTTP. `endpoints.md` é gerado a partir das rotas Express montadas; `routes.generated.md` inclui método, caminho, segurança declarada, middleware CSRF/rate limit, schemas e respostas. O catálogo de planejamento não normativo fica em `docs/roadmap/seekalive-operation-catalog.*`.
 6. Revisar `data-dictionary.md`, as migrations em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o modelo Drizzle, o journal local, a presença física no banco e o modelo futuro. O `drizzle-kit check` valida somente os arquivos locais; não prova aplicação. **Não executar `push`, `migrate` ou DDL no banco principal sem apresentar antes o diff, impacto, recuperação e obter aprovação explícita para a alteração específica.**
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
-O HTML autônomo e `Seekalive-backend-documentation.md` reúnem as fontes para consulta em formatos navegável e Markdown; o ZIP inclui documentação, o mapa de domínios de dados, o catálogo técnico, o OpenAPI compartilhado da API ativa, SQL de referência, migrations versionadas e o catálogo IBGE usado no frontend. Regenere ambos depois de alterar as fontes e mantenha o ZIP sincronizado com a documentação e todas as migrations/snapshots atuais. `docs/api/backend/openapi.json` é um catálogo separado de referência/propostas; para paths e schemas implementados, use `shared/api-spec/openapi.yaml`, inclusive para upload e leitura de mídia.
+O HTML autônomo e `Seekalive-backend-documentation.md` reúnem as fontes para consulta. Regenere-os depois de alterar os documentos-base. `shared/api-spec/openapi.yaml` é o contrato; o catálogo histórico em `docs/roadmap/` não deve ser usado para inferir rotas ativas. O estado físico do banco deve ser consultado pelo SQL de catálogo, não por contagens copiadas neste documento.
 
 ## 1. Produto
 
@@ -44,7 +45,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Módulo | Objetivo                                             | Entidades centrais                                                      |
 | ------ | ---------------------------------------------------- | ----------------------------------------------------------------------- |
 | Social | Publicar, interagir, manter perfis e relacionamentos | Conta, publicação, artigo, mídia, comentário, repost, Círculo, conversa |
-| Seek   | Descobrir comércios, profissionais e eventos         | A própria conta comercial, dados comerciais, cidade, avaliação, evento  |
+| Seek   | Descobrir comércios, profissionais e eventos         | Projeções de perfis comerciais, localização, categorias e eventos        |
 | Shop   | Descobrir produtos, ofertas e serviços               | Item, vendedor comercial, catálogo e salvos                             |
 
 **Regra estrutural:** uma conta é pessoal ou comercial. Uma conta comercial continua sendo uma conta Social; sua extensão comercial alimenta o Seek. Não criar um cadastro independente de estabelecimentos. Para o Shop real, a proposta é vincular cada vendedor a uma conta comercial existente — os vendedores fictícios atuais ainda não possuem esse vínculo consistente.
@@ -58,30 +59,30 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Área                    | Situação auditada                                                                                                                                                                                             |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Servidor                | Express/TypeScript em `Aplicativo/back`; saúde, autenticação, onboarding, perfis e relações estão implementados                                                                                               |
-| Banco                   | Em desenvolvimento, Feed e Mídias têm schemas e ledgers independentes; `feed.posts` e `media.assets` estão aplicados. Produção não foi consultada nem alterada                                                |
-| Especificação           | `shared/api-spec/openapi.yaml` mantém o contrato público existente; `docs/api/backend/openapi.json` distingue endpoints ativos dos propostos                                                                  |
+| Banco                   | Somente desenvolvimento; consulte `queries/development-database-catalog.sql` para o estado físico atual. Este texto não fixa contagens nem descreve produção                                                |
+| Especificação           | `shared/api-spec/openapi.yaml` é o contrato; `endpoints.md` e `routes.generated.md` são gerados das rotas montadas e do contrato                                                                  |
 | Login                   | API própria com Argon2id, CSRF, e-mail confirmado e versão de política; contas legadas precisam validar ou atualizar a senha antes de receber sessão                                                          |
 | Regra de senha          | 8–128 caracteres, ao menos uma maiúscula, uma minúscula, um número e um caractere especial; credenciais legadas são migradas no login sem tentar inferir o conteúdo do hash                                   |
 | Cadastro                | Rota de cadastro/verificação implementada; o teste direto de envio Resend foi recebido em desenvolvimento. O fluxo completo ainda requer validação E2E; nenhuma conta sem confirmação recebe sessão           |
 | Recuperação/verificação | Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria         |
-| Publicações/comentários | Publicação remota de texto/artigo e publicação com ativos de mídia; curtidas, comentários, reposts, referências e parte da experiência ainda permanecem locais ou não implementados                           |
+| Publicações/comentários | Feed, comentários, curtidas, reposts, salvos, remoção de posts/comentários e referências têm rotas registradas; `endpoints.md` lista as rotas montadas sem afirmar que cada fluxo foi exercitado                           |
 | Fotos/vídeos            | Envio autenticado de arquivos para armazenamento local de desenvolvimento; metadados são persistidos em `media.assets` e IDs são associados a publicações em `feed.posts`. Não é armazenamento de produção    |
-| Contas/avaliações       | Rotas e interface de avaliações de Profiles estão implementadas; a migration `profiles/0003` ainda não foi aplicada, então a persistência remota não está operacional. A prévia persiste somente no navegador |
-| Perfil e relações       | API ativa para perfil básico, privacidade, seguir, pedidos privados, Círculo derivado e bloqueio; avaliações comerciais têm código pronto, mas aguardam a migration `profiles/0003`                           |
+| Contas/avaliações       | As avaliações pertencem a Profiles, não ao Seek. Rotas de avaliação/reposta estão registradas; o estado físico atual deve ser conferido pela consulta de catálogo |
+| Perfil e relações       | API com rotas de perfil, privacidade, seguir, pedidos privados, Círculo derivado e bloqueio; o inventário de rotas não substitui teste de autorização/persistência                           |
 | Mensagens               | Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio                                                                                       |
 | Seek                    | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância                                                                       |
-| Dados demonstrativos    | Fixtures de Social, Seek, Search e Shop são limitados ao preview/desenvolvimento; o build de produção não deve exibir dados fictícios e usa estados vazios até conectar a API                                 |
+| Dados demonstrativos    | Fixtures de Social, Seek, Search e Shop pertencem ao preview/desenvolvimento. Esta documentação não afirma estado ou comportamento de produção                                 |
 | Shop                    | Catálogo ilustrativo, detalhes, referências e salvos. Sem carrinho, estoque, compra, pagamento, frete ou assinatura real                                                                                      |
 | Configurações           | A API já persiste privacidade básica e bloqueios; preferências restantes e a interface ainda usam estado local. Bloquear remove seguimentos/pedidos nas duas direções e só quem iniciou desbloqueia           |
 
-O frontend e a API têm processos separados. A autenticação está conectada à API; parte das telas de perfil e relações ainda não consome todos os endpoints. A aba de avaliações do perfil comercial já chama Profiles, mas sua persistência aguarda a migration `profiles/0003`. Antes de conectar outras telas, validar roteamento de mesma origem e manter a separação entre sessão real e demonstração de desenvolvimento.
+O frontend e a API têm processos separados. A documentação distingue rotas registradas, contrato e telas conectadas; nenhuma dessas informações, isoladamente, comprova um fluxo completo. Verifique a integração pelo teste específico de cada domínio. Todo o estado aqui descrito é de desenvolvimento.
 
 ## 3. Regras de negócio obrigatórias
 
 ### Identidade e autorização
 
 - O servidor identifica o autor pela sessão, nunca pelo `authorId`, `senderId`, `reviewerId`, `sellerId` ou `organizerId` enviado pelo navegador.
-- `username` único sem diferenciação de maiúsculas; preservar a regra atual de 3–20 caracteres `[a-z0-9_]`. Definir lista reservada, política de troca e redirecionamento de links antigos.
+- `username` único sem diferenciação de maiúsculas; 3–20 caracteres ASCII entre letras, números, hífen (`-`) e sublinhado (`_`), sem acentos. Nome de exibição e `@` são campos distintos; as trocas obedecem ao intervalo de 30 dias aprovado. Um `@` liberado permanece reservado por 30 dias.
 - `isFollowing`, `isInCircle`, `isBlocked`, `isBlockedByViewer`, `blocksViewer`, `isMuted`, `isLiked` e semelhantes são projeções da relação com o visitante, não atributos globais gravados no perfil. `isBlocked` combina o bloqueio iniciado pelo visitante e o iniciado pelo perfil alvo; ambos ficam sem acesso/interação. `isInCircle` é verdadeiro somente quando os dois seguimentos estão efetivos; não há `circleStatus`.
 - Selos de verificação e papéis administrativos não são editáveis pela API de perfil.
 - A verificação de e-mail deverá ser concluída pela API; um código digitado no frontend nunca basta para declarar a conta verificada.
@@ -98,26 +99,26 @@ O frontend e a API têm processos separados. A autenticação está conectada à
 - Resposta de comentário deve pertencer à mesma publicação do comentário pai. Curtidas, reposts e salvos são únicos por conta/recurso.
 - Compartilhamento registra, no máximo, uma intenção de compartilhar. Não é prova de entrega por WhatsApp, rede externa ou destinatário.
 
-### Privacidade proposta para o servidor
+### Privacidade e visibilidade no Social
 
-O frontend tem verificações parciais; esta é a política segura proposta, que exige adaptar telas e testes:
+Estas são as regras vigentes para os endpoints implementados:
 
-1. Conteúdo privado: apenas autor e eventual moderação autorizada/auditada.
-2. Conteúdo para Círculos: autor e relação bilateral aceita; seguir alguém não equivale a entrar no Círculo.
-3. Conteúdo público: visível conforme o estado da conta. Conta privada requer relação de seguimento aceita para conteúdo destinado ao perfil; bloqueio prevalece sobre relações anteriores.
-4. Aplicar a mesma política a feed, busca, perfil, comentários, contadores, galeria, notificações, referências e download dos arquivos.
+1. Publicação com audiência `private`: titular e seguidores aprovados de um perfil privado.
+2. Conteúdo para Círculos: titular e relação bilateral de seguimento efetiva; seguir alguém em uma única direção não basta.
+3. Conteúdo público: visível conforme o estado da conta. Conta privada exige seguimento aprovado para o conteúdo destinado ao perfil; bloqueio prevalece sobre relações anteriores.
+4. Cada rota que expõe conteúdo deve aplicar a mesma regra de audiência e bloqueio antes de retornar publicação, comentário, referência ou mídia.
 5. Recursos privados ou não existentes devem produzir resposta indistinguível para terceiros, normalmente `404`. Ações negadas em recurso que o usuário pode conhecer podem retornar `403`.
 6. Silenciar é um filtro pessoal de distribuição. Bloquear é bilateral: remove os seguimentos e solicitações pendentes entre as contas; ambas deixam de ver perfis/conteúdo e iniciar interações. Mensagens antigas ficam ocultas e reaparecem após desbloquear. Publicações, comentários e avaliações não são apagados. Só quem iniciou o bloqueio pode removê-lo; seguimentos e solicitações não são restaurados automaticamente.
 
-A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou bloqueadas. A precisão de endereço de profissionais deve ser controlada: área de atendimento não deve publicar residência particular.
+A descoberta do Seek consome perfis comerciais públicos do Social e exclui contas privadas, suspensas, removidas ou bloqueadas. Avaliações e campos de apresentação pertencem a Profiles; Seek apenas os consome como dados de descoberta.
 
 ### Comércio, serviços e avaliações
 
 - `business_profiles.account_id` é a mesma chave da conta comercial, com relação 1:1.
-- Categoria, especialidades e áreas de atendimento são dados declarados pelo responsável. Não significam verificação profissional.
+- Categoria e especialidades são dados declarados pelo responsável. Não significam verificação profissional. Para localização pública, exibir somente o endereço principal definido para o perfil.
 - Delivery, atendimento no local/mesa, retirada, reservas e agendamento são **capacidades declaradas**. Não são pedidos, entregas, mesas disponíveis ou horários reserváveis.
 - Avaliação: nota inteira obrigatória de 1–5, comentário de 10–500 caracteres; uma avaliação por conta e negócio; o dono não avalia o próprio negócio.
-- Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. Serviço e schema validam esses limites; a migration `profiles/0003` ainda não foi aplicada ao banco de desenvolvimento.
+- Resposta comercial: somente dono da conta comercial; comentário de resposta entre 3–500 caracteres. O estado físico atual deve ser confirmado pela consulta de catálogo de desenvolvimento.
 - Serviço comercial: delivery, mesa, retirada, reserva e agendamento só aparecem publicamente quando marcados explicitamente como oferecidos (`true`). Não oferecido (`false`) e não informado (`null`/ausente) não podem aparecer como oferta.
 - O dono pode responder, não apagar crítica de cliente pela API comercial. Remoções são do autor ou de moderação autorizada.
 - Média e quantidade são calculadas das avaliações elegíveis. Ausência de avaliações não significa nota zero.
@@ -134,15 +135,17 @@ A descoberta do Seek exclui contas comerciais privadas, suspensas, removidas ou 
 
 ## 4. Entregas de backend e limites
 
-**Núcleo a completar:** integração e validação autenticada do perfil comercial após a migration `profiles/0003`; descoberta remota do Seek como projeção derivada de Profiles; interações sociais ainda ausentes; mensagens, notificações, eventos, catálogo Shop, salvos, preferências e moderação.
+**Núcleo Social registrado no backend:** Feed, leitura/paginação, comentários, curtidas, reposts, salvos, referências e remoções têm rotas montadas. O teste de paridade comprova registro e contrato, não execução completa de cada fluxo nem estado físico do banco.
+
+**Fases ainda não concluídas:** integração autenticada de todas as telas; projeção remota do Seek a partir de Profiles; mensagens, notificações, eventos, catálogo Shop, preferências e moderação. A presença de um endpoint no inventário não declara essas fases concluídas.
 
 **Extensões ainda sujeitas a decisão:** checkout/marketplace, estoque, pagamentos, assinaturas, frete, delivery operacional, agenda, reserva de mesas, ingressos, geocodificação e busca espacial. O pacote explica os requisitos, mas não transforma essas extensões em funcionalidades prontas.
 
-**Direção implementada nesta etapa:** autenticação própria pela API, com PostgreSQL/Drizzle, sessão opaca em cookie seguro, CSRF, hash Argon2id e bloqueio de contas sem e-mail confirmado; perfis, configurações de privacidade e relações sociais essenciais também usam a API. Metadados de desenvolvimento confirmam as tabelas atuais desses domínios; não foi encontrada tabela de histórico que permita afirmar qual sequência de comandos criou cada objeto. O contrato OpenAPI separa rotas ativas das propostas. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; ainda falta validar o fluxo completo de cadastro/confirmação no navegador e a produção não está configurada. Sem configuração de envio, o servidor responde `503` e não cria conta. O schema completo dos demais domínios continua proposto e não foi aplicado à produção.
+**Limite desta documentação:** descreve somente o ambiente de desenvolvimento. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; isso não comprova o fluxo E2E de cadastro/confirmação. O estado do banco deve ser obtido pela consulta de catálogo indicada no início, não por afirmações estáticas. Nenhuma conclusão sobre produção é feita aqui.
 
 ## 5. Links e versões
 
-- Rotas da interface e URLs relativas da API estão em `frontend-integration.md` e `endpoints.md`.
+- Rotas da interface estão em `frontend-integration.md`; métodos e caminhos registrados estão em `endpoints.md` e `routes.generated.md`.
 - A análise e os bloqueios verificados no frontend estão em `frontend-readiness-audit.md`.
 - Links oficiais das integrações estão em `external-services-and-operations.md`.
 - URL pública definitiva do app/API: **não definida por esta auditoria**. Não inferir domínio de produção a partir do endereço de desenvolvimento.
@@ -260,7 +263,7 @@ Fonte: [`frontend-readiness-audit.md`](frontend-readiness-audit.md).
 
 ## Parecer
 
-**O frontend ainda não está pronto para usar todo o backend em produção.** Login/sessão/onboarding consultam a API. Configurações > Conta diferencia conta pessoal e comercial e lê/salva por `/v1/accounts/me` em sessão real; Privacidade e Segurança também usam APIs no fluxo autenticado. A tela Segurança lista e revoga instalações confiáveis usando token por navegador/app, não IP nem fingerprint. O envio Resend foi testado em desenvolvimento, mas ainda falta E2E do fluxo completo; não está habilitado para produção. O perfil comercial agora consome as operações de avaliações de Profiles em sessão real; a migration `profiles/0003` ainda aguarda aprovação/aplicação no banco de desenvolvimento. Seek discovery remoto, mensagens e outros domínios continuam sem API ativa; fixtures pré-carregadas ficam apenas no desenvolvimento.
+**Escopo desta auditoria:** ambiente de desenvolvimento. Login/sessão/onboarding consultam a API. Configurações > Conta diferencia conta pessoal e comercial e lê/salva por `/v1/accounts/me` em sessão real; Privacidade e Segurança também usam APIs no fluxo autenticado. A tela Segurança lista e revoga instalações confiáveis por token de navegador/app. O envio Resend foi testado, mas a jornada completa ainda precisa de E2E. O perfil comercial consome operações de avaliações de Profiles. O estado físico do banco deve ser confirmado pela query de catálogo. Seek discovery remoto e os domínios de mensagens/notificações continuam sem implementação completa; fixtures pertencem ao desenvolvimento.
 
 O backend foi iniciado. O próximo trabalho de frontend é consumir somente os endpoints ativos e manter a demonstração de desenvolvimento separada da conta real; não conectar telas a contratos que ainda estejam marcados como propostos.
 
@@ -276,7 +279,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Área                           | Estado atual                                                                                                                                                                                                                                                                                                                                                                                                          | Prontidão                                                                                                    |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | Rotas e navegação              | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; guard do cliente complementa a autorização independente da API                                                                                                                                                                                                                                                                  | Parcial                                                                                                      |
-| Identidade e sessão            | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação, troca de senha, sessões e instalações confiáveis chamam a API                                                                                                                                                                                                                                                                          | Falta E2E no navegador; metadados de 29/10/2026 confirmam as tabelas necessárias no banco de desenvolvimento |
+| Identidade e sessão            | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação, troca de senha, sessões e instalações confiáveis chamam a API                                                                                                                                                                                                                                                                          | Falta E2E no navegador; consulte a query de catálogo para o estado físico atual                                    |
 | Contas e perfis                | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados; idade é coletada no cadastro, permanece somente no servidor para a regra de 18+ e nunca é retornada após a criação; e-mail é somente para o titular. Perfis remotos já carregam publicações/artigos pela API; a inspeção visual autenticada não foi executada                                                 | Parcial; falta E2E visual e continuam fora os campos comerciais ainda não suportados pelo contrato           |
 | Publicações e comentários      | A prévia permanece local. Em sessão remota, o Feed global consome a API nas abas Para você, Seguindo, Artigos e Vídeos, e perfis carregam publicações/artigos paginados; curtir, comentar/responder, repostar e salvar usam a API. Estados de carregamento/erro/vazio, paginação sem duplicação e ações assíncronas da aba Vídeos têm testes. A jornada autenticada ainda não foi verificada visualmente no navegador | Parcial                                                                                                      |
 | Fotos e vídeos                 | Upload autenticado, IDs de mídia e associação às publicações funcionam no desenvolvimento com arquivos locais; isso não fornece armazenamento permanente de produção                                                                                                                                                                                                                                                  | Desenvolvimento funcional; produção não pronta                                                               |
@@ -285,7 +288,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 | Privacidade e bloqueio         | A tela Privacidade e ações de bloqueio usam a API em sessões remotas. O servidor remove follows/pedidos em transação, permite desbloqueio só pelo iniciador e aplica visibilidade a posts/mídias                                                                                                                                                                                                                      | Integrado para perfis, posts e mídias; Mensagens ainda não tem API                                           |
 | Mensagens e notificações       | Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos                                                                                                                                                                                                                                                                 | Bloqueador                                                                                                   |
 | Seek                           | Descoberta por localização/categoria de perfis comerciais originados no Social; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há API real de descoberta no servidor                                                                                                                                                                                                         | Parcial                                                                                                      |
-| Avaliações do perfil comercial | Interface, contrato, rotas e persistência de Profiles implementados em código; migration `profiles/0003` ainda não aplicada. A prévia continua local e a sessão real ainda não pode persistir no banco                                                                                                                                                                                                                | Implementado em código; bloqueado pela migration                                                             |
+| Avaliações do perfil comercial | Interface, contrato e rotas de Profiles implementados em código. O estado de persistência física deve ser verificado pela query de catálogo; a jornada autenticada ainda requer E2E                                                                                                                                                                                                          | Implementado em código; estado físico não presumido                                                         |
 | Shop                           | Catálogo ilustrativo e itens salvos separados por conta no navegador; checkout é explicitamente indisponível                                                                                                                                                                                                                                                                                                          | Parcial por escopo                                                                                           |
 | Configurações                  | Conta, privacidade e segurança usam a API em sessão real; notificações e aparência ainda ficam no navegador; ações sensíveis adicionais aguardam implementação                                                                                                                                                                                                                                                        | Parcial                                                                                                      |
 
@@ -303,7 +306,7 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 
 **Regras confirmadas:** conta sem e-mail verificado não pode entrar nem acessar recursos. O registro mantém a conta pendente e sem sessão. Na confirmação, uma conta legada com política de senha antiga é ativada sem sessão e segue para login; senha legada compatível é promovida após validação, e senha incompatível exige atualização com a senha atual.
 
-**Atenção restante:** não foi encontrada tabela de histórico de migrations; portanto, não é possível estabelecer pelo catálogo a data ou a sequência em que as tabelas foram criadas nem afirmar quantas sessões/credenciais existiam naquele momento. A verificação de 29/10/2026 não leu registros nem alterou tabelas permanentes. A recuperação de senha e a revogação de sessões estão implementadas; a entrega assíncrona ainda não tem outbox durável nem tentativa persistente. Reconhecimento de dispositivo habitual, autenticação em duas etapas e histórico de acesso não existem e não são simulados. Produção não foi consultada nem alterada.
+**Atenção restante:** a recuperação de senha e a revogação de sessões estão implementadas; a entrega assíncrona ainda não tem outbox durável nem tentativa persistente. Reconhecimento de dispositivo usa token revogável por instalação, não IP nem fingerprint. O estado físico atual deve ser consultado com a query de catálogo; este relatório trata exclusivamente do desenvolvimento.
 
 O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a regra de composição é aplicada a novas senhas e a atualizações obrigatórias. O campo de senha permanece apenas em memória durante o fluxo e não é salvo em `localStorage`.
 
@@ -369,7 +372,7 @@ Corrigido neste pacote:
 - Avaliação agora exige nota inteira de 1–5, comentário entre 10–500 caracteres e resposta entre 3–500, alinhados à UI.
 - Opções de serviço comerciais distinguem oferecido (`true`), não oferecido (`false`) e não informado (`null`/ausente). Só `true` pode aparecer no perfil público.
 
-As rotas de avaliação e o contrato já estão implementados em código. A migration `profiles/0003` precisa ser aplicada no banco de desenvolvimento antes dos testes HTTP integrados e do aceite da experiência autenticada.
+As rotas de avaliação e o contrato estão implementados em código. Antes de declarar persistência física ou aceite da experiência autenticada, consulte o banco de desenvolvimento e execute testes HTTP integrados seguros.
 
 ### P2 — Controles/telas que não completam a ação esperada
 
@@ -417,7 +420,7 @@ Esses resultados comprovam as fatias testadas, não a prontidão integral do bac
 
 ## Próximas etapas vigentes
 
-A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. A experiência de avaliações do perfil comercial está implementada em código em Profiles; a migration `profiles/0003` e a validação HTTP/autenticada ainda são bloqueios antes do aceite desta fatia. Avaliações seguem no perfil comercial, não no Seek. Referências do Feed aceitam somente publicações Social, são persistidas no schema Feed e reautorizadas ao montar cada prévia. O Feed global e a busca por hashtags não devem ser reimplementados.
+A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os gates e substitui a sequência histórica abaixo. Avaliações do perfil comercial pertencem a Profiles, não ao Seek. A situação física do banco não é afirmada neste relatório. Referências do Feed aceitam somente publicações Social e são reautorizadas ao montar cada prévia. O Feed global e a busca por hashtags não devem ser reimplementados.
 
 ## Ordem histórica da auditoria inicial
 
@@ -429,7 +432,7 @@ A ordem oficial é a do `auditoria/plano-de-acao-tecnico.md`, que controla os ga
 6. Integrar gradualmente cadastro/perfil, Social, avaliações dentro do perfil comercial, descoberta do Seek, mensagens/notificações e Shop; somente ligar telas depois de haver endpoints e estados loading/erro/vazio.
 7. Criar testes de API e navegador que cubram autorização entre contas, privacidade, Círculo, publicação/galeria, avaliações, mensagens e ações de configuração.
 
-**Estado vigente desta auditoria:** perfis owner-only, privacidade, relações, Feed global, publicações/artigos de perfil e busca de texto/hashtags usam os contratos remotos em sessão autenticada, enquanto a prévia segue local. Avaliações do perfil comercial estão implementadas em código, mas a migration pendente impede validar a persistência remota; E2E visual autenticado, referências e outros domínios continuam sem aceite. Produção e provedores externos não foram alterados.
+**Estado vigente desta auditoria:** perfis owner-only, privacidade, relações, Feed global, publicações/artigos de perfil e busca de texto/hashtags usam contratos remotos em sessão autenticada, enquanto a prévia segue local. Avaliações do perfil comercial estão implementadas em código; E2E visual autenticado e alguns domínios ainda não têm aceite. A presença de rotas não é prova de persistência nem de validação completa.
 
 ---
 
@@ -440,9 +443,9 @@ Fonte: [`architecture-and-security.md`](architecture-and-security.md).
 
 ## Escopo atualmente implementado
 
-A API Express com PostgreSQL/Drizzle implementa autenticação, recuperação de senha, gestão de sessões, onboarding, leitura/edição do próprio perfil, consulta pública de perfil, privacidade, relações e bloqueios. Feed persiste publicações e aceita fotos/vídeos enviados pelo titular por meio do domínio Mídias. Escritas exigem sessão verificada e CSRF. Em 30/10/2026, `feed.posts` e `media.assets` foram verificados no banco de desenvolvimento. Os binários usam disco local restrito a desenvolvimento; isso não configura armazenamento de produção. O frontend mantém demonstração local em parte das experiências; a presença de um endpoint não significa que todas as telas autenticadas foram verificadas visualmente.
+A API Express/TypeScript registra autenticação, recuperação de senha, gestão de sessões, onboarding, perfis, relações, Feed, comentários, curtidas, reposts, salvos, remoções e referências. Os métodos/caminhos e o contrato são verificáveis em `endpoints.md`, `routes.generated.md` e `shared/api-spec/openapi.yaml`. Escritas registradas usam sessão e CSRF conforme o contrato. O inventário não comprova a execução ponta a ponta de cada handler. O estado físico do banco de desenvolvimento deve ser obtido por `queries/development-database-catalog.sql`; este texto não fixa contagens. Os binários usam disco local de desenvolvimento, não armazenamento de produção.
 
-Permanecem incompletos: comentários/respostas, curtidas, reposts, salvos, referências e ranking do feed. Upload de mídia funciona no desenvolvimento, mas armazenamento permanente, processamento/transcodificação, thumbnails e reconciliação de arquivos órfãos ainda não estão implementados. O fluxo de avaliações do perfil comercial foi implementado em Profiles e no frontend; a migration `profiles/0003` aguarda aplicação no banco de desenvolvimento e a validação HTTP/autenticada ainda não foi concluída. Perfil comercial completo/descoberta do Seek, mensagens, notificações, silenciamentos, busca e moderação continuam fora desta fatia.
+Ainda não estão completos: ranking personalizado do Feed, armazenamento persistente de mídia, processamento/transcodificação, thumbnails, limpeza periódica de arquivos órfãos, mensagens, notificações, busca completa, moderação e descoberta remota do Seek. Avaliações e campos de apresentação pertencem ao domínio Profiles; Seek apenas consome projeções públicas autorizadas. O estado físico de tabelas/migrations não é inferido nesta lista.
 
 ## 1. Arquitetura de referência
 
@@ -531,7 +534,7 @@ Status principais: `200`, `201`, `202` para tarefa realmente aceita, `204` sem c
 6. `POST /v1/auth/password/update` exige senha atual e e-mail confirmado; só aplica a nova senha após código no e-mail atual. A confirmação grava Argon2id e revoga todas as sessões e instalações confiáveis numa transação. A redefinição por senha esquecida também revoga sessões e instalações e exige novo login/novo código de instalação. A entrega ocorre fora da transação e ainda não usa outbox durável.
 7. Senhas usam Argon2id (64 MiB, três iterações, paralelismo 1). Credenciais antigas começam na versão `0`, novas/atualizadas ficam na versão `1`; a política de composição não pode ser inferida do hash. Senha não é persistida no navegador, logs, eventos ou telemetria.
 8. Cookies de sessão e pré-autenticação são opacos, `HttpOnly`, `Secure`, `SameSite=Lax` e `Path=/`; o servidor guarda hashes e valida CSRF nas mutações. `GET /v1/auth/devices` lista somente instalações da própria conta; revogar uma instalação ou todas as demais também encerra suas sessões. Logout encerra só a sessão atual e mantém a instalação confiável.
-9. As tabelas físicas de instalações confiáveis e bloqueio foram encontradas no banco de desenvolvimento por metadados. A suíte de API passou em schema temporário isolado e removeu o namespace ao final. A consulta não leu registros; portanto, não afirma que o banco principal esteja vazio nem que nenhuma conta/sessão exista. Produção não foi consultada nem alterada.
+9. **Evidência histórica:** uma auditoria anterior encontrou objetos físicos de instalações confiáveis e bloqueio e executou testes em schema temporário. Isso não declara o estado atual do banco; consulte `docs/api/backend/queries/development-database-catalog.sql`. Nesta implementação, não houve acesso a banco, execução de DDL ou consulta à produção.
 10. A confirmação de e-mail é exigida antes de entrar ou acessar recursos protegidos. Trata-se de autorização do servidor, não apenas de uma proteção no React. O código de e-mail para instalação desconhecida é uma verificação adicional contextual; não é MFA geral para todo login nem TOTP.
 
 **Regra de bloqueio no contrato:** bloquear grava a relação do iniciador e, na mesma transação, remove follows aceitos e solicitações pendentes nos dois sentidos. Mensagens e conteúdo não são apagados; conversas ficam ocultas durante o bloqueio e podem voltar após desbloquear. Só o iniciador remove seu bloqueio; follows e pedidos não são recriados. A API deve aplicar isso em toda leitura, escrita e entrega de mídia/notificação.
@@ -631,10 +634,12 @@ Exclusão deve tratar conta, identidade, sessões, mídia, busca, caches, notifi
 
 ## Estado da primeira fatia de Feed — registro histórico de 25/10/2026
 
+> Este trecho registra o que existia naquela data. Rotas, regras e estados atuais devem ser lidos em `endpoints.md`, `routes.generated.md`, `shared/api-spec/openapi.yaml` e no início deste documento.
+
 - Schema lógico `feed.posts` modelado com chave da conta autora, audiência, tipo texto/artigo, conteúdo, timestamps, versão, checks e índices cronológicos. A migração versionada `0005_mushy_centennial.sql` foi gerada sem conexão ao banco; **não foi aplicada nesta etapa**.
 - Rotas: `POST /v1/social/posts`, `POST /v1/social/articles`, `GET /v1/social/posts/{postId}`, `GET /v1/social/articles/{postId}`, `DELETE /v1/social/posts/{postId}` e `GET /v1/social/accounts/{accountId}/posts`. Perfil público agora recebe páginas separadas de posts e artigos do domínio Feed.
 - O autor é sempre a conta autenticada; `authorId` de compatibilidade, quando enviado, precisa coincidir com a sessão. Escritas exigem CSRF. Entradas usam schemas Zod estritos, limites de tamanho, limite de página e cursores que carregam e validam conta/formato. Rotas de leitura e escrita possuem rate limits; a implementação desses limites é local ao processo e precisa ser revisada antes de executar múltiplas réplicas.
-- A API recalcula autorização a cada leitura usando a projeção de Conta/Social: perfil privado exige follow aprovado para publicação pública; Círculo exige mutualidade; audiência privada é somente do titular; bloqueio bilateral oculta o recurso usando `404`. Conteúdo textual só é retornado como texto JSON; não é HTML executável.
+- Regra de visibilidade registrada naquela data: perfil privado exige follow aprovado; Círculo exige mutualidade; audiência `private` era limitada ao titular; bloqueio bilateral ocultava o recurso usando `404`. A regra vigente passou a permitir também que seguidores aprovados vejam publicações `private` de perfis privados, conforme o código atual e o contrato.
 - Artigos aceitam até 50.000 caracteres no corpo. Só `POST /v1/social/articles` recebe o limite de parser de 256 KB necessário para esse contrato; demais JSON continuam limitados a 32 KB. A requisição é testada antes de CSRF para comprovar o tamanho e o tratamento por request ID.
 - Fotos/vídeos, `blob:` e URLs externas são rejeitados com erro explícito `CONTENT_MEDIA_NOT_READY`; nenhum arquivo é salvo e nenhum provedor de mídia foi habilitado. Curtidas, comentários e reposts ainda não existem no servidor; os contadores/estados no DTO retornam zero/falso nesta etapa e não devem ser confundidos com os estados locais da prévia.
 - A geração Orval atualiza OpenAPI e cliente/tipos. A interface ainda não foi ligada a essas rotas: segue usando conteúdo local de preview. A próxima etapa não deve ser Seek; Feed Social precisa continuar até incluir as interações, a integração frontend e uma verificação autenticada real.
@@ -654,24 +659,24 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | Rotas da interface                                             | Código / comportamento atual                                                                                                                                                                                                                                                                                                | Integração necessária                                                                                                                                                            |
 | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/`, `/login`, `/register`                                     | `App.tsx`, `Login`, `Register`, `AppContext`; sessão validada pela API, formulário conectado                                                                                                                                                                                                                                | Conta Social única; confirmação obrigatória do e-mail antes de emitir sessão                                                                                                     |
-| `/forgot-password`, `/verify-email`                            | Confirmação tem API própria, mas o envio de e-mail não está configurado; recuperação segue demonstrativa                                                                                                                                                                                                                    | Conectar serviço de e-mail em etapa futura, sem liberar conta não verificada; implementar recuperação com anti-enumeração, limites e expiração                                   |
+| `/forgot-password`, `/verify-email`                            | Os fluxos de verificação e recuperação possuem endpoints na API; o envio direto pelo Resend foi testado em desenvolvimento, mas isso não comprova a jornada E2E no navegador                                                                                                                                                 | Validar cada jornada completa com testes próprios; manter bloqueio de sessão enquanto o e-mail não estiver confirmado                                                                                                                   |
 | `/onboarding/interests`, `/onboarding/suggestions`             | Interesses concluem pela API; sugestões e escolhas de seguir continuam fixtures/locais                                                                                                                                                                                                                                      | Catálogo e recomendações autorizadas; persistir ações de seguir quando telas forem ligadas à API                                                                                 |
 | `/feed`                                                        | Sessões reais usam `GET /v1/social/feed` nas abas Para você, Seguindo, Artigos e Vídeos; a prévia de desenvolvimento mantém fixtures locais                                                                                                                                                                                 | Preservar estados de carregamento/erro/vazio, paginação e consistência das ações                                                                                                 |
-| `/compose`, `/article/create`                                  | `contentService` demo + mídias blob                                                                                                                                                                                                                                                                                         | Upload, criação transacional, validação, idempotência e publicação com referência                                                                                                |
-| `/post/:postId`, `/article/:postId`                            | Leitura e interação locais                                                                                                                                                                                                                                                                                                  | Leitura autorizada, comentários/respostas, curtidas, reposts, remoção e edição proposta                                                                                          |
-| `/search`                                                      | Pessoas usam `searchAccounts` em sessão remota; publicações, tags e tendências continuam locais                                                                                                                                                                                                                             | Busca de publicações/tags, índices, permissões e tendências calculadas                                                                                                           |
-| `/profile`, `/profile/:username`                               | Sessões remotas usam `/v1/profiles/:username` e a listagem paginada de publicações/artigos; a prévia usa fixtures locais. No perfil comercial, a aba Avaliações chama os endpoints Profiles e apresenta carregamento/erro/vazio; a persistência remota depende de aplicar `profiles/0003`. Mídias do perfil retornam vazias | Preservar ACL do servidor; conectar mídia de perfil somente após contrato/persistência própria                                                                                   |
+| `/compose`, `/article/create`                                  | Sessões remotas usam a API de criação e ativos carregados; a demonstração segue no adaptador local                                                                                                                                                                                                                         | Preservar o modo de desenvolvimento e validar upload, criação, validação, idempotência e publicação com referência                                                                   |
+| `/post/:postId`, `/article/:postId`                            | Sessões remotas leem publicações e comentários pela API e acionam curtidas, comentários, reposts, salvos e remoções; a prévia usa dados locais                                                                                                                                                                             | Testar cada fluxo autenticado e manter as regras de audiência em toda leitura                                                                                                    |
+| `/search`                                                      | Pessoas usam `searchAccounts` em sessão remota; a busca de publicações usa a consulta paginada do Feed; não inferir que tendências/hashtags tenham cobertura completa apenas por isso                                                                                                                                         | Verificar contrato e cobertura de busca por tipo de conteúdo, prefixo de hashtag, permissões e tendências                                                                          |
+| `/profile`, `/profile/:username`                               | Sessões remotas usam `/v1/profiles/:username` e páginas de publicações/artigos. A aba Avaliações consome endpoints de Profiles; a situação física do banco deve ser verificada pela consulta de catálogo. Não há uma rota de galeria comercial nesta superfície | Preservar ACL; avaliações e apresentação pertencem a Profiles; Seek somente consome as projeções autorizadas                                                                        |
 | `/profile/edit`                                                | Edição de apresentação do perfil ainda usa estado local                                                                                                                                                                                                                                                                     | Conectar campos públicos de perfil quando a fatia de perfil público for autorizada; não duplicar os campos privados de cadastro                                                  |
 | `/settings/account`                                            | API e telas integradas para ler/editar perfil, trocar e-mail e senha e solicitar exclusão da conta; idade é coletada no cadastro, usada pelo backend para a regra 18+ e nunca é retornada ou exibida após a criação                                                                                                         | Exportação de dados não oferecida nesta versão; integração de produção ainda exige configuração e validação do provedor de e-mail                                                |
 | `/profile/:username/followers`, `/profile/:username/following` | Sessões remotas usam as APIs paginadas; demonstração permanece local                                                                                                                                                                                                                                                        | Preservar estados de carregamento/erro e manter a demonstração isolada da sessão remota                                                                                          |
-| `/settings/privacy`                                            | A API guarda privacidade, mensagens e confirmações de leitura; as telas ainda salvam no navegador. Pedidos são aceitos/recusados pela API                                                                                                                                                                                   | Conectar GET/PUT de privacidade e pedidos recebidos; apenas o dono decide                                                                                                        |
+| `/settings/privacy`                                            | Sessões remotas leem e atualizam privacidade pela API; demonstração permanece local. Pedidos recebidos usam a API                                                                                                                                                                                                            | Configurações de privacidade não significam que mensagens ou notificações estejam implementadas                                                                                |
 | `/profile/:username/circles`, `/circles`                       | Sessões remotas usam a API paginada de Círculo; demonstração permanece local                                                                                                                                                                                                                                                | Preservar a derivação pelos dois seguimentos aceitos; não criar convite, aceite, recusa ou remoção de Círculo                                                                    |
 | `/social/activity`                                             | Histórico, salvos, curtidas, comentários e publicações                                                                                                                                                                                                                                                                      | Consultas do ator autenticado; limpar histórico sem apagar conteúdo original                                                                                                     |
 | `/social/suggestions`                                          | Sugestões locais                                                                                                                                                                                                                                                                                                            | Recomendações com exclusão de bloqueados, já seguidos e perfis não acessíveis                                                                                                    |
 | `/notifications`                                               | Eventos e leitura locais                                                                                                                                                                                                                                                                                                    | Destinatário no servidor, paginação, marcar lida, preferências e entrega                                                                                                         |
 | `/messages`, `/messages/:conversationId`                       | Conversas/mensagens locais                                                                                                                                                                                                                                                                                                  | Participação, criação de conversa, texto, leitura monotônica, deduplicação e stream                                                                                              |
 | `/seek`                                                        | Localização, categorias, filtros, carrosséis, salvos e mocks                                                                                                                                                                                                                                                                | Descoberta e organização por localização/categoria somente de perfis comerciais originados no Social; não criar ou administrar avaliações aqui                                   |
-| `/profile/:username` — conta comercial                         | A aba **Avaliações** lê e escreve no endpoint de Profiles em sessão real; demonstração permanece isolada no navegador. Criação, exclusão e resposta ficam nessa aba                                                                                                                                                         | A migration `profiles/0003` precisa ser aplicada ao banco de desenvolvimento para habilitar persistência remota; Seek não apresenta controles de avaliação                       |
+| `/profile/:username` — conta comercial                         | A aba **Avaliações** consome os endpoints de Profiles em sessão real; demonstração permanece isolada no navegador                                                                                                                                                                                                           | Confirmar o estado físico do domínio Profiles pela consulta de catálogo antes de afirmar persistência no banco; Seek não administra avaliações                                  |
 | `/seek/event/:id`                                              | Detalhe de demonstração; ingresso desabilitado                                                                                                                                                                                                                                                                              | Evento real com organizador, interesse persistente, estado; ingressos são extensão                                                                                               |
 | `/shop`, `/shop/item/:id`                                      | Catálogo ilustrativo, detalhe, favoritos; compra desabilitada                                                                                                                                                                                                                                                               | Catálogo real ligado ao vendedor, preço numérico, salvos; checkout fora do núcleo                                                                                                |
 | `/settings/privacy`, `/settings/blocked`                       | Sessões remotas leem e salvam privacidade pela API e usam API para lista/ações de bloqueio; demonstração mantém estado local                                                                                                                                                                                                | Preservar a regra bilateral: remover follows/pedidos, ocultar relações e não restaurar ao desbloquear; mensagens antigas retornam após desbloquear                               |
@@ -680,7 +685,7 @@ Todos os caminhos de código abaixo são relativos a `Aplicativo/front/src`, sal
 | `/settings/appearance`                                         | Escuro; tamanho 16/18/20 local                                                                                                                                                                                                                                                                                              | Persistir preferências não sensíveis; aparência não deve depender de chamada a cada render                                                                                       |
 | `/styleguide`, página inexistente                              | Apoio visual e fallback                                                                                                                                                                                                                                                                                                     | Nenhum CRUD de domínio; preservar 404 da interface sem mascarar 404 da API                                                                                                       |
 
-O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador não guarda credenciais. No desenvolvimento, Feed e Mídias têm schemas separados e `feed.posts`/`media.assets` aplicados. Publicações com fotos/vídeos enviam arquivos autenticados para armazenamento local de desenvolvimento; a leitura volta a verificar a visibilidade do post. Registro não cria sessão; só a confirmação do e-mail ativa a conta. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; sem configuração de envio, o cadastro responde `503` sem criar conta. A especificação agora define avaliações em `/v1/profiles/{username}/reviews`; não há operações de avaliação sob `/v1/seek/...`. A tabela `profiles.business_profile_reviews` ainda depende da migration `profiles/0003`, pendente de aprovação/aplicação. E2E autenticado no navegador e armazenamento de produção permanecem pendentes.
+O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`. Login, cadastro e confirmação usam a API e cookie `HttpOnly`; o navegador não guarda credenciais. Mídias de teste usam arquivos locais no desenvolvimento; consulte a query de catálogo para o estado físico do banco, sem inferir tabela aplicada a partir deste texto. Publicações com fotos/vídeos enviam arquivos autenticados e a leitura volta a verificar a visibilidade do post. Registro não cria sessão; só a confirmação do e-mail ativa a conta. O envio direto pelo Resend foi testado e o e-mail de teste foi recebido; sem configuração de envio, o cadastro responde `503` sem criar conta. A especificação define avaliações em `/v1/profiles/{username}/reviews`; não há operações de avaliação sob `/v1/seek/...`. A jornada autenticada completa ainda precisa de E2E no navegador.
 
 ### Fluxo de acesso proposto
 
@@ -688,11 +693,11 @@ O estado autenticado vem de `GET /api/v1/auth/session`, nunca de `localStorage`.
 2. A pessoa informa o código de seis dígitos recebido no e-mail. Só então o servidor confirma o endereço, ativa a conta e emite cookie de sessão.
 3. Login aceita usuário ou e-mail, mas só emite sessão para conta ativa e verificada. Conta pendente não recebe sessão nem pode consultar recursos privados.
 4. Depois de entrar pela primeira vez, interesses podem ser salvos ou pulados pelo endpoint de onboarding. A tela de onboarding não aparece em sessões já concluídas.
-5. Recuperação de senha ainda não está conectada; quando implementada, não poderá confirmar e-mail nem liberar acesso por si só.
+5. Verificação e recuperação de senha têm rotas na API. A existência dos endpoints e o teste direto do Resend não substituem a validação E2E da jornada no navegador.
 
-O proxy Vite encaminha `/api` à API local durante o desenvolvimento. As telas continuam acessíveis pelo app, mas a criação de contas reais depende do envio de e-mail.
+O proxy Vite encaminha `/api` à API local durante o desenvolvimento. O envio direto de teste pelo Resend foi recebido; a jornada completa de cadastro/verificação ainda precisa ser validada por teste E2E específico.
 
-Em sessões remotas, a interface também usa o cliente Orval para busca de contas, seguidores/seguindo, solicitações recebidas, Círculo e operações de seguir/bloquear. A tela de edição lê a conta do titular. A demonstração mantém os seus dados locais; o Feed e `contentService` continuam locais. `restSocialApi` e `restContentAdapter` não estão conectados ao aplicativo: alguns caminhos de posts/artigos existem, mas Feed paginado, comentários, curtidas, reposts, referências e busca de tags ainda não têm rotas. As operações pendentes são propostas, não funcionalidades ativas.
+Em sessões remotas, a interface usa o cliente Orval para contas, relações e perfis. Feed, leitura de publicações, comentários, curtidas, reposts, salvos, remoções e referências também usam `restSocialApi`/`restContentAdapter`; o modo de demonstração mantém o adaptador local, sem fallback silencioso após erro remoto. Os métodos e caminhos efetivamente montados estão em `endpoints.md`; `routes.generated.md` registra CSRF, rate limits e schemas do contrato. A busca de pessoas/publicações e as recomendações são fluxos distintos: cada cobertura deve ser verificada em seu próprio fluxo.
 
 ## 2. Arquivos que precisam trocar de fonte
 
@@ -786,7 +791,7 @@ DELETE /api/v1/profiles/{username}/reviews/me
 PUT /api/v1/profiles/{username}/reviews/{reviewId}/reply
 ```
 
-O GET devolve página por cursor, nota média, total, distribuição 1–5 e o ID da avaliação do visitante autenticado quando houver. POST deriva o autor da sessão e aceita apenas conta pessoal ativa/verificada; nota 1–5, comentário aparado 10–500, uma avaliação por conta/comércio e sem autoavaliação. DELETE remove a avaliação própria; PUT cria ou substitui resposta apenas pelo titular comercial (3–500 caracteres). Todas as leituras reaplicam visibilidade do perfil e bloqueios. O Seek não grava nem edita avaliações; qualquer nota nos resultados de descoberta é uma projeção de leitura. A implementação HTTP e o contrato OpenAPI existem; `profiles/0003` ainda não foi aplicada no banco de desenvolvimento.
+O GET devolve página por cursor, nota média, total, distribuição 1–5 e o ID da avaliação do visitante autenticado quando houver. POST deriva o autor da sessão e aceita apenas conta pessoal ativa/verificada; nota 1–5, comentário aparado 10–500, uma avaliação por conta/comércio e sem autoavaliação. DELETE remove a avaliação própria; PUT cria ou substitui resposta apenas pelo titular comercial (3–500 caracteres). Todas as leituras reaplicam visibilidade do perfil e bloqueios. O Seek não grava nem edita avaliações; qualquer nota nos resultados de descoberta é uma projeção de leitura. A implementação HTTP e o contrato OpenAPI existem; o estado físico do banco deve ser confirmado pela consulta de catálogo.
 
 ## 5. Matriz resumida de permissão
 
@@ -811,252 +816,197 @@ O GET devolve página por cursor, nota média, total, distribuição 1–5 e o I
 
 Fonte: [`endpoints.md`](endpoints.md).
 
-Gerado por `node docs/api/backend/generate-contracts.mjs`. OpenAPI 3.1 em `openapi.json`: **146 operações no catálogo**. IDs UUID são exemplos de formato, nunca IDs de catálogo mock.
+Este inventário é gerado a partir do grafo de routers Express realmente montado e comparado com `shared/api-spec/openapi.yaml`. `ATIVA EM CÓDIGO` significa que o método HTTP foi registrado na aplicação; não afirma que todos os fluxos foram exercitados ou que há implantação em produção.
 
-> **ATIVA** significa que o handler existe no código e que o schema necessário foi aplicado no PostgreSQL de desenvolvimento. A integração HTTP isolada da fatia de referências não foi executada porque o runner não recebeu `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE`; a limitação está registrada no roadmap. Produção não foi consultada, alterada ou publicada.
+Rotas montadas: **76**. Rotas sem contrato: **0**. Contratos sem rota montada: **0**. Divergências de CSRF: **0**.
 
-## Respostas, paginação e autenticação
-
-- GET normalmente responde `200`; login em instalação conhecida responde `200`, mas instalação desconhecida recebe desafio `202` sem sessão; troca de senha inicia com `202`; remoções sem corpo podem responder `204`.
-- Página: `items` e `nextCursor` opaco ou null. Limite 20, máximo 100. Formato não substitui o contrato existente `Page<T>`.
-- Erro: `{error:{code,message,requestId,details?,supportEmail?,retryAfterSeconds?,attemptsRemaining?,resendAvailableAt?}}`. Nunca serializar stack trace.
-- Escritas autenticadas: cookie + `X-CSRF-Token`; POST com efeito recebe `Idempotency-Key` quando indicado na especificação de arquitetura.
-- Rota marcada `ACTIVA` existe hoje. Outras são propostas e requerem implementação, migração e testes.
-
-## Health
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
+| Método | Endpoint | Acesso declarado | Entrada | Saída | Estado |
 |---|---|---|---|---|---|
-| GET | `/healthz` | Público | — | `Health` | **ATIVA** |
-| GET | `/readyz` | Público | — | `Readiness` | **ATIVA** |
+| DELETE | `/v1/auth/devices/{deviceId}` | __Host-seekalive_session + X-CSRF-Token | deviceId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/auth/devices/others` | __Host-seekalive_session + X-CSRF-Token | — | 200 (application/json: OtherDevicesRevoked) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/auth/sessions/{sessionId}` | __Host-seekalive_session + X-CSRF-Token | sessionId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/auth/sessions/others` | __Host-seekalive_session + X-CSRF-Token | — | 200 (application/json: OtherSessionsRevoked) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/profiles/{username}/reviews/me` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: BusinessProfileReviewDeleted) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/comments/{commentId}` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/media/{assetId}` | __Host-seekalive_session + X-CSRF-Token | assetId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| DELETE | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| GET | `/healthz` | Não declarado | — | 200 (application/json: HealthStatus) | ATIVA EM CÓDIGO |
+| GET | `/readyz` | Não declarado | — | 200 (application/json: ReadinessStatus) | ATIVA EM CÓDIGO |
+| GET | `/v1/accounts/{accountId}` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)) | 200 (application/json: AccountView) | ATIVA EM CÓDIGO |
+| GET | `/v1/accounts/availability` | Não declarado | username (query obrigatório; string, mín. 3, máx. 21) | 200 (application/json: AccountUsernameAvailability) | ATIVA EM CÓDIGO |
+| GET | `/v1/accounts/me` | __Host-seekalive_session | — | 200 (application/json: MyAccountResponse) | ATIVA EM CÓDIGO |
+| GET | `/v1/accounts/me/privacy` | __Host-seekalive_session | — | 200 (application/json: PrivacySettings) | ATIVA EM CÓDIGO |
+| GET | `/v1/auth/csrf` | Não declarado | — | 200 (application/json: CsrfToken) | ATIVA EM CÓDIGO |
+| GET | `/v1/auth/devices` | __Host-seekalive_session | — | 200 (application/json: TrustedDevicePage) | ATIVA EM CÓDIGO |
+| GET | `/v1/auth/session` | __Host-seekalive_session ou visitante | — | 200 (application/json: CurrentSession) | ATIVA EM CÓDIGO |
+| GET | `/v1/auth/sessions` | __Host-seekalive_session | cursor (query; string, máx. 16) | 200 (application/json: AuthSessionPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/profiles/{username}` | __Host-seekalive_session ou visitante | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: ProfileResponse) | ATIVA EM CÓDIGO |
+| GET | `/v1/profiles/{username}/reviews` | __Host-seekalive_session ou visitante | username (path obrigatório; string, mín. 3, máx. 20); limit (query; integer, min 1, max 50); cursor (query; string, máx. 256) | 200 (application/json: BusinessProfileReviewPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/accounts` | __Host-seekalive_session | q (query obrigatório; string, mín. 2, máx. 80); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/accounts/{accountId}/followers` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/accounts/{accountId}/following` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/accounts/{accountId}/posts` | __Host-seekalive_session ou visitante | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); format (query; string) | 200 (application/json: PostPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/articles/{postId}` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/blocks` | __Host-seekalive_session | — | 200 (application/json: AccountList) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/circles` | __Host-seekalive_session | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: CirclePage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/feed` | __Host-seekalive_session ou visitante | tab (query; string); q (query; string, mín. 2, máx. 120); limit (query; integer, min 1, max 50); cursor (query; string, máx. 512) | 200 (application/json: FeedPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/follow-requests` | __Host-seekalive_session | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: FollowRequestPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/media/{assetId}` | __Host-seekalive_session ou visitante | assetId (path obrigatório; string (uuid)); Range (header; string) | 200 (image/jpeg: string (binary); image/png: string (binary); image/gif: string (binary); image/webp: string (binary); image/avif: string (binary); video/mp4: string (binary); video/webm: string (binary)); 206 (sem corpo) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/posts/{postId}` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512) | 200 (application/json: CommentPage) | ATIVA EM CÓDIGO |
+| GET | `/v1/social/posts/{postId}/reference` | __Host-seekalive_session ou visitante | postId (path obrigatório; string (uuid)) | 200 (application/json: ReferencePreview) | ATIVA EM CÓDIGO |
+| PATCH | `/v1/accounts/me` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountPatch | 200 (application/json: MyAccountResponse) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/code` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountDeletionCodeRequest | 202 (application/json: AccountDeletionCodeResponse) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/confirm` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountDeletionConfirmation | 200 (application/json: AccountDeletionScheduled) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/restore/code` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: LoginRequest | 202 (application/json: AccountDeletionCodeResponse) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/deletion/restore/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: AccountRestorationConfirmation | 200 (application/json: AccountRestoredResponse) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/email/change/confirm-current` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 202 (application/json: EmailChangeNewCodeResponse) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/email/change/confirm-new` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AccountEmailChangeResult) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/email/change/request` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountEmailChangeRequest | 202 (application/json: EmailChangeCurrentCodeResponse) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/password/change/confirm` | __Host-seekalive_session + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AccountPasswordChangeResult) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/account/password/change/request` | __Host-seekalive_session + X-CSRF-Token | application/json: AccountPasswordChangeRequest | 202 (application/json: PasswordChangeCodeResponse) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/device-verification/confirm` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: AuthResult) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/device-verification/resend` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | application/json: ChallengeResendInput | 200 (application/json: DeviceVerificationResent) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/login` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: LoginRequest | 200 (application/json: AuthResult); 202 (application/json: oneOf(DeviceVerificationRequired\|AccountDeletionPendingResponse)) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/logout` | __Host-seekalive_session + X-CSRF-Token ou __Host-seekalive_pre_auth + X-CSRF-Token | — | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/password/reset/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordResetConfirm | 200 (application/json: PasswordResetComplete) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/password/reset/request` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordResetRequest | 202 (application/json: PasswordResetRequested) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/password/update` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: PasswordPolicyUpdateRequest | 202 (application/json: PasswordUpdateChallenge) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/password/update/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: ChallengeConfirmInput | 200 (application/json: PasswordUpdated) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/register` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: RegisterRequest | 202 (application/json: VerificationRequired) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/verification` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: EmailVerificationRequest | 202 (application/json: VerificationRequired) | ATIVA EM CÓDIGO |
+| POST | `/v1/auth/verification/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | application/json: EmailVerificationConfirm | 200 (application/json: EmailVerificationConfirmation) | ATIVA EM CÓDIGO |
+| POST | `/v1/onboarding/interests` | __Host-seekalive_session + X-CSRF-Token | application/json: OnboardingInterestsRequest | 200 (application/json: OnboardingCompletionResult) | ATIVA EM CÓDIGO |
+| POST | `/v1/profiles/{username}/reviews` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20); application/json: BusinessProfileReviewCreate | 201 (application/json: BusinessProfileReviewCreated) | ATIVA EM CÓDIGO |
+| POST | `/v1/social/articles` | __Host-seekalive_session + X-CSRF-Token | application/json: ArticleCreate | 201 (application/json: Post) | ATIVA EM CÓDIGO |
+| POST | `/v1/social/follow-requests/{accountId}/accept` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | ATIVA EM CÓDIGO |
+| POST | `/v1/social/follow-requests/{accountId}/decline` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| POST | `/v1/social/media` | __Host-seekalive_session + X-CSRF-Token | X-Seekalive-Media-Type (header obrigatório; string); application/octet-stream: string (binary) | 201 (application/json: MediaUpload) | ATIVA EM CÓDIGO |
+| POST | `/v1/social/posts` | __Host-seekalive_session + X-CSRF-Token | application/json: PostCreate | 201 (application/json: Post) | ATIVA EM CÓDIGO |
+| POST | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); application/json: CommentCreate | 201 (application/json: Comment) | ATIVA EM CÓDIGO |
+| POST | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| PUT | `/v1/accounts/me/privacy` | __Host-seekalive_session + X-CSRF-Token | application/json: PrivacySettingsWrite | 200 (application/json: PrivacySettings) | ATIVA EM CÓDIGO |
+| PUT | `/v1/profiles/{username}/reviews/{reviewId}/reply` | __Host-seekalive_session + X-CSRF-Token | username (path obrigatório; string, mín. 3, máx. 20); reviewId (path obrigatório; string (uuid)); application/json: BusinessProfileReviewReply | 200 (application/json: BusinessProfileReviewReplyResponse) | ATIVA EM CÓDIGO |
+| PUT | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | ATIVA EM CÓDIGO |
+| PUT | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | ATIVA EM CÓDIGO |
+| PUT | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | ATIVA EM CÓDIGO |
+| PUT | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
+| PUT | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | ATIVA EM CÓDIGO |
 
-## Auth
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/auth/session` | Público/sessão; ACL no servidor | — | `CurrentSession` | **ATIVA** |
-| GET | `/v1/auth/csrf` | Público/sessão; ACL no servidor | — | `Csrf` | **ATIVA** |
-| POST | `/v1/auth/register` | Público | `RegisterRequest` | `RegistrationPending` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/login` | Público | `LoginRequest` | AuthResult (200) / DeviceVerificationRequired (202) | **ATIVA** |
-| POST | `/v1/auth/device-verification/confirm` | Público | `ChallengeConfirmRequest` | `AuthResult` | **ATIVA** |
-| POST | `/v1/auth/device-verification/resend` | Público | `ChallengeResendRequest` | `DeviceVerificationResent` | **ATIVA** |
-| POST | `/v1/auth/password/update` | Público | `PasswordPolicyUpdateRequest` | `PasswordUpdateChallenge` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/password/update/confirm` | Público | `ChallengeConfirmRequest` | `PasswordUpdated` | **ATIVA** |
-| GET | `/v1/auth/devices` | Sessão autenticada | — | `TrustedDeviceList` | **ATIVA** |
-| DELETE | `/v1/auth/devices/others` | Sessão autenticada | — | `OtherDevicesRevoked` | **ATIVA** |
-| DELETE | `/v1/auth/devices/{deviceId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| POST | `/v1/auth/logout` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/auth/sessions` | Sessão autenticada | — | `PageSession` | **ATIVA** |
-| DELETE | `/v1/auth/sessions/others` | Sessão autenticada | — | `OtherSessionsRevoked` | **ATIVA** |
-| DELETE | `/v1/auth/sessions/{sessionId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| POST | `/v1/auth/password/reset/request` | Público | `PasswordResetRequest` | `PasswordResetRequested` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/password/reset/confirm` | Público | `PasswordResetConfirm` | `PasswordResetComplete` | **ATIVA** |
-| POST | `/v1/auth/verification` | Público/sessão; ACL no servidor | `VerificationRequest` | `Accepted` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/verification/confirm` | Público | `VerificationConfirm` | `VerificationConfirmation` | **ATIVA** |
-| POST | `/v1/auth/account/email/change/request` | Sessão autenticada | `AccountEmailChangeRequest` | `EmailChangeCurrentCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/email/change/confirm-current` | Sessão autenticada | `ChallengeConfirmInput` | `EmailChangeNewCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/email/change/confirm-new` | Sessão autenticada | `ChallengeConfirmInput` | `AccountEmailChangeResult` | **ATIVA** |
-| POST | `/v1/auth/account/password/change/request` | Sessão autenticada | `AccountPasswordChangeRequest` | `PasswordChangeCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/password/change/confirm` | Sessão autenticada | `ChallengeConfirmInput` | `AccountPasswordChangeResult` | **ATIVA** |
-| POST | `/v1/auth/account/deletion/code` | Sessão autenticada | `AccountDeletionCodeRequest` | `AccountDeletionCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/deletion/confirm` | Sessão autenticada | `AccountDeletionConfirmation` | `AccountDeletionScheduled` | **ATIVA** |
-| POST | `/v1/auth/account/deletion/restore/code` | Cookie de pré-autenticação | `LoginRequest` | `AccountDeletionCodeResponse` | **ATIVA**; assíncrona |
-| POST | `/v1/auth/account/deletion/restore/confirm` | Cookie de pré-autenticação | `AccountRestorationConfirmation` | `AccountRestoredResponse` | **ATIVA** |
-
-## Onboarding
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| POST | `/v1/onboarding/interests` | Sessão autenticada | `OnboardingCompletionRequest` | `OnboardingCompletionResult` | **ATIVA** |
-
-## Accounts
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/accounts/me` | Sessão autenticada | — | `MyAccountResponse` | **ATIVA** |
-| PATCH | `/v1/accounts/me` | Sessão autenticada | `AccountPatch` | `MyAccountResponse` | **ATIVA** |
-| GET | `/v1/accounts/availability` | Público | — | `Availability` | **ATIVA** |
-| GET | `/v1/accounts/{accountId}` | Público/sessão; ACL no servidor | — | `Account` | **ATIVA** |
-| GET | `/v1/profiles/{username}` | Público/sessão; ACL no servidor | — | `Profile` | **ATIVA** |
-| PUT | `/v1/accounts/me/preferences` | Sessão autenticada | `Preferences` | `Preferences` | **PROPOSTA** |
-| GET | `/v1/accounts/me/preferences` | Sessão autenticada | — | `Preferences` | **PROPOSTA** |
-| PUT | `/v1/accounts/me/onboarding` | Sessão autenticada | `Interests` | `Empty` | **PROPOSTA** |
-| POST | `/v1/accounts/me/export` | Sessão autenticada | `Empty` | `Accepted` | **PROPOSTA**; assíncrona |
-| GET | `/v1/accounts/me/export/{jobId}` | Sessão autenticada | — | `ExportJob` | **PROPOSTA** |
-| GET | `/v1/accounts/{accountId}/media` | Público/sessão; ACL no servidor | — | `PageMedia` | **PROPOSTA** |
-| GET | `/v1/accounts/{accountId}/business` | Público/sessão; ACL no servidor | — | `BusinessProfile` | **PROPOSTA** |
-| PUT | `/v1/accounts/me/business` | Sessão autenticada | `BusinessWrite` | `BusinessProfile` | **PROPOSTA** |
-| DELETE | `/v1/accounts/me/business` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/accounts/me/privacy` | Sessão autenticada | `PrivacyWrite` | `Privacy` | **ATIVA** |
-| GET | `/v1/accounts/me/privacy` | Sessão autenticada | — | `Privacy` | **ATIVA** |
-
-## Profiles
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/profiles/{username}/reviews` | Público/sessão; ACL no servidor | — | `BusinessProfileReviewPage` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
-| POST | `/v1/profiles/{username}/reviews` | Sessão autenticada | `BusinessProfileReviewCreate` | `BusinessProfileReviewCreated` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
-| DELETE | `/v1/profiles/{username}/reviews/me` | Sessão autenticada | — | `BusinessProfileReviewDeleted` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
-| PUT | `/v1/profiles/{username}/reviews/{reviewId}/reply` | Sessão autenticada | `BusinessProfileReviewReply` | `BusinessProfileReviewReplyResponse` | **IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE** |
-
-## Social
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/social/feed` | Sessão autenticada | — | `PagePost` | **PROPOSTA** |
-| POST | `/v1/social/posts` | Sessão autenticada | `PostCreate` | `Post` | **ATIVA** |
-| GET | `/v1/social/posts/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **ATIVA** |
-| PATCH | `/v1/social/posts/{postId}` | Sessão autenticada | `PostPatch` | `Post` | **PROPOSTA** |
-| DELETE | `/v1/social/posts/{postId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/social/articles` | Sessão autenticada | `ArticleCreate` | `Post` | **ATIVA** |
-| GET | `/v1/social/articles/{postId}` | Público/sessão; ACL no servidor | — | `Post` | **ATIVA** |
-| GET | `/v1/social/posts/{postId}/reference` | Público/sessão; ACL no servidor | — | `SocialPostReferencePreview` | **ATIVA** |
-| GET | `/v1/social/posts/{postId}/comments` | Sessão autenticada | — | `PageComment` | **PROPOSTA** |
-| POST | `/v1/social/posts/{postId}/comments` | Sessão autenticada | `CommentCreate` | `Comment` | **PROPOSTA** |
-| PATCH | `/v1/social/comments/{commentId}` | Sessão autenticada | `CommentPatch` | `Comment` | **PROPOSTA** |
-| DELETE | `/v1/social/comments/{commentId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/social/posts/{postId}/like` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/social/posts/{postId}/like` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/social/posts/{postId}/repost` | Sessão autenticada | — | `Repost` | **PROPOSTA** |
-| DELETE | `/v1/social/posts/{postId}/repost` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/social/comments/{commentId}/like` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/social/comments/{commentId}/like` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/social/posts/{postId}/share-intents` | Sessão autenticada | — | `ShareIntent` | **PROPOSTA** |
-| GET | `/v1/social/users/search` | Público/sessão; ACL no servidor | — | `PageAccount` | **PROPOSTA** |
-| GET | `/v1/social/tags/search` | Público/sessão; ACL no servidor | — | `PageTag` | **PROPOSTA** |
-| GET | `/v1/social/search` | Público/sessão; ACL no servidor | — | `SearchResults` | **PROPOSTA** |
-| GET | `/v1/social/trends` | Público/sessão; ACL no servidor | — | `PageTrend` | **PROPOSTA** |
-| GET | `/v1/references/{type}/{id}` | Público/sessão; ACL no servidor | — | `ReferencePreview` | **PROPOSTA** |
-| GET | `/v1/social/activity` | Sessão autenticada | — | `PageActivity` | **PROPOSTA** |
-| DELETE | `/v1/social/activity/history` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-
-## Relations
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/social/accounts/{accountId}/followers` | Público/sessão; ACL no servidor | — | `PageAccount` | **ATIVA** |
-| GET | `/v1/social/accounts/{accountId}/following` | Público/sessão; ACL no servidor | — | `PageAccount` | **ATIVA** |
-| PUT | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | `Empty` | `Follow` | **ATIVA** |
-| DELETE | `/v1/social/accounts/{accountId}/follow` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/social/follow-requests` | Sessão autenticada | — | `PageFollow` | **ATIVA** |
-| POST | `/v1/social/follow-requests/{accountId}/accept` | Sessão autenticada | — | `Follow` | **ATIVA** |
-| POST | `/v1/social/follow-requests/{accountId}/decline` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/social/circles` | Sessão autenticada | — | `PageCircle` | **ATIVA** |
-| GET | `/v1/social/blocks` | Sessão autenticada | — | `PageAccount` | **ATIVA** |
-| PUT | `/v1/social/blocks/{accountId}` | Sessão autenticada | `Empty` | `Empty` | **ATIVA** |
-| DELETE | `/v1/social/blocks/{accountId}` | Sessão autenticada | — | `Empty` | **ATIVA** |
-| GET | `/v1/social/mutes` | Sessão autenticada | — | `PageAccount` | **PROPOSTA** |
-| PUT | `/v1/social/mutes/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/social/mutes/{accountId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/social/posts/{postId}/saved` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/social/posts/{postId}/saved` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| GET | `/v1/social/saved` | Sessão autenticada | — | `PageSaved` | **PROPOSTA** |
-
-## Media
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| POST | `/v1/media/uploads` | Sessão autenticada | `UploadCreate` | `Upload` | **PROPOSTA** |
-| POST | `/v1/media/{mediaId}/complete` | Sessão autenticada | — | `MediaAsset` | **PROPOSTA** |
-| GET | `/v1/media/{mediaId}` | Sessão autenticada | — | `MediaAsset` | **PROPOSTA** |
-| DELETE | `/v1/media/{mediaId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| GET | `/v1/media/{mediaId}/content` | Sessão autenticada | — | bytes/SSE | **PROPOSTA** |
-
-## Seek
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/seek/cities` | Público/sessão; ACL no servidor | — | `PageCity` | **PROPOSTA** |
-| GET | `/v1/seek/cities/{cityId}` | Público/sessão; ACL no servidor | — | `City` | **PROPOSTA** |
-| GET | `/v1/seek/categories` | Público/sessão; ACL no servidor | — | `PageCategory` | **PROPOSTA** |
-| GET | `/v1/seek/discover` | Público/sessão; ACL no servidor | — | `PageDiscovery` | **PROPOSTA** |
-| GET | `/v1/seek/businesses/{accountId}` | Público/sessão; ACL no servidor | — | `BusinessProfile` | **PROPOSTA** |
-| GET | `/v1/seek/events` | Público/sessão; ACL no servidor | — | `PageEvent` | **PROPOSTA** |
-| POST | `/v1/seek/events` | Sessão autenticada | `EventCreate` | `Event` | **PROPOSTA** |
-| GET | `/v1/seek/events/{eventId}` | Público/sessão; ACL no servidor | — | `Event` | **PROPOSTA** |
-| PATCH | `/v1/seek/events/{eventId}` | Sessão autenticada | `EventPatch` | `Event` | **PROPOSTA** |
-| POST | `/v1/seek/events/{eventId}/publish` | Sessão autenticada | — | `Event` | **PROPOSTA** |
-| POST | `/v1/seek/events/{eventId}/cancel` | Sessão autenticada | — | `Event` | **PROPOSTA** |
-| DELETE | `/v1/seek/events/{eventId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/seek/events/{eventId}/interest` | Sessão autenticada | — | `EventInterest` | **PROPOSTA** |
-| DELETE | `/v1/seek/events/{eventId}/interest` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| POST | `/v1/geo/reverse` | Sessão autenticada | `GeoReverseRequest` | `GeoResolution` | **PROPOSTA** |
-
-## Shop
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/shop/items` | Público/sessão; ACL no servidor | — | `PageShopItem` | **PROPOSTA** |
-| GET | `/v1/shop/items/{itemId}` | Público/sessão; ACL no servidor | — | `ShopItem` | **PROPOSTA** |
-| GET | `/v1/shop/stores` | Público/sessão; ACL no servidor | — | `PageStore` | **PROPOSTA** |
-| GET | `/v1/shop/categories` | Público/sessão; ACL no servidor | — | `PageCategory` | **PROPOSTA** |
-| GET | `/v1/accounts/me/shop/items` | Sessão autenticada | — | `PageShopItem` | **PROPOSTA** |
-| POST | `/v1/accounts/me/shop/items` | Sessão autenticada | `ShopItemWrite` | `ShopItem` | **PROPOSTA** |
-| PATCH | `/v1/shop/items/{itemId}` | Sessão autenticada | `ShopItemWrite` | `ShopItem` | **PROPOSTA** |
-| DELETE | `/v1/shop/items/{itemId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| PUT | `/v1/shop/items/{itemId}/saved` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/shop/items/{itemId}/saved` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-
-## Messaging
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/conversations` | Sessão autenticada | — | `PageConversation` | **PROPOSTA** |
-| POST | `/v1/conversations` | Sessão autenticada | `ConversationCreate` | `Conversation` | **PROPOSTA** |
-| GET | `/v1/conversations/{conversationId}` | Sessão autenticada | — | `Conversation` | **PROPOSTA** |
-| DELETE | `/v1/conversations/{conversationId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| GET | `/v1/conversations/{conversationId}/messages` | Sessão autenticada | — | `PageMessage` | **PROPOSTA** |
-| POST | `/v1/conversations/{conversationId}/messages` | Sessão autenticada | `MessageCreate` | `Message` | **PROPOSTA** |
-| PUT | `/v1/conversations/{conversationId}/read` | Sessão autenticada | `ReadReceipt` | `ReadReceipt` | **PROPOSTA** |
-| GET | `/v1/stream` | Sessão autenticada | — | bytes/SSE | **PROPOSTA**; Server-Sent Events |
-
-## Notifications
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/notifications` | Sessão autenticada | — | `PageNotification` | **PROPOSTA** |
-| PUT | `/v1/notifications/{notificationId}/read` | Sessão autenticada | — | `Notification` | **PROPOSTA** |
-| PUT | `/v1/notifications/read-all` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-| GET | `/v1/notifications/preferences` | Sessão autenticada | — | `NotificationPreferences` | **PROPOSTA** |
-| PUT | `/v1/notifications/preferences` | Sessão autenticada | `NotificationPreferences` | `NotificationPreferences` | **PROPOSTA** |
-| POST | `/v1/notifications/push-subscriptions` | Sessão autenticada | `PushSubscription` | `Empty` | **PROPOSTA** |
-| DELETE | `/v1/notifications/push-subscriptions/{subscriptionId}` | Sessão autenticada | — | `Empty` | **PROPOSTA** |
-
-## Privacy
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| POST | `/v1/reports` | Sessão autenticada | `ReportCreate` | `ReportReceipt` | **PROPOSTA** |
-| GET | `/v1/reports/{reportId}` | Sessão autenticada | — | `ReportReceipt` | **PROPOSTA** |
-| POST | `/v1/privacy/requests` | Sessão autenticada | `PrivacyRequest` | `Accepted` | **PROPOSTA**; assíncrona |
-| GET | `/v1/privacy/requests/{requestId}` | Sessão autenticada | — | `PrivacyJob` | **PROPOSTA** |
-
-## Moderation
-
-| Método | Endpoint | Acesso | Corpo | Resposta | Estado / notas |
-|---|---|---|---|---|---|
-| GET | `/v1/moderation/reports` | Sessão autenticada | — | `PageReport` | **PROPOSTA** |
-| POST | `/v1/moderation/reports/{reportId}/actions` | Sessão autenticada | `ModerationAction` | `Report` | **PROPOSTA** |
-| GET | `/v1/moderation/audit` | Sessão autenticada | — | `PageAudit` | **PROPOSTA** |
-
-## Rotas intencionalmente não prometidas
-
-Checkout, pagamento, assinatura, pedido, entrega, reserva de mesa, agendamento confirmado, ingresso e localização por raio não aparecem como recursos prontos nesta especificação. Se aprovados, serão uma fase e contratos separados. O Shop atual desabilita compra e os eventos atuais não recebem inscrições pagas.
+O teste `pnpm --filter @workspace/scripts run test:api-route-contract` falha se houver método/caminho registrado sem operação OpenAPI, operação OpenAPI sem registro Express, registro duplicado ou diferença entre middleware CSRF e declaração `csrfToken`.
 
 ---
 
 <a id="secao-7"></a>
-## 7. Dicionário de dados
+## 7. Rotas montadas
+
+Fonte: [`routes.generated.md`](routes.generated.md).
+
+> Fonte: chamadas de registro efetivamente executadas ao importar `Aplicativo/back/src/app.ts`, interceptadas pelos métodos públicos `Express.Router`, `Router.route`, `Router.use` e `Application.use`. O inventário não consulta propriedades internas do Express. A autenticação, schemas e DTOs abaixo são declarações OpenAPI; CSRF e rate limit são extraídos dos handlers realmente registrados.
+
+Operações montadas: **76**. Divergências com OpenAPI: **0**.
+
+| Método | Caminho | Autenticação declarada | CSRF registrado | Rate limit registrado | Entrada OpenAPI | DTO/resposta OpenAPI | HTTP de resposta |
+|---|---|---|---|---|---|---|---|
+| DELETE | `/v1/auth/devices/{deviceId}` | __Host-seekalive_session + X-CSRF-Token | Sim | device-revoke: 20/900s | deviceId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 400, 401, 403, 404, 429 |
+| DELETE | `/v1/auth/devices/others` | __Host-seekalive_session + X-CSRF-Token | Sim | devices-revoke-others: 10/900s | — | 200 (application/json: OtherDevicesRevoked) | 200, 401, 403, 429 |
+| DELETE | `/v1/auth/sessions/{sessionId}` | __Host-seekalive_session + X-CSRF-Token | Sim | session-revoke: 20/900s | sessionId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 400, 401, 403, 404, 409, 429 |
+| DELETE | `/v1/auth/sessions/others` | __Host-seekalive_session + X-CSRF-Token | Sim | sessions-revoke-others: 10/900s | — | 200 (application/json: OtherSessionsRevoked) | 200, 401, 403, 429 |
+| DELETE | `/v1/profiles/{username}/reviews/me` | __Host-seekalive_session + X-CSRF-Token | Sim | business-profile-review-delete: 30/60s | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: BusinessProfileReviewDeleted) | 200, 401, 403, 404, 429 |
+| DELETE | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | Sim | Nenhum limitador de rota registrado | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 401, 403, 404 |
+| DELETE | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | Sim | Nenhum limitador de rota registrado | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 401, 403, 404 |
+| DELETE | `/v1/social/comments/{commentId}` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-comment-delete: 30/60s | commentId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 401, 403, 404, 429 |
+| DELETE | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-comment-unlike: 90/60s | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | 200, 401, 404, 429 |
+| DELETE | `/v1/social/media/{assetId}` | __Host-seekalive_session + X-CSRF-Token | Sim | social-media-delete: 30/60s | assetId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 401, 404, 429 |
+| DELETE | `/v1/social/posts/{postId}` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-delete: 30/60s | postId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 401, 403, 404, 429 |
+| DELETE | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-unbookmark: 60/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 401, 404, 429 |
+| DELETE | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-unlike: 90/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 401, 403, 404, 429 |
+| DELETE | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-unrepost: 30/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 401, 403, 404, 429 |
+| GET | `/healthz` | Não declarado | Não | Nenhum limitador de rota registrado | — | 200 (application/json: HealthStatus) | 200 |
+| GET | `/readyz` | Não declarado | Não | Nenhum limitador de rota registrado | — | 200 (application/json: ReadinessStatus) | 200, 503 |
+| GET | `/v1/accounts/{accountId}` | __Host-seekalive_session ou visitante | Não | Nenhum limitador de rota registrado | accountId (path obrigatório; string (uuid)) | 200 (application/json: AccountView) | 200, 404 |
+| GET | `/v1/accounts/availability` | Não declarado | Não | account-availability: 30/60s | username (query obrigatório; string, mín. 3, máx. 21) | 200 (application/json: AccountUsernameAvailability) | 200, 400, 429 |
+| GET | `/v1/accounts/me` | __Host-seekalive_session | Não | Nenhum limitador de rota registrado | — | 200 (application/json: MyAccountResponse) | 200, 401, 404, 500 |
+| GET | `/v1/accounts/me/privacy` | __Host-seekalive_session | Não | Nenhum limitador de rota registrado | — | 200 (application/json: PrivacySettings) | 200, 401, 404 |
+| GET | `/v1/auth/csrf` | Não declarado | Não | Nenhum limitador de rota registrado | — | 200 (application/json: CsrfToken) | 200 |
+| GET | `/v1/auth/devices` | __Host-seekalive_session | Não | devices-list: 60/900s | — | 200 (application/json: TrustedDevicePage) | 200, 401, 429 |
+| GET | `/v1/auth/session` | __Host-seekalive_session ou visitante | Não | Nenhum limitador de rota registrado | — | 200 (application/json: CurrentSession) | 200 |
+| GET | `/v1/auth/sessions` | __Host-seekalive_session | Não | sessions-list: 60/900s | cursor (query; string, máx. 16) | 200 (application/json: AuthSessionPage) | 200, 400, 401, 429 |
+| GET | `/v1/profiles/{username}` | __Host-seekalive_session ou visitante | Não | Nenhum limitador de rota registrado | username (path obrigatório; string, mín. 3, máx. 20) | 200 (application/json: ProfileResponse) | 200, 404 |
+| GET | `/v1/profiles/{username}/reviews` | __Host-seekalive_session ou visitante | Não | Nenhum limitador de rota registrado | username (path obrigatório; string, mín. 3, máx. 20); limit (query; integer, min 1, max 50); cursor (query; string, máx. 256) | 200 (application/json: BusinessProfileReviewPage) | 200, 400, 404 |
+| GET | `/v1/social/accounts` | __Host-seekalive_session | Não | social-account-search: 60/60s | q (query obrigatório; string, mín. 2, máx. 80); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | 200, 400, 401 |
+| GET | `/v1/social/accounts/{accountId}/followers` | __Host-seekalive_session ou visitante | Não | Nenhum limitador de rota registrado | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | 200, 400, 403, 404 |
+| GET | `/v1/social/accounts/{accountId}/following` | __Host-seekalive_session ou visitante | Não | Nenhum limitador de rota registrado | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: AccountPage) | 200, 400, 403, 404 |
+| GET | `/v1/social/accounts/{accountId}/posts` | __Host-seekalive_session ou visitante | Não | feed-profile-content: 120/60s | accountId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); format (query; string) | 200 (application/json: PostPage) | 200, 400, 404 |
+| GET | `/v1/social/articles/{postId}` | __Host-seekalive_session ou visitante | Não | feed-article-read: 120/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 404 |
+| GET | `/v1/social/blocks` | __Host-seekalive_session | Não | Nenhum limitador de rota registrado | — | 200 (application/json: AccountList) | 200, 401 |
+| GET | `/v1/social/circles` | __Host-seekalive_session | Não | Nenhum limitador de rota registrado | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: CirclePage) | 200, 400, 401 |
+| GET | `/v1/social/feed` | __Host-seekalive_session ou visitante | Não | feed-global-list: 120/60s | tab (query; string); q (query; string, mín. 2, máx. 120); limit (query; integer, min 1, max 50); cursor (query; string, máx. 512) | 200 (application/json: FeedPage) | 200, 400, 401, 429 |
+| GET | `/v1/social/follow-requests` | __Host-seekalive_session | Não | Nenhum limitador de rota registrado | limit (query; integer, min 1, max 100); cursor (query; string, máx. 32) | 200 (application/json: FollowRequestPage) | 200, 400, 401 |
+| GET | `/v1/social/media/{assetId}` | __Host-seekalive_session ou visitante | Não | social-media-read: 120/60s | assetId (path obrigatório; string (uuid)); Range (header; string) | 200 (image/jpeg: string (binary); image/png: string (binary); image/gif: string (binary); image/webp: string (binary); image/avif: string (binary); video/mp4: string (binary); video/webm: string (binary)); 206 (sem corpo) | 200, 206, 404, 416, 429 |
+| GET | `/v1/social/posts/{postId}` | __Host-seekalive_session ou visitante | Não | feed-post-read: 120/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 404 |
+| GET | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session | Não | feed-comments-read: 120/60s | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512) | 200 (application/json: CommentPage) | 200, 400, 401, 404 |
+| GET | `/v1/social/posts/{postId}/reference` | __Host-seekalive_session ou visitante | Não | feed-post-reference-read: 120/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: ReferencePreview) | 200, 404, 429 |
+| PATCH | `/v1/accounts/me` | __Host-seekalive_session + X-CSRF-Token | Sim | account-profile-update: 30/900s | application/json: AccountPatch | 200 (application/json: MyAccountResponse) | 200, 400, 401, 403, 409, 429 |
+| POST | `/v1/auth/account/deletion/code` | __Host-seekalive_session + X-CSRF-Token | Sim | account-deletion-code: 5/900s | application/json: AccountDeletionCodeRequest | 202 (application/json: AccountDeletionCodeResponse) | 202, 401, 403, 429, 503 |
+| POST | `/v1/auth/account/deletion/confirm` | __Host-seekalive_session + X-CSRF-Token | Sim | account-deletion-confirm: 10/900s | application/json: AccountDeletionConfirmation | 200 (application/json: AccountDeletionScheduled) | 200, 400, 401, 403, 409, 429, 503 |
+| POST | `/v1/auth/account/deletion/restore/code` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | account-restoration-code: 5/900s | application/json: LoginRequest | 202 (application/json: AccountDeletionCodeResponse) | 202, 400, 401, 409, 429, 503 |
+| POST | `/v1/auth/account/deletion/restore/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | account-restoration-confirm: 10/900s | application/json: AccountRestorationConfirmation | 200 (application/json: AccountRestoredResponse) | 200, 400, 401, 409, 429, 503 |
+| POST | `/v1/auth/account/email/change/confirm-current` | __Host-seekalive_session + X-CSRF-Token | Sim | account-email-change-current-confirm: 10/900s | application/json: ChallengeConfirmInput | 202 (application/json: EmailChangeNewCodeResponse) | 202, 400, 401, 403, 409, 423, 429, 503 |
+| POST | `/v1/auth/account/email/change/confirm-new` | __Host-seekalive_session + X-CSRF-Token | Sim | account-email-change-new-confirm: 10/900s | application/json: ChallengeConfirmInput | 200 (application/json: AccountEmailChangeResult) | 200, 400, 401, 403, 409, 423, 429 |
+| POST | `/v1/auth/account/email/change/request` | __Host-seekalive_session + X-CSRF-Token | Sim | account-email-change-request: 5/900s | application/json: AccountEmailChangeRequest | 202 (application/json: EmailChangeCurrentCodeResponse) | 202, 400, 401, 403, 409, 423, 429, 503 |
+| POST | `/v1/auth/account/password/change/confirm` | __Host-seekalive_session + X-CSRF-Token | Sim | account-password-change-confirm: 10/900s | application/json: ChallengeConfirmInput | 200 (application/json: AccountPasswordChangeResult) | 200, 400, 401, 403, 409, 423, 429 |
+| POST | `/v1/auth/account/password/change/request` | __Host-seekalive_session + X-CSRF-Token | Sim | account-password-change-request: 5/900s | application/json: AccountPasswordChangeRequest | 202 (application/json: PasswordChangeCodeResponse) | 202, 400, 401, 403, 409, 423, 429, 503 |
+| POST | `/v1/auth/device-verification/confirm` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | Sim | device-login-confirm: 10/900s | application/json: ChallengeConfirmInput | 200 (application/json: AuthResult) | 200, 400, 403, 423, 429 |
+| POST | `/v1/auth/device-verification/resend` | __Host-seekalive_pre_auth + __Host-seekalive_device + X-CSRF-Token | Sim | device-login-resend: 5/900s | application/json: ChallengeResendInput | 200 (application/json: DeviceVerificationResent) | 200, 400, 423, 429, 503 |
+| POST | `/v1/auth/login` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | login: 10/900s | application/json: LoginRequest | 200 (application/json: AuthResult); 202 (application/json: oneOf(DeviceVerificationRequired\|AccountDeletionPendingResponse)) | 200, 202, 400, 401, 403, 409, 423, 429, 503 |
+| POST | `/v1/auth/logout` | __Host-seekalive_session + X-CSRF-Token ou __Host-seekalive_pre_auth + X-CSRF-Token | Sim | Nenhum limitador de rota registrado | — | 204 (sem corpo) | 204, 403 |
+| POST | `/v1/auth/password/reset/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | password-reset-confirm: 10/900s | application/json: PasswordResetConfirm | 200 (application/json: PasswordResetComplete) | 200, 400, 409, 423, 429 |
+| POST | `/v1/auth/password/reset/request` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | password-reset-request: 5/900s | application/json: PasswordResetRequest | 202 (application/json: PasswordResetRequested) | 202, 400, 429 |
+| POST | `/v1/auth/password/update` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | password-update: 5/900s | application/json: PasswordPolicyUpdateRequest | 202 (application/json: PasswordUpdateChallenge) | 202, 400, 401, 403, 409, 423, 429, 503 |
+| POST | `/v1/auth/password/update/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | password-update-confirm: 10/900s | application/json: ChallengeConfirmInput | 200 (application/json: PasswordUpdated) | 200, 400, 409, 423, 429 |
+| POST | `/v1/auth/register` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | register: 5/900s | application/json: RegisterRequest | 202 (application/json: VerificationRequired) | 202, 400, 409, 429, 503 |
+| POST | `/v1/auth/verification` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | verify-resend: 3/900s | application/json: EmailVerificationRequest | 202 (application/json: VerificationRequired) | 202, 400, 429, 503 |
+| POST | `/v1/auth/verification/confirm` | __Host-seekalive_pre_auth + X-CSRF-Token | Sim | verify-confirm: 10/900s | application/json: EmailVerificationConfirm | 200 (application/json: EmailVerificationConfirmation) | 200, 400, 429 |
+| POST | `/v1/onboarding/interests` | __Host-seekalive_session + X-CSRF-Token | Sim | Nenhum limitador de rota registrado | application/json: OnboardingInterestsRequest | 200 (application/json: OnboardingCompletionResult) | 200, 400, 401, 403 |
+| POST | `/v1/profiles/{username}/reviews` | __Host-seekalive_session + X-CSRF-Token | Sim | business-profile-review-create: 30/60s | username (path obrigatório; string, mín. 3, máx. 20); application/json: BusinessProfileReviewCreate | 201 (application/json: BusinessProfileReviewCreated) | 201, 400, 401, 403, 404, 409, 429 |
+| POST | `/v1/social/articles` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-article-create: 10/60s | application/json: ArticleCreate | 201 (application/json: Post) | 201, 401, 403, 422, 429 |
+| POST | `/v1/social/follow-requests/{accountId}/accept` | __Host-seekalive_session + X-CSRF-Token | Sim | Nenhum limitador de rota registrado | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | 200, 401, 403, 404 |
+| POST | `/v1/social/follow-requests/{accountId}/decline` | __Host-seekalive_session + X-CSRF-Token | Sim | Nenhum limitador de rota registrado | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 401, 403 |
+| POST | `/v1/social/media` | __Host-seekalive_session + X-CSRF-Token | Sim | social-media-upload: 20/60s | X-Seekalive-Media-Type (header obrigatório; string); application/octet-stream: string (binary) | 201 (application/json: MediaUpload) | 201, 401, 413, 415, 429, 503 |
+| POST | `/v1/social/posts` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-create: 20/60s | application/json: PostCreate | 201 (application/json: Post) | 201, 401, 403, 422, 429 |
+| POST | `/v1/social/posts/{postId}/comments` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-comment-create: 10/60s | postId (path obrigatório; string (uuid)); limit (query; integer, min 1, max 100); cursor (query; string, máx. 512); application/json: CommentCreate | 201 (application/json: Comment) | 201, 401, 403, 404, 409, 422, 429 |
+| POST | `/v1/social/posts/{postId}/repost` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-repost: 30/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 401, 403, 404, 429 |
+| PUT | `/v1/accounts/me/privacy` | __Host-seekalive_session + X-CSRF-Token | Sim | Nenhum limitador de rota registrado | application/json: PrivacySettingsWrite | 200 (application/json: PrivacySettings) | 200, 400, 401, 403, 409 |
+| PUT | `/v1/profiles/{username}/reviews/{reviewId}/reply` | __Host-seekalive_session + X-CSRF-Token | Sim | business-profile-review-reply: 30/60s | username (path obrigatório; string, mín. 3, máx. 20); reviewId (path obrigatório; string (uuid)); application/json: BusinessProfileReviewReply | 200 (application/json: BusinessProfileReviewReplyResponse) | 200, 400, 401, 403, 404, 429 |
+| PUT | `/v1/social/accounts/{accountId}/follow` | __Host-seekalive_session + X-CSRF-Token | Sim | social-follow: 60/60s | accountId (path obrigatório; string (uuid)) | 200 (application/json: FollowState) | 200, 400, 401, 403, 404 |
+| PUT | `/v1/social/blocks/{accountId}` | __Host-seekalive_session + X-CSRF-Token | Sim | social-block: 30/60s | accountId (path obrigatório; string (uuid)) | 204 (sem corpo) | 204, 401, 403, 404 |
+| PUT | `/v1/social/comments/{commentId}/like` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-comment-like: 90/60s | commentId (path obrigatório; string (uuid)) | 200 (application/json: Comment) | 200, 401, 404, 429 |
+| PUT | `/v1/social/posts/{postId}/bookmark` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-bookmark: 60/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 401, 403, 404, 429 |
+| PUT | `/v1/social/posts/{postId}/like` | __Host-seekalive_session + X-CSRF-Token | Sim | feed-post-like: 90/60s | postId (path obrigatório; string (uuid)) | 200 (application/json: Post) | 200, 401, 403, 404, 429 |
+
+Este arquivo comprova o registro das rotas e documenta o contrato declarado. Não comprova a execução de cada handler, autorização em banco, persistência ou comportamento HTTP; essas evidências pertencem aos testes correspondentes.
+
+---
+
+<a id="secao-8"></a>
+## 8. Dicionário de dados
 
 Fonte: [`data-dictionary.md`](data-dictionary.md).
 
-**Registro histórico de 29/10/2026:** a leitura somente de metadados daquele dia encontrou 12 tabelas físicas e `feed.posts` ausente; a validação de `0005` foi feita em schemas temporários, sem alteração do schema principal. Esse estado foi substituído pela aplicação autorizada abaixo.
+**Registro histórico de 29/10/2026:** a leitura somente de metadados daquele dia não encontrou `feed.posts`; a validação de `0005` foi feita em schemas temporários, sem alteração do schema principal. Esse retrato não representa o estado físico atual.
 
-**Estado de desenvolvimento em 31/10/2026:** os schemas aplicados têm `accounts` (4 tabelas), `security` (4), `profiles` (5), `feed` (7) e `media` (1). `feed.posts`, `feed.post_tags`, `feed.post_references` e `media.assets` estão aplicados em tracks independentes. O código Drizzle de Profiles agora inclui a sexta tabela `business_profile_reviews`, com migration `profiles/0003` gerada, ainda não aplicada e aguardando autorização. A coluna `feed.posts.media` armazena referências tipadas para ativos; `feed.post_references` guarda vínculos de uma publicação Social a outra publicação Social. Os binários de teste são locais ao desenvolvimento. Nenhuma operação foi feita em produção.
+**Estado físico:** consulte `queries/development-database-catalog.sql` no banco de desenvolvimento. Este dicionário documenta ownership e significado lógico; não fixa contagens nem presume que uma migration esteja aplicada. A coluna `feed.posts.media` armazena referências tipadas para ativos; `feed.post_references` guarda vínculos de uma publicação Social a outra publicação Social. Os binários de teste são locais ao desenvolvimento.
 
 ## Sources and boundaries
 
-Reviewed frontend contracts in the account, profile, social, Seek, Shop, messaging and settings flows. Reviews belong to the commercial profile in Profiles, not to Seek. The API, generated contract and frontend integration are implemented; the schema migration is generated but still awaits development-database approval/application. A review requires a 1–5 rating and 10–500 character comment; the commercial reply requires 3–500 characters.
+Reviewed frontend contracts in the account, profile, social, Seek, Shop, messaging and settings flows. Reviews belong to the commercial profile in Profiles, not to Seek. The API, generated contract and frontend integration are implemented; use the development catalog query for physical schema state. A review requires a 1–5 rating and 10–500 character comment; the commercial reply requires 3–500 characters.
 
 - O mapa de ownership vigente está em `../../architecture/database-domains.md`. Ele organiza schemas lógicos no PostgreSQL compartilhado do desenvolvimento; não cria bancos físicos, credenciais ou conexões independentes. Shop está fora do escopo atual. `schema-core.sql` continua sendo uma proposta histórica e não deve ser executado como migração.
 - One `accounts` identity is personal **or** commercial. A commercial profile extends that identity; it is not a separate login/account.
@@ -1068,7 +1018,7 @@ Reviewed frontend contracts in the account, profile, social, Seek, Shop, messagi
 
 ## Conventions and DTO mapping
 
-All bare `id` columns are UUID primary keys generated by `gen_random_uuid()` (pgcrypto). Relationship tables use the explicitly listed composite keys. Foreign keys default to `NO ACTION` unless SQL specifies otherwise. `created_at`, `updated_at`, and operational timestamps are `timestamptz`; SQL defaults initialize timestamps but **do not automatically maintain `updated_at`**. The server must update it. Local opening times use `time`, exceptions use `date`; weekday 0 is Sunday. Nullable columns are optional data, not empty-string sentinels. SQL is authoritative for individual types and CHECK expressions.
+All bare `id` columns are UUID primary keys generated by `gen_random_uuid()` (pgcrypto). Relationship tables use the explicitly listed composite keys. PostgreSQL defaults a foreign key to `NO ACTION` unless the migration specifies otherwise; this describes the SQL default, not the current action of every physical foreign key. Use `docs/api/backend/queries/development-database-catalog.sql` to inspect current development-database actions. `created_at`, `updated_at`, and operational timestamps are `timestamptz`; SQL defaults initialize timestamps but **do not automatically maintain `updated_at`**. The server must update it. Local opening times use `time`, exceptions use `date`; weekday 0 is Sunday. Nullable columns are optional data, not empty-string sentinels. SQL is authoritative for individual types and CHECK expressions.
 
 ## Tabelas implementadas no Drizzle
 
@@ -1165,11 +1115,11 @@ The table below describes the broader proposed cross-domain reference model, not
 
 ### Commercial-profile reviews, Seek discovery, Shop and saves
 
-Reviews are created, listed, deleted and answered in the commercial-profile experience. Their owner is the commercial identity in Profiles; Seek does not own review operations or storage. The migration is prepared but is not yet applied to the development database.
+Reviews are created, listed, deleted and answered in the commercial-profile experience. Their owner is the commercial identity in Profiles; Seek does not own review operations or storage. The migration file exists in the repository; its physical application status must be checked with the development-database catalog query and is not inferred here.
 
 | Table / intent                                                      | Columns                                                                                                                                                                                                        | Keys / indexes / invariants                                                                                                                                                                                                                                                                                                                | Required access                                                                                                                                                                                                                           |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `profiles.business_profile_reviews` — avaliação de perfil comercial | `id`, `business_account_id`, `reviewer_account_id`, `rating`, `comment`, `business_reply`, `business_replied_at`, `created_at`                                                                                 | UUID PK; FKs para `profiles.business_profiles.account_id` e `accounts.accounts.id`, ambas cascade; unique business+reviewer; índices business+created/id e reviewer; nota 1–5; comentário aparado 10–500; resposta nula ou aparada 3–500 com timestamp consistente; proibido autoavaliação. Migration `profiles/0003`, ainda não aplicada. | Perfil público legível; avaliador deve ser conta pessoal ativa/verificada; uma avaliação por pessoa/comércio; titular comercial responde; autor pode excluir e republicar. Bloqueio e privacidade do perfil são reaplicados nas leituras. |
+| `profiles.business_profile_reviews` — avaliação de perfil comercial | `id`, `business_account_id`, `reviewer_account_id`, `rating`, `comment`, `business_reply`, `business_replied_at`, `created_at`                                                                                 | UUID PK; FKs para `profiles.business_profiles.account_id` e `accounts.accounts.id`, ambas cascade; unique business+reviewer; índices business+created/id e reviewer; nota 1–5; comentário aparado 10–500; resposta nula ou aparada 3–500 com timestamp consistente; proibido autoavaliação. Estado físico: consultar catálogo do banco de desenvolvimento. | Perfil público legível; avaliador deve ser conta pessoal ativa/verificada; uma avaliação por pessoa/comércio; titular comercial responde; autor pode excluir e republicar. Bloqueio e privacidade do perfil são reaplicados nas leituras. |
 | `seek_events` — discovery event                                     | `id`, `organizer_account_id`, `city_id`, `category_key`, `name`, `description`, `venue`, `starts_at`, `ends_at`, `timezone`, `price_minor`, `currency`, `cover_asset_id`, `status`, `created_at`, `updated_at` | Required business organizer FK, city/category/asset FKs; ordered times, nonnegative price; city/status/start and organizer indexes.                                                                                                                                                                                                        | Organizer writes; public reads published/eligible events, organizer sees drafts; server validates timezone and status transitions. Interest does not reserve a ticket.                                                                    |
 | `event_interests` — intent to attend                                | `event_id`, `account_id`, `created_at`                                                                                                                                                                         | Composite PK; reverse account index.                                                                                                                                                                                                                                                                                                       | Actor own add/remove; eligible event required; counts public, interested-user lists require privacy review.                                                                                                                               |
 | `shop_items` — product listing, not order                           | `id`, `seller_account_id`, `category_key`, `name`, `description`, `tag`, `price_minor`, `old_price_minor`, `currency`, `cover_asset_id`, `status`, `created_at`, `updated_at`                                  | Required business seller; nonnegative integer money; old price absent or >= price; seller/status and category/status indexes.                                                                                                                                                                                                              | Seller writes; public eligible listing reads; no stock, purchase, shipping or payment promises.                                                                                                                                           |
@@ -1263,29 +1213,29 @@ The larger SQL design in `schema-core.sql` remains a reference proposal and was 
 
 ---
 
-<a id="secao-8"></a>
-## 8. Serviços externos e operação
+<a id="secao-9"></a>
+## 9. Serviços externos e operação
 
 Fonte: [`external-services-and-operations.md`](external-services-and-operations.md).
 
 ## Situação da auditoria
 
-Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL gerenciado da Replit no desenvolvimento; a produção permanece separada e não foi publicada. O envio de códigos via Resend foi testado em desenvolvimento, mas o E2E completo e a configuração de produção permanecem pendentes. Não há banco PostgreSQL externo escolhido ou conectado. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
+O projeto está em desenvolvimento. Não há provedor externo de identidade, mapas/geocodificação, armazenamento de objetos, push, pagamentos ou checkout conectado. A autenticação própria usa o servidor e o PostgreSQL de desenvolvimento. O envio de códigos via Resend foi testado nesse ambiente, mas esse teste não comprova o fluxo E2E completo. Esta documentação não descreve nem presume uma configuração de produção. Não foram lidos valores de segredos, nem se deve copiar credenciais para a documentação.
 
-Além de `GET /api/healthz`, estão ativas as rotas de autenticação/onboarding, perfil/privacidade e relações sociais essenciais listadas como **ATIVA** em `endpoints.md`. As outras rotas são propostas. Os serviços abaixo são decisões/integrações a avaliar, não conexões já configuradas.
+As rotas montadas estão em `endpoints.md` e `routes.generated.md`; esses inventários não afirmam que cada fluxo foi exercitado. As demais integrações abaixo são decisões a avaliar, não conexões já configuradas.
 
 ## Serviços candidatos e documentação oficial
 
 | Necessidade | Opção / situação | Referência oficial |
 |---|---|---|
-| Banco relacional | PostgreSQL gerenciado da Replit com Drizzle. No desenvolvimento, 12 schemas lógicos estão preparados; 12 tabelas estão distribuídas em `accounts`, `security`, `profiles` e `seek`. Produção é separada e continua sem publicação. | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
+| Banco relacional | PostgreSQL e Drizzle no desenvolvimento. Consulte [a query somente leitura do catálogo](queries/development-database-catalog.sql) para tabelas, views, índices, constraints e ações referenciais; este texto não fixa contagens. | [Replit SQL Database](https://docs.replit.com/features/data-and-storage/sql-database) |
 | Fotos e vídeos | Object Storage é a opção candidata para uploads persistentes; usar URLs assinadas e ACL, nunca `blob:` como URL de backend | [Replit Object Storage](https://docs.replit.com/features/data-and-storage/object-storage) |
 | Autenticação | API própria, sem Clerk/OIDC. Resend foi testado no desenvolvimento; falta E2E completo e configuração própria para produção | Confirmar remetente/domínio e testar o fluxo completo antes de abrir cadastro real |
 | Cidades brasileiras | O catálogo local contém 5.571 municípios; origem oficial do IBGE abaixo. Versionar/importar em migration ou seed determinístico, sem consulta a cada render | [API de localidades do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado&orderBy=nome) |
 | Mapas/geocodificação | Nenhum fornecedor escolhido. A interface pode selecionar cidade manualmente. GPS só após consentimento; resolver cidade aproximada sem persistir coordenadas | Decidir provedor e termos antes de habilitar o endpoint proposto |
 | E-mail e notificações | Resend envia códigos no desenvolvimento; push e demais notificações não estão conectados. Produção requer domínio, credenciais e políticas próprios, mais outbox/retry duráveis | Proposta em `architecture-and-security.md` |
 | Pagamentos / Shop | Não há checkout real. Estoque, pedido, pagamento, entrega e reembolso estão fora do escopo do catálogo atual | Decisão comercial e integração financeira ficam para projeto próprio |
-| Deploy e secrets | Usar Secrets para valores sensíveis e deployments do Replit para publicação; não registrar valores em arquivos | [Secrets](https://docs.replit.com/core-concepts/project-editor/app-setup/secrets) · [Deployments](https://docs.replit.com/learn/projects-and-artifacts/replit-deployments) |
+| Deploy e secrets | A publicação não faz parte desta etapa de desenvolvimento. Valores sensíveis devem ficar fora do código e dos documentos | [Secrets](https://docs.replit.com/core-concepts/project-editor/app-setup/secrets) · [Deployments](https://docs.replit.com/learn/projects-and-artifacts/replit-deployments) |
 
 ## Catálogo municipal
 
@@ -1314,25 +1264,25 @@ Segredos e bancos de desenvolvimento/produção devem permanecer separados. Não
 - Medir latência/erros por rota, filas de uploads, falhas de e-mail/push e atrasos de outbox; alertar sem incluir conteúdo do usuário.
 - Retentar tarefas externas com backoff e chave de idempotência; mensagens irrecuperáveis vão para fila de falhas monitorada.
 - Ter backup/retention e teste de restauração do banco antes de habilitar dados reais; planejar ciclo de vida/exclusão de mídia separadamente.
-- Antes de publicar, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente certo, schema promovido pelo fluxo Replit Publish e health/readiness. Não fazer lançamento público até o sistema completo ser aprovado.
+- Antes de qualquer futura publicação, conferir origem, cookies/CSRF, serviço de e-mail, variáveis do ambiente e readiness. Isso é orientação futura, não uma declaração de que o projeto esteja publicado.
 
 Mais referências de plataforma: [Storage e bancos no Replit](https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases) e [Troubleshooting](https://docs.replit.com/build/troubleshooting).
 
 ---
 
-<a id="secao-9"></a>
-## 9. Implementação e testes
+<a id="secao-10"></a>
+## 10. Implementação e testes
 
 Fonte: [`implementation-and-tests.md`](implementation-and-tests.md).
 
-Este documento registra a implementação existente e organiza as próximas fatias do backend. O PostgreSQL gerenciado da Replit é usado apenas no desenvolvimento atual; nenhum provedor ou instância de produção foi escolhido, configurado ou publicado. Os schemas lógicos são separados por domínio. No banco de desenvolvimento aplicado em 31/10/2026, Accounts tem 4 tabelas, Security 4, Profiles 5, Feed 7 e Media 1. O código Drizzle de Profiles tem agora uma sexta tabela planejada, `business_profile_reviews`; sua migration 0003 está gerada, mas não aplicada. Isso não é lançamento.
+Este documento registra etapas de implementação e testes do ambiente de desenvolvimento. As contagens e a presença física de tabelas não são fixadas aqui: use `queries/development-database-catalog.sql` contra o banco de desenvolvimento. Schemas lógicos e trilhas de migration são organizados por domínio. Este arquivo não declara estado de produção.
 
-**Fatia atual — avaliações de perfil comercial:** contrato OpenAPI, rotas de Profiles, persistência Drizzle/repositório, regras de acesso e interface do perfil foram implementados. O Seek deixou de oferecer criação/resposta de avaliações; sua eventual nota é somente uma projeção de leitura derivada. O banco de desenvolvimento ainda não possui a nova tabela, pois a migration `profiles/0003` aguarda autorização de aplicação. Não há alteração em produção.
+**Avaliações de perfil comercial:** contrato, rotas e lógica pertencem a Profiles; Seek não cria nem responde avaliações e pode consumir somente projeções autorizadas. O estado atual do schema físico precisa ser verificado pela consulta de catálogo, não inferido deste registro.
 
 ## Antes de implementar
 
 1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail, recuperação, troca de senha confirmada por e-mail, gestão de sessões e instalações confiáveis. Conta só recebe sessão após e-mail confirmado e política de senha vigente. Uma instalação sem token ativo recebe código por e-mail antes da sessão; IP não é identidade do dispositivo. Troca/reset de senha revoga todas as sessões e instalações e exige novo login/código. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
-2. A base PostgreSQL de desenvolvimento está ativa. Definir e testar backup, retenção e restauração antes de lançar; a base de produção permanece separada e recebe schema pelo fluxo Publish somente quando o sistema estiver pronto.
+2. A base PostgreSQL documentada nesta etapa é a de desenvolvimento. Backup, retenção e restauração são critérios para uma futura operação real; esta etapa não configura nem presume produção.
 3. Para testes de desenvolvimento, fotos/vídeos usam arquivo local com limites e assinatura validados. Antes de lançamento, decidir armazenamento permanente, processamento, limites operacionais e retenção de produção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.
 5. Revisar `schema-core.sql`, constraints, migrações, termos de privacidade e matriz de autorização.
@@ -1342,7 +1292,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 ### Fase 1 — Infraestrutura segura e identidade (núcleo implementado)
 
-- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política, onboarding, Feed e upload local de mídia estão implementados em fatias. Em 30/10/2026, as trilhas Feed e Mídias foram aplicadas no banco de desenvolvimento e verificadas; `feed.posts` e `media.assets` existem. Os binários são mantidos localmente apenas em desenvolvimento. Produção não foi escolhida, consultada, alterada ou publicada.
+- Registro histórico de 30/10/2026: trilhas Feed e Mídias foram aplicadas no banco de desenvolvimento e seus objetos foram verificados naquela data. Para o estado físico atual, consulte `queries/development-database-catalog.sql`. Os binários são mantidos localmente apenas em desenvolvimento.
 - O teste direto do Resend foi recebido em desenvolvimento, mas a suíte de API usa e-mail em memória; o fluxo E2E de cadastro via Resend deve ser validado separadamente. Produção não é presumida nem habilitada.
 - A política definida é 8–128 caracteres, com uma maiúscula, minúscula, número e caractere especial; o hash usa Argon2id. A recuperação por código de e-mail está implementada: somente contas ativas e verificadas são elegíveis; resposta anti-enumeração; HMAC-SHA256; expiração em 10 minutos; cinco tentativas; uso único; limites de IP e conta; redefinição, consumo do desafio e revogação de sessões em transação.
 - A recuperação não cria sessão após a troca. A entrega é iniciada depois da resposta HTTP e não tem outbox persistente; em falha de envio o código é invalidado, e a pessoa pode solicitar outro após o intervalo de segurança. O envio Resend foi testado em desenvolvimento, mas produção permanece desativada até configuração própria.
@@ -1355,7 +1305,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 - Perfil básico, privacidade, seguir, pedidos de perfis privados, Círculo derivado e bloquear/desbloquear já têm endpoints e tabelas próprias. O frontend ainda mantém vários desses controles no estado local da demonstração.
 - Endpoints ativos de conta: `GET/PATCH /v1/accounts/me`, `GET /v1/accounts/availability`, `GET /v1/accounts/{accountId}`, `GET /v1/profiles/{username}` e `GET/PUT /v1/accounts/me/privacy`. Auth implementa `POST /v1/auth/account/email/change/request`, `/v1/auth/account/email/change/confirm-current`, `/v1/auth/account/email/change/confirm-new`, `/v1/auth/account/password/change/request`, `/v1/auth/account/password/change/confirm`, `/v1/auth/account/deletion/code`, `/v1/auth/account/deletion/confirm`, `/v1/auth/account/deletion/restore/code` e `/v1/auth/account/deletion/restore/confirm`. Social implementa listas de seguidores/seguindo, seguir/deixar de seguir, pedidos privados, Círculos e bloqueios.
 - A edição de dados da conta usa uma única identidade Social e diferencia o formulário por tipo: conta pessoal (nome e sobrenome) e conta comercial (nome comercial e endereço comercial completo). A idade é coletada somente no cadastro, mantida no servidor para a regra de 18+ e nunca retornada ao cliente após a criação; não aparece nem em Configurações. E-mail verificado é retornado somente no DTO owner-only. A edição de endereço e conta é atômica; não foi necessária migração de schema.
-- O endpoint de perfil público compõe a identidade canônica da conta com os dados comerciais persistidos, respeitando privacidade e bloqueios. Avaliações e respostas pertencem a Profiles e já têm contrato, repositório, aplicação e interface em código; a tabela depende da migration `profiles/0003`. Horários, serviços, galeria real e integração de descoberta do Seek ainda não estão implementados.
+- O endpoint de perfil público compõe a identidade canônica da conta com os dados comerciais, respeitando privacidade e bloqueios. Avaliações e respostas pertencem a Profiles, não a Seek. O estado do banco deve ser verificado pela query de catálogo. Horários, serviços, galeria real e integração de descoberta do Seek ainda não estão completos.
 - Regras: Círculo só existe com dois seguimentos aceitos em sentidos opostos; pedido pendente não dá acesso; após aprovação, o seguidor pode ver conteúdo público do perfil privado; conteúdo do Círculo continua exigindo mutualidade; bloqueio remove follows/pedidos em ambas as direções; só o iniciador remove o próprio bloqueio.
 - Mensagens antigas ainda não podem ser ocultadas/restauradas pela API, pois o domínio de mensagens não foi implementado. Posts e outras leituras também precisarão aplicar a autorização quando entrarem no backend.
 
@@ -1412,7 +1362,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL gerenciado da Replit é o banco ativo de desenvolvimento; hospedagem e banco de produção não foram escolhidos nem configurados. Feed e Mídias possuem migrations e ledgers independentes; as migrations aplicadas no desenvolvimento criaram/ajustaram `feed.posts` e `media.assets`. A consulta posterior confirmou os objetos e os registros dos ledgers. `generate` cria SQL versionado sem conexão. Não executar alterações de schema sem revisar o diff, impacto e recuperação, confirmar explicitamente o ambiente e obter autorização específica; não sobrescrever `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Nenhuma operação foi feita em produção.
+O PostgreSQL gerenciado da Replit é usado no desenvolvimento; Feed e Mídias possuem migrations e ledgers independentes. Consulte `queries/development-database-catalog.sql` para confirmar o catálogo físico atual. `generate` cria SQL versionado sem conexão. Esta documentação não declara estado de produção.
 
 #### Seleção de conexão
 
@@ -1443,4 +1393,4 @@ Não execute em produção, não remova nem sobrescreva marcadores válidos para
 
 ## Estado inicial do contrato
 
-O gerador (`node docs/api/backend/generate-contracts.mjs`) escreve `openapi.json` e `endpoints.md`, marcando rotas ativas e propostas. A conexão do frontend deve ser incremental; não remover o modo de demonstração de desenvolvimento nem relaxar a regra de e-mail confirmado.
+`shared/api-spec/openapi.yaml` é o contrato HTTP. `pnpm --filter @workspace/scripts run docs:api-routes` gera `endpoints.md` e `routes.generated.md` a partir do inventário Express e desse contrato; o teste `test:api-route-contract` falha diante de diferenças de método/caminho ou declaração CSRF. `generate-contracts.mjs` mantém apenas o catálogo de planejamento não normativo em `docs/roadmap/`.

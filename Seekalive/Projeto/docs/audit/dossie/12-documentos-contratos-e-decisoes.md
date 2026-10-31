@@ -13,9 +13,9 @@ Confronto dos documentos de arquitetura, módulo, API, readiness e auditorias hi
 **Veredito:** CONFIRMADO  
 **Prioridade:** Informativa
 
-**Evidência:** `docs/api/backend/README.md:13,18` define `shared/api-spec/openapi.yaml` como fonte dos contratos ativos e declara que `endpoints.md`/`openapi.json` incluem propostas. O bloco 02 confirmou essa distinção na configuração Orval e comparou os handlers com as rotas.
+**Estado atualizado:** `shared/api-spec/openapi.yaml` é o contrato HTTP; `endpoints.md` e `routes.generated.md` são gerados das rotas montadas. O catálogo de planejamento não normativo está em `docs/roadmap/seekalive-operation-catalog.*`.
 
-**Trecho:** `shared/api-spec/openapi.yaml` é “a fonte de verdade dos contratos ativos”; `docs/api/backend/openapi.json` é “catálogo separado de referência/propostas”.
+**Regra vigente:** `shared/api-spec/openapi.yaml` é o contrato HTTP; o catálogo de roadmap não é fonte de rotas ativas.
 
 ### A2-002 — A propriedade das avaliações comerciais está contraditória entre documentos
 

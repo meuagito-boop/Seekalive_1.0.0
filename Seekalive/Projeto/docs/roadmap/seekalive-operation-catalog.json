@@ -6453,7 +6453,7 @@
           "profiles"
         ],
         "summary": "Listar avaliações do perfil comercial e seu resumo",
-        "description": "Handler implementado em código; a migration Profiles 0003 ainda não foi aplicada e o fluxo HTTP não foi validado. Avaliações pertencem ao perfil comercial do Social. A resposta contém a página, a distribuição de notas e o identificador da avaliação do visitante autenticado, quando houver. A leitura respeita a visibilidade do perfil e bloqueios; Seek pode consumir somente o agregado autorizado.",
+        "description": "Handler implementado em código. Avaliações pertencem ao perfil comercial em Profiles; Seek pode consumir somente o agregado autorizado. O inventário confirma o registro da rota, não sua persistência física nem execução ponta a ponta.",
         "parameters": [
           {
             "name": "username",

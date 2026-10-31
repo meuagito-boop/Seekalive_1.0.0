@@ -1,13 +1,13 @@
 # Plano de implementação e testes
 
-Este documento registra a implementação existente e organiza as próximas fatias do backend. O PostgreSQL gerenciado da Replit é usado apenas no desenvolvimento atual; nenhum provedor ou instância de produção foi escolhido, configurado ou publicado. Os schemas lógicos são separados por domínio. No banco de desenvolvimento aplicado em 31/10/2026, Accounts tem 4 tabelas, Security 4, Profiles 5, Feed 7 e Media 1. O código Drizzle de Profiles tem agora uma sexta tabela planejada, `business_profile_reviews`; sua migration 0003 está gerada, mas não aplicada. Isso não é lançamento.
+Este documento registra etapas de implementação e testes do ambiente de desenvolvimento. As contagens e a presença física de tabelas não são fixadas aqui: use `queries/development-database-catalog.sql` contra o banco de desenvolvimento. Schemas lógicos e trilhas de migration são organizados por domínio. Este arquivo não declara estado de produção.
 
-**Fatia atual — avaliações de perfil comercial:** contrato OpenAPI, rotas de Profiles, persistência Drizzle/repositório, regras de acesso e interface do perfil foram implementados. O Seek deixou de oferecer criação/resposta de avaliações; sua eventual nota é somente uma projeção de leitura derivada. O banco de desenvolvimento ainda não possui a nova tabela, pois a migration `profiles/0003` aguarda autorização de aplicação. Não há alteração em produção.
+**Avaliações de perfil comercial:** contrato, rotas e lógica pertencem a Profiles; Seek não cria nem responde avaliações e pode consumir somente projeções autorizadas. O estado atual do schema físico precisa ser verificado pela consulta de catálogo, não inferido deste registro.
 
 ## Antes de implementar
 
 1. Autenticação própria já tem handlers para sessão, CSRF, cadastro/login, confirmação de e-mail, recuperação, troca de senha confirmada por e-mail, gestão de sessões e instalações confiáveis. Conta só recebe sessão após e-mail confirmado e política de senha vigente. Uma instalação sem token ativo recebe código por e-mail antes da sessão; IP não é identidade do dispositivo. Troca/reset de senha revoga todas as sessões e instalações e exige novo login/código. O tempo de sessão atual é configurável por `SESSION_TTL_SECONDS` (padrão de 7 dias).
-2. A base PostgreSQL de desenvolvimento está ativa. Definir e testar backup, retenção e restauração antes de lançar; a base de produção permanece separada e recebe schema pelo fluxo Publish somente quando o sistema estiver pronto.
+2. A base PostgreSQL documentada nesta etapa é a de desenvolvimento. Backup, retenção e restauração são critérios para uma futura operação real; esta etapa não configura nem presume produção.
 3. Para testes de desenvolvimento, fotos/vídeos usam arquivo local com limites e assinatura validados. Antes de lançamento, decidir armazenamento permanente, processamento, limites operacionais e retenção de produção.
 4. Confirmar se geocodificação será habilitada; GPS nunca obrigatório para busca manual.
 5. Revisar `schema-core.sql`, constraints, migrações, termos de privacidade e matriz de autorização.
@@ -17,7 +17,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 ### Fase 1 — Infraestrutura segura e identidade (núcleo implementado)
 
-- PostgreSQL/Drizzle, sessão segura, CSRF, cadastro/login/verificação, atualização de política, onboarding, Feed e upload local de mídia estão implementados em fatias. Em 30/10/2026, as trilhas Feed e Mídias foram aplicadas no banco de desenvolvimento e verificadas; `feed.posts` e `media.assets` existem. Os binários são mantidos localmente apenas em desenvolvimento. Produção não foi escolhida, consultada, alterada ou publicada.
+- Registro histórico de 30/10/2026: trilhas Feed e Mídias foram aplicadas no banco de desenvolvimento e seus objetos foram verificados naquela data. Para o estado físico atual, consulte `queries/development-database-catalog.sql`. Os binários são mantidos localmente apenas em desenvolvimento.
 - O teste direto do Resend foi recebido em desenvolvimento, mas a suíte de API usa e-mail em memória; o fluxo E2E de cadastro via Resend deve ser validado separadamente. Produção não é presumida nem habilitada.
 - A política definida é 8–128 caracteres, com uma maiúscula, minúscula, número e caractere especial; o hash usa Argon2id. A recuperação por código de e-mail está implementada: somente contas ativas e verificadas são elegíveis; resposta anti-enumeração; HMAC-SHA256; expiração em 10 minutos; cinco tentativas; uso único; limites de IP e conta; redefinição, consumo do desafio e revogação de sessões em transação.
 - A recuperação não cria sessão após a troca. A entrega é iniciada depois da resposta HTTP e não tem outbox persistente; em falha de envio o código é invalidado, e a pessoa pode solicitar outro após o intervalo de segurança. O envio Resend foi testado em desenvolvimento, mas produção permanece desativada até configuração própria.
@@ -30,7 +30,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 - Perfil básico, privacidade, seguir, pedidos de perfis privados, Círculo derivado e bloquear/desbloquear já têm endpoints e tabelas próprias. O frontend ainda mantém vários desses controles no estado local da demonstração.
 - Endpoints ativos de conta: `GET/PATCH /v1/accounts/me`, `GET /v1/accounts/availability`, `GET /v1/accounts/{accountId}`, `GET /v1/profiles/{username}` e `GET/PUT /v1/accounts/me/privacy`. Auth implementa `POST /v1/auth/account/email/change/request`, `/v1/auth/account/email/change/confirm-current`, `/v1/auth/account/email/change/confirm-new`, `/v1/auth/account/password/change/request`, `/v1/auth/account/password/change/confirm`, `/v1/auth/account/deletion/code`, `/v1/auth/account/deletion/confirm`, `/v1/auth/account/deletion/restore/code` e `/v1/auth/account/deletion/restore/confirm`. Social implementa listas de seguidores/seguindo, seguir/deixar de seguir, pedidos privados, Círculos e bloqueios.
 - A edição de dados da conta usa uma única identidade Social e diferencia o formulário por tipo: conta pessoal (nome e sobrenome) e conta comercial (nome comercial e endereço comercial completo). A idade é coletada somente no cadastro, mantida no servidor para a regra de 18+ e nunca retornada ao cliente após a criação; não aparece nem em Configurações. E-mail verificado é retornado somente no DTO owner-only. A edição de endereço e conta é atômica; não foi necessária migração de schema.
-- O endpoint de perfil público compõe a identidade canônica da conta com os dados comerciais persistidos, respeitando privacidade e bloqueios. Avaliações e respostas pertencem a Profiles e já têm contrato, repositório, aplicação e interface em código; a tabela depende da migration `profiles/0003`. Horários, serviços, galeria real e integração de descoberta do Seek ainda não estão implementados.
+- O endpoint de perfil público compõe a identidade canônica da conta com os dados comerciais, respeitando privacidade e bloqueios. Avaliações e respostas pertencem a Profiles, não a Seek. O estado do banco deve ser verificado pela query de catálogo. Horários, serviços, galeria real e integração de descoberta do Seek ainda não estão completos.
 - Regras: Círculo só existe com dois seguimentos aceitos em sentidos opostos; pedido pendente não dá acesso; após aprovação, o seguidor pode ver conteúdo público do perfil privado; conteúdo do Círculo continua exigindo mutualidade; bloqueio remove follows/pedidos em ambas as direções; só o iniciador remove o próprio bloqueio.
 - Mensagens antigas ainda não podem ser ocultadas/restauradas pela API, pois o domínio de mensagens não foi implementado. Posts e outras leituras também precisarão aplicar a autorização quando entrarem no backend.
 
@@ -87,7 +87,7 @@ Este documento registra a implementação existente e organiza as próximas fati
 
 ### Fluxo de schema neste projeto
 
-O PostgreSQL gerenciado da Replit é o banco ativo de desenvolvimento; hospedagem e banco de produção não foram escolhidos nem configurados. Feed e Mídias possuem migrations e ledgers independentes; as migrations aplicadas no desenvolvimento criaram/ajustaram `feed.posts` e `media.assets`. A consulta posterior confirmou os objetos e os registros dos ledgers. `generate` cria SQL versionado sem conexão. Não executar alterações de schema sem revisar o diff, impacto e recuperação, confirmar explicitamente o ambiente e obter autorização específica; não sobrescrever `DATABASE_URL`, não executar DDL no startup e não usar `push-force`. Nenhuma operação foi feita em produção.
+O PostgreSQL gerenciado da Replit é usado no desenvolvimento; Feed e Mídias possuem migrations e ledgers independentes. Consulte `queries/development-database-catalog.sql` para confirmar o catálogo físico atual. `generate` cria SQL versionado sem conexão. Esta documentação não declara estado de produção.
 
 #### Seleção de conexão
 
@@ -118,4 +118,4 @@ Não execute em produção, não remova nem sobrescreva marcadores válidos para
 
 ## Estado inicial do contrato
 
-O gerador (`node docs/api/backend/generate-contracts.mjs`) escreve `openapi.json` e `endpoints.md`, marcando rotas ativas e propostas. A conexão do frontend deve ser incremental; não remover o modo de demonstração de desenvolvimento nem relaxar a regra de e-mail confirmado.
+`shared/api-spec/openapi.yaml` é o contrato HTTP. `pnpm --filter @workspace/scripts run docs:api-routes` gera `endpoints.md` e `routes.generated.md` a partir do inventário Express e desse contrato; o teste `test:api-route-contract` falha diante de diferenças de método/caminho ou declaração CSRF. `generate-contracts.mjs` mantém apenas o catálogo de planejamento não normativo em `docs/roadmap/`.

@@ -9,6 +9,9 @@ import type { FeedItem } from './feedItem';
 
 export interface FeedPage {
   items: FeedItem[];
-  /** @nullable */
+  /**
+     * @maxLength 512
+     * @nullable
+     */
   nextCursor: string | null;
 }

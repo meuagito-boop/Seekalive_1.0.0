@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CompleteOnboardingInterestsBody } from "./generated/api";
 import { usernameSchema } from "./username";
 
 export const PASSWORD_POLICY_VERSION = 1;
@@ -191,10 +192,19 @@ export const challengeResendSchema = z.object({
   challengeId: z.string().uuid(),
 });
 
-export const onboardingCompletionSchema = z
-  .object({
-    interests: z.array(z.string().trim().min(1).max(80)).max(100),
-    skipped: z.boolean(),
+const generatedInterestsSchema =
+  CompleteOnboardingInterestsBody.shape.interests;
+
+export const onboardingCompletionSchema = CompleteOnboardingInterestsBody
+  .extend({
+    interests: z
+      .array(
+        z
+          .string()
+          .trim()
+          .pipe(generatedInterestsSchema.element),
+      )
+      .pipe(generatedInterestsSchema),
   })
   .superRefine((value, context) => {
     if (value.skipped && value.interests.length > 0) {
