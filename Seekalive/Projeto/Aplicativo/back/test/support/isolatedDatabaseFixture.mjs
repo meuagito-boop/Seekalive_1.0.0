@@ -181,16 +181,23 @@ export async function setupIsolatedDatabaseFixture({
       "Initializing the isolated schema changed public objects.",
     );
   } catch (error) {
+    const setupErrors = [error];
     if (schemaCreated) {
       try {
         await pool.query(
           `DROP SCHEMA ${quoteIsolatedSchema(schemaName)} CASCADE`,
         );
-      } catch {
-        throw new Error(
-          "Isolated database setup failed and automatic schema cleanup also failed.",
-        );
+        schemaCreated = false;
+      } catch (cleanupError) {
+        setupErrors.push(cleanupError);
       }
+    }
+    if (setupErrors.length > 1) {
+      throw new AggregateError(
+        setupErrors,
+        "Isolated database setup failed and automatic schema cleanup also failed.",
+        { cause: error },
+      );
     }
     throw error;
   }
@@ -200,6 +207,8 @@ export async function setupIsolatedDatabaseFixture({
     async cleanup() {
       if (cleanupPromise) return cleanupPromise;
       cleanupPromise = (async () => {
+        const cleanupErrors = [];
+        let result;
         try {
           await pool.query(
             `DROP SCHEMA ${quoteIsolatedSchema(schemaName)} CASCADE`,
@@ -216,10 +225,23 @@ export async function setupIsolatedDatabaseFixture({
             (await publicSchemaFingerprint(pool)) === publicSchemaBefore;
           assert.equal(schemaRemoved, true);
           assert.equal(publicSchemaUnchanged, true);
-          return { schemaRemoved, publicSchemaUnchanged };
-        } finally {
-          await pool.end();
+          result = { schemaRemoved, publicSchemaUnchanged };
+        } catch (error) {
+          cleanupErrors.push(error);
         }
+        try {
+          await pool.end();
+        } catch (error) {
+          cleanupErrors.push(error);
+        }
+        if (cleanupErrors.length === 1) throw cleanupErrors[0];
+        if (cleanupErrors.length > 1) {
+          throw new AggregateError(
+            cleanupErrors,
+            "Isolated schema cleanup and database connection shutdown failed.",
+          );
+        }
+        return result;
       })();
       return cleanupPromise;
     },

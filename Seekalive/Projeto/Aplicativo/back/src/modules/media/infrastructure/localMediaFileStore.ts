@@ -38,6 +38,19 @@ const defaultStorageRoot = path.join(
   "social-media",
 );
 
+function isExplicitIsolatedTestRun(): boolean {
+  return (
+    process.env.NODE_ENV === "test" &&
+    !process.env.REPLIT_DEPLOYMENT?.trim() &&
+    process.env.SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS === "1" &&
+    process.env.SEEKALIVE_DATABASE_TARGET === "replit" &&
+    process.env.SEEKALIVE_DB_MIGRATION_TARGET === "replit" &&
+    /^seekalive_test_[0-9a-f]{32}$/i.test(
+      process.env.SEEKALIVE_DB_SCHEMA ?? "",
+    )
+  );
+}
+
 function safePath(root: string, storageKey: string): string {
   if (!storageKeyPattern.test(storageKey)) {
     throw new Error("Invalid local media storage key.");
@@ -46,11 +59,7 @@ function safePath(root: string, storageKey: string): string {
 }
 
 async function removeIfPresent(filePath: string): Promise<void> {
-  try {
-    await rm(filePath, { force: true });
-  } catch {
-    // Cleanup is best-effort; the original storage failure is more useful.
-  }
+  await rm(filePath, { force: true });
 }
 
 export function createLocalMediaFileStore(
@@ -58,7 +67,10 @@ export function createLocalMediaFileStore(
 ): MediaFileStore {
   return {
     async writeUpload(source, declaredType) {
-      if (process.env.NODE_ENV !== "development") {
+      if (
+        process.env.NODE_ENV !== "development" &&
+        !isExplicitIsolatedTestRun()
+      ) {
         throw new Error("Local media uploads are enabled only in development.");
       }
 
@@ -112,8 +124,21 @@ export function createLocalMediaFileStore(
           sizeBytes,
         };
       } catch (error) {
-        await removeIfPresent(temporaryPath);
-        await removeIfPresent(finalPath);
+        const cleanupErrors: unknown[] = [];
+        for (const filePath of [temporaryPath, finalPath]) {
+          try {
+            await removeIfPresent(filePath);
+          } catch (cleanupError) {
+            cleanupErrors.push(cleanupError);
+          }
+        }
+        if (cleanupErrors.length > 0) {
+          throw new AggregateError(
+            [error, ...cleanupErrors],
+            "Media upload failed and one or more partial files could not be removed.",
+            { cause: error },
+          );
+        }
         throw error;
       }
     },

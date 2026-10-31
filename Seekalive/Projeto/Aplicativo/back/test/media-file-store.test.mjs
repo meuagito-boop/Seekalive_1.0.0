@@ -12,12 +12,24 @@ import {
 import { createAccountMediaPurger } from "../src/modules/media/composition/accountMediaPurge.ts";
 import { createLocalMediaFileStore } from "../src/modules/media/infrastructure/localMediaFileStore.ts";
 
-const originalNodeEnv = process.env.NODE_ENV;
+const guardedEnvironmentKeys = [
+  "NODE_ENV",
+  "REPLIT_DEPLOYMENT",
+  "SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS",
+  "SEEKALIVE_DATABASE_TARGET",
+  "SEEKALIVE_DB_MIGRATION_TARGET",
+  "SEEKALIVE_DB_SCHEMA",
+];
+const originalEnvironment = new Map(
+  guardedEnvironmentKeys.map((key) => [key, process.env[key]]),
+);
 const temporaryRoots = [];
 
 after(async () => {
-  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-  else process.env.NODE_ENV = originalNodeEnv;
+  for (const [key, value] of originalEnvironment) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
   await Promise.all(
     temporaryRoots.map((root) => rm(root, { recursive: true, force: true })),
   );
@@ -81,6 +93,16 @@ test("local media store enforces the streaming upload limit and development-only
   assert.deepEqual(await readdir(root), []);
 
   process.env.NODE_ENV = "test";
+  await assert.rejects(
+    store.writeUpload(Readable.from([Buffer.from([0xff, 0xd8, 0xff])]), "image"),
+    /enabled only in development/,
+  );
+
+  process.env.SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS = "1";
+  process.env.SEEKALIVE_DATABASE_TARGET = "replit";
+  process.env.SEEKALIVE_DB_MIGRATION_TARGET = "replit";
+  process.env.SEEKALIVE_DB_SCHEMA = `seekalive_test_${"a".repeat(32)}`;
+  process.env.REPLIT_DEPLOYMENT = "1";
   await assert.rejects(
     store.writeUpload(Readable.from([Buffer.from([0xff, 0xd8, 0xff])]), "image"),
     /enabled only in development/,

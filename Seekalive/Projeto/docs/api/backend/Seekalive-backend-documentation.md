@@ -1504,6 +1504,34 @@ Para a validação HTTP isolada de Reviews, execute `SEEKALIVE_ALLOW_TEMP_SCHEMA
 
 Em 31/10/2026, `test:profiles-reviews-api-isolated` passou em 1/1 no banco de desenvolvimento `heliumdb`. A validação HTTP confirmou a gravação e leitura no schema temporário, a rejeição de avaliações duplicadas em requisições simultâneas com HTTP 409, a paginação/contagem, as permissões de autor e comerciante e a exclusão/republicação. A concorrência revelou inicialmente HTTP 500; o repositório agora traduz apenas o SQLSTATE `23505` da constraint única de Reviews para o resultado de conflito da aplicação, propagando erros de banco diferentes sem mascará-los. O schema aleatório foi removido e o catálogo `public` permaneceu inalterado.
 
+### Cobertura HTTP das operações montadas
+
+Execute somente em desenvolvimento, após confirmar o nome do banco com `SELECT current_database()`:
+
+```sh
+SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 \
+SEEKALIVE_EXPECTED_DATABASE='<nome-do-banco-dev>' \
+pnpm --filter @workspace/scripts run test:api-isolated-http
+```
+
+O comando encadeia, sem paralelizar os schemas temporários, os testes de API geral, exclusão de conta, Reviews e os novos cenários de rotas antes sem integração HTTP. Cada fixture usa schema `seekalive_test_<id>`, confirma o banco de desenvolvimento esperado, envia e-mails somente a um coletor em memória, remove os arquivos de mídia associados aos registros do próprio schema e verifica que o catálogo `public` não mudou. O store local de mídia aceita o modo de teste somente com opt-in explícito, os seletores de destino de desenvolvimento, schema de teste válido e sem `REPLIT_DEPLOYMENT`.
+
+O inventário Express/OpenAPI verificado em `routes.generated.md` contém 76 operações método/caminho. A matriz de evidência é:
+
+| Domínio | Operações | Evidência HTTP |
+| --- | ---: | --- |
+| Auth | 28 | Suite de API isolada e rotas de autenticação recém-cobertas |
+| Accounts, Profiles, Onboarding e Reviews | 12 | Suite de API isolada, Reviews e consulta pública por ID |
+| Social | 12 | Suite de API isolada, listagem de seguindo e recusa de pedido |
+| Feed | 19 | Suite de API isolada |
+| Mídia | 3 | Upload, leitura binária/Range e exclusão pela API real |
+| Health | 2 | Liveness e readiness pelo app completo com o banco isolado |
+| **Total** | **76** | **Todas as operações têm ao menos um cenário HTTP executável** |
+
+As dez operações que antes não tinham cenário HTTP real eram: `DELETE /v1/auth/devices/{deviceId}`, `DELETE /v1/auth/devices/others`, `POST /v1/auth/logout`, `POST /v1/auth/verification`, `GET /v1/accounts/{accountId}`, `GET /v1/social/accounts/{accountId}/following`, `POST /v1/social/follow-requests/{accountId}/decline` e as três operações de `/v1/social/media` (upload, leitura por ID e exclusão). Cada uma agora é exercitada por uma requisição ao app Express completo; os novos testes também verificam autorização, CSRF, privacidade, persistência ou limpeza conforme a operação.
+
+Em 31/10/2026, `test:api-isolated-http` passou com 16/16 testes e nenhum teste ignorado ou falho. Também passaram `test:media-storage` (4/4), `typecheck` e `test:api-route-contract` (3/3); a checagem de documentação regenerável confirmou 76 rotas. Isso comprova cobertura HTTP por operação, não cobertura exaustiva de cada combinação de entrada inválida, rate limit, expiração, indisponibilidade de dependência ou concorrência. Os testes continuam separados por comportamento para que um novo caso não seja inferido apenas pelo registro da rota ou pela presença no OpenAPI.
+
 Não execute em produção, não remova nem sobrescreva marcadores válidos para contornar o bloqueio e não use `push-force`. A [documentação do Replit](https://docs.replit.com/features/project-setup/configuration) identifica um runtime publicado por `REPLIT_DEPLOYMENT=1`; quando essa variável está ausente, o Repl está em desenvolvimento. `REPLIT_DEV_DOMAIN` identifica o domínio de desenvolvimento. `REPLIT_ENVIRONMENT` não é o marcador documentado e não deve bloquear testes sozinho. Em 29/10/2026, `test:api-isolated-db` passou em 5/5 no banco de desenvolvimento `heliumdb`; criou e removeu seu schema aleatório e comparou o catálogo `public` antes/depois. A migration versionada `0005` também foi testada em namespace isolado e o fingerprint das colunas, constraints, índices e views consultados permaneceu idêntico. Nenhuma escrita foi feita no schema principal nem em produção.
 
 ## Decisões que permanecem abertas
