@@ -69,7 +69,7 @@ Seekalive reúne três módulos conectados por uma identidade única:
 | Recuperação/verificação | Confirmação de e-mail, recuperação de senha esquecida e atualização autenticada de senha têm rotas no backend; a integração ponta a ponta no navegador/banco continua sendo validada em etapa própria         |
 | Publicações/comentários | Feed, comentários, curtidas, reposts, salvos, remoção de posts/comentários e referências têm rotas registradas; `endpoints.md` lista as rotas montadas sem afirmar que cada fluxo foi exercitado                           |
 | Fotos/vídeos            | Envio autenticado de arquivos para armazenamento local de desenvolvimento; metadados são persistidos em `media.assets` e IDs são associados a publicações em `feed.posts`. Não é armazenamento de produção    |
-| Contas/avaliações       | As avaliações pertencem a Profiles, não ao Seek. Rotas de avaliação/reposta estão registradas; o estado físico atual deve ser conferido pela consulta de catálogo |
+| Contas/avaliações       | As avaliações pertencem a Profiles, não ao Seek. A migration `profiles/0003` foi aplicada em desenvolvimento e o catálogo de 31/10/2026 confirma a tabela; consulte a query para confirmar alterações posteriores. As rotas ainda exigem validação funcional autenticada própria |
 | Perfil e relações       | API com rotas de perfil, privacidade, seguir, pedidos privados, Círculo derivado e bloqueio; o inventário de rotas não substitui teste de autorização/persistência                           |
 | Mensagens               | Ainda locais/demonstrativas; o backend não tem domínio de mensagens para aplicar ocultação/restauração durante bloqueio                                                                                       |
 | Seek                    | Pesquisa e filtros locais; catálogo oficial de municípios incluído; GPS explícito, sem geocodificação reversa ou consulta por distância                                                                       |
@@ -1100,7 +1100,7 @@ Esta lista representa o modelo no código, não uma afirmação de que todas as 
 | `feed.post_references`          | Até uma publicação Social referenciada por publicação de origem; guarda o UUID original e uma FK anulável que é removida ao excluir o alvo, para deixar a prévia indisponível sem reter metadados do conteúdo apagado.                                             |
 | `media.assets`                  | Metadados de foto/vídeo, titular, publicação, tipo, tamanho, estado e chave de armazenamento local temporário; uploads podem ser anexados por 24 horas e expirados são limpos no próximo upload, sem worker periódico. Binários só são aceitos em desenvolvimento. |
 
-O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; referências no Feed aceitam somente `social_post` nesta etapa e revalidam a leitura do alvo em cada prévia. Referências para Seek, Shop ou eventos permanecem no modelo futuro, sem rotas ativas. A API e a interface de avaliações comerciais estão implementadas em Profiles; o catálogo de 31/10/2026 **não retornou tabela de avaliações no schema físico `profiles`**. Portanto, persistência física de avaliações não está comprovada neste snapshot e deve ser reconciliada com o modelo Drizzle/migrations antes de afirmar que as avaliações persistem. Armazenamento permanente, galeria comercial, campos de avatar/capa, serviços comerciais completos, conversas, mensagens e moderação ainda não têm implementação completa.
+O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; referências no Feed aceitam somente `social_post` nesta etapa e revalidam a leitura do alvo em cada prévia. Referências para Seek, Shop ou eventos permanecem no modelo futuro, sem rotas ativas. A API e a interface de avaliações comerciais pertencem a Profiles; após a aplicação autorizada de `profiles/0003_misty_rhodey.sql`, o catálogo de desenvolvimento confirma `profiles.business_profile_reviews` com seus índices, FKs e checks. A existência estrutural não comprova, por si só, o comportamento ponta a ponta das rotas de Reviews. Armazenamento permanente, galeria comercial, campos de avatar/capa, serviços comerciais completos, conversas, mensagens e moderação ainda não têm implementação completa.
 
 Frontend DTOs use **camelCase**, SQL uses **snake_case**. Serializers, not accidental ORM field exposure, must bridge them:
 
@@ -1173,11 +1173,11 @@ The table below describes the broader proposed cross-domain reference model, not
 
 ### Commercial-profile reviews, Seek discovery, Shop and saves
 
-Reviews are created, listed, deleted and answered in the commercial-profile experience. Their owner is the commercial identity in Profiles; Seek does not own review operations or storage. The migration file exists in the repository; its physical application status must be checked with the development-database catalog query and is not inferred here.
+Reviews are created, listed, deleted and answered in the commercial-profile experience. Their owner is the commercial identity in Profiles; Seek does not own review operations or storage. `profiles/0003_misty_rhodey.sql` was applied to the development database on 31/10/2026; the dated catalog confirms the physical table. Refresh the catalog query to verify any later state.
 
 | Table / intent                                                      | Columns                                                                                                                                                                                                        | Keys / indexes / invariants                                                                                                                                                                                                                                                                                                                | Required access                                                                                                                                                                                                                           |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `profiles.business_profile_reviews` — avaliação de perfil comercial | `id`, `business_account_id`, `reviewer_account_id`, `rating`, `comment`, `business_reply`, `business_replied_at`, `created_at`                                                                                 | UUID PK; FKs para `profiles.business_profiles.account_id` e `accounts.accounts.id`, ambas cascade; unique business+reviewer; índices business+created/id e reviewer; nota 1–5; comentário aparado 10–500; resposta nula ou aparada 3–500 com timestamp consistente; proibido autoavaliação. Estado físico: consultar catálogo do banco de desenvolvimento. | Perfil público legível; avaliador deve ser conta pessoal ativa/verificada; uma avaliação por pessoa/comércio; titular comercial responde; autor pode excluir e republicar. Bloqueio e privacidade do perfil são reaplicados nas leituras. |
+| `profiles.business_profile_reviews` — avaliação de perfil comercial | `id`, `business_account_id`, `reviewer_account_id`, `rating`, `comment`, `business_reply`, `business_replied_at`, `created_at`                                                                                 | UUID PK; FKs para `profiles.business_profiles.account_id` e `accounts.accounts.id`, ambas cascade; unique business+reviewer; índices business+created/id e reviewer; nota 1–5; comentário aparado 10–500; resposta nula ou aparada 3–500 com timestamp consistente; proibido autoavaliação. Estado físico em 31/10/2026: confirmado no catálogo de desenvolvimento; consultar novamente para estado futuro. | Perfil público legível; avaliador deve ser conta pessoal ativa/verificada; uma avaliação por pessoa/comércio; titular comercial responde; autor pode excluir e republicar. Bloqueio e privacidade do perfil são reaplicados nas leituras. |
 | `seek_events` — discovery event                                     | `id`, `organizer_account_id`, `city_id`, `category_key`, `name`, `description`, `venue`, `starts_at`, `ends_at`, `timezone`, `price_minor`, `currency`, `cover_asset_id`, `status`, `created_at`, `updated_at` | Required business organizer FK, city/category/asset FKs; ordered times, nonnegative price; city/status/start and organizer indexes.                                                                                                                                                                                                        | Organizer writes; public reads published/eligible events, organizer sees drafts; server validates timezone and status transitions. Interest does not reserve a ticket.                                                                    |
 | `event_interests` — intent to attend                                | `event_id`, `account_id`, `created_at`                                                                                                                                                                         | Composite PK; reverse account index.                                                                                                                                                                                                                                                                                                       | Actor own add/remove; eligible event required; counts public, interested-user lists require privacy review.                                                                                                                               |
 | `shop_items` — product listing, not order                           | `id`, `seller_account_id`, `category_key`, `name`, `description`, `tag`, `price_minor`, `old_price_minor`, `currency`, `cover_asset_id`, `status`, `created_at`, `updated_at`                                  | Required business seller; nonnegative integer money; old price absent or >= price; seller/status and category/status indexes.                                                                                                                                                                                                              | Seller writes; public eligible listing reads; no stock, purchase, shipping or payment promises.                                                                                                                                           |
@@ -1267,7 +1267,7 @@ These snippets are **future design only**, cannot run against the core without a
 
 The core currently contains **43 proposed tables**, including custom email, password-credential, challenge, and session structures. The count describes this documentation draft only; no migration, live rows, or runtime validation are asserted.
 
-The larger SQL design in `schema-core.sql` remains a reference proposal and was not run. In the 31/10/2026 development state, the active schemas contain 21 tables across Accounts, Security, Profiles, Feed and Media; `feed.post_references` was confirmed in the development database after `feed/0003_post_references`. Feed and Media use independent migration ledgers. Local media binaries are development-only. Production was not accessed. The isolated HTTP integration and baseline replay were not rerun after this migration because their runner requires `DATABASE_URL` and `SEEKALIVE_EXPECTED_DATABASE`, which are unavailable to the shell runner.
+The larger SQL design in `schema-core.sql` remains a reference proposal and was not run. The initial 31/10/2026 catalog snapshot preceded the Profiles Reviews migration; the current physical state is recorded in [`development-database-catalog-2026-10-31.md`](development-database-catalog-2026-10-31.md) and must be refreshed from the read-only catalog query rather than inferred from this paragraph. Feed and Media use independent migration ledgers. Local media binaries are development-only. Production was not accessed. The API integration and baseline migration replay were run in isolated development schemas and passed; neither result alone proves the full Reviews HTTP flow.
 
 ---
 
@@ -1278,13 +1278,13 @@ Fonte: [`development-database-catalog-2026-10-31.md`](development-database-catal
 
 ## Escopo e método
 
-Consulta executada em **31/10/2026**, no ambiente **development**, usando a conexão PostgreSQL de desenvolvimento. O identificador retornado por `current_database()` foi `heliumdb`.
+Consulta inicial executada em **31/10/2026**, no ambiente **development**, usando a conexão PostgreSQL de desenvolvimento. O identificador retornado por `current_database()` foi `heliumdb`. Depois, no mesmo dia, uma nova consulta somente leitura foi executada após a aplicação autorizada de `profiles/0003`.
 
-Foi executada a consulta somente leitura [`queries/development-database-catalog.sql`](queries/development-database-catalog.sql). Ela consulta catálogos PostgreSQL para enumerar relações, índices, constraints e ações referenciais. Não consulta linhas de negócio, não executa DDL, `push` ou migrations e não acessa produção.
+As duas leituras usaram [`queries/development-database-catalog.sql`](queries/development-database-catalog.sql), que consulta catálogos PostgreSQL para enumerar relações, índices, constraints e ações referenciais, sem ler linhas de negócio. A migration foi uma operação separada, limitada ao track Profiles no banco de desenvolvimento; não houve `push` nem acesso à produção.
 
 Este documento é um retrato datado, não uma garantia de estado futuro. Para atualizar o estado, execute novamente a consulta indicada em ambiente de desenvolvimento e registre uma nova data; não substitua a consulta por contagens fixas nos documentos gerais.
 
-## Resumo observado
+## Resumo atual após `profiles/0003`
 
 | Schema | Relações (tabelas) | Índices | Constraints |
 |---|---:|---:|---:|
@@ -1292,35 +1292,35 @@ Este documento é um retrato datado, não uma garantia de estado futuro. Para at
 | `drizzle` | 6 | 6 | 6 |
 | `feed` | 8 | 20 | 32 |
 | `media` | 1 | 5 | 7 |
-| `profiles` | 5 | 9 | 16 |
+| `profiles` | 6 | 13 | 23 |
 | `security` | 4 | 11 | 9 |
-| **Total** | **28** | **61** | **79** |
+| **Total** | **29** | **65** | **86** |
 
-As 28 relações retornadas eram tabelas; a consulta não retornou views, views materializadas, tabelas particionadas ou tabelas externas. O schema `drizzle` contém seis tabelas de journal de migrations: `accounts_migrations`, `feed_migrations`, `media_migrations`, `profiles_migrations`, `security_migrations` e `seek_migrations`. Journals não são tabelas de domínio.
+As 29 relações atuais retornadas são tabelas; as consultas não retornaram views, views materializadas, tabelas particionadas ou tabelas externas. O schema `drizzle` contém seis tabelas de journal de migrations: `accounts_migrations`, `feed_migrations`, `media_migrations`, `profiles_migrations`, `security_migrations` e `seek_migrations`. Journals não são tabelas de domínio. O snapshot inicial, antes da migration, continha 28 tabelas, 61 índices e 79 constraints.
 
 ### Tabelas observadas por domínio
 
 - `accounts`: `accounts`, `account_emails`, `account_interests`, `account_username_reservations`.
 - `feed`: `posts`, `post_references`, `post_tags`, `post_comments`, `post_likes`, `post_reposts`, `post_bookmarks`, `comment_likes`.
 - `media`: `assets`.
-- `profiles`: `account_profiles`, `business_profiles`, `account_follows`, `account_follow_requests`, `account_blocks`.
+- `profiles`: `account_profiles`, `business_profiles`, `business_profile_reviews`, `account_follows`, `account_follow_requests`, `account_blocks`.
 - `security`: `password_credentials`, `auth_challenges`, `sessions`, `trusted_devices`.
 - `drizzle`: os seis journals listados acima.
 
-Nenhuma relação de avaliações comerciais apareceu no schema `profiles` neste snapshot. Isso descreve apenas o catálogo físico consultado; não prova o estado de código, contrato, rotas nem testes do fluxo de avaliações. A ausência deverá ser considerada ao avaliar persistência de avaliações e não pode ser encoberta por documentação do modelo lógico.
+`profiles.business_profile_reviews` aparece no catálogo posterior à aplicação de `profiles/0003_misty_rhodey.sql`. A migration criou a estrutura; este catálogo não prova que os handlers de Reviews foram exercitados ponta a ponta nem consulta conteúdo da tabela. O ledger Profiles passou a registrar quatro migrations, correspondentes aos SQLs locais `0000`–`0003`.
 
 ## Ações `ON DELETE` das chaves estrangeiras
 
-O catálogo retornou **33 FKs**:
+O catálogo atual retornou **35 FKs**:
 
 | Schema | `CASCADE` | `SET NULL` | Total de FKs |
 |---|---:|---:|---:|
 | `accounts` | 2 | 1 | 3 |
 | `feed` | 14 | 1 | 15 |
 | `media` | 2 | 0 | 2 |
-| `profiles` | 8 | 0 | 8 |
+| `profiles` | 10 | 0 | 10 |
 | `security` | 4 | 1 | 5 |
-| **Total** | **30** | **3** | **33** |
+| **Total** | **32** | **3** | **35** |
 
 Não houve ações `RESTRICT`, `SET DEFAULT` ou `NO ACTION` explícitas em FKs neste resultado. `NO ACTION` é o default exibido pelo PostgreSQL para `ON UPDATE` nas relações retornadas, não uma ação de exclusão observada.
 
@@ -1328,9 +1328,9 @@ Não houve ações `RESTRICT`, `SET DEFAULT` ou `NO ACTION` explícitas em FKs n
 
 - A consulta comprova metadados do banco de desenvolvimento no momento da execução, não conteúdo de dados, integridade em produção ou prontidão funcional de endpoints.
 - Não foram lidas linhas de tabelas de negócio.
-- O resultado não autoriza nem substitui uma migration.
+- O resultado de catálogo não autoriza nem substitui uma migration; a aplicação de `profiles/0003` foi autorizada separadamente e verificada no ledger.
 - A estrutura lógica multi-domínio permanece em um PostgreSQL de desenvolvimento compartilhado; os schemas lógicos observados não significam bancos físicos separados.
-- Os testes HTTP autenticados do Feed continuam sem execução. O fixture de integração disponível cria schema, executa `db push`, grava dados e remove o schema com `DROP SCHEMA ... CASCADE`; essa execução requer autorização específica porque altera o banco de desenvolvimento, ainda que use schema temporário.
+- A suíte HTTP integrada anterior passou 5/5 em schema temporário autorizado; o replay de migrations também passou em schemas temporários. Isso não substitui testes autenticados ponta a ponta das rotas de Reviews.
 
 ---
 

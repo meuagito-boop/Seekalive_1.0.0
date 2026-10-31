@@ -77,14 +77,16 @@ media: emptyPage,
 
 **Impacto:** Embora Media possua rotas próprias, a galeria não está ligada ao perfil público; fotos e vídeos não podem ser apresentados por essa resposta.
 
-### 04-007 — Reviews têm regras centrais implementadas, mas a tabela necessária não existe no banco atual
+### 04-007 — Reviews têm regras centrais implementadas, mas a tabela faltava no snapshot original
 
 **Veredito:** PARCIAL  
 **Prioridade:** Crítica
 
-**Evidência:** `businessProfileReviews.ts:246–294` permite avaliação somente por conta pessoal, valida nota de 1–5 e comentário de 10–500 caracteres, e trata duplicidade por índice único. `:297–331` permite exclusão pelo titular e resposta do perfil comercial. `shared/contracts/src/businessProfileReviews.ts:3–10` não possui campos para foto; a revisão lista média, total e distribuição em `businessProfileReviews.ts:22–26`. `businessProfileReviewRoutes.ts:143–185, 187–216, 218–278` registra criação, exclusão e resposta. O catálogo de desenvolvimento consultado no bloco 01 não contém `profiles.business_profile_reviews`, e a documentação já marca as quatro rotas como “banco pendente” (`docs/api/backend/endpoints.md:86–89`).
+**Atualização posterior (31/10/2026):** a migration `profiles/0003_misty_rhodey.sql` foi aplicada ao banco de desenvolvimento `heliumdb`, após autorização expressa; o catálogo posterior confirma a tabela e seus objetos. A ausência física descrita abaixo é histórica e está resolvida estruturalmente. As rotas de Reviews não foram chamadas nesta reconciliação.
 
-**Impacto:** A intenção e as regras de aplicação estão estruturadas, mas a API de reviews não pode ser considerada operacional sem a tabela ausente. Não foi chamada nenhuma dessas rotas. Fotos em avaliações não são aceitas pelo contrato atual; o skill de reviews registra comentários/fotos como regra vigente. Também não foi localizada rota de edição, consistente com a regra de apagar e republicar.
+**Evidência original:** `businessProfileReviews.ts:246–294` permite avaliação somente por conta pessoal, valida nota de 1–5 e comentário de 10–500 caracteres, e trata duplicidade por índice único. `:297–331` permite exclusão pelo titular e resposta do perfil comercial. `shared/contracts/src/businessProfileReviews.ts:3–10` não possui campos para foto; a revisão lista média, total e distribuição em `businessProfileReviews.ts:22–26`. `businessProfileReviewRoutes.ts:143–185, 187–216, 218–278` registra criação, exclusão e resposta. O catálogo do bloco 01 não continha `profiles.business_profile_reviews`.
+
+**Impacto atual:** a tabela não está mais ausente no desenvolvimento, mas a migration não valida execução funcional nem autorização das rotas. Fotos em avaliações não são aceitas pelo contrato atual; o skill de reviews registra comentários/fotos como regra vigente. Também não foi localizada rota de edição, consistente com a regra de apagar e republicar.
 
 ### 04-008 — Privacidade comercial não pode ser validada contra a remoção do Seek
 

@@ -29,14 +29,16 @@ Também foram executadas consultas somente a `information_schema.columns`, `info
 
 **Conclusão:** há separação lógica; não há dez bancos físicos independentes. Isso corresponde à decisão registrada para o estágio de desenvolvimento.
 
-### 05-002 — A migration de reviews existe, mas a tabela não está no banco de desenvolvimento
+### 05-002 — A migration de Reviews existia, mas a tabela faltava no snapshot original
 
 **Veredito:** PARCIAL  
 **Prioridade:** Alta
 
-**Evidência:** `infra/database/src/schema/profiles/businessProfileReviews.ts` define a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a cria. A presença física atual deve ser verificada em `docs/api/backend/queries/development-database-catalog.sql`. O inventário vigente de rotas está em `docs/api/backend/endpoints.md`.
+**Evidência original:** `infra/database/src/schema/profiles/businessProfileReviews.ts` definia a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a criava, mas ela ainda não estava no catálogo daquele snapshot.
 
-**Conclusão:** a estrutura está preparada em código/migration, mas a persistência não está presente no banco observado. Não determinei o estado do ledger de migrations, pois o prompt restringe a auditoria a metadados e não exige a leitura de conteúdo de ledger.
+**Atualização posterior (31/10/2026):** após autorização expressa de DDL somente em desenvolvimento, a migration `profiles/0003_misty_rhodey.sql` foi aplicada pela trilha Profiles em `heliumdb`; o catálogo e o ledger posteriores confirmam a tabela e a quarta migration aplicada. A ausência estrutural foi resolvida. A chamada funcional das rotas continua sem validação ponta a ponta nesta reconciliação.
+
+**Conclusão original:** a estrutura estava preparada em código/migration, mas a persistência não aparecia no banco observado naquele momento. Esta conclusão foi supersedida pela atualização posterior acima.
 
 ### 05-003 — As FKs entre domínios dependem da mesma instância PostgreSQL
 

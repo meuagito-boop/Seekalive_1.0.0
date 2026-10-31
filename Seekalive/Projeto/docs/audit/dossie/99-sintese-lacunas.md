@@ -4,6 +4,10 @@
 **Ambiente auditado:** código do workspace e metadados do banco de desenvolvimento.  
 **Resultado geral:** dossiê estático concluído; não significa que a implementação esteja pronta para produção. Nenhum código foi corrigido nesta auditoria.
 
+### Atualização posterior — estrutura física de Reviews — 31/10/2026
+
+Depois da auditoria, e mediante autorização expressa para DDL somente em desenvolvimento, `profiles/0003_misty_rhodey.sql` foi aplicada ao banco `heliumdb`. A tabela `profiles.business_profile_reviews` foi confirmada pelo catálogo posterior. Isso resolve a ausência física encontrada no snapshot original; não valida as rotas de Reviews ponta a ponta nem altera os demais achados deste dossiê.
+
 ## Método e limites
 
 O dossiê segue o prompt de auditoria somente leitura. Não houve acesso à produção, leitura de linhas de negócio, valores de segredos, logs de execução ou conteúdo de usuários. Não foram executados testes, builds, typechecks, lint, geração, migrations, `push`, seed ou requisições HTTP de escrita. Os planos SQL foram obtidos somente com `EXPLAIN` (sem `ANALYZE`) e parâmetros fictícios. A única escrita desta atividade foi nos documentos deste dossiê.
@@ -33,7 +37,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 
 1. **Contrato OpenAPI ativo × handlers:** 74 operações no contrato ativo e 76 rotas no servidor, com rotas só no código e divergência de método para posts por conta (`02-003`). O catálogo amplo inclui propostas e não pode ser tratado como handlers (`02-004`).
 2. **Estado de rotas e contrato:** corrigido; `test:api-route-contract` confirma paridade entre Express e OpenAPI. O inventário gerado lista as rotas montadas. Essa paridade não prova persistência ou execução E2E.
-3. **Reviews comerciais:** a API está registrada, mas `profiles.business_profile_reviews` não existe no banco de desenvolvimento; o catálogo de endpoints chama corretamente a persistência de pendente (`02-005`, `05-002`, `04-007`).
+3. **Reviews comerciais:** no snapshot original, `profiles.business_profile_reviews` não existia no banco de desenvolvimento. A migration Profiles `0003` foi aplicada posteriormente e o catálogo confirma a tabela; a validação autenticada ponta a ponta das rotas permanece fora desta reconciliação (`02-005`, `05-002`, `04-007`).
 4. **Audiência privada:** a implementação permite leitura por seguidor aprovado; documentos também afirmam “somente titular” (`04-001`, `A2-003`).
 5. **DTO pessoal × campos aprovados:** o DTO público inclui localização, site e data de entrada, além do conjunto informado para perfil pessoal (`04-003`).
 6. **Perfil comercial × informações exigidas:** o DTO e o schema atuais não incluem horário de funcionamento, serviços, comodidades, resumo de avaliações ou link de mapa (`04-005`).
@@ -55,7 +59,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 | 2 | Alto | Hashes Argon2id sem limite global podem esgotar memória sob concorrência; cada operação usa 65.536 KiB. | `03-018`, `application/passwordHashing.ts:3–12`. |
 | 3 | Crítico | Cliente gerado e API real divergem; alguns handlers estão rotulados como proposta e são acessíveis, e há endpoints ausentes/método divergente. | `02-003`, `02-004`, `02-012`. |
 | 4 | Alto | Resposta pública de perfil pessoal excede os campos aprovados e expõe localização, site e data de entrada. | `04-003`, `profileViewMapper.ts:18–33`. |
-| 5 | Alto | Perfil comercial não apresenta campos funcionais solicitados; rotas de avaliações não têm tabela presente no banco observado. | `04-005`, `04-007`, `05-002`. |
+| 5 | Alto | Perfil comercial não apresenta todos os campos funcionais solicitados; no snapshot da auditoria, as rotas de avaliações ainda não tinham tabela física. A migration foi aplicada posteriormente em desenvolvimento. | `04-005`, `04-007`, `05-002`; atualização em `docs/api/backend/development-database-catalog-2026-10-31.md`. |
 | 6 | Alto | Contas não verificadas não têm purga/TTL identificado; dados de identidade podem permanecer reservados indefinidamente. | `03-017`, `emailVerificationRepository.ts:153–163`; ausência de job encontrada por busca estática. |
 | 7 | Alto | Rate limit é por IP e memória local; reinícios zeram os buckets e múltiplas instâncias não compartilham o limite. | `11-002`, `11-003`. |
 | 8 | Alto | Cadeia de proxies pode produzir IP compartilhado ou seleção inadequada; segurança depende de topologia não validada. | `11-005`, `trustedClientIp.ts:16–23` e `forwarded-client-ip.ts:6–11`. |
@@ -75,7 +79,7 @@ Severidades descrevem o impacto técnico observado no escopo de desenvolvimento,
 - Fonte única para operação ativa versus proposta, com verificação automática contra routers e OpenAPI.
 - Semântica normativa de `private`, Círculo, bloqueio e visibilidade de perfil/post/mídia/referência, incluindo matriz visitante × perfil × audiência × bloqueio.
 - Contrato público de Profiles separado por tipo de conta, com allowlist explícita dos campos permitidos e estado das informações comerciais ausentes.
-- Fluxo completo de Reviews: migration aplicada no banco de desenvolvimento, constraints, comportamento das rotas, autorização e resposta.
+- Fluxo completo de Reviews: testar comportamento das rotas, autorização, resposta e exclusão; a migration e as constraints já estão aplicadas no banco de desenvolvimento.
 - Diagrama de transações/locks por operação e testes de concorrência, inclusive para tentativas OTP, sessões simultâneas, seguidores, bloqueios, mídia e exclusão.
 - Configuração de implantação: plataforma/tipo, build/run, proxy confiável, CORS/cabeçalhos, variáveis por ambiente, readiness e permissões do papel de runtime. Valores secretos não devem ser documentados.
 - Semântica de falha do e-mail, retry/outbox, observabilidade, limites entre instâncias e condições de recuperação operacional.
@@ -123,7 +127,7 @@ Este plano é recomendação de sequência, não execução nesta auditoria. Nen
 ### Gate C — Profiles e Social
 
 1. Ajustar a allowlist de campos públicos pessoais e fechar a apresentação comercial com dados realmente pertencentes a Profiles.
-2. Integrar Reviews ao schema aplicado e validar autoria, resposta comercial, exclusão e bloqueios.
+2. Validar as rotas autenticadas de Reviews: autoria, resposta comercial, exclusão e bloqueios; a migration e a estrutura já estão aplicadas em desenvolvimento.
 3. Comprovar por testes a matriz de perfil privado, Círculo, bloqueio, seguir, mídia e referências.
 
 **Aceitação:** endpoints, DTOs e telas exibem somente campos aprovados; regras de privacidade são consistentes em todas as leituras.

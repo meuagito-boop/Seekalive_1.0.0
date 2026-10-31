@@ -26,7 +26,7 @@ const expectedTablesAfterTransfer = {
   security: 4,
   profiles: 5,
   seek: 0,
-  feed: 7,
+  feed: 6,
   media: 1,
 };
 const expectedBusinessProfileColumns = [
@@ -273,6 +273,37 @@ try {
     metadataBeforeTransfer.indexes + 1,
   );
   assert.equal(metadataAfterTransfer.check_constraints, metadataBeforeTransfer.check_constraints);
+  const businessProfileReviewsMigrationPath = path.join(
+    packageDirectory,
+    "..",
+    "migrations",
+    "profiles",
+    "0003_misty_rhodey.sql",
+  );
+  const businessProfileReviewsMigration = rewriteDomainNames(
+    await readFile(businessProfileReviewsMigrationPath, "utf8"),
+    isolatedSchemas,
+  );
+  await client.query(businessProfileReviewsMigration);
+  const migratedReviewsTable = await client.query(
+    `SELECT to_regclass($1) AS table_name`,
+    [`${isolatedSchemas.profiles}.business_profile_reviews`],
+  );
+  assert.equal(
+    migratedReviewsTable.rows[0]?.table_name,
+    `${isolatedSchemas.profiles}.business_profile_reviews`,
+  );
+  const metadataAfterReviews = await readSchemaMetadata(client, schemaNames);
+  assert.equal(metadataAfterReviews.columns, metadataAfterTransfer.columns + 8);
+  assert.equal(
+    metadataAfterReviews.foreign_keys,
+    metadataAfterTransfer.foreign_keys + 2,
+  );
+  assert.equal(
+    metadataAfterReviews.check_constraints,
+    metadataAfterTransfer.check_constraints + 4,
+  );
+  assert.equal(metadataAfterReviews.indexes, metadataAfterTransfer.indexes + 4);
 
   const freshSchemas = {
     accounts: `seekalive_test_${schemaSuffix}_fresh_accounts`,

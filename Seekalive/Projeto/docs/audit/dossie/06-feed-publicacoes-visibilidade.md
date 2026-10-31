@@ -124,7 +124,7 @@ Confronto do backend Feed e dos contratos usados pelo cliente: páginas “Para 
 **Veredito:** NÃO VERIFICADO
 **Risco:** Médio — a evidência de indexação é parcial e não cobre o conjunto de formas reais de consulta.
 
-**Evidência:** foram executados apenas planos representativos da busca textual, timeline por autor e prefixo de hashtag. Não foi gerado plano para o feed completo com visibilidade, seguidores/seguindo, listagens de relações ou avaliações. O bloco 05 documenta que `profiles.business_profile_reviews` não existe no catálogo atual.
+**Evidência:** foram executados apenas planos representativos da busca textual, timeline por autor e prefixo de hashtag. Não foi gerado plano para o feed completo com visibilidade, seguidores/seguindo, listagens de relações ou avaliações. O bloco 05 registrou a ausência de `profiles.business_profile_reviews` no snapshot original; essa tabela foi criada posteriormente pela migration `profiles/0003` no desenvolvimento. A falta de plano para o fluxo de avaliações continua válida.
 
 ## Contagem deste bloco
 

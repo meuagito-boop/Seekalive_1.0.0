@@ -1,6 +1,10 @@
 # R2-06 — Papel efetivo do banco e estado dos ledgers
 
-**Status:** consulta de catálogo somente-leitura concluída pelo pool exportado do mesmo módulo de conexão usado pelo backend. Nenhuma linha de dados de aplicação foi lida; nenhuma migration, DDL ou escrita foi executada.
+**Status da rodada original:** consulta de catálogo somente-leitura concluída pelo pool exportado do mesmo módulo de conexão usado pelo backend. Nenhuma linha de dados de aplicação foi lida; nenhuma migration, DDL ou escrita foi executada naquela rodada.
+
+## Atualização posterior — reconciliação de Reviews em desenvolvimento — 31/10/2026
+
+Após autorização expressa do proprietário para DDL exclusivamente no banco de desenvolvimento, `profiles/0003_misty_rhodey.sql` foi validada em schemas temporários transacionais e aplicada somente ao banco `heliumdb` pela trilha Profiles. A consulta de catálogo posterior confirma `profiles.business_profile_reviews`, quatro checks, duas FKs `ON DELETE CASCADE` e quatro índices contando a PK; o ledger Profiles passou de três para quatro registros. O replay de migrations em schema temporário e `drizzle-kit check` passaram. Nenhuma linha de negócio foi consultada, produção não foi acessada e o teste não comprova o funcionamento ponta a ponta das rotas de Reviews. Assim, o achado R2-06-003 abaixo permanece como evidência histórica da rodada original, mas sua pendência estrutural está resolvida.
 
 ## Alvo e método
 
@@ -51,7 +55,7 @@ Foram lidas exclusivamente as colunas `id`, `hash` e `created_at` das tabelas de
 
 O ledger legado `drizzle.__drizzle_migrations` não existe. Os sete SQLs/snapshots da trilha combinada antiga permanecem em `infra/database/migrations/` na raiz, mas o config atual gera/migra somente `accounts`, `security`, `profiles`, `feed` e `media`; o diretório histórico não aparece como destino ativo.
 
-## Comparação de snapshots com o catálogo de desenvolvimento
+## Comparação do snapshot original com o catálogo de desenvolvimento
 
 O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presentes, tipo, comprimento varchar, nulabilidade, default e existência por nome de índices, FKs, checks e constraints únicas. Não leu linhas de aplicação nem executou DDL.
 
@@ -68,7 +72,7 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 
 **Accounts/Profiles:** `profiles/0002_charming_alice.sql` copia os campos de apresentação de `accounts.accounts` para `profiles.account_profiles` e depois remove oito campos de Accounts. A tabela real de Accounts corresponde ao schema-fonte atual (`infra/database/src/schema/accounts/schema.ts`), mas `accounts/meta/0001_snapshot.json` e o SQL de baseline ainda descrevem os oito campos antigos. Não há migration posterior na trilha Accounts que registre essa mudança; a alteração foi feita pela migration de Profiles. Assim, `drizzle-kit check` passa a cadeia de snapshots sem identificar essa divergência entre o snapshot Accounts e o estado após executar todas as trilhas.
 
-**Profiles:** o código e a migration de avaliações comerciais existem. Este relatório não declara a presença física atual da tabela, índices, FKs ou checks; consulte `docs/api/backend/queries/development-database-catalog.sql` no banco de desenvolvimento.
+**Profiles:** na leitura original, o relatório não declarou presença física de Reviews. A migration pendente foi aplicada posteriormente; o estado atual de tabela, índices, FKs e checks está em `docs/api/backend/development-database-catalog-2026-10-31.md` e deve ser renovado pela consulta `docs/api/backend/queries/development-database-catalog.sql`.
 
 **Seek:** há uma migration e um ledger `seek_migrations` com hash correspondente, mas `seek.business_profiles` está ausente no catálogo. Ao mesmo tempo, `migrationTrackConfig.ts:4-30` não inclui Seek entre as trilhas aceitas e `infra/database/Aplicativo/db check` não verifica Seek. O ledger marca a migration como aplicada enquanto o objeto criado por ela falta; não foi possível determinar somente com esta leitura se a tabela foi removida manualmente, restaurada de estado incompleto ou se o ledger foi criado fora do fluxo atual.
 
@@ -84,9 +88,9 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 ### R2-06-003 — Tabela de avaliações comerciais está prevista, mas migration local não foi aplicada
 
 - **Rodada 1:** novo
-- **Veredito:** CONFIRMADO
-- **Evidência deste snapshot:** o estado de ledger e objetos deve ser confirmado pela consulta de catálogo atual; este documento não é fonte para a presença física de tabelas.
-- **Risco:** Médio — chamadas de API que dependam da persistência de avaliações não podem funcionar corretamente contra o banco de desenvolvimento atual.
+- **Veredito na auditoria original:** CONFIRMADO.
+- **Atualização posterior:** **resolvido estruturalmente em desenvolvimento**. O ledger Profiles tinha três entradas; a migration `0003_misty_rhodey.sql` foi aplicada pela trilha correta e o catálogo posterior confirmou a tabela e seus objetos. Ver a atualização no início deste relatório e o catálogo datado.
+- **Limite restante:** a migration e a presença física da tabela não comprovam a execução funcional autenticada das rotas de Reviews. Esse comportamento não foi validado nesta reconciliação.
 
 ### R2-06-004 — Ledger Seek afirma aplicação, mas a tabela esperada não existe
 
@@ -106,7 +110,7 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 
 1. Separar uma credencial de runtime de desenvolvimento com privilégios mínimos da identidade de migrations.
 2. Alinhar ownership e snapshots Accounts/Profiles sem repetir remoções destrutivas.
-3. Aplicar/reconciliar a migration Profiles pendente por fluxo próprio autorizado; isso não foi feito nesta rodada.
+3. **Concluído posteriormente:** reconciliar a migration Profiles pendente no banco de desenvolvimento por fluxo próprio autorizado; a rodada original não executou essa ação.
 4. Recuperar a consistência de Seek e adicionar a trilha ao `check` somente na etapa de domínio aprovada.
 5. Comparar definições semânticas de índices/constraints/FKs em uma validação read-only dedicada antes de declarar equivalência.
 
@@ -114,7 +118,7 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 
 ## Proteções e limites
 
-- Nenhuma migration foi aplicada; o SQL de Profiles sem ledger permanece pendente.
+- Na rodada original, nenhuma migration foi aplicada; a migration Profiles pendente foi aplicada somente na atualização posterior registrada no início deste documento.
 - Nenhum teste que crie schema foi executado.
 - O script aborta se `REPLIT_DEPLOYMENT` estiver presente, se `NODE_ENV` não for `development` ou se o alvo de runtime estiver explicitamente configurado como `external`.
 - O script não imprime URL, nome de role/banco/schema/tabela, nem lê dados de contas.

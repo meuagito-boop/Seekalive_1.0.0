@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-31  
 **Revisão:** v2, incorporando o aditivo técnico do proprietário.
-**Status:** execução autorizada por instrução posterior do proprietário. Os critérios documentais e de paridade foram concluídos; a suíte HTTP integrada passou em schema temporário no desenvolvimento. A divergência física da tabela de Reviews no banco principal permanece identificada, sem aplicação de migration.
+**Status:** critérios documentais e de paridade concluídos; a suíte HTTP integrada passou em schema temporário no desenvolvimento. Após autorização expressa posterior para DDL no banco de desenvolvimento, a migration `profiles/0003` foi aplicada somente em `heliumdb`; a divergência física da tabela de Reviews foi resolvida. A execução funcional ponta a ponta das rotas de Reviews não foi comprovada por esta reconciliação.
 
 Este documento preserva no mesmo arquivo o prompt original do usuário e o plano apresentado pelo agente.
 
@@ -325,10 +325,10 @@ No escopo inicial não houve push, migration, DDL ou escrita. Após autorizaçã
 | Item | Status | Motivo/bloqueio | Próxima ação | Critério de encerramento |
 |---|---|---|---|---|
 | Fluxos HTTP autenticados e persistência das 11 operações do Feed | **Concluído em desenvolvimento — 5/5 testes passaram** | O runner seguro do `CodeExecution.shellExec` recebeu o segredo runtime-managed sem exibir seu valor. A suíte exercitou os fluxos autenticados em schema temporário; o fixture comparou fingerprint de `public`, removeu o schema e o catálogo posterior confirmou zero schemas `seekalive_test_%` remanescentes. | Nenhuma ação adicional para este item; preservar o relatório de evidências e repetir em novo ambiente isolado quando houver mudanças relevantes. | 5/5 testes passam; os 11 endpoints têm casos HTTP autenticados e de persistência conforme a cobertura existente; nenhuma conexão de produção é usada. Ver [matriz](../api/backend/feed-route-validation.md). |
-| Estado físico atual dos schemas e constraints | **Concluído — consulta somente leitura em 31/10/2026** | O banco de desenvolvimento identificado pela consulta como `heliumdb` retornou 28 tabelas, 61 índices, 79 constraints e 33 FKs (30 `CASCADE`, 3 `SET NULL`). Nenhuma linha de negócio foi consultada. | Manter a SQL reutilizável e, quando necessário, gerar novo retrato datado; não transformar estes números em estado permanente. | Resultado datado identifica o ambiente e lista somente metadados do catálogo; documentos gerais apontam para a consulta, não para contagens fixas. Ver [relatório](../api/backend/development-database-catalog-2026-10-31.md). |
-| Persistência física de avaliações de Profiles | **Inconsistência identificada; reconciliação do track principal pendente** | O catálogo de `heliumdb` não tinha `business_profile_reviews` na consulta original. O modelo Drizzle atual inclui essa tabela, e o `db push` temporário a criou no schema isolado. O schema público não foi alterado e nenhuma migration foi aplicada ao banco principal. | Comparar o schema, as migrations e o journal do track Profiles para determinar se a tabela está pendente de migration ou se há divergência de track; só então propor a correção mínima. | A tabela e seu histórico ficam reconciliados entre schema Drizzle, migration/journal e banco de desenvolvimento, com documentação e testes coerentes. |
+| Estado físico atual dos schemas e constraints | **Concluído — consulta somente leitura em 31/10/2026** | Após a migration Profiles, `heliumdb` retornou 29 tabelas (23 de domínio e seis journals), 65 índices, 86 constraints e 35 FKs (32 `CASCADE`, 3 `SET NULL`). Nenhuma linha de negócio foi consultada. | Manter a SQL reutilizável e, quando necessário, gerar novo retrato datado; não transformar estes números em estado permanente. | Resultado datado identifica o ambiente e lista somente metadados do catálogo; documentos gerais apontam para a consulta, não para contagens fixas. Ver [relatório](../api/backend/development-database-catalog-2026-10-31.md). |
+| Persistência física de avaliações de Profiles | **Concluído estruturalmente em desenvolvimento** | O ledger continha as migrations `0000`–`0002`; `profiles/0003_misty_rhodey.sql` estava pendente. O SQL foi reproduzido em schema temporário transacional, depois aplicado pela trilha `profiles` somente em `heliumdb`; a consulta de catálogo confirmou a tabela, FKs, checks e índices. | Nenhuma ação restante para reconciliar schema, migration, ledger e banco. A validação funcional autenticada das rotas de Reviews é um escopo separado e não foi comprovada nesta reconciliação. | A tabela e seu histórico estão alinhados entre schema Drizzle, migration/journal e banco de desenvolvimento; a validação de rotas deve ter testes próprios. Ver [relatório atualizado](../api/backend/development-database-catalog-2026-10-31.md). |
 
-## Continuação da execução — consulta de catálogo e validação integrada
+## Registro anterior — consulta inicial de catálogo e validação integrada
 
 ### Mudou
 
@@ -342,15 +342,42 @@ No escopo inicial não houve push, migration, DDL ou escrita. Após autorizaçã
 
 ### Evidência
 
-- A consulta retornou o banco `heliumdb`, no ambiente de desenvolvimento: 28 tabelas (22 de domínio e seis journals em `drizzle`), 61 índices, 79 constraints e 33 FKs. As ações de exclusão observadas foram 30 `CASCADE` e três `SET NULL`.
-- O schema `profiles` retornou cinco tabelas: `account_profiles`, `business_profiles`, `account_follows`, `account_follow_requests` e `account_blocks`; não retornou tabela de avaliações.
+- A consulta inicial retornou `heliumdb`, no ambiente de desenvolvimento, antes da migration Profiles: 28 tabelas (22 de domínio e seis journals em `drizzle`), 61 índices, 79 constraints e 33 FKs. As ações de exclusão observadas foram 30 `CASCADE` e três `SET NULL`.
+- O schema `profiles` tinha cinco tabelas naquele snapshot; ainda não continha a tabela de avaliações.
 - Nenhuma linha de usuário/conteúdo foi lida; somente catálogos PostgreSQL foram consultados.
 - `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db`, executado por `CodeExecution.shellExec`: **5 testes passaram, 0 falhas**.
 - O fixture comprovou que `public` não mudou e que o schema temporário foi removido. Uma consulta de catálogo posterior retornou `remaining_test_schemas = 0`.
 - A primeira execução integrada identificou uma tabela ausente no inventário esperado do fixture e duas expectativas de teste obsoletas. As correções foram limitadas a testes/fixture; a execução final passou integralmente.
 - A tentativa de alterar temporariamente o workflow gerenciado da API foi rejeitada pela plataforma; sua configuração permaneceu inalterada e ele continuou ativo.
 
-### Não verificado / bloqueio restante
+### Limites daquele snapshot inicial
 
-- O catálogo do banco principal de desenvolvimento não continha `business_profile_reviews`, embora o schema Drizzle e o schema temporário de teste contenham essa tabela. Nenhuma migration foi aplicada ao banco principal; a divergência precisa ser reconciliada no track Profiles antes de declarar a persistência física alinhada.
 - Não foi feita validação em produção, que permanece fora do escopo deste projeto em desenvolvimento.
+
+## Continuação da execução — reconciliação da migration Profiles — 31/10/2026
+
+### Mudou
+
+- `infra/database/scripts/test-migration-baselines.mjs` agora reproduz `profiles/0003_misty_rhodey.sql` em schema temporário e confere a tabela, as oito colunas, quatro checks, duas FKs e quatro índices incluindo a PK.
+- A expectativa do baseline Feed no mesmo teste foi corrigida de sete para seis tabelas após conferência dos seis `CREATE TABLE` presentes em `feed/0000_baseline.sql`. O teste de replay confirmou a expectativa corrigida.
+- A migration `profiles/0003_misty_rhodey.sql` foi aplicada com `migrate:profiles`, alvo explicitamente `replit`, após uma guarda de runtime confirmar que o banco era `heliumdb`. Nenhum outro track foi migrado.
+- O relatório de catálogo, o dicionário de dados, os relatórios de auditoria e este plano registram o novo estado sem apagar o snapshot anterior.
+
+### Evidência
+
+- A migration exata foi reproduzida em schemas temporários dentro de transação e revertida; a criação da tabela e das constraints foi aceita pelo PostgreSQL.
+- Antes da aplicação, o ledger Profiles tinha três registros, correspondentes a `0000`–`0002`. Depois, o ledger tem quatro, incluindo `0003`.
+- A consulta de catálogo posterior confirmou no desenvolvimento `profiles.business_profile_reviews`, suas quatro constraints `CHECK`, duas FKs `ON DELETE CASCADE` e quatro índices contando a PK.
+- Catálogo agregado posterior: `heliumdb`, 23 tabelas de domínio, seis journals, 65 índices, 86 constraints e 35 FKs (32 `CASCADE`, três `SET NULL`); nenhum schema temporário de teste remanescente.
+- `pnpm --filter @workspace/db run check`: cinco tracks configurados passaram.
+- `pnpm --filter @workspace/db run test:baselines`: passou; todos os schemas temporários foram removidos.
+- `pnpm run typecheck` e `git diff --check`: passaram.
+
+### Não verificado
+
+- Não foram chamadas as rotas autenticadas de Reviews nesta reconciliação; a existência física da tabela não prova o comportamento ponta a ponta da API.
+- Produção não foi consultada nem alterada.
+
+### Restrições respeitadas
+
+A migration e DDL foram executados somente no banco de desenvolvimento `heliumdb`, conforme autorização posterior do proprietário. Não houve `db push`, alteração de dados existentes, consulta a linhas de negócio, acesso à produção nem exibição de segredos. A regra de domínio e o contrato de Reviews não foram alterados.

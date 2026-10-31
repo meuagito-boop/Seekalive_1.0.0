@@ -176,14 +176,16 @@ DELETE /v1/social/comments/{commentId}/like
 
 **Impacto:** A tabela não pode ser interpretada como “o que o servidor efetivamente expõe”: há rotas propostas acessíveis pelo roteador e rotas expostas sem linha correspondente. A presença de handler não comprova validação ou prontidão para produção.
 
-### 02-005 — As avaliações comerciais estão expostas e corretamente rotuladas como dependentes do banco
+### 02-005 — As avaliações comerciais estavam expostas e corretamente rotuladas como dependentes do banco no snapshot original
 
 **Veredito:** CONFIRMADO  
 **Prioridade:** Crítica
 
-**Evidência:** `Aplicativo/back/src/modules/profiles/presentation/businessProfileReviewRoutes.ts` declara GET, POST, DELETE e PUT; `shared/api-spec/openapi.yaml` contém essas operações; `docs/api/backend/endpoints.md:86–89` as marca `IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE`. O catálogo do banco de desenvolvimento não contém `profiles.business_profile_reviews` (consulta de catálogo; ver bloco 05).
+**Evidência original:** `Aplicativo/back/src/modules/profiles/presentation/businessProfileReviewRoutes.ts` declara GET, POST, DELETE e PUT; `shared/api-spec/openapi.yaml` contém essas operações; `docs/api/backend/endpoints.md` registra sua montagem em código. O catálogo consultado na auditoria original não continha `profiles.business_profile_reviews`.
 
-**Impacto:** O estado documentado confere com a ausência física da tabela, mas as rotas estão montadas no servidor. A leitura do repositório da rota no bloco 05 deverá determinar o efeito da chamada quando a tabela não existe; nenhuma requisição de negócio foi feita.
+**Atualização posterior (31/10/2026):** `profiles/0003_misty_rhodey.sql` foi aplicada somente em desenvolvimento após autorização expressa; o catálogo atualizado confirma a tabela. A ausência estrutural foi resolvida. Esta atualização não comprova o comportamento HTTP autenticado das rotas, que não foram executadas nesta reconciliação.
+
+**Impacto atual:** a existência da tabela remove o bloqueio estrutural observado, mas a montagem da rota e a migration não provam autorização, persistência funcional ou resposta ponta a ponta.
 
 ### 02-006 — O parser global aceita e decodifica o corpo antes de autenticação, CSRF e rate limit de cada rota
 

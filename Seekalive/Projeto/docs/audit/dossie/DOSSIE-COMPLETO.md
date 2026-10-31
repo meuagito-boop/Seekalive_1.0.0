@@ -7,6 +7,10 @@
 
 **Limites respeitados:** sem alterações em código, schema, dependências, configuração ou dados; sem testes, builds, typechecks, lint, geração, migrations, `push`, seed, requisições HTTP de escrita, acesso à produção, leitura de segredos, logs de execução ou tabelas de negócio. SQL limitado a catálogos do banco de desenvolvimento e `EXPLAIN` sem `ANALYZE`, com parâmetros fictícios. As alterações foram restritas aos arquivos deste dossiê.
 
+### Atualização posterior — estrutura física de Reviews — 31/10/2026
+
+Após a auditoria, e mediante autorização expressa para DDL somente em desenvolvimento, `profiles/0003_misty_rhodey.sql` foi aplicada ao banco `heliumdb`. O catálogo posterior confirma `profiles.business_profile_reviews`; a ausência física encontrada no snapshot original está resolvida estruturalmente. Nenhuma linha de negócio foi consultada e produção não foi acessada. A migration não prova funcionamento ponta a ponta das rotas de Reviews; os demais achados deste documento permanecem históricos e não foram reavaliados nesta atualização.
+
 ## Estado do levantamento
 
 | Bloco | Tema | Estado |
@@ -353,14 +357,16 @@ DELETE /v1/social/comments/{commentId}/like
 
 **Impacto:** A tabela não pode ser interpretada como “o que o servidor efetivamente expõe”: há rotas propostas acessíveis pelo roteador e rotas expostas sem linha correspondente. A presença de handler não comprova validação ou prontidão para produção.
 
-### 02-005 — As avaliações comerciais estão expostas e corretamente rotuladas como dependentes do banco
+### 02-005 — As avaliações comerciais estavam expostas e corretamente rotuladas como dependentes do banco no snapshot original
 
 **Veredito:** CONFIRMADO  
 **Prioridade:** Crítica
 
-**Evidência:** `Aplicativo/back/src/modules/profiles/presentation/businessProfileReviewRoutes.ts` declara GET, POST, DELETE e PUT; `shared/api-spec/openapi.yaml` contém essas operações; `docs/api/backend/endpoints.md:86–89` as marca `IMPLEMENTADA EM CÓDIGO; BANCO PENDENTE`. O catálogo do banco de desenvolvimento não contém `profiles.business_profile_reviews` (consulta de catálogo; ver bloco 05).
+**Evidência original:** `Aplicativo/back/src/modules/profiles/presentation/businessProfileReviewRoutes.ts` declara GET, POST, DELETE e PUT; `shared/api-spec/openapi.yaml` contém essas operações; o catálogo original não continha `profiles.business_profile_reviews`.
 
-**Impacto:** O estado documentado confere com a ausência física da tabela, mas as rotas estão montadas no servidor. A leitura do repositório da rota no bloco 05 deverá determinar o efeito da chamada quando a tabela não existe; nenhuma requisição de negócio foi feita.
+**Atualização posterior (31/10/2026):** `profiles/0003_misty_rhodey.sql` foi aplicada somente no desenvolvimento após autorização expressa; o catálogo posterior confirma a tabela. A ausência estrutural foi resolvida. Esta reconciliação não executou as rotas autenticadas de Reviews.
+
+**Impacto atual:** a existência da tabela remove o bloqueio estrutural observado, mas a montagem das rotas não prova autorização, persistência funcional ou resposta ponta a ponta.
 
 ### 02-006 — O parser global aceita e decodifica o corpo antes de autenticação, CSRF e rate limit de cada rota
 
@@ -777,14 +783,16 @@ media: emptyPage,
 
 **Impacto:** Embora Media possua rotas próprias, a galeria não está ligada ao perfil público; fotos e vídeos não podem ser apresentados por essa resposta.
 
-### 04-007 — Reviews têm regras centrais implementadas, mas a tabela necessária não existe no banco atual
+### 04-007 — Reviews têm regras centrais implementadas, mas a tabela faltava no snapshot original
 
 **Veredito:** PARCIAL  
 **Prioridade:** Crítica
 
-**Evidência:** `businessProfileReviews.ts:246–294` permite avaliação somente por conta pessoal, valida nota de 1–5 e comentário de 10–500 caracteres, e trata duplicidade por índice único. `:297–331` permite exclusão pelo titular e resposta do perfil comercial. `shared/contracts/src/businessProfileReviews.ts:3–10` não possui campos para foto; a revisão lista média, total e distribuição em `businessProfileReviews.ts:22–26`. `businessProfileReviewRoutes.ts:143–185, 187–216, 218–278` registra criação, exclusão e resposta. O catálogo de desenvolvimento consultado no bloco 01 não contém `profiles.business_profile_reviews`, e a documentação já marca as quatro rotas como “banco pendente” (`docs/api/backend/endpoints.md:86–89`).
+**Atualização posterior (31/10/2026):** a migration `profiles/0003_misty_rhodey.sql` foi aplicada no desenvolvimento e o catálogo posterior confirma a tabela e seus objetos. A ausência estrutural descrita abaixo é histórica; as rotas de Reviews não foram chamadas nesta reconciliação.
 
-**Impacto:** A intenção e as regras de aplicação estão estruturadas, mas a API de reviews não pode ser considerada operacional sem a tabela ausente. Não foi chamada nenhuma dessas rotas. Fotos em avaliações não são aceitas pelo contrato atual; o skill de reviews registra comentários/fotos como regra vigente. Também não foi localizada rota de edição, consistente com a regra de apagar e republicar.
+**Evidência original:** `businessProfileReviews.ts:246–294` permite avaliação somente por conta pessoal, valida nota de 1–5 e comentário de 10–500 caracteres, e trata duplicidade por índice único. `:297–331` permite exclusão pelo titular e resposta do perfil comercial. `shared/contracts/src/businessProfileReviews.ts:3–10` não possui campos para foto; a revisão lista média, total e distribuição em `businessProfileReviews.ts:22–26`. `businessProfileReviewRoutes.ts:143–185, 187–216, 218–278` registra criação, exclusão e resposta. O catálogo do bloco 01 não continha `profiles.business_profile_reviews`.
+
+**Impacto atual:** a migration remove o bloqueio estrutural observado, mas a API ainda não foi validada ponta a ponta por esta atualização. Fotos em avaliações não são aceitas pelo contrato atual; o skill de reviews registra comentários/fotos como regra vigente. Também não foi localizada rota de edição, consistente com a regra de apagar e republicar.
 
 ### 04-008 — Privacidade comercial não pode ser validada contra a remoção do Seek
 
@@ -849,14 +857,14 @@ Também foram executadas consultas somente a `information_schema.columns`, `info
 
 **Conclusão:** há separação lógica; não há dez bancos físicos independentes. Isso corresponde à decisão registrada para o estágio de desenvolvimento.
 
-### 05-002 — A migration de reviews existe, mas a tabela não está no banco de desenvolvimento
+### 05-002 — A migration de Reviews existia, mas a tabela faltava no snapshot original
 
 **Veredito:** PARCIAL  
 **Prioridade:** Alta
 
-**Evidência:** `infra/database/src/schema/profiles/businessProfileReviews.ts` define a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a cria. A presença física atual deve ser verificada em `docs/api/backend/queries/development-database-catalog.sql`. O inventário vigente de rotas está em `docs/api/backend/endpoints.md`.
+**Evidência original:** `infra/database/src/schema/profiles/businessProfileReviews.ts` definia a tabela e `infra/database/migrations/profiles/0003_misty_rhodey.sql` a criava, mas ela não aparecia no catálogo daquele snapshot. **Atualização posterior (31/10/2026):** a migration foi aplicada somente no desenvolvimento após autorização expressa; o catálogo posterior confirma a tabela e o ledger atualizado. A ausência estrutural está resolvida; as rotas ainda não foram validadas ponta a ponta nesta reconciliação.
 
-**Conclusão:** a estrutura está preparada em código/migration, mas a persistência não está presente no banco observado. Não determinei o estado do ledger de migrations, pois o prompt restringe a auditoria a metadados e não exige a leitura de conteúdo de ledger.
+**Conclusão original:** a persistência não estava presente no banco observado naquele momento. Esta conclusão foi supersedida pela atualização posterior acima.
 
 ### 05-003 — As FKs entre domínios dependem da mesma instância PostgreSQL
 
@@ -1137,7 +1145,7 @@ Confronto do backend Feed e dos contratos usados pelo cliente: páginas “Para 
 **Veredito:** NÃO VERIFICADO
 **Risco:** Médio — a evidência de indexação é parcial e não cobre o conjunto de formas reais de consulta.
 
-**Evidência:** foram executados apenas planos representativos da busca textual, timeline por autor e prefixo de hashtag. Não foi gerado plano para o feed completo com visibilidade, seguidores/seguindo, listagens de relações ou avaliações. O bloco 05 documenta que `profiles.business_profile_reviews` não existe no catálogo atual.
+**Evidência:** foram executados apenas planos representativos da busca textual, timeline por autor e prefixo de hashtag. Não foi gerado plano para o feed completo com visibilidade, seguidores/seguindo, listagens de relações ou avaliações. O bloco 05 registrou a ausência de Reviews no snapshot original; a tabela foi criada posteriormente por `profiles/0003`, mas a ausência de plano para o fluxo continua.
 
 ## Contagem deste bloco
 
@@ -1201,13 +1209,13 @@ Revisão estática dos fluxos críticos: cadastro, relações, sessões, publica
 
 **Trecho:** a persistência da publicação recebe os IDs staged e executa criação/associação no callback transacional.
 
-### 07-005 — A escrita de avaliações não abre uma transação própria e a tabela falta no banco de desenvolvimento
+### 07-005 — A escrita de avaliações não abre uma transação própria; a tabela faltava no snapshot original
 
 **Afirmação da doc:** `docs/api/backend/endpoints.md:86–89` marca a API de avaliações como implementada em código e banco pendente.  
 **Veredito:** PARCIAL  
 **Risco:** Alto para a funcionalidade — os handlers não podem completar gravação/leitura se a tabela ausente continuar ausente.
 
-**Evidência:** `profiles/infrastructure/businessProfileReviewRepository.ts:168–180` executa `db.insert(businessProfileReviews)` diretamente, sem `db.transaction` ao redor dessa escrita. O bloco 05 verificou no catálogo de desenvolvimento que `profiles.business_profile_reviews` não existe. A constraint única declarada no schema não substitui a validação operacional da tabela.
+**Evidência original:** `profiles/infrastructure/businessProfileReviewRepository.ts:168–180` executa `db.insert(businessProfileReviews)` diretamente, sem `db.transaction` explícito; no snapshot original, a tabela também estava ausente. Atualização posterior: a migration `profiles/0003` foi aplicada no desenvolvimento e o catálogo confirma a tabela. Um único `INSERT` é atômico no PostgreSQL; este ponto não demonstra falha transacional nem substitui testes de rotas/multi-instrução.
 
 **Trecho:** `const [row] = await db.insert(businessProfileReviews).values(...).returning();`.
 
@@ -2334,7 +2342,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 
 1. **Contrato OpenAPI ativo × handlers:** 74 operações no contrato ativo e 76 rotas no servidor, com rotas só no código e divergência de método para posts por conta (`02-003`). O catálogo amplo inclui propostas e não pode ser tratado como handlers (`02-004`).
 2. **Estado de rotas e contrato:** corrigido; `test:api-route-contract` confirma paridade entre Express e OpenAPI. O inventário gerado lista as rotas montadas. Essa paridade não prova persistência ou execução E2E.
-3. **Reviews comerciais:** a API está registrada, mas `profiles.business_profile_reviews` não existe no banco de desenvolvimento; o catálogo de endpoints chama corretamente a persistência de pendente (`02-005`, `05-002`, `04-007`).
+3. **Reviews comerciais:** no snapshot original, a API estava registrada e a tabela física faltava. A migration `profiles/0003` foi aplicada posteriormente em desenvolvimento; o catálogo confirma a tabela. As rotas autenticadas ponta a ponta ainda não foram validadas nesta reconciliação (`02-005`, `05-002`, `04-007`).
 4. **Audiência privada:** a implementação permite leitura por seguidor aprovado; documentos também afirmam “somente titular” (`04-001`, `A2-003`).
 5. **DTO pessoal × campos aprovados:** o DTO público inclui localização, site e data de entrada, além do conjunto informado para perfil pessoal (`04-003`).
 6. **Perfil comercial × informações exigidas:** o DTO e o schema atuais não incluem horário de funcionamento, serviços, comodidades, resumo de avaliações ou link de mapa (`04-005`).
@@ -2356,7 +2364,7 @@ Cada hipótese do prompt tem um achado detalhado próprio nos blocos temáticos.
 | 2 | Alto | Hashes Argon2id sem limite global podem esgotar memória sob concorrência; cada operação usa 65.536 KiB. | `03-018`, `application/passwordHashing.ts:3–12`. |
 | 3 | Crítico | Cliente gerado e API real divergem; alguns handlers estão rotulados como proposta e são acessíveis, e há endpoints ausentes/método divergente. | `02-003`, `02-004`, `02-012`. |
 | 4 | Alto | Resposta pública de perfil pessoal excede os campos aprovados e expõe localização, site e data de entrada. | `04-003`, `profileViewMapper.ts:18–33`. |
-| 5 | Alto | Perfil comercial não apresenta campos funcionais solicitados; rotas de avaliações não têm tabela presente no banco observado. | `04-005`, `04-007`, `05-002`. |
+| 5 | Alto | Perfil comercial não apresenta todos os campos funcionais solicitados; a tabela de Reviews faltava no snapshot da auditoria original e foi aplicada posteriormente em desenvolvimento. | `04-005`, `04-007`, `05-002`; atualização no catálogo de desenvolvimento. |
 | 6 | Alto | Contas não verificadas não têm purga/TTL identificado; dados de identidade podem permanecer reservados indefinidamente. | `03-017`, `emailVerificationRepository.ts:153–163`; ausência de job encontrada por busca estática. |
 | 7 | Alto | Rate limit é por IP e memória local; reinícios zeram os buckets e múltiplas instâncias não compartilham o limite. | `11-002`, `11-003`. |
 | 8 | Alto | Cadeia de proxies pode produzir IP compartilhado ou seleção inadequada; segurança depende de topologia não validada. | `11-005`, `trustedClientIp.ts:16–23` e `forwarded-client-ip.ts:6–11`. |
@@ -2424,7 +2432,7 @@ Este plano é recomendação de sequência, não execução nesta auditoria. Nen
 ### Gate C — Profiles e Social
 
 1. Ajustar a allowlist de campos públicos pessoais e fechar a apresentação comercial com dados realmente pertencentes a Profiles.
-2. Integrar Reviews ao schema aplicado e validar autoria, resposta comercial, exclusão e bloqueios.
+2. Validar as rotas autenticadas de Reviews: autoria, resposta comercial, exclusão e bloqueios; a migration e a estrutura já estão aplicadas em desenvolvimento.
 3. Comprovar por testes a matriz de perfil privado, Círculo, bloqueio, seguir, mídia e referências.
 
 **Aceitação:** endpoints, DTOs e telas exibem somente campos aprovados; regras de privacidade são consistentes em todas as leituras.

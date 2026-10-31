@@ -46,13 +46,15 @@ Revisão estática dos fluxos críticos: cadastro, relações, sessões, publica
 
 **Trecho:** a persistência da publicação recebe os IDs staged e executa criação/associação no callback transacional.
 
-### 07-005 — A escrita de avaliações não abre uma transação própria e a tabela falta no banco de desenvolvimento
+### 07-005 — A escrita de avaliações não abre uma transação própria; a ausência física da tabela era do snapshot original
 
 **Afirmação da doc:** `docs/api/backend/endpoints.md:86–89` marca a API de avaliações como implementada em código e banco pendente.  
 **Veredito:** PARCIAL  
 **Risco:** Alto para a funcionalidade — os handlers não podem completar gravação/leitura se a tabela ausente continuar ausente.
 
-**Evidência:** `profiles/infrastructure/businessProfileReviewRepository.ts:168–180` executa `db.insert(businessProfileReviews)` diretamente, sem `db.transaction` ao redor dessa escrita. O bloco 05 verificou no catálogo de desenvolvimento que `profiles.business_profile_reviews` não existe. A constraint única declarada no schema não substitui a validação operacional da tabela.
+**Atualização posterior (31/10/2026):** a migration `profiles/0003_misty_rhodey.sql` foi aplicada ao banco de desenvolvimento e o catálogo confirma `profiles.business_profile_reviews`; a ausência descrita na auditoria era do snapshot original. A escrita continua não tendo um bloco `db.transaction` explícito, mas este achado não demonstra falha transacional: trata-se de uma única instrução `INSERT`, atomicamente executada pelo PostgreSQL. Fluxos multi-instrução ou o comportamento ponta a ponta não foram testados nesta reconciliação.
+
+**Evidência original:** `profiles/infrastructure/businessProfileReviewRepository.ts:168–180` executa `db.insert(businessProfileReviews).values(...).returning()` diretamente, sem `db.transaction` explícito. A migration da tabela ainda não estava aplicada no snapshot original. A constraint única declarada no schema não substituía a existência física da tabela.
 
 **Trecho:** `const [row] = await db.insert(businessProfileReviews).values(...).returning();`.
 

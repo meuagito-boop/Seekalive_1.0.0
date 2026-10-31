@@ -12,6 +12,10 @@ Consolidação integral da rodada. Os relatórios individuais permanecem como fo
 
 Foram registrados **42 itens**: **34 CONFIRMADOS, 5 PARCIAIS, 2 NÃO VERIFICADOS, 1 NÃO EXECUTADO e 0 CONTRADITOS**. Severidades: **2 altos, 13 médios, 20 baixos e 7 informativos**.
 
+### Atualização posterior — Reviews em Profiles — 31/10/2026
+
+Após autorização posterior para DDL somente no banco de desenvolvimento, `profiles/0003_misty_rhodey.sql` foi aplicada em `heliumdb`. O catálogo confirma `profiles.business_profile_reviews`, e o ledger Profiles registra quatro migrations. O achado R2-06-003 fica resolvido quanto à estrutura física no desenvolvimento; a execução autenticada ponta a ponta das rotas de Reviews não foi validada por essa migration. Os demais achados e contagens abaixo continuam sendo o retrato histórico da rodada original, não uma nova auditoria integral.
+
 ## Status dos blocos
 
 | Bloco | Status | Achados | Resultado resumido |
@@ -117,7 +121,7 @@ Esta rodada adiciona evidência nova, sem repetir as conclusões antigas como se
 | Headers globais de endurecimento não estão definidos no app | PARCIAL | [R2-05-003](R2-05-http-proxy-inputs.md#r2-05-003-headers-globais-de-endurecimento-não-estão-definidos-no-app) |
 | Papel de runtime observado tem privilégios administrativos totais | CONFIRMADO | [R2-06-001](R2-06-papel-banco-migrations.md#r2-06-001-credencial-de-runtime-tem-privilégios-administrativos-totais) |
 | Snapshot Accounts não registra remoção executada por Profiles | CONFIRMADO | [R2-06-002](R2-06-papel-banco-migrations.md#r2-06-002-snapshot-de-accounts-não-registra-a-remoção-executada-pela-trilha-profiles) |
-| Migration local da tabela de avaliações comerciais está pendente | CONFIRMADO | [R2-06-003](R2-06-papel-banco-migrations.md#r2-06-003-tabela-de-avaliações-comerciais-está-prevista-mas-migration-local-não-foi-aplicada) |
+| Migration da tabela de avaliações comerciais | RESOLVIDO estruturalmente em desenvolvimento; rotas não verificadas | [R2-06-003](R2-06-papel-banco-migrations.md#r2-06-003-tabela-de-avaliações-comerciais-está-prevista-mas-migration-local-não-foi-aplicada) |
 | Ledger Seek marca aplicação, mas a tabela está ausente | CONFIRMADO | [R2-06-004](R2-06-papel-banco-migrations.md#r2-06-004-ledger-seek-afirma-aplicação-mas-a-tabela-esperada-não-existe) |
 | Igualdade semântica das constraints não foi comprovada | NÃO VERIFICADO | [R2-06-005](R2-06-papel-banco-migrations.md#r2-06-005-igualdade-semântica-integral-das-constraints-não-foi-verificada) |
 | Paginação de relações pode truncar/instabilizar resultados | CONFIRMADO | [R2-07-001](R2-07-sql-paginacao-planos.md#r2-07-001-paginação-de-relações-pode-truncarinstabilizar-resultados) |
@@ -150,7 +154,7 @@ Os riscos abaixo foram confirmados por código ou metadados da rodada. “Confir
 | 2 | R2-08-001 | Alto | Uma falha de inicialização pode deixar a purga de exclusões sem execução e sem sinal no readiness. |
 | 3 | R2-03-004 | Médio | Após três códigos incorretos, não foi encontrado fluxo de desbloqueio no backend; a recuperação depende de suporte manual fora do fluxo. |
 | 4 | R2-06-002 | Médio | A trilha Profiles altera campos de Accounts sem snapshot/migration correspondente na trilha Accounts. |
-| 5 | R2-06-003 | Médio | O banco de desenvolvimento não contém a tabela de avaliações prevista no quarto SQL local de Profiles. |
+| 5 | R2-06-003 | Médio histórico | A tabela faltava no snapshot da auditoria original; a migration foi aplicada depois no desenvolvimento. Rotas de Reviews ainda não foram verificadas ponta a ponta por essa reconciliação. |
 | 6 | R2-06-004 | Médio | Ledger Seek e catálogo divergem; a trilha ainda não é validada pelo `check`. |
 | 7 | R2-08-002 | Médio | Fora do desenvolvimento, a exclusão com mídia falha se não houver provider de armazenamento compatível. |
 | 8 | R2-08-003 | Médio | Um registro de expurgo com falha repetida impede avançar os demais registros vencidos no lote. |
@@ -817,7 +821,9 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 
 **Seek:** há uma migration e um ledger `seek_migrations` com hash correspondente, mas `seek.business_profiles` está ausente no catálogo. Ao mesmo tempo, `migrationTrackConfig.ts:4-30` não inclui Seek entre as trilhas aceitas e `infra/database/Aplicativo/db check` não verifica Seek. O ledger marca a migration como aplicada enquanto o objeto criado por ela falta; não foi possível determinar somente com esta leitura se a tabela foi removida manualmente, restaurada de estado incompleto ou se o ledger foi criado fora do fluxo atual.
 
-**Limite de comparação:** a verificação compara existência/nome dos índices e constraints e estrutura de colunas, não igualdade semântica integral das expressões SQL de cada índice/check/FK. Não foi usada ferramenta de diff que execute DDL; essa igualdade semântica fica não verificada.
+**Atualização posterior:** a tabela de Reviews ausente neste snapshot foi criada pela migration `profiles/0003_misty_rhodey.sql`, aplicada em desenvolvimento após autorização. O catálogo físico atualizado está em `docs/api/backend/development-database-catalog-2026-10-31.md`; a comparação semântica integral continua não verificada.
+
+**Limite de comparação:** a verificação original comparou existência/nome dos índices e constraints e estrutura de colunas, não igualdade semântica integral das expressões SQL de cada índice/check/FK. Não foi usada ferramenta de diff que execute DDL; essa igualdade semântica permanece não verificada.
 
 ### R2-06-002 — Snapshot de Accounts não registra a remoção executada pela trilha Profiles
 
@@ -829,9 +835,9 @@ O probe comparou os snapshots mais recentes por domínio, tabelas/colunas presen
 ### R2-06-003 — Tabela de avaliações comerciais está prevista, mas migration local não foi aplicada
 
 - **Rodada 1:** novo
-- **Veredito:** CONFIRMADO
-- **Evidência deste snapshot:** o estado de ledger e objetos deve ser confirmado pela consulta de catálogo atual; este documento não é fonte para a presença física de tabelas.
-- **Risco:** Médio — chamadas de API que dependam da persistência de avaliações não podem funcionar corretamente contra o banco de desenvolvimento atual.
+- **Veredito na auditoria original:** CONFIRMADO.
+- **Atualização posterior:** **resolvido estruturalmente em desenvolvimento**. A migration Profiles `0003_misty_rhodey.sql` foi aplicada e o catálogo posterior confirmou a tabela e seus objetos.
+- **Limite restante:** a presença da tabela não comprova o comportamento ponta a ponta das rotas autenticadas de Reviews; essa validação não foi executada nesta reconciliação.
 
 ### R2-06-004 — Ledger Seek afirma aplicação, mas a tabela esperada não existe
 

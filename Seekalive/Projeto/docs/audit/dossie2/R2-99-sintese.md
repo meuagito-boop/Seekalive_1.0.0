@@ -4,6 +4,10 @@
 
 Rodada estática e controlada sobre código, configuração versionada, resultados de comandos autorizados e metadados do banco de desenvolvimento. Não houve alteração de produto, instalação/remoção de dependências, execução de migrations/DDL, escrita em banco, envio de e-mail, chamada HTTP mutável, teste contra produção ou reinício de workflow. Nenhuma linha de dados de aplicação foi consultada.
 
+### Atualização posterior — Reviews em Profiles — 31/10/2026
+
+Após a auditoria, `profiles/0003_misty_rhodey.sql` foi aplicada ao banco de desenvolvimento `heliumdb` mediante autorização expressa de DDL. O catálogo posterior confirma a tabela de Reviews e o ledger com quatro migrations. A pendência estrutural de R2-06-003 foi resolvida; o fluxo HTTP autenticado de Reviews continua não verificado nesta reconciliação. As verificações e os demais achados abaixo são o retrato da rodada original.
+
 O pré-voo obrigatório não liberou suítes: faltam guardas de isolamento. Por isso, verificações estáticas e sintéticas não são apresentadas como testes de integração ou prova de comportamento real em deployment.
 
 ## Resultado consolidado
@@ -48,7 +52,7 @@ Esta rodada adiciona evidência nova, sem repetir as conclusões antigas como se
 | Headers globais de endurecimento não estão definidos no app | PARCIAL | [R2-05-003](R2-05-http-proxy-inputs.md#r2-05-003-headers-globais-de-endurecimento-não-estão-definidos-no-app) |
 | Papel de runtime observado tem privilégios administrativos totais | CONFIRMADO | [R2-06-001](R2-06-papel-banco-migrations.md#r2-06-001-credencial-de-runtime-tem-privilégios-administrativos-totais) |
 | Snapshot Accounts não registra remoção executada por Profiles | CONFIRMADO | [R2-06-002](R2-06-papel-banco-migrations.md#r2-06-002-snapshot-de-accounts-não-registra-a-remoção-executada-pela-trilha-profiles) |
-| Migration local da tabela de avaliações comerciais está pendente | CONFIRMADO | [R2-06-003](R2-06-papel-banco-migrations.md#r2-06-003-tabela-de-avaliações-comerciais-está-prevista-mas-migration-local-não-foi-aplicada) |
+| Migration da tabela de avaliações comerciais | RESOLVIDO estruturalmente em desenvolvimento; rotas não verificadas | [R2-06-003](R2-06-papel-banco-migrations.md#r2-06-003-tabela-de-avaliações-comerciais-está-prevista-mas-migration-local-não-foi-aplicada) |
 | Ledger Seek marca aplicação, mas a tabela está ausente | CONFIRMADO | [R2-06-004](R2-06-papel-banco-migrations.md#r2-06-004-ledger-seek-afirma-aplicação-mas-a-tabela-esperada-não-existe) |
 | Igualdade semântica das constraints não foi comprovada | NÃO VERIFICADO | [R2-06-005](R2-06-papel-banco-migrations.md#r2-06-005-igualdade-semântica-integral-das-constraints-não-foi-verificada) |
 | Paginação de relações pode truncar/instabilizar resultados | CONFIRMADO | [R2-07-001](R2-07-sql-paginacao-planos.md#r2-07-001-paginação-de-relações-pode-truncarinstabilizar-resultados) |
@@ -81,7 +85,7 @@ Os riscos abaixo foram confirmados por código ou metadados da rodada. “Confir
 | 2 | R2-08-001 | Alto | Uma falha de inicialização pode deixar a purga de exclusões sem execução e sem sinal no readiness. |
 | 3 | R2-03-004 | Médio | Após três códigos incorretos, não foi encontrado fluxo de desbloqueio no backend; a recuperação depende de suporte manual fora do fluxo. |
 | 4 | R2-06-002 | Médio | A trilha Profiles altera campos de Accounts sem snapshot/migration correspondente na trilha Accounts. |
-| 5 | R2-06-003 | Médio | O banco de desenvolvimento não contém a tabela de avaliações prevista no quarto SQL local de Profiles. |
+| 5 | R2-06-003 | Médio histórico | A tabela faltava no snapshot original; a migration foi aplicada depois em desenvolvimento. Rotas de Reviews não foram verificadas ponta a ponta nessa reconciliação. |
 | 6 | R2-06-004 | Médio | Ledger Seek e catálogo divergem; a trilha ainda não é validada pelo `check`. |
 | 7 | R2-08-002 | Médio | Fora do desenvolvimento, a exclusão com mídia falha se não houver provider de armazenamento compatível. |
 | 8 | R2-08-003 | Médio | Um registro de expurgo com falha repetida impede avançar os demais registros vencidos no lote. |
