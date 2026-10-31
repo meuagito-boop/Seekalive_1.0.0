@@ -12,8 +12,9 @@ Edição consolidada das fontes Markdown listadas abaixo. Regenere este arquivo 
 - [Auditoria das rotas do Feed](#secao-7) — `feed-route-validation.md`
 - [Rotas montadas](#secao-8) — `routes.generated.md`
 - [Dicionário de dados](#secao-9) — `data-dictionary.md`
-- [Serviços externos e operação](#secao-10) — `external-services-and-operations.md`
-- [Implementação e testes](#secao-11) — `implementation-and-tests.md`
+- [Catálogo físico do banco de desenvolvimento — 31/10/2026](#secao-10) — `development-database-catalog-2026-10-31.md`
+- [Serviços externos e operação](#secao-11) — `external-services-and-operations.md`
+- [Implementação e testes](#secao-12) — `implementation-and-tests.md`
 
 ---
 
@@ -33,7 +34,7 @@ Fonte: [`README.md`](README.md).
 3. Ler `frontend-readiness-audit.md`: resultado da revisão do estado atual e bloqueios antes da integração.
 4. Consultar `frontend-integration.md`: cada página e cada armazenamento temporário que precisam de integração.
 5. Usar `shared/api-spec/openapi.yaml` como fonte de verdade dos contratos HTTP. `endpoints.md` é gerado a partir das rotas Express montadas; `routes.generated.md` inclui método, caminho, segurança declarada, middleware CSRF/rate limit, schemas e respostas. O catálogo de planejamento não normativo fica em `docs/roadmap/seekalive-operation-catalog.*`.
-6. Revisar `data-dictionary.md`, as migrations em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o modelo Drizzle, o journal local, a presença física no banco e o modelo futuro. O `drizzle-kit check` valida somente os arquivos locais; não prova aplicação. **Não executar `push`, `migrate` ou DDL no banco principal sem apresentar antes o diff, impacto, recuperação e obter aprovação explícita para a alteração específica.**
+6. Revisar `data-dictionary.md`, as migrations em `../../infra/database/migrations/` e `schema-core.sql`: distinguir o modelo Drizzle, o journal local, a presença física no banco e o modelo futuro. O `drizzle-kit check` valida somente os arquivos locais; não prova aplicação. O último retrato físico datado está em `development-database-catalog-2026-10-31.md`; a consulta reutilizável permanece em `queries/development-database-catalog.sql`. **Não executar `push`, `migrate` ou DDL no banco principal sem apresentar antes o diff, impacto, recuperação e obter aprovação explícita para a alteração específica.**
 7. Consultar `external-services-and-operations.md`: serviços, links oficiais, configuração, implantação e monitoramento.
 8. Seguir `implementation-and-tests.md`: ordem de implementação, critérios de aceite e funcionalidades futuras.
 
@@ -1055,7 +1056,7 @@ Fonte: [`data-dictionary.md`](data-dictionary.md).
 
 **Registro histórico de 29/10/2026:** a leitura somente de metadados daquele dia não encontrou `feed.posts`; a validação de `0005` foi feita em schemas temporários, sem alteração do schema principal. Esse retrato não representa o estado físico atual.
 
-**Estado físico:** consulte `queries/development-database-catalog.sql` no banco de desenvolvimento. Este dicionário documenta ownership e significado lógico; não fixa contagens nem presume que uma migration esteja aplicada. A coluna `feed.posts.media` armazena referências tipadas para ativos; `feed.post_references` guarda vínculos de uma publicação Social a outra publicação Social. Os binários de teste são locais ao desenvolvimento.
+**Estado físico:** a referência permanente é `queries/development-database-catalog.sql`; o último retrato datado está em [Catálogo físico do banco de desenvolvimento — 31/10/2026](development-database-catalog-2026-10-31.md). Este dicionário documenta ownership e significado lógico; não fixa contagens como estado futuro nem presume que uma migration esteja aplicada. A coluna `feed.posts.media` armazena referências tipadas para ativos; `feed.post_references` guarda vínculos de uma publicação Social a outra publicação Social. Os binários de teste são locais ao desenvolvimento.
 
 ## Sources and boundaries
 
@@ -1095,7 +1096,7 @@ Esta lista representa o modelo no código, não uma afirmação de que todas as 
 | `feed.post_references`          | Até uma publicação Social referenciada por publicação de origem; guarda o UUID original e uma FK anulável que é removida ao excluir o alvo, para deixar a prévia indisponível sem reter metadados do conteúdo apagado.                                             |
 | `media.assets`                  | Metadados de foto/vídeo, titular, publicação, tipo, tamanho, estado e chave de armazenamento local temporário; uploads podem ser anexados por 24 horas e expirados são limpos no próximo upload, sem worker periódico. Binários só são aceitos em desenvolvimento. |
 
-O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; referências no Feed aceitam somente `social_post` nesta etapa e revalidam a leitura do alvo em cada prévia. Referências para Seek, Shop ou eventos permanecem no modelo futuro, sem rotas ativas. A API e a interface de avaliações comerciais estão implementadas em Profiles; **a presença física da tabela no banco de desenvolvimento não foi verificada nesta revisão** e deve ser consultada em `queries/development-database-catalog.sql`. Armazenamento permanente, galeria comercial, campos de avatar/capa, serviços comerciais completos, conversas, mensagens e moderação ainda não têm implementação completa.
+O schema Drizzle atual e seus índices/constraints ficam em `infra/database/src/schema/`. Mídia anexada a publicações já possui armazenamento de desenvolvimento; referências no Feed aceitam somente `social_post` nesta etapa e revalidam a leitura do alvo em cada prévia. Referências para Seek, Shop ou eventos permanecem no modelo futuro, sem rotas ativas. A API e a interface de avaliações comerciais estão implementadas em Profiles; o catálogo de 31/10/2026 **não retornou tabela de avaliações no schema físico `profiles`**. Portanto, persistência física de avaliações não está comprovada neste snapshot e deve ser reconciliada com o modelo Drizzle/migrations antes de afirmar que as avaliações persistem. Armazenamento permanente, galeria comercial, campos de avatar/capa, serviços comerciais completos, conversas, mensagens e moderação ainda não têm implementação completa.
 
 Frontend DTOs use **camelCase**, SQL uses **snake_case**. Serializers, not accidental ORM field exposure, must bridge them:
 
@@ -1267,7 +1268,70 @@ The larger SQL design in `schema-core.sql` remains a reference proposal and was 
 ---
 
 <a id="secao-10"></a>
-## 10. Serviços externos e operação
+## 10. Catálogo físico do banco de desenvolvimento — 31/10/2026
+
+Fonte: [`development-database-catalog-2026-10-31.md`](development-database-catalog-2026-10-31.md).
+
+## Escopo e método
+
+Consulta executada em **31/10/2026**, no ambiente **development**, usando a conexão PostgreSQL de desenvolvimento. O identificador retornado por `current_database()` foi `heliumdb`.
+
+Foi executada a consulta somente leitura [`queries/development-database-catalog.sql`](queries/development-database-catalog.sql). Ela consulta catálogos PostgreSQL para enumerar relações, índices, constraints e ações referenciais. Não consulta linhas de negócio, não executa DDL, `push` ou migrations e não acessa produção.
+
+Este documento é um retrato datado, não uma garantia de estado futuro. Para atualizar o estado, execute novamente a consulta indicada em ambiente de desenvolvimento e registre uma nova data; não substitua a consulta por contagens fixas nos documentos gerais.
+
+## Resumo observado
+
+| Schema | Relações (tabelas) | Índices | Constraints |
+|---|---:|---:|---:|
+| `accounts` | 4 | 10 | 9 |
+| `drizzle` | 6 | 6 | 6 |
+| `feed` | 8 | 20 | 32 |
+| `media` | 1 | 5 | 7 |
+| `profiles` | 5 | 9 | 16 |
+| `security` | 4 | 11 | 9 |
+| **Total** | **28** | **61** | **79** |
+
+As 28 relações retornadas eram tabelas; a consulta não retornou views, views materializadas, tabelas particionadas ou tabelas externas. O schema `drizzle` contém seis tabelas de journal de migrations: `accounts_migrations`, `feed_migrations`, `media_migrations`, `profiles_migrations`, `security_migrations` e `seek_migrations`. Journals não são tabelas de domínio.
+
+### Tabelas observadas por domínio
+
+- `accounts`: `accounts`, `account_emails`, `account_interests`, `account_username_reservations`.
+- `feed`: `posts`, `post_references`, `post_tags`, `post_comments`, `post_likes`, `post_reposts`, `post_bookmarks`, `comment_likes`.
+- `media`: `assets`.
+- `profiles`: `account_profiles`, `business_profiles`, `account_follows`, `account_follow_requests`, `account_blocks`.
+- `security`: `password_credentials`, `auth_challenges`, `sessions`, `trusted_devices`.
+- `drizzle`: os seis journals listados acima.
+
+Nenhuma relação de avaliações comerciais apareceu no schema `profiles` neste snapshot. Isso descreve apenas o catálogo físico consultado; não prova o estado de código, contrato, rotas nem testes do fluxo de avaliações. A ausência deverá ser considerada ao avaliar persistência de avaliações e não pode ser encoberta por documentação do modelo lógico.
+
+## Ações `ON DELETE` das chaves estrangeiras
+
+O catálogo retornou **33 FKs**:
+
+| Schema | `CASCADE` | `SET NULL` | Total de FKs |
+|---|---:|---:|---:|
+| `accounts` | 2 | 1 | 3 |
+| `feed` | 14 | 1 | 15 |
+| `media` | 2 | 0 | 2 |
+| `profiles` | 8 | 0 | 8 |
+| `security` | 4 | 1 | 5 |
+| **Total** | **30** | **3** | **33** |
+
+Não houve ações `RESTRICT`, `SET DEFAULT` ou `NO ACTION` explícitas em FKs neste resultado. `NO ACTION` é o default exibido pelo PostgreSQL para `ON UPDATE` nas relações retornadas, não uma ação de exclusão observada.
+
+## Limites da evidência
+
+- A consulta comprova metadados do banco de desenvolvimento no momento da execução, não conteúdo de dados, integridade em produção ou prontidão funcional de endpoints.
+- Não foram lidas linhas de tabelas de negócio.
+- O resultado não autoriza nem substitui uma migration.
+- A estrutura lógica multi-domínio permanece em um PostgreSQL de desenvolvimento compartilhado; os schemas lógicos observados não significam bancos físicos separados.
+- Os testes HTTP autenticados do Feed continuam sem execução. O fixture de integração disponível cria schema, executa `db push`, grava dados e remove o schema com `DROP SCHEMA ... CASCADE`; essa execução requer autorização específica porque altera o banco de desenvolvimento, ainda que use schema temporário.
+
+---
+
+<a id="secao-11"></a>
+## 11. Serviços externos e operação
 
 Fonte: [`external-services-and-operations.md`](external-services-and-operations.md).
 
@@ -1323,8 +1387,8 @@ Mais referências de plataforma: [Storage e bancos no Replit](https://docs.repli
 
 ---
 
-<a id="secao-11"></a>
-## 11. Implementação e testes
+<a id="secao-12"></a>
+## 12. Implementação e testes
 
 Fonte: [`implementation-and-tests.md`](implementation-and-tests.md).
 

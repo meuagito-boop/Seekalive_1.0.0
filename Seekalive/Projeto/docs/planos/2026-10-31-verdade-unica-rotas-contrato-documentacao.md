@@ -320,9 +320,29 @@ A implementação foi limitada à instrumentação de inventário, contratos ger
 
 Nenhum push, migration, DDL, escrita de banco, consulta de dados de negócio, acesso à produção ou leitura/exposição de segredos ocorreu. A execução de `test:backend` chamou `GET /readyz`, cujo health check executa apenas `SELECT 1` no banco configurado; isso verifica disponibilidade, sem consultar dados de negócio. Não houve mudança de regra de negócio nem atualização de Zod/Orval.
 
-## Pendências registradas
+## Pendências e ações concluídas
 
 | Item | Status | Motivo/bloqueio | Próxima ação | Critério de encerramento |
 |---|---|---|---|---|
 | Fluxos HTTP autenticados e persistência das 11 operações do Feed | Bloqueado pelas restrições deste plano | O único fixture de integração disponível executa `push` e DDL; este plano proíbe ambos. Testes de unidade/aplicação e rejeições sem sessão/CSRF não provam o sucesso HTTP nem a persistência. | Em etapa autorizada para integração, usar banco/schema de teste descartável previamente isolado ou revisar o fixture para não executar DDL implicitamente; executar a suíte sem tocar produção. | As 11 operações passam em chamadas HTTP autenticadas, incluindo autorização por titular, validação/CSRF, persistência, idempotência e exclusões/cascatas pertinentes; a execução demonstra isolamento do banco de desenvolvimento e não usa produção. |
-| Estado físico atual dos schemas e constraints | Não consultado nesta etapa | A documentação agora aponta para uma consulta de catálogo somente leitura e não declara contagens físicas. A consulta não foi executada nesta revisão. | Executar `docs/api/backend/queries/development-database-catalog.sql` em ambiente de desenvolvimento autorizado e atualizar o relatório de estado, preservando ausência de dados de negócio. | Resultado datado identifica o ambiente e lista somente metadados do catálogo; os documentos vigentes não afirmam estado físico sem essa evidência. |
+| Estado físico atual dos schemas e constraints | **Concluído — consulta somente leitura em 31/10/2026** | O banco de desenvolvimento identificado pela consulta como `heliumdb` retornou 28 tabelas, 61 índices, 79 constraints e 33 FKs (30 `CASCADE`, 3 `SET NULL`). Nenhuma linha de negócio foi consultada. | Manter a SQL reutilizável e, quando necessário, gerar novo retrato datado; não transformar estes números em estado permanente. | Resultado datado identifica o ambiente e lista somente metadados do catálogo; documentos gerais apontam para a consulta, não para contagens fixas. Ver [relatório](../api/backend/development-database-catalog-2026-10-31.md). |
+
+## Continuação da execução — consulta de catálogo após solicitação “Faça”
+
+### Mudou
+
+- Executada em `development` a consulta de `docs/api/backend/queries/development-database-catalog.sql`, sem linhas de negócio, DDL, migrations ou escritas.
+- Criado `docs/api/backend/development-database-catalog-2026-10-31.md`, com o retrato observado por schema, totais de objetos, ações de FKs e limites da evidência.
+- `data-dictionary.md` e `README.md` agora apontam para o relatório datado e preservam a consulta SQL como autoridade para futuras verificações.
+- O renderer da documentação inclui o relatório físico como seção separada.
+
+### Evidência
+
+- A consulta retornou o banco `heliumdb`, no ambiente de desenvolvimento: 28 tabelas (22 de domínio e seis journals em `drizzle`), 61 índices, 79 constraints e 33 FKs. As ações de exclusão observadas foram 30 `CASCADE` e três `SET NULL`.
+- O schema `profiles` retornou cinco tabelas: `account_profiles`, `business_profiles`, `account_follows`, `account_follow_requests` e `account_blocks`; não retornou tabela de avaliações.
+- Nenhuma linha de usuário/conteúdo foi lida; somente catálogos PostgreSQL foram consultados.
+
+### Não verificado / bloqueio restante
+
+- A validação HTTP autenticada ponta a ponta das 11 operações do Feed ainda não foi executada. O fixture existente cria schema, executa `db push`, grava dados e remove o schema com `DROP SCHEMA ... CASCADE`.
+- A solicitação “Faça” não autoriza, por si só, a alteração do banco de desenvolvimento por DDL. Para executar essa suíte, é necessária autorização explícita após informar o alvo e o ciclo de criação/limpeza do schema temporário.

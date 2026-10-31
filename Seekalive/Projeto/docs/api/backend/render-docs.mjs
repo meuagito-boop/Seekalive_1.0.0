@@ -17,6 +17,7 @@ const files = [
   "feed-route-validation.md",
   "routes.generated.md",
   "data-dictionary.md",
+  "development-database-catalog-2026-10-31.md",
   "external-services-and-operations.md",
   "implementation-and-tests.md",
 ];
@@ -30,6 +31,7 @@ const sectionTitles = [
   "Auditoria das rotas do Feed",
   "Rotas montadas",
   "Dicionário de dados",
+  "Catálogo físico do banco de desenvolvimento — 31/10/2026",
   "Serviços externos e operação",
   "Implementação e testes",
 ];
@@ -178,7 +180,7 @@ th,td{text-align:left;vertical-align:top;padding:9px 11px;border:1px solid var(-
 hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:640px){header{position:static;padding:20px}main{padding:16px}}
 </style></head><body>
 <header><strong>SEEKALIVE · DOCUMENTAÇÃO TÉCNICA</strong><nav>
-<a href="#README">Visão geral</a><a href="#analysis-of-reference-documents">Análise dos PDFs</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#routes.generated">Rotas montadas</a><a href="#data-dictionary">Dados</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
+<a href="#README">Visão geral</a><a href="#analysis-of-reference-documents">Análise dos PDFs</a><a href="#frontend-readiness-audit">Auditoria frontend</a><a href="#architecture-and-security">Arquitetura</a><a href="#frontend-integration">Telas</a><a href="#endpoints">Endpoints</a><a href="#routes.generated">Rotas montadas</a><a href="#data-dictionary">Dados</a><a href="#development-database-catalog-2026-10-31">Catálogo físico</a><a href="#external-services-and-operations">Serviços</a><a href="#implementation-and-tests">Implementação</a>
 </nav></header><main>${parts.join("\n")}</main></body></html>`;
 const markdown = [
   "# Seekalive — documentação do backend",
