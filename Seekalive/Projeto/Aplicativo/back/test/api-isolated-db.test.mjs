@@ -1929,7 +1929,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(publicReferencePreview.response.status, 200);
   assert.equal(publicReferencePreview.body.type, "social_post");
   assert.equal(publicReferencePreview.body.id, createdPublicPost.body.id);
-  assert.equal(publicReferencePreview.body.authorName, "Conta Isolada");
+  assert.equal(
+    publicReferencePreview.body.authorName,
+    "Conta Revisada Isolada",
+  );
 
   const createdArticleWithReference = await request(
     "/api/v1/social/articles",
@@ -2406,7 +2409,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     .where(eq(feedPostReferences.postId, createdPrivateReferencePost.body.id));
   assert.equal(
     referenceAfterSourceDelete.referenceId,
-    createdPrivatePost.body.reference.id,
+    createdPrivatePost.body.id,
   );
   assert.equal(referenceAfterSourceDelete.referencedPostId, null);
   const referencePublicationAfterSourceDelete = await request(
@@ -2416,10 +2419,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   assert.equal(referencePublicationAfterSourceDelete.response.status, 200);
   assert.deepEqual(referencePublicationAfterSourceDelete.body.reference, {
     type: "social_post",
-    id: createdPrivatePost.body.reference.id,
+    id: createdPrivatePost.body.id,
   });
   const deletedTargetPreview = await request(
-    `/api/v1/social/posts/${createdPrivatePost.body.reference.id}/reference`,
+    `/api/v1/social/posts/${createdPrivatePost.body.id}/reference`,
     { auth: commercial },
   );
   assert.equal(deletedTargetPreview.response.status, 404);

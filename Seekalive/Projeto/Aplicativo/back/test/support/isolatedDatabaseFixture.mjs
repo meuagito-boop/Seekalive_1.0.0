@@ -13,6 +13,7 @@ export const isolatedDatabaseTableNames = Object.freeze([
   "accounts",
   "assets",
   "auth_challenges",
+  "business_profile_reviews",
   "business_profiles",
   "comment_likes",
   "password_credentials",

@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-31  
 **Revisão:** v2, incorporando o aditivo técnico do proprietário.
-**Status:** execução autorizada por instrução posterior do proprietário. Os critérios documentais e de paridade foram concluídos e revistos; as limitações de validação de integração estão registradas como pendências explícitas, sem alegar comportamento não comprovado.
+**Status:** execução autorizada por instrução posterior do proprietário. Os critérios documentais e de paridade foram concluídos; a suíte HTTP integrada passou em schema temporário no desenvolvimento. A divergência física da tabela de Reviews no banco principal permanece identificada, sem aplicação de migration.
 
 Este documento preserva no mesmo arquivo o prompt original do usuário e o plano apresentado pelo agente.
 
@@ -100,7 +100,7 @@ As constatações abaixo vêm de leitura e busca nos arquivos. Elas **não** pro
 | Middlewares Feed | As declarações encontradas aplicam limitadores por operação; as escritas usam `requireCsrf`; as operações consultam o ator por `requiredActorId`. `requireCsrf` verifica origem e token. | Não foram executados testes positivos e negativos de autenticação, autorização, CSRF, rate limit e ordem para cada operação. |
 | Limite de requisições | `createAuthRateLimit` guarda contadores em um `Map` local ao processo e usa nome do limitador e IP confiável como chave. | Não há evidência de coordenação entre processos/instâncias. O plano não alterará esse desenho nem o descreverá como rate limit distribuído; seu alcance será registrado. |
 | Testes existentes | A stack usa `node:test`, `tsx` e `fetch` nativo. `scripts/src/api-runtime.test.mjs` usa servidor local efêmero e cobre health/readiness, 404, rejeição de sessão ausente, rejeição CSRF do onboarding e limites de corpo. Existem testes de Feed para visibilidade, listagem, políticas e injeção de dependências. | Esses testes não demonstram, por si só, os 11 fluxos HTTP autenticados. |
-| Teste HTTP completo existente | `Aplicativo/back/test/api-isolated-db.test.mjs` contém cenários HTTP de Feed e outras áreas, inclusive comentários, curtidas, reposts, permissões e exclusões. | `setupIsolatedDatabaseFixture` cria schema, executa `pnpm --filter @workspace/db run push` e remove o schema com `DROP SCHEMA ... CASCADE`. O teste não será executado sob a proibição explícita de push e DDL. |
+| Teste HTTP completo existente | `Aplicativo/back/test/api-isolated-db.test.mjs` contém cenários HTTP de Feed e outras áreas, inclusive comentários, curtidas, reposts, permissões e exclusões. | Na revisão inicial, estava bloqueado pela proibição de push/DDL. Após autorização posterior, foi executado em schema temporário isolado do banco de desenvolvimento; o resultado final foi 5/5 testes aprovados. |
 | Dependências de teste | Não foram encontrados `supertest` ou Schemathesis nos manifests pesquisados; há `node:test`, `tsx` e `fetch` nativo. | Nenhuma dependência nova está aprovada. Primeiro será avaliado se a stack existente atende; eventual dependência exige justificativa e nova aprovação. |
 | Documentação | `generate-contracts.mjs` mantém um catálogo estático de 146 operações e escreve `openapi.json` e `endpoints.md`. `render-docs.mjs` lê nove documentos Markdown e gera `index.html` e `Seekalive-backend-documentation.md`. | Não foi encontrada, na busca feita, uma verificação automatizada de atualização/determinismo dos artefatos. A ausência precisa ser confirmada na etapa de diagnóstico. |
 | Banco e catálogo | `docs/audit/dossie/05-banco-migrations-integridade.md` contém consulta de `information_schema.tables`; também existem probes de auditoria em `docs/audit/dossie2/experimentos/`. | Não foi localizada em `docs/api/backend` uma consulta reutilizável que identifique ambiente e liste, em conjunto, tabelas, views, índices, constraints, FKs e ações referenciais. Nenhum catálogo atual foi consultado nesta revisão. |
@@ -136,7 +136,7 @@ Não existe um arquivo único que prove todos os aspectos. A autoridade será de
 2. Mapear a cadeia real por operação: middleware global, router, rota, rate limit, CSRF, autenticação, autorização e verificação de propriedade.
 3. Inspecionar a estrutura de runtime do Express 5.3.0 para saber se um inventário consegue enumerar routers aninhados sem depender de APIs privadas instáveis.
 4. Examinar o uso dos clientes gerados no frontend antes de qualquer mudança no OpenAPI, para detectar impacto de codegen.
-5. Confirmar comandos de teste sem efeitos colaterais. Não executar `api-isolated-db.test.mjs`: o fixture executa `push` e DDL.
+5. Confirmar efeitos dos comandos de teste. Na revisão inicial, não executar `api-isolated-db.test.mjs` porque o fixture executa `push` e DDL; a execução posterior somente ocorreu após autorização expressa para schema temporário no banco de desenvolvimento.
 
 **Entrega/gate:** matriz “existe e atende / parcial / não verificado”, lista exata das 11 operações, arquivos afetados e riscos. Se o runtime Express não puder ser inspecionado de modo confiável sem reescrita ou novo mecanismo, parar e apresentar a alternativa antes de implementá-la.
 
@@ -208,7 +208,7 @@ Lista a confirmar pela matriz:
 
 Para cada uma, comprovar entrada válida/inválida, sucesso e DTO, erros, conta sem permissão, recurso inexistente, idempotência/duplicidade quando aplicável e persistência. Reaproveitar a cobertura existente; não duplicar testes que já atendam.
 
-**Limite obrigatório:** o teste HTTP integrado existente cobre vários desses casos, mas seu setup cria schema, executa `db push`, grava dados e remove o schema com `DROP SCHEMA ... CASCADE`. Isso viola a proibição atual de push/DDL. Não será executado nem contornado. Testes sem persistência poderão usar doubles somente para o que realmente comprovarem. Persistência e sucessos autenticados que dependam desse banco permanecerão **não verificados** até existir ambiente de teste previamente provisionado sem DDL ou autorização explícita separada para esse setup. Não declarar ATIVA para uma rota cuja validação obrigatória permaneça bloqueada.
+**Limite obrigatório:** o teste HTTP integrado cria schema temporário, executa `db push`, grava dados de teste e remove o schema com `DROP SCHEMA ... CASCADE`; por isso, a execução ficou bloqueada enquanto não havia autorização. O usuário depois autorizou DDL somente no banco de desenvolvimento para schema isolado, e a suíte passou 5/5 com fingerprint de `public` inalterado e schema removido. Não utilizar essa autorização para schema principal, produção ou outros objetivos sem autorização correspondente. Não declarar ATIVA para uma rota cuja validação individual obrigatória permaneça bloqueada.
 
 ### Etapa 6 — regressão das regras aprovadas
 
@@ -246,7 +246,7 @@ Executar apenas verificações cujo efeito foi inspecionado:
 - Testes HTTP/runtime e regressões sem DDL.
 - `pnpm --filter @workspace/api-spec run codegen`.
 - `pnpm run typecheck`.
-- Suíte de testes sem efeitos de banco, após confirmar seus efeitos; não incluir `test:api-isolated-db`.
+- Suíte de testes sem efeitos de banco, após confirmar seus efeitos; incluir `test:api-isolated-db` somente com autorização expressa para seu DDL temporário, recebida nesta execução.
 - Geração de documentos e teste de determinismo/staleness.
 - Consulta de catálogo somente leitura em desenvolvimento, sem dados de negócio, se disponível.
 
@@ -318,16 +318,17 @@ A implementação foi limitada à instrumentação de inventário, contratos ger
 
 ### Restrições respeitadas
 
-Nenhum push, migration, DDL, escrita de banco, consulta de dados de negócio, acesso à produção ou leitura/exposição de segredos ocorreu. A execução de `test:backend` chamou `GET /readyz`, cujo health check executa apenas `SELECT 1` no banco configurado; isso verifica disponibilidade, sem consultar dados de negócio. Não houve mudança de regra de negócio nem atualização de Zod/Orval.
+No escopo inicial não houve push, migration, DDL ou escrita. Após autorização expressa posterior, a suíte integrada executou `db push`, DDL e escritas somente em schema temporário do banco de desenvolvimento; validou que `public` permaneceu inalterado e removeu o schema. Não houve acesso à produção, consulta a linhas de negócio nem leitura/exposição de segredos. A execução de `test:backend` chamou `GET /readyz`, cujo health check executa apenas `SELECT 1`. Não houve mudança de regra de negócio nem atualização de Zod/Orval.
 
 ## Pendências e ações concluídas
 
 | Item | Status | Motivo/bloqueio | Próxima ação | Critério de encerramento |
 |---|---|---|---|---|
-| Fluxos HTTP autenticados e persistência das 11 operações do Feed | **Autorizados para desenvolvimento; bloqueados por variáveis ausentes no processo de teste** | O usuário autorizou DDL no banco de desenvolvimento. A tentativa da suíte parou antes de conectar porque `DATABASE_URL` e `SEEKALIVE_EXPECTED_DATABASE` não estavam no processo; nenhum schema foi criado, nenhum `push`/DDL foi executado e não houve escrita. A presença da variável runtime-managed `DATABASE_URL` foi confirmada sem ler seu valor, mas ela não é injetada no processo usado por `ShellExec`. | Executar a suíte em um contexto de desenvolvimento que injete a conexão runtime-managed e defina `SEEKALIVE_EXPECTED_DATABASE=heliumdb`, sem ler ou copiar o valor do segredo; preservar os guardrails do fixture. | As 11 operações passam em chamadas HTTP autenticadas, incluindo autorização por titular, validação/CSRF, persistência, idempotência e exclusões/cascatas pertinentes; o fixture comprova isolamento do schema e ausência de alteração em `public`; nenhuma conexão de produção é usada. |
+| Fluxos HTTP autenticados e persistência das 11 operações do Feed | **Concluído em desenvolvimento — 5/5 testes passaram** | O runner seguro do `CodeExecution.shellExec` recebeu o segredo runtime-managed sem exibir seu valor. A suíte exercitou os fluxos autenticados em schema temporário; o fixture comparou fingerprint de `public`, removeu o schema e o catálogo posterior confirmou zero schemas `seekalive_test_%` remanescentes. | Nenhuma ação adicional para este item; preservar o relatório de evidências e repetir em novo ambiente isolado quando houver mudanças relevantes. | 5/5 testes passam; os 11 endpoints têm casos HTTP autenticados e de persistência conforme a cobertura existente; nenhuma conexão de produção é usada. Ver [matriz](../api/backend/feed-route-validation.md). |
 | Estado físico atual dos schemas e constraints | **Concluído — consulta somente leitura em 31/10/2026** | O banco de desenvolvimento identificado pela consulta como `heliumdb` retornou 28 tabelas, 61 índices, 79 constraints e 33 FKs (30 `CASCADE`, 3 `SET NULL`). Nenhuma linha de negócio foi consultada. | Manter a SQL reutilizável e, quando necessário, gerar novo retrato datado; não transformar estes números em estado permanente. | Resultado datado identifica o ambiente e lista somente metadados do catálogo; documentos gerais apontam para a consulta, não para contagens fixas. Ver [relatório](../api/backend/development-database-catalog-2026-10-31.md). |
+| Persistência física de avaliações de Profiles | **Inconsistência identificada; reconciliação do track principal pendente** | O catálogo de `heliumdb` não tinha `business_profile_reviews` na consulta original. O modelo Drizzle atual inclui essa tabela, e o `db push` temporário a criou no schema isolado. O schema público não foi alterado e nenhuma migration foi aplicada ao banco principal. | Comparar o schema, as migrations e o journal do track Profiles para determinar se a tabela está pendente de migration ou se há divergência de track; só então propor a correção mínima. | A tabela e seu histórico ficam reconciliados entre schema Drizzle, migration/journal e banco de desenvolvimento, com documentação e testes coerentes. |
 
-## Continuação da execução — consulta de catálogo após solicitação “Faça”
+## Continuação da execução — consulta de catálogo e validação integrada
 
 ### Mudou
 
@@ -335,14 +336,21 @@ Nenhum push, migration, DDL, escrita de banco, consulta de dados de negócio, ac
 - Criado `docs/api/backend/development-database-catalog-2026-10-31.md`, com o retrato observado por schema, totais de objetos, ações de FKs e limites da evidência.
 - `data-dictionary.md` e `README.md` agora apontam para o relatório datado e preservam a consulta SQL como autoridade para futuras verificações.
 - O renderer da documentação inclui o relatório físico como seção separada.
+- O fixture isolado agora inclui `business_profile_reviews` no inventário esperado, em acordo com o schema Drizzle que o `db push` cria dentro do schema temporário.
+- Duas expectativas obsoletas no teste foram atualizadas para refletir o nome vigente do perfil após alteração e o ID direto da publicação de referência; nenhuma regra ou handler de produção foi alterado.
+- `feed-route-validation.md` foi atualizado com o resultado HTTP autenticado e persistido das 11 operações destacadas.
 
 ### Evidência
 
 - A consulta retornou o banco `heliumdb`, no ambiente de desenvolvimento: 28 tabelas (22 de domínio e seis journals em `drizzle`), 61 índices, 79 constraints e 33 FKs. As ações de exclusão observadas foram 30 `CASCADE` e três `SET NULL`.
 - O schema `profiles` retornou cinco tabelas: `account_profiles`, `business_profiles`, `account_follows`, `account_follow_requests` e `account_blocks`; não retornou tabela de avaliações.
 - Nenhuma linha de usuário/conteúdo foi lida; somente catálogos PostgreSQL foram consultados.
+- `SEEKALIVE_ALLOW_TEMP_SCHEMA_TESTS=1 SEEKALIVE_EXPECTED_DATABASE=heliumdb pnpm --filter @workspace/scripts run test:api-isolated-db`, executado por `CodeExecution.shellExec`: **5 testes passaram, 0 falhas**.
+- O fixture comprovou que `public` não mudou e que o schema temporário foi removido. Uma consulta de catálogo posterior retornou `remaining_test_schemas = 0`.
+- A primeira execução integrada identificou uma tabela ausente no inventário esperado do fixture e duas expectativas de teste obsoletas. As correções foram limitadas a testes/fixture; a execução final passou integralmente.
+- A tentativa de alterar temporariamente o workflow gerenciado da API foi rejeitada pela plataforma; sua configuração permaneceu inalterada e ele continuou ativo.
 
 ### Não verificado / bloqueio restante
 
-- A validação HTTP autenticada ponta a ponta das 11 operações do Feed ainda não foi executada. O fixture existente cria schema, executa `db push`, grava dados e remove o schema com `DROP SCHEMA ... CASCADE`.
-- A solicitação “Faça” não autoriza, por si só, a alteração do banco de desenvolvimento por DDL. Para executar essa suíte, é necessária autorização explícita após informar o alvo e o ciclo de criação/limpeza do schema temporário.
+- O catálogo do banco principal de desenvolvimento não continha `business_profile_reviews`, embora o schema Drizzle e o schema temporário de teste contenham essa tabela. Nenhuma migration foi aplicada ao banco principal; a divergência precisa ser reconciliada no track Profiles antes de declarar a persistência física alinhada.
+- Não foi feita validação em produção, que permanece fora do escopo deste projeto em desenvolvimento.
