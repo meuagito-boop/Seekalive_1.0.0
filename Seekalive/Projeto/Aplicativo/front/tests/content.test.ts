@@ -938,6 +938,16 @@ test("privacidade distingue aprovados, Círculo, público e dono", () => {
       true,
       true,
     ),
+    true,
+  );
+  assert.equal(
+    canReadPost(
+      { ...post, audience: "private" },
+      "visitante",
+      true,
+      false,
+      true,
+    ),
     false,
   );
 });

@@ -24,12 +24,12 @@ O backend foi iniciado. O próximo trabalho de frontend é consumir somente os e
 |---|---|---|
 | Rotas e navegação | Páginas para cadastro, login, onboarding, Social, perfis, Seek, Shop e configurações; guard do cliente complementa a autorização independente da API | Parcial |
 | Identidade e sessão | Login, cadastro, sessão, CSRF, confirmação de e-mail, onboarding, recuperação, troca de senha, sessões e instalações confiáveis chamam a API | Falta E2E no navegador; metadados de 29/10/2026 confirmam as tabelas necessárias no banco de desenvolvimento |
-| Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados; idade é coletada no cadastro, permanece somente no servidor para a regra de 18+ e nunca é retornada após a criação; e-mail é somente para o titular. `/profile/edit` e conteúdo do perfil público ainda não estão ligados a essa edição | Parcial; falta E2E autenticado e integração das páginas públicas |
-| Publicações e comentários | `SocialContext` com reducer; `contentService` usa `demoContentAdapter`; adaptador REST não está ativo | Bloqueador |
-| Fotos e vídeos | Prévia usa URL `blob:` do navegador; não há upload, ID de mídia ou persistência remota | Bloqueador |
+| Contas e perfis | Configurações > Conta usa `/v1/accounts/me` em sessões reais, com campos pessoais/comerciais separados; idade é coletada no cadastro, permanece somente no servidor para a regra de 18+ e nunca é retornada após a criação; e-mail é somente para o titular. Perfis remotos já carregam publicações/artigos pela API; a inspeção visual autenticada não foi executada | Parcial; falta E2E visual e continuam fora os campos comerciais ainda não suportados pelo contrato |
+| Publicações e comentários | A prévia permanece local. Em sessão remota, perfil carrega publicações/artigos paginados e as ações de curtir, comentar/responder, repostar e salvar usam a API; o Feed global e sua jornada completa ainda não foram verificados nesta etapa | Parcial |
+| Fotos e vídeos | Upload autenticado, IDs de mídia e associação às publicações funcionam no desenvolvimento com arquivos locais; isso não fornece armazenamento permanente de produção | Desenvolvimento funcional; produção não pronta |
 | Galeria | Fotos/vídeos de publicações alimentam a galeria. O perfil comercial também combina fotos/vídeos independentes do objeto comercial; precisa de uma regra única sem duplicar arquivos nem contornar audiência | Parcial |
-| Relacionamentos e Círculo | API persiste seguimentos, pedidos privados e Círculo derivado; telas ainda usam estado local | Regra no backend; falta integração de telas |
-| Privacidade e bloqueio | A tela Privacidade usa GET/PUT da API na sessão real; o estado de bloqueio usa o SocialContext remoto. O servidor aplica o bloqueio, remove follows/pedidos em transação e permite desbloqueio só pelo iniciador | Parcial; posts/mensagens ainda precisam de ACL quando tiverem API |
+| Relacionamentos e Círculo | API persiste seguimentos, pedidos privados e Círculo derivado; sessões remotas usam a API para visualizar e alterar relações | Integrado em sessão remota; falta E2E visual |
+| Privacidade e bloqueio | A tela Privacidade e ações de bloqueio usam a API em sessões remotas. O servidor remove follows/pedidos em transação, permite desbloqueio só pelo iniciador e aplica visibilidade a posts/mídias | Integrado para perfis, posts e mídias; Mensagens ainda não tem API |
 | Mensagens e notificações | Conteúdo local/demonstrativo; leituras e preferências ficam separadas por conta neste navegador. Não há API, entrega ou sincronização entre aparelhos | Bloqueador |
 | Seek | Negócios derivados de contas comerciais; cidade baseada no catálogo IBGE; filtros e salvos separados por conta no navegador. Não há busca/avaliações/eventos reais no servidor | Parcial |
 | Avaliações | Registros locais; interface exige nota 1–5, comentário de 10–500 caracteres e resposta de 3–500 | Parcial |
@@ -88,11 +88,11 @@ O login aceita senhas antigas de 8–128 caracteres para poder verificá-las; a 
 
 - `canReadPost` e filtros de tela são úteis para UX, mas não protegem dados. Feed, busca, perfil, comentário, notificações, mensagens, referência e arquivo precisam da mesma autorização no servidor.
 - Em perfil público, seguir é imediato. Em perfil privado, a API cria solicitação pendente; somente o dono pode aceitar ou recusar. Pedido pendente não conta como seguidor e não libera conteúdo.
-- Após a aprovação, o seguidor vê publicações com audiência pública do perfil privado. Publicações destinadas ao Círculo continuam exigindo seguimento aceito nos dois sentidos. A regra de Círculo permanece derivada: A segue B e B segue A; a remoção de qualquer seguimento encerra o Círculo.
+- Após a aprovação, o seguidor vê publicações com audiência `public` e `private` do perfil privado. Publicações destinadas ao Círculo continuam exigindo seguimento aceito nos dois sentidos. A regra de Círculo permanece derivada: A segue B e B segue A; a remoção de qualquer seguimento encerra o Círculo.
 - A API de bloqueio remove seguimentos e pedidos nos dois sentidos em transação, oculta a conta e permite desbloqueio apenas pelo iniciador. Ao desbloquear, os vínculos não voltam automaticamente. As telas ainda não consomem esses endpoints.
 - Mensagens antigas ainda não têm API; portanto, ocultação/restauração durante bloqueio permanece pendente para o futuro domínio de mensagens. A API já persiste preferência de mensagens e confirmações de leitura, mas a tela ainda não a consome.
 
-**Regra de backend concluída para perfil e relações:** os endpoints ativos foram verificados com sessões autenticadas temporárias no banco de desenvolvimento. Falta ligar a interface e aplicar a mesma autorização a posts, mídia, mensagens e demais domínios quando forem implementados.
+**Regra de backend concluída para perfil, posts e mídias:** os endpoints ativos foram verificados com sessões autenticadas temporárias no banco de desenvolvimento. As telas de perfil e relações consomem esses endpoints em sessões remotas; mensagens ainda não têm API e deverão aplicar a regra de bloqueio quando forem construídas.
 
 ### P1 — Mídias não são uploads e a galeria tem duas fontes
 

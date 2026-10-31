@@ -1693,7 +1693,10 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   });
   assert.equal(unsupportedMediaPost.response.status, 422);
-  assert.equal(unsupportedMediaPost.body.error.key, "CONTENT_MEDIA_NOT_READY");
+  assert.equal(
+    unsupportedMediaPost.body.error.key,
+    "CONTENT_VALIDATION_FAILED",
+  );
 
   const deniedPendingPost = await request(
     `/api/v1/social/posts/${createdPublicPost.body.id}`,
@@ -1795,6 +1798,7 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
     },
   );
   assert.equal(profileAfterApproval.response.status, 200);
+  assert.equal(profileAfterApproval.body.account.stats.posts, 4);
   assert.equal(profileAfterApproval.body.visibility.canViewPublicContent, true);
   assert.equal(
     profileAfterApproval.body.visibility.canViewCircleContent,
@@ -1815,13 +1819,27 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
       (post) => post.id === createdCirclePost.body.id,
     ),
   );
-  const deniedPrivatePost = await request(
+  const approvedFollowerPrivatePost = await request(
     `/api/v1/social/posts/${createdPrivatePost.body.id}`,
     {
       auth: commercial,
     },
   );
-  assert.equal(deniedPrivatePost.response.status, 404);
+  assert.equal(approvedFollowerPrivatePost.response.status, 200);
+  const approvedFollowerProfilePosts = await request(
+    `/api/v1/social/accounts/${personal.account.id}/posts?format=all`,
+    { auth: commercial },
+  );
+  assert.ok(
+    approvedFollowerProfilePosts.body.items.some(
+      (post) => post.id === createdPrivatePost.body.id,
+    ),
+  );
+  assert.ok(
+    !approvedFollowerProfilePosts.body.items.some(
+      (post) => post.id === createdCirclePost.body.id,
+    ),
+  );
 
   const reciprocalFollow = await request(
     `/api/v1/social/accounts/${commercial.account.id}/follow`,
@@ -1886,13 +1904,9 @@ test("registration, verification, onboarding, privacy, mutual circle and block r
   );
   assert.equal(anonymousFeed.response.status, 200);
   assert(
-    anonymousFeed.body.items.some(
-      (item) => item.post.id === createdPublicPost.body.id,
-    ),
-  );
-  assert(
     !anonymousFeed.body.items.some(
       (item) =>
+        item.post.id === createdPublicPost.body.id ||
         item.post.id === createdCirclePost.body.id ||
         item.post.id === createdPrivatePost.body.id,
     ),

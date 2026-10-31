@@ -33,8 +33,18 @@ test("approved followers can read public content, but Circle remains mutual", ()
     isPrivate: true,
     relationship: { ...baseAuthor.relationship, following: "accepted" },
   };
-  assert.equal(canReadPost({ authorId, audience: "public" }, viewerId, approvedFollower), true);
-  assert.equal(canReadPost({ authorId, audience: "circles" }, viewerId, approvedFollower), false);
+  assert.equal(
+    canReadPost({ authorId, audience: "public" }, viewerId, approvedFollower),
+    true,
+  );
+  assert.equal(
+    canReadPost({ authorId, audience: "private" }, viewerId, approvedFollower),
+    true,
+  );
+  assert.equal(
+    canReadPost({ authorId, audience: "circles" }, viewerId, approvedFollower),
+    false,
+  );
 
   const mutualFollower = {
     ...approvedFollower,
@@ -43,7 +53,7 @@ test("approved followers can read public content, but Circle remains mutual", ()
   assert.equal(canReadPost({ authorId, audience: "circles" }, viewerId, mutualFollower), true);
 });
 
-test("private-audience posts are owner-only and blocks hide all post audiences", () => {
+test("private-audience posts on public profiles stay owner-only and blocks hide all post audiences", () => {
   const privatePost = { authorId, audience: "private" };
   assert.equal(canReadPost(privatePost, authorId, baseAuthor), true);
   assert.equal(canReadPost(privatePost, viewerId, baseAuthor), false);

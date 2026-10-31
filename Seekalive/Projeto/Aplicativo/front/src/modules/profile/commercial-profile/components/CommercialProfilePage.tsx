@@ -54,10 +54,14 @@ export function CommercialProfilePage({
   circleCount,
   user,
   isMe,
+  contentLoading,
+  contentError,
 }: {
   circleCount: number;
   user: User;
   isMe: boolean;
+  contentLoading: boolean;
+  contentError: string | null;
 }) {
   const { currentUser } = useAppContext();
   const { posts, remotePosts, reviews, repostEntries, getUserById, toggleFollow, blockUser } = useSocial();
@@ -403,6 +407,8 @@ export function CommercialProfilePage({
           {activeTab === "Artigos" && (
             <CommercialProfileContent
               articles={userArticles}
+              contentError={contentError}
+              contentLoading={contentLoading}
               profile={user}
               tab="Artigos"
               timeline={timeline}
@@ -415,6 +421,8 @@ export function CommercialProfilePage({
           {activeTab === "Publicações" && (
             <CommercialProfileContent
               articles={userArticles}
+              contentError={contentError}
+              contentLoading={contentLoading}
               profile={user}
               tab="Publicações"
               timeline={timeline}

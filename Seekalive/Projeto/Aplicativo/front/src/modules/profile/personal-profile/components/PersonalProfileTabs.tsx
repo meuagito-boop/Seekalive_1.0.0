@@ -18,6 +18,8 @@ const tabs = [
 
 type PersonalProfileTabsProps = {
   activeTab: number;
+  contentError: string | null;
+  contentLoading: boolean;
   isMe: boolean;
   likedPosts: Post[];
   media: ProfileMedia[];
@@ -32,6 +34,8 @@ type PersonalProfileTabsProps = {
 
 export function PersonalProfileTabs({
   activeTab,
+  contentError,
+  contentLoading,
   isMe,
   likedPosts,
   media,
@@ -43,6 +47,12 @@ export function PersonalProfileTabs({
   userArticles,
   userComments,
 }: PersonalProfileTabsProps) {
+  const contentStatusRole = contentLoading
+    ? "status"
+    : contentError
+      ? "alert"
+      : undefined;
+
   return (
     <>
       <div
@@ -86,7 +96,13 @@ export function PersonalProfileTabs({
           {activeTab === 0 &&
             (timeline.length === 0 ? (
               <div className="flex flex-col items-center py-16 text-muted-foreground">
-                <p className="text-sm font-medium">Nenhuma publicação ainda.</p>
+                <p className="text-sm font-medium" role={contentStatusRole}>
+                  {contentLoading
+                    ? "Carregando publicações…"
+                    : contentError
+                      ? "Não foi possível carregar as publicações."
+                      : "Nenhuma publicação ainda."}
+                </p>
               </div>
             ) : (
               timeline.map((item) => (
@@ -154,8 +170,12 @@ export function PersonalProfileTabs({
           {activeTab === 2 &&
             (media.length === 0 ? (
               <div className="flex flex-col items-center py-16 text-muted-foreground">
-                <p className="text-sm font-medium">
-                  Nenhuma mídia nesta conta ainda.
+                <p className="text-sm font-medium" role={contentStatusRole}>
+                  {contentLoading
+                    ? "Carregando mídias…"
+                    : contentError
+                      ? "Não foi possível carregar as mídias."
+                      : "Nenhuma mídia nesta conta ainda."}
                 </p>
               </div>
             ) : (
@@ -218,7 +238,13 @@ export function PersonalProfileTabs({
           {activeTab === 4 &&
             (userArticles.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-                <p className="text-sm">Nenhum artigo ainda.</p>
+                <p className="text-sm" role={contentStatusRole}>
+                  {contentLoading
+                    ? "Carregando artigos…"
+                    : contentError
+                      ? "Não foi possível carregar os artigos."
+                      : "Nenhum artigo ainda."}
+                </p>
                 {isMe && (
                   <Link
                     href="/article/create"

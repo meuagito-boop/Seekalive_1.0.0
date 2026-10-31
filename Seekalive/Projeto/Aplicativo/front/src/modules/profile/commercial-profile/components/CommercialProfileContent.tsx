@@ -5,6 +5,8 @@ import type { ProfileTimelineEntry } from "@/modules/profile/utils/profileTimeli
 
 type CommercialProfileContentProps = {
   articles: Post[];
+  contentError: string | null;
+  contentLoading: boolean;
   profile: User;
   tab: "Publicações" | "Artigos";
   timeline: ProfileTimelineEntry<Post>[];
@@ -12,18 +14,34 @@ type CommercialProfileContentProps = {
 
 export function CommercialProfileContent({
   articles,
+  contentError,
+  contentLoading,
   profile,
   tab,
   timeline,
 }: CommercialProfileContentProps) {
   const isArticles = tab === "Artigos";
+  const hasContent = isArticles ? articles.length > 0 : timeline.length > 0;
 
   return (
     <section className="mx-auto max-w-2xl">
       <h2 className="mb-4 text-xl font-bold">
         {isArticles ? "Artigos" : "Publicações"} de {profile.displayName}
       </h2>
-      {isArticles ? (
+      {!hasContent && contentLoading ? (
+        <p
+          className="py-12 text-center text-sm text-muted-foreground"
+          role="status"
+        >
+          {isArticles ? "Carregando artigos…" : "Carregando publicações…"}
+        </p>
+      ) : !hasContent && contentError ? (
+        <p className="py-12 text-center text-sm text-destructive" role="alert">
+          {isArticles
+            ? "Não foi possível carregar os artigos."
+            : "Não foi possível carregar as publicações."}
+        </p>
+      ) : isArticles ? (
         articles.length ? (
           articles.map((post) => <PostCard key={post.id} post={post} />)
         ) : (

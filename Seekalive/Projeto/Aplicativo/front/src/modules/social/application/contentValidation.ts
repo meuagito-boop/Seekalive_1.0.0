@@ -58,7 +58,9 @@ export function canReadPost(
 ) {
   if (post.authorId === viewerId) return true;
   if (authorIsPrivate && !approvedFollower) return false;
-  return post.audience === "public" || (post.audience === "circles" && circleMember);
+  if (post.audience === "public") return true;
+  if (post.audience === "circles") return circleMember;
+  return post.audience === "private" && authorIsPrivate && approvedFollower;
 }
 
 export function makeDemoPost(input: PublishPostInput): Post {

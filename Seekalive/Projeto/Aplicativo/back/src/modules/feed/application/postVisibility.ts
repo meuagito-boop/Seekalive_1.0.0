@@ -29,5 +29,9 @@ export function canReadPost(
     return false;
   if (post.audience === "public") return true;
   if (post.audience === "circles") return author.relationship.inCircle;
-  return false;
+  return (
+    post.audience === "private" &&
+    author.isPrivate &&
+    author.relationship.following === "accepted"
+  );
 }

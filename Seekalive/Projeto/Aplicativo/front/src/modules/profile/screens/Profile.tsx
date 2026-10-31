@@ -16,11 +16,14 @@ import { useToast } from "@/hooks/use-toast";
 export default function Profile() {
   const params = useParams<{ username: string }>();
   const [, setLocation] = useLocation();
+  const { currentUser: signedInUser, isDevelopmentPreview } = useAppContext();
   const [activeTab, setActiveTab] = useState(0);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [profileRetry, setProfileRetry] = useState(0);
-  const [profileContentLoading, setProfileContentLoading] = useState(false);
+  const [profileContentLoading, setProfileContentLoading] = useState(
+    Boolean(signedInUser && !isDevelopmentPreview),
+  );
   const [profileContentCursor, setProfileContentCursor] = useState<string | null>(null);
   const [profileContentError, setProfileContentError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -37,7 +40,6 @@ export default function Profile() {
     loadRemoteProfile,
     loadRemoteProfileContent,
   } = useSocial();
-  const { currentUser: signedInUser, isDevelopmentPreview } = useAppContext();
   const viewer = signedInUser;
   const username = params.username;
   const isMe = !!viewer && (username === viewer.username || !username);
@@ -75,7 +77,13 @@ export default function Profile() {
 
   const contentAccountId = isMe ? viewer?.id : remoteUser?.id;
   useEffect(() => {
-    if (!isRemoteSocialSession || !contentAccountId) return;
+    if (!isRemoteSocialSession) {
+      setProfileContentLoading(false);
+      setProfileContentCursor(null);
+      setProfileContentError(null);
+      return;
+    }
+    if (!contentAccountId) return;
     let active = true;
     setProfileContentLoading(true);
     setProfileContentError(null);
@@ -173,7 +181,21 @@ export default function Profile() {
 
   const moreContentControl = isRemoteSocialSession ? (
     <div className="mx-auto flex max-w-xl flex-col items-center gap-2 px-4 py-4">
-      {profileContentError && <p className="text-sm text-destructive" role="alert">{profileContentError}</p>}
+      {profileContentError && (
+        <p className="text-sm text-destructive" role="alert">
+          {profileContentError}
+        </p>
+      )}
+      {profileContentError && !profileContentCursor && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={profileContentLoading}
+          onClick={() => setProfileRetry((value) => value + 1)}
+        >
+          Tentar novamente
+        </Button>
+      )}
       {profileContentCursor && (
         <Button
           type="button"
@@ -181,7 +203,11 @@ export default function Profile() {
           onClick={() => void loadMoreProfileContent()}
           disabled={profileContentLoading}
         >
-          {profileContentLoading ? "Carregando…" : "Carregar mais publicações"}
+          {profileContentLoading
+            ? "Carregando…"
+            : profileContentError
+              ? "Tentar carregar mais"
+              : "Carregar mais publicações"}
         </Button>
       )}
     </div>
@@ -285,6 +311,8 @@ export default function Profile() {
           circleCount={circleCount}
           user={user}
           isMe={isMe}
+          contentLoading={profileContentLoading}
+          contentError={profileContentError}
         />
         {moreContentControl}
       </>
@@ -308,11 +336,17 @@ export default function Profile() {
         onCopyProfileLink={handleCopyProfileLink}
         onFollow={handleFollow}
         profile={user}
-        publicationCount={timeline.length}
+        publicationCount={
+          isRemoteSocialSession
+            ? user.stats.posts
+            : profilePosts.filter((post) => post.authorId === user.id).length
+        }
       />
 
       <PersonalProfileTabs
         activeTab={activeTab}
+        contentError={profileContentError}
+        contentLoading={profileContentLoading}
         isMe={isMe}
         likedPosts={likedPosts}
         media={userMedia}

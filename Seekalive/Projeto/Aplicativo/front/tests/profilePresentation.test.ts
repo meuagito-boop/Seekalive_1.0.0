@@ -40,7 +40,7 @@ test("profile media uses the same private-account and audience rules as post rea
   );
   assert.deepEqual(
     getProfileMedia(posts, "merchant", false, true, true, true).map((media) => media.id),
-    ["public-0", "circle-0"],
+    ["public-0", "circle-0", "private-0"],
   );
   assert.deepEqual(
     getProfileMedia(posts, "merchant", true, false, true, false).map((media) => media.id),
